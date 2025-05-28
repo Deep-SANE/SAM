@@ -1,6 +1,4 @@
-ifdef BOOST_ROOT
-CXXFLAGS += -I$(BOOST_ROOT)/include
-endif
+include config.mk
 
 export
 
