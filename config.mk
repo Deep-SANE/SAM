@@ -56,6 +56,11 @@ endif
 endif
 
 # linking options:
+ifdef SAM_DIR
+LDFLAGS += -L$(SAM_DIR)/src 
+endif
+LDFLAGS += -lsam
+
 ifdef WIGXJPF_DIR
 LDFLAGS += -L$(WIGXJPF_DIR)/lib 
 endif

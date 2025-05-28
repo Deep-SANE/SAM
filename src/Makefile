@@ -1,17 +1,15 @@
-BIN = ../bin
-
-SRCS = $(wildcard *.cpp)
-PRGS = $(addprefix $(BIN)/,$(basename $(SRCS)))
+OBJS = $(patsubst %.cpp, %.o, $(wildcard *.cpp))
+LIB = libsam.a
 
 .PHONY: all
-all: $(PRGS)
+all: $(LIB)
 
-$(BIN)/%: %.cpp | $(BIN)
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
+$(LIB): $(OBJS)
+	$(AR) rcs $@ $^
 
-$(BIN):
-	mkdir -p $@
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -I../include -c $< -o $@
 
 .PHONY: clean
 clean:
-	rm -rf $(PRGS)
+	rm -f *.o *.a
