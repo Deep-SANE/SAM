@@ -1,4 +1,7 @@
+#pragma once
+
 #include <boost/dynamic_bitset.hpp>
+#include <cstddef>
 #include <iostream>
 #include <stdexcept>
 
@@ -34,83 +37,39 @@ namespace UNxU4
   {
   private:
     boost::dynamic_bitset<> bits;
-    std::size_t N;
-    std::size_t index(std::size_t r, std::size_t c) const { return r * N + c; }
+    std::size_t N; // shell degeneracy
 
+    std::size_t index(std::size_t r, std::size_t c) const;
+    void check_index(std::size_t r, std::size_t c) const;
+      
   public:
-    SlaterDeterminant(std::size_t n) : bits(2 * (n + 1) * (n + 2))
-    {
-      N = (n + 1) * (n + 2) / 2; // shell degeneracy
-    }
+    // Constructor
+    SlaterDeterminant(std::size_t n);
 
     // Occupy orbital
-    void occupy(std::size_t r, std::size_t c)
-    {
-      check_index(r, c);
-      bits.set(index(r, c));
-    }
+    void occupy(std::size_t r, std::size_t c);
 
     // Vacate orbital
-    void vacate(std::size_t r, std::size_t c)
-    {
-      check_index(r, c);
-      bits.reset(index(r, c));
-    }
+    void vacate(std::size_t r, std::size_t c);
 
     // Check if an orbital is occupied
-    bool is_occupied(std::size_t r, std::size_t c) const
-    {
-      check_index(r, c);
-      return bits[index(r, c)];
-    }
+    bool is_occupied(std::size_t r, std::size_t c) const;
 
     // Count number of nucleons
-    std::size_t occupation() const { return bits.count(); }
+    std::size_t occupation() const;
 
-    // Count number of nucleons being hopped
-    std::size_t num_hop(std::size_t r_i, std::size_t c_i, std::size_t r_f,
-                        std::size_t c_f) const
-    {
-      std::size_t i_i = index(r_i, c_i), i_f = index(r_f, c_f);
-      if (i_i > i_f)
-        std::swap(i_i, i_f);
-
-      std::size_t count = 0;
-      for (std::size_t k = i_i + 1; k < i_f; k++)
-        if (bits[k])
-          count++;
-      return count;
-    }
+    // Count number of nucleons being hopped over
+    std::size_t num_hop(std::size_t r_i, std::size_t c_i, 
+                        std::size_t r_f, std::size_t c_f) const;
 
     // Return number of single-particle states
-    std::size_t num_sps() const { return bits.size(); }
+    std::size_t num_sps() const;
 
     // Print the determinant
-    void print() const
-    {
-      for (std::size_t i = 0; i < bits.size(); i++)
-      {
-        std::cout << bits[i];
-        if ((i + 1) % N == 0)
-          std::cout << std::endl;
-      }
-    }
+    void print() const;
 
-    // Equality comparison
-    bool operator==(const SlaterDeterminant& other) const
-    {
-      return bits == other.bits;
-    }
-
-  private:
-    // Private constructor for internal operations
-    SlaterDeterminant(const boost::dynamic_bitset<>& b) : bits(b) { }
-
-    void check_index(std::size_t r, std::size_t c) const
-    {
-      if (r >= 4 || c >= N)
-        throw std::out_of_range("Orbital index out of range");
-    }
+    // Compare two determinant
+    bool operator==(const SlaterDeterminant& other) const;
   };
 
 } // namespace UNxU4
