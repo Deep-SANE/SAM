@@ -4,8 +4,6 @@ LIB_DIR = $(SAM_DIR)/lib
 
 LIB = $(LIB_DIR)/libsam.a
 
-CXXFLAGS += -I$(SAM_DIR)/include
-
 .PHONY: all
 all: $(LIB)
 

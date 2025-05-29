@@ -4,8 +4,6 @@ SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
 PRGS = $(addprefix $(BIN_DIR)/,$(basename $(SRCS)))
 
-LDFLAGS += -L$(SAM_DIR)/lib -lsam
-
 .PHONY: all
 all: $(BIN_DIR) $(PRGS)
 

@@ -59,7 +59,7 @@ endif
 
 # linking options:
 ifdef SAM_DIR
-LDFLAGS += -L$(SAM_DIR)/src 
+LDFLAGS += -L$(SAM_DIR)/lib
 endif
 LDFLAGS += -lsam
 
