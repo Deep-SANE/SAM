@@ -22,15 +22,15 @@ int main()
   std::cout << "Your SD is" << std::endl;
   sd.print();
 
-  
   bool decision;
   std::cout << "Want to vacate any state? 1 for yes, 0 for no ";
   std::cin >> decision;
 
   if (decision == true)
   {
-    int i,j;
-    std::cout << "Where to vacate? Enter two indices: (-1 to stop)" << std::endl;
+    int i, j;
+    std::cout << "Where to vacate? Enter two indices: (-1 to stop)"
+              << std::endl;
     while (true)
     {
       std::cin >> i >> j;

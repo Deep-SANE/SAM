@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 
 namespace UNxU4
 {
@@ -39,12 +40,17 @@ namespace UNxU4
     boost::dynamic_bitset<> bits;
     std::size_t N; // shell degeneracy
 
-    std::size_t index(std::size_t r, std::size_t c) const;
     void check_index(std::size_t r, std::size_t c) const;
-      
+
   public:
     // Constructor
     SlaterDeterminant(std::size_t n);
+
+    // Bit position
+    std::size_t index(std::size_t r, std::size_t c) const;
+
+    // Invert bit position
+    std::pair<std::size_t, std::size_t> invert_index(std::size_t i) const;
 
     // Occupy orbital
     void occupy(std::size_t r, std::size_t c);
@@ -59,8 +65,8 @@ namespace UNxU4
     std::size_t occupation() const;
 
     // Count number of nucleons being hopped over
-    std::size_t num_hop(std::size_t r_i, std::size_t c_i, 
-                        std::size_t r_f, std::size_t c_f) const;
+    std::size_t num_hop(std::size_t r_i, std::size_t c_i, std::size_t r_f,
+                        std::size_t c_f) const;
 
     // Return number of single-particle states
     std::size_t num_sps() const;

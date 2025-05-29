@@ -6,9 +6,20 @@
 namespace UNxU4
 {
 
-  SlaterDeterminant::SlaterDeterminant(std::size_t n) : bits(2 * (n + 1) * (n + 2))
+  SlaterDeterminant::SlaterDeterminant(std::size_t n)
+      : bits(2 * (n + 1) * (n + 2))
   {
     N = (n + 1) * (n + 2) / 2;
+  }
+
+  std::size_t SlaterDeterminant::index(std::size_t r, std::size_t c) const
+  {
+    return r * N + c;
+  }
+
+  std::pair<std::size_t, std::size_t> SlaterDeterminant::invert_index(std::size_t i) const
+  {
+    return std::make_pair(i/N, i%N);
   }
 
   void SlaterDeterminant::occupy(std::size_t r, std::size_t c)
@@ -29,37 +40,31 @@ namespace UNxU4
     return bits[index(r, c)];
   }
 
-  std::size_t SlaterDeterminant::occupation() const
-  {
-    return bits.count();
-  }
+  std::size_t SlaterDeterminant::occupation() const { return bits.count(); }
 
-  std::size_t SlaterDeterminant::num_hop(std::size_t r_i, std::size_t c_i, 
+  std::size_t SlaterDeterminant::num_hop(std::size_t r_i, std::size_t c_i,
                                          std::size_t r_f, std::size_t c_f) const
   {
     std::size_t i_i = index(r_i, c_i), i_f = index(r_f, c_f);
     if (i_i > i_f)
-        std::swap(i_i, i_f);
+      std::swap(i_i, i_f);
 
     std::size_t count = 0;
     for (std::size_t k = i_i + 1; k < i_f; k++)
-        if (bits[k])
-            count++;
+      if (bits[k])
+        count++;
     return count;
   }
 
-  std::size_t SlaterDeterminant::num_sps() const
-  {
-    return bits.size();
-  }
+  std::size_t SlaterDeterminant::num_sps() const { return bits.size(); }
 
   void SlaterDeterminant::print() const
   {
     for (std::size_t i = 0; i < bits.size(); i++)
     {
-        std::cout << bits[i];
-        if ((i + 1) % N == 0)
-            std::cout << std::endl;
+      std::cout << bits[i];
+      if ((i + 1) % N == 0)
+        std::cout << std::endl;
     }
   }
 
@@ -68,15 +73,10 @@ namespace UNxU4
     return bits == other.bits;
   }
 
-  std::size_t SlaterDeterminant::index(std::size_t r, std::size_t c) const
-  {
-    return r * N + c;
-  }
-
   void SlaterDeterminant::check_index(std::size_t r, std::size_t c) const
   {
     if (r >= 4 || c >= N)
-        throw std::out_of_range("Orbital index out of range");
+      throw std::out_of_range("Orbital index out of range");
   }
 
 } // namespace UNxU4
