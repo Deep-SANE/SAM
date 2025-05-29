@@ -17,9 +17,10 @@ namespace UNxU4
     return r * N + c;
   }
 
-  std::pair<std::size_t, std::size_t> SlaterDeterminant::invert_index(std::size_t i) const
+  std::pair<std::size_t, std::size_t>
+  SlaterDeterminant::invert_index(std::size_t i) const
   {
-    return std::make_pair(i/N, i%N);
+    return std::make_pair(i / N, i % N);
   }
 
   void SlaterDeterminant::occupy(std::size_t r, std::size_t c)

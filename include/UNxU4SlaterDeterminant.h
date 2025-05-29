@@ -36,13 +36,12 @@ namespace UNxU4
 
   class SlaterDeterminant
   {
-  private:
+  public:
     boost::dynamic_bitset<> bits;
     std::size_t N; // shell degeneracy
 
     void check_index(std::size_t r, std::size_t c) const;
 
-  public:
     // Constructor
     SlaterDeterminant(std::size_t n);
 
