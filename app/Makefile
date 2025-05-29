@@ -1,22 +1,22 @@
-#include $(SAM_DIR)/config.mk
+BIN_DIR = $(SAM_DIR)/bin
 
-BIN = bin
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
-PRGS = $(addprefix $(BIN)/,$(basename $(SRCS)))
-SAM_LIB = $(SAM_DIR)/src/libsam.a
+PRGS = $(addprefix $(BIN_DIR)/,$(basename $(SRCS)))
+
+LDFLAGS += -L$(SAM_DIR)/lib -lsam
 
 .PHONY: all
-all: $(PRGS)
+all: $(BIN_DIR) $(PRGS)
 
-$(BIN)/%: %.o $(SAM_LIB) | $(BIN)
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
+
+$(BIN_DIR)/%: %.o 
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(BIN):
-	mkdir -p $@
 
 .PHONY: clean
 clean:
