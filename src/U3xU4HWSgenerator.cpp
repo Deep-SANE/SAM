@@ -133,7 +133,7 @@ namespace U3xU4
           if (it == opt_SD.end())
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e12())
+          	ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
@@ -174,7 +174,7 @@ namespace U3xU4
           if (it == opt_SD.end())
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e23_12())
+          	ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e23_12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
@@ -215,7 +215,7 @@ namespace U3xU4
           if (it == opt_SD.end())
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e12())
+          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
@@ -256,7 +256,7 @@ namespace U3xU4
           if (it == opt_SD.end())
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e23_12())
+          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e23_12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
@@ -297,7 +297,7 @@ namespace U3xU4
           if (it == opt_SD.end())
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e34_13())
+          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e34_13());
 #else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();

@@ -6,8 +6,16 @@
 
 #include <U3xU4HWSgenerator.h>
 
-int main()
+#ifdef U3LIB_USE_SLEPC
+#include <slepcsys.h>
+#endif
+
+int main(int argc, char* argv[])
 {
+#ifdef SAM_USE_SLEPC
+  SlepcInitialize(&argc, &argv, NULL, NULL);
+#endif
+
   int n13, n23, n33;
   std::cout << "Enter U(3) irrep: ";
   std::cin >> n13 >> n23 >> n33;
@@ -48,5 +56,10 @@ int main()
   // Output the time in seconds
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
               << duration.count() / 60.0 << " minutes" << std::endl;
+
+#ifdef SAM_USE_SLEPC
+  SlepcFinalize();
+#endif
+
   return 0;
 }
