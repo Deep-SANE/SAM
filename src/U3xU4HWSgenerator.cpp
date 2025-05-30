@@ -3,6 +3,8 @@
 #include <chrono>
 #include <iostream>
 
+#include <UNtoU3.h>
+
 #include <U3xU4HWSgenerator.h>
 
 #ifdef SAM_SPARSE_MAT
@@ -17,12 +19,10 @@
 namespace U3xU4
 {
   std::vector<UNxU4::SlaterDeterminant>
-  expand_to_SD(std::size_t A, std::size_t n, const u3::irrep& b,
-               const std::vector<u3::gelfand>& sps3, const u4::irrep& p,
-               const std::vector<u4::gelfand>& sps4)
+  expand_to_SD(std::size_t A, std::size_t n, std::size_t N,
+  			   const u3::irrep& b, const std::vector<u3::gelfand>& sps3, 
+  			   const u4::irrep& p, const std::vector<u4::gelfand>& sps4)
   {
-    int N = (n + 1) * (n + 2) / 2; // shell degeneracy
-
     std::vector<UNxU4::SlaterDeterminant> SDarr;
 
     // an array to store the position of the particles
@@ -79,8 +79,7 @@ namespace U3xU4
     return SDarr;
   }
 
-  static Eigen::MatrixXd
-  RaisingGenerator(std::vector<UNxU4::SlaterDeterminant>& SDarr,
+  static auto RaisingGenerator(std::vector<UNxU4::SlaterDeterminant>& SDarr,
                    const std::vector<u3::gelfand>& sps3,
                    const std::vector<u4::gelfand>& sps4)
   {
@@ -95,7 +94,12 @@ namespace U3xU4
     */
 
     std::vector<std::pair<std::size_t, UNxU4::SlaterDeterminant>> opt_SD;
+
+#ifdef SAM_SPARSE_MAT
+    std::vector<Eigen::Triplet<double>> ija;
+#else
     std::vector<Eigen::RowVectorXd> mat_temp;
+#endif
 
     // Looping over all SDs
     for (std::size_t i = 0; i < SDarr.size(); i++)
@@ -128,15 +132,26 @@ namespace U3xU4
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
+#ifdef SAM_SPARSE_MAT
+          	ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e12())
+#else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
             x(i) = phase * sps3[c].e12();
             mat_temp.push_back(x);
+#endif
             opt_SD.push_back(p);
           }
           else
+          {
+#ifdef SAM_SPARSE_MAT
+          	ija.emplace_back(std::distance(opt_SD.begin(), it), i, 
+          									phase * sps3[c].e12());
+#else
             mat_temp[std::distance(opt_SD.begin(), it)](i) =
                 phase * sps3[c].e12();
+#endif
+          }
         }
 
         // action of E23b
@@ -158,15 +173,26 @@ namespace U3xU4
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
+#ifdef SAM_SPARSE_MAT
+          	ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e23_12())
+#else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
             x(i) = phase * sps3[c].e23_12();
             mat_temp.push_back(x);
+#endif
             opt_SD.push_back(p);
           }
           else
+          {
+#ifdef SAM_SPARSE_MAT
+          	ija.emplace_back(std::distance(opt_SD.begin(), it), i, 
+          									phase * sps3[c].e23_12());
+#else
             mat_temp[std::distance(opt_SD.begin(), it)](i) =
                 phase * sps3[c].e23_12();
+#endif		
+          }
         }
 
         // action of E12p
@@ -188,15 +214,26 @@ namespace U3xU4
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
+#ifdef SAM_SPARSE_MAT
+          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e12())
+#else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
             x(i) = phase * sps4[r].e12();
             mat_temp.push_back(x);
+#endif
             opt_SD.push_back(p);
           }
           else
+          {
+#ifdef SAM_SPARSE_MAT
+          	ija.emplace_back(std::distance(opt_SD.begin(), it), i, 
+          									phase * sps4[r].e12());
+#else
             mat_temp[std::distance(opt_SD.begin(), it)](i) =
                 phase * sps4[r].e12();
+#endif
+          }
         }
 
         // action of E23p
@@ -218,15 +255,26 @@ namespace U3xU4
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
+#ifdef SAM_SPARSE_MAT
+          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e23_12())
+#else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
             x(i) = phase * sps4[r].e23_12();
             mat_temp.push_back(x);
+#endif
             opt_SD.push_back(p);
           }
           else
+          {
+#ifdef SAM_SPARSE_MAT
+          	ija.emplace_back(std::distance(opt_SD.begin(), it), i, 
+          									phase * sps4[r].e23_12());
+#else
             mat_temp[std::distance(opt_SD.begin(), it)](i) =
                 phase * sps4[r].e23_12();
+#endif
+          }
         }
 
         // action of E34p
@@ -248,24 +296,40 @@ namespace U3xU4
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
+#ifdef SAM_SPARSE_MAT
+          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e34_13())
+#else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
             x(i) = phase * sps4[r].e34_13();
             mat_temp.push_back(x);
+#endif
             opt_SD.push_back(p);
           }
           else
+          {
+#ifdef SAM_SPARSE_MAT
+          	ija.emplace_back(std::distance(opt_SD.begin(), it), i, 
+          									phase * sps4[r].e34_13());
+#else
             mat_temp[std::distance(opt_SD.begin(), it)](i) =
                 phase * sps4[r].e34_13();
+#endif
+          }
         }
       }
     }
 
+#ifdef SAM_SPARSE_MAT
+    Eigen::SparseMatrix<double> mat(opt_SD.size(), SDarr.size());
+    mat.setFromTriplets(ija.begin(), ija.end());
+#else
     Eigen::MatrixXd mat(mat_temp.size(), SDarr.size());
     for (std::size_t i = 0; i < mat_temp.size(); i++)
       mat.row(i) = mat_temp[i];
+#endif
 
-    // std::cout << mat << std::endl;
+    //std::cout << mat << std::endl;
 
     return mat;
   }
@@ -279,6 +343,7 @@ namespace U3xU4
     assert(N_quanta % A == 0);
 
     int n = N_quanta / A; // shell number
+    int N = (n + 1) * (n + 2) / 2; // shell degeneracy
 
     u3::irrep x(n, 0, 0);
     std::vector<u3::gelfand> sps3 = u3::gelfandBasis(x);
@@ -286,13 +351,34 @@ namespace U3xU4
     std::vector<u4::gelfand> sps4 = u4::gelfandBasis(y);
 
     std::vector<UNxU4::SlaterDeterminant> SDarr =
-        expand_to_SD(A, n, b, sps3, p, sps4);
+        expand_to_SD(A, n, N, b, sps3, p, sps4);
 
-    Eigen::MatrixXd mat = RaisingGenerator(SDarr, sps3, sps4);
+    auto mat = RaisingGenerator(SDarr, sps3, sps4);
 
 #ifdef SAM_USE_SLEPC
-    // Eigen::MatrixXd expansion = u34utils::null_space_slepc(mat,
-    // physvec.kappa);
+    untou3::UNtoU3<4> gen;
+    gen.generateXYZ(n);
+    auto un = UNxU4::U4_to_UN(N,p);
+    //for (const auto un_i : un) std::cout << un_i << ";";
+
+    gen.generateU3Weights({static_cast<short>(un[0]), 
+    					   static_cast<short>(un[1]), 
+    					   static_cast<short>(un[2]),
+    					   static_cast<short>(un[3]), 
+    					   static_cast<short>(un[4])}, N);
+
+    int multi;
+    for (const auto& pair : gen.multMap())
+    {
+    	const auto& weight = pair.first;
+    	if (weight[0] == b.n13() &&
+    		weight[1] == b.n23() &&
+    		weight[2] == b.n33())
+    	{
+    		multi = gen.getLevelDimensionality(weight);
+    	}
+    }
+    Eigen::MatrixXd expansion = u34utils::null_space_slepc(mat, multi);
 #else
     Eigen::MatrixXd expansion = u34utils::null_space(mat);
 #endif
