@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
 #include <UNxU4SlaterDeterminant.h>
 
@@ -78,6 +79,42 @@ namespace UNxU4
   {
     if (r >= 4 || c >= N)
       throw std::out_of_range("Orbital index out of range");
+  }
+
+  std::vector<std::size_t> U4_to_UN(std::size_t N, const u4::irrep& p)
+  {
+    //std::vector<std::size_t> x(N, 0);  
+    std::vector<std::size_t> y(5, 0);
+
+    for (std::size_t i = 1; i <= N; i++)
+    {
+      if (i <= p.n44())
+      {
+        y[0]++;
+        // x[i] = 4;
+      }
+      else if (p.n44() < i && i <= p.n34())
+      {
+        y[1]++;
+        // x[i] = 3;
+      }
+      else if (p.n34() < i && i <= p.n24())
+      {
+        y[2]++;
+        // x[i] = 2;
+      }
+      else if (p.n24() < i && i <= p.n14())
+      {
+        y[3]++;
+        // x[i] = 1;
+      }
+      else if (p.n14() < i)
+      {
+        y[4]++;
+        // x[i] = 0;
+      }
+    }
+    return y;
   }
 
 } // namespace UNxU4
