@@ -435,7 +435,8 @@ namespace U3xU4
     return full_path;
   }
 
-  auto read_HWS_data(const std::filesystem::path& path) 
+  std::pair<std::vector<UNxU4::SlaterDeterminant>, std::vector<Eigen::RowVectorXd>> 
+  read_HWS_data(const std::filesystem::path& path) 
   {
     std::ifstream file(path);
     if (!file)
