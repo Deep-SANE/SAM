@@ -28,6 +28,10 @@ config.local.mk
 
 bin/
 
+# all data files:
+
+data/
+
 # GDB history file:
 
 .gdb_history
