@@ -1,5 +1,7 @@
 #include <chrono>
+#include <fstream>
 #include <iostream>
+
 
 #include <U3basis.h>
 #include <U4basis.h>
@@ -33,22 +35,27 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [SDarr, coeffs] = U3xU4::HWS_to_SD(b, p);
+  std::filesystem::path path = U3xU4::get_HWS_file(b, p);
+  auto [SDarr, coeffs] = U3xU4::read_HWS_data(path);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();  
 
-  std::cout << "Outer multiplicity is " << coeffs.cols() << std::endl;
+  std::cout << "Outer multiplicity is " << coeffs[0].cols() << std::endl;
 
-/*
-  std::cout << "Slater Determinants are: " << std::endl;
-
-  for (std::size_t i = 0; i < SDarr.size(); i++)
+  bool print;
+  std::cout << "Want to print the results? (1 yes, 0 no) ";
+  std::cin >> print;
+  if (print == true)
   {
-    SDarr[i].print();
-    std::cout << "--> " << coeffs.row(i) << std::endl;
+  	std::cout << "Slater Determinants are: " << std::endl;
+
+  	for (std::size_t i = 0; i < SDarr.size(); i++)
+  	{
+    	SDarr[i].print();
+    	std::cout << "--> " << coeffs[i] << std::endl;
+  	}
   }
-*/
 
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;

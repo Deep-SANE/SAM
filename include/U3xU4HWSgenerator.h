@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <utility>
 #include <vector>
 
@@ -19,5 +20,11 @@ namespace U3xU4
   // find the expansion of the HWS
   std::pair<std::vector<UNxU4::SlaterDeterminant>, Eigen::MatrixXd>
   HWS_to_SD(const u3::irrep& b, const u4::irrep& p);
+
+  // find the HWS in the database
+  std::filesystem::path get_HWS_file(const u3::irrep& b, const u4::irrep& p);
+
+  std::pair<std::vector<UNxU4::SlaterDeterminant>, std::vector<Eigen::RowVectorXd>> 
+  read_HWS_data(const std::filesystem::path& path);
 
 } // namespace U3xU4

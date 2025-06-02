@@ -1,7 +1,12 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <stdexcept>
+#include <string>
 
 #include <UNtoU3.h>
 
@@ -15,6 +20,7 @@
 #ifdef SAM_USE_SLEPC
 #include <nullspace_solver_slepc.h>
 #endif
+#include <nullspace_error.h>
 
 namespace U3xU4
 {
@@ -383,7 +389,82 @@ namespace U3xU4
     Eigen::MatrixXd expansion = u34utils::null_space(mat);
 #endif
 
+    // check error
+    std::cout << "The matrix size is " << mat.size() << " with error " 
+              << u34utils::nullspace_error(mat, expansion) << std::endl; 
+
     return std::make_pair(SDarr, expansion);
+  }
+
+  std::filesystem::path get_HWS_file(const u3::irrep& b, const u4::irrep& p) 
+  {
+    const char* sam_dir = std::getenv("SAM_DIR");
+    if (!sam_dir) 
+      throw std::runtime_error("Environment variable SAM_DIR not set");
+    
+
+    std::filesystem::path dir = std::filesystem::path(sam_dir) / "data/hws";
+
+    // Create the directory (and parent dirs) if it doesn't exist
+    std::filesystem::create_directories(dir);
+
+    std::string filename = std::to_string(b.n13()) + "-" 
+                         + std::to_string(b.n23()) + "-" 
+                         + std::to_string(b.n33()) + "-" 
+                         + std::to_string(p.n14()) + "-" 
+                         + std::to_string(p.n24()) + "-" 
+                         + std::to_string(p.n34()) + "-" 
+                         + std::to_string(p.n44()) + ".dat";
+
+    std::filesystem::path full_path = dir / filename;
+
+    // If file doesn't exist, create it and save it with data
+    if (!std::filesystem::exists(full_path)) 
+    {
+        std::ofstream file(full_path);
+
+        auto [SDarr, coeffs] = HWS_to_SD(b, p);
+
+        if (!file) 
+          throw std::runtime_error("Failed to open file for writing: " + full_path.string());
+
+        for (std::size_t i = 0; i < SDarr.size(); ++i) 
+          file << SDarr[i].bits << " " << coeffs.row(i) << '\n';
+    }
+
+    return full_path;
+  }
+
+  auto read_HWS_data(const std::filesystem::path& path) 
+  {
+    std::ifstream file(path);
+    if (!file)
+      throw std::runtime_error("Failed to open file for reading: " + path.string());
+
+    std::vector<UNxU4::SlaterDeterminant> SDarr;
+    std::vector<Eigen::RowVectorXd> coeffs;
+
+    std::string line;
+    while (std::getline(file, line)) 
+    {
+      std::istringstream iss(line);
+      std::string bitstr;
+      iss >> bitstr;
+
+      std::vector<double> coeff_vec;
+      double val;
+      while (iss >> val) 
+        coeff_vec.push_back(val);
+      
+      boost::dynamic_bitset<> bits(bitstr);  
+      UNxU4::SlaterDeterminant SD(bits);
+      Eigen::RowVectorXd row = Eigen::Map<Eigen::RowVectorXd>(coeff_vec.data(), coeff_vec.size());
+
+      SDarr.push_back(SD);
+      coeffs.push_back(row);
+    }
+
+    return std::make_pair(SDarr, coeffs);
   }
 
 } // namespace U3xU4
