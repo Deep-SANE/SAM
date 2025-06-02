@@ -46,6 +46,7 @@ namespace UNxU4
 
     // Constructor
     SlaterDeterminant(std::size_t n);
+    SlaterDeterminant(const boost::dynamic_bitset<>& b);
 
     // Bit position
     std::size_t index(std::size_t r, std::size_t c) const;

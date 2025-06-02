@@ -8,9 +8,15 @@ namespace UNxU4
 {
 
   SlaterDeterminant::SlaterDeterminant(std::size_t n)
-      : bits(2 * (n + 1) * (n + 2))
+    : bits(2 * (n + 1) * (n + 2))
   {
     N = (n + 1) * (n + 2) / 2;
+  }
+
+  SlaterDeterminant::SlaterDeterminant(const boost::dynamic_bitset<>& b)
+    : bits(b)
+  {
+    N = b.size() / 4;
   }
 
   std::size_t SlaterDeterminant::index(std::size_t r, std::size_t c) const
