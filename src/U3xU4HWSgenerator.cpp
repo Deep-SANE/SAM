@@ -363,27 +363,9 @@ namespace U3xU4
 
 #ifdef SAM_USE_SLEPC
     untou3::UNtoU3<4> gen;
-    gen.generateXYZ(n);
-    auto un = UNxU4::U4_to_UN(N,p);
-    //for (const auto un_i : un) std::cout << un_i << ";";
-
-    gen.generateU3Weights({static_cast<short>(un[0]), 
-    					   static_cast<short>(un[1]), 
-    					   static_cast<short>(un[2]),
-    					   static_cast<short>(un[3]), 
-    					   static_cast<short>(un[4])}, N);
-
-    int multi;
-    for (const auto& pair : gen.multMap())
-    {
-    	const auto& weight = pair.first;
-    	if (weight[0] == b.n13() &&
-    		weight[1] == b.n23() &&
-    		weight[2] == b.n33())
-    	{
-    		multi = gen.getLevelDimensionality(weight);
-    	}
-    }
+    gen.set_shell(n);
+    gen.reduceU4(p,N);
+    auto multi = gen.multiplicity(b);
     Eigen::MatrixXd expansion = u34utils::null_space_slepc(mat, multi);
 #else
     Eigen::MatrixXd expansion = u34utils::null_space(mat);
