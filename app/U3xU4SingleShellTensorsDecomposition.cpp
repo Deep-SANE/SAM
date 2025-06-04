@@ -4,7 +4,7 @@
 #include <U3basis.h>
 #include <U4basis.h>
 
-#include <U3xU4SingleShellTensors.h>
+#include <U3xU4SingleShellTensorsDecomposition.h>
 
 #ifdef SAM_USE_SLEPC
 #include <slepcsys.h>
