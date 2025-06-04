@@ -341,20 +341,11 @@ namespace U3xU4
   }
 
   std::pair<std::vector<UNxU4::SlaterDeterminant>, Eigen::MatrixXd>
-  HWS_to_SD(const u3::irrep& b, const u4::irrep& p)
+  HWS_to_SD(int A, int n, const u3::irrep& b, const u4::irrep& p,
+            const std::vector<u3::gelfand>& sps3, 
+            const std::vector<u4::gelfand>& sps4)
   {
-    int A = p.n14() + p.n24() + p.n34() + p.n44(), // total number of nucleons
-        N_quanta = b.n13() + b.n23() + b.n33();    // total number of quanta
-
-    assert(N_quanta % A == 0);
-
-    int n = N_quanta / A; // shell number
     int N = (n + 1) * (n + 2) / 2; // shell degeneracy
-
-    u3::irrep x(n, 0, 0);
-    std::vector<u3::gelfand> sps3 = u3::gelfandBasis(x);
-    u4::irrep y(1, 0, 0, 0);
-    std::vector<u4::gelfand> sps4 = u4::gelfandBasis(y);
 
     std::vector<UNxU4::SlaterDeterminant> SDarr =
         expand_to_SD(A, n, N, b, sps3, p, sps4);
@@ -378,7 +369,10 @@ namespace U3xU4
     return std::make_pair(SDarr, expansion);
   }
 
-  std::filesystem::path get_HWS_file(const u3::irrep& b, const u4::irrep& p) 
+  std::filesystem::path 
+  get_HWS_file(int A, int n, const u3::irrep& b, const u4::irrep& p,
+               const std::vector<u3::gelfand>& sps3, 
+               const std::vector<u4::gelfand>& sps4) 
   {
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir) 
@@ -405,7 +399,7 @@ namespace U3xU4
     {
         std::ofstream file(full_path);
 
-        auto [SDarr, coeffs] = HWS_to_SD(b, p);
+        auto [SDarr, coeffs] = HWS_to_SD(A,n,b,p,sps3,sps4);
 
         if (!file) 
           throw std::runtime_error("Failed to open file for writing: " + full_path.string());

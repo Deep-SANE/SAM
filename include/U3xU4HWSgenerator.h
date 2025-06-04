@@ -14,15 +14,22 @@
 namespace U3xU4
 {
   // find all SDs in the expansion of the HWS
-  std::vector<UNxU4::SlaterDeterminant> expand_to_SD(const u3::irrep& b,
-                                                     const u4::irrep& p);
+  std::vector<UNxU4::SlaterDeterminant> 
+  expand_to_SD(std::size_t A, std::size_t n, std::size_t N,
+              const u3::irrep& b, const std::vector<u3::gelfand>& sps3, 
+              const u4::irrep& p, const std::vector<u4::gelfand>& sps4);
 
   // find the expansion of the HWS
   std::pair<std::vector<UNxU4::SlaterDeterminant>, Eigen::MatrixXd>
-  HWS_to_SD(const u3::irrep& b, const u4::irrep& p);
+  HWS_to_SD(int A, int n, const u3::irrep& b, const u4::irrep& p,
+            const std::vector<u3::gelfand>& sps3, 
+            const std::vector<u4::gelfand>& sps4);
 
   // find the HWS in the database
-  std::filesystem::path get_HWS_file(const u3::irrep& b, const u4::irrep& p);
+  std::filesystem::path 
+  get_HWS_file(int A, int n, const u3::irrep& b, const u4::irrep& p,
+              const std::vector<u3::gelfand>& sps3, 
+              const std::vector<u4::gelfand>& sps4);
 
   std::pair<std::vector<UNxU4::SlaterDeterminant>, std::vector<Eigen::RowVectorXd>> 
   read_HWS_data(const std::filesystem::path& path);

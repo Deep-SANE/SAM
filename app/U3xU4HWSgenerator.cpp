@@ -8,7 +8,7 @@
 
 #include <U3xU4HWSgenerator.h>
 
-#ifdef U3LIB_USE_SLEPC
+#ifdef SAM_USE_SLEPC
 #include <slepcsys.h>
 #endif
 
@@ -35,7 +35,19 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  std::filesystem::path path = U3xU4::get_HWS_file(b, p);
+  int A = p.quanta(), // total number of nucleons
+      N_quanta = b.quanta();    // total number of quanta
+
+  assert(N_quanta % A == 0);
+
+  int n = N_quanta / A; // shell number
+
+  u3::irrep x(n, 0, 0);
+  std::vector<u3::gelfand> sps3 = u3::gelfandBasis(x);
+  u4::irrep y(1, 0, 0, 0);
+  std::vector<u4::gelfand> sps4 = u4::gelfandBasis(y);
+
+  std::filesystem::path path = U3xU4::get_HWS_file(A,n,b,p,sps3,sps4);
   auto [SDarr, coeffs] = U3xU4::read_HWS_data(path);
 
   // End time measurement
