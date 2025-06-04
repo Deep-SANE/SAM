@@ -80,27 +80,5 @@ namespace UNxU4
     bool operator==(const SlaterDeterminant& other) const;
   };
 
-  /* Conversion from U(4) irrep to U(N) irrep such that they are conjugate.
-     Each entry of the U(N) irrep cannot exceed 4, i.e., niN ∈ {0, 1, 2, 3, 4}.
-     The algorithm is as follows:
-     
-      for i from 1 to N:
-        if i <= n_{44} :
-          n_{iN} = 4
-        if n_{44} < i <= n_{34} :
-          n_{iN} = 3
-        if n_{34} < i <= n_{24} :
-          n_{iN} = 2
-        if n_{24} < i <= n_{14} :
-          n_{iN} = 1
-        if n_{14} < i :
-          n_{iN} = 0
-
-     To be compatible with untou3 library, a U(N) irrep will be represented by
-     5 numbers, which are the numbers of 4, 3, 2, 1, 0 in the irrep.
-  */
-
-  std::vector<std::size_t> U4_to_UN(std::size_t N, const u4::irrep& p);
-
 
 } // namespace UNxU4
