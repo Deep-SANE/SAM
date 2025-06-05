@@ -20,7 +20,8 @@ int main(int argc, char* argv[])
   u3::WigU3U2_db wigU3U2db(cgcs);
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
 
-  std::size_t n = 2, ads = 3, ats = 2;
+  //std::size_t n = 2, ads = 3, ats = 2;
+  std::size_t n = 1, ads = 1, ats = 1;
 
   u3::irrep x(n, 0, 0), x_conj(n, n, 0);
   std::vector<u3::gelfand> sps3 = u3::gelfandBasis(x),
@@ -32,19 +33,21 @@ int main(int argc, char* argv[])
 
   std::vector<std::pair<u3::irrep, u4::irrep>> prod_ads, prod_ats;
 
-  u3::irrep B1_0(3, 1, 0), B1(3, 3, 0), B2(3, 2, 0), B(4, 1, 0);
+  //u3::irrep B1_0(3, 1, 0), B1(3, 3, 0), B2(3, 2, 0), B(4, 1, 0);
+  u3::irrep B1(1,0,0), B2(1,1,0), B(0,0,0);
   auto rhomax = u3::Rho(B1, B2, B);
 
-  u4::irrep P1_0(1, 1, 0, 0), P1(2, 1, 0, 0), P2(1, 1, 0, 0), P(1, 0, 0, 0);
+  //u4::irrep P1_0(1, 1, 0, 0), P1(2, 1, 0, 0), P2(1, 1, 0, 0), P(1, 0, 0, 0);
+  u4::irrep P1(1,0,0,0), P2(1,1,1,0), P(0,0,0,0);
   auto etamax = u4::Eta(P1, P2, P);
 
-  prod_ads.emplace_back(B1_0, P1_0);
-  prod_ads.emplace_back(B1, P1);
+  //prod_ads.emplace_back(B1_0, P1_0);
+  //prod_ads.emplace_back(B1, P1);
 
-  prod_ats.emplace_back(B2, P2);
+  //prod_ats.emplace_back(B2, P2);
 
-  u3::gelfand b(4, 1, 0, 2, 1, 1);
-  u4::gelfand p(1, 0, 0, 0, 1, 0, 0, 0, 0, 0);
+  u3::gelfand b(0, 0, 0, 0, 0, 0);
+  u4::gelfand p(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
   if (!b.check() || !p.check() || b.n13() != B.n13() || b.n23() != B.n23() ||
       b.n33() != B.n33() || p.n14() != P.n14() || p.n24() != P.n24() ||
@@ -57,7 +60,7 @@ int main(int argc, char* argv[])
   U3xU4::Tadat_gelfand Tadat(n, ads, ats, prod_ads, prod_ats, B, b, rhomax, P,
                              p, etamax);
 
-  auto [coeffs, adArr, atArr] = Tadat.expand(sps3, sps4, sps3_conj, sps4_conj,
+  auto [coeffs, adArr, aArr] = Tadat.expand(sps3, sps4, sps3_conj, sps4_conj,
                                              cgcs, wigU3U2db, wigU4U3db);
 
   Eigen::RowVectorXd norm(rhomax * etamax);
@@ -75,10 +78,10 @@ int main(int argc, char* argv[])
         std::cout << "\t";
       }
 
-    if (!atArr.empty())
-      for (std::size_t j = 0; j < atArr[i].size(); j++)
+    if (!aArr.empty())
+      for (std::size_t j = 0; j < aArr[i].size(); j++)
       {
-        atArr[i][j].print(sps3, sps4);
+        aArr[i][j].print(sps3, sps4);
         std::cout << "\t";
       }
 

@@ -87,7 +87,7 @@ namespace U3xU4
           int jj4_1 = sps4[g4_1].Lambdax2(), mm4_1 = sps4[g4_1].MLambdax2(),
               jj4_2 = sps4[g4_2].Lambdax2(), mm4_2 = sps4[g4_2].MLambdax2();
 
-          auto accU4 = wigU4U3db.get(
+          auto [allowU4, accU4] = wigU4U3db.get(
               sps4[g4_1].n14(), sps4[g4_1].n24(), sps4[g4_1].n34(),
               sps4[g4_1].n44(), sps4[g4_1].n13(), sps4[g4_1].n23(),
               sps4[g4_1].n33(), sps4[g4_2].n14(), sps4[g4_2].n24(),
@@ -96,8 +96,8 @@ namespace U3xU4
               g4.n44(), g4.n13(), g4.n23(), g4.n33());
           // accU4 should have only one column
 
-          // if (allowU4 == false)
-          //	continue;
+          if (allowU4 == false)
+          	continue;
 
           auto [allowU3_4, accU3_4] = wigU3U2db.get(
               sps4[g4_1].n13(), sps4[g4_1].n23(), sps4[g4_1].n33(),
@@ -175,7 +175,7 @@ namespace U3xU4
           int jj4_0 = g4Arr0[g4_0].Lambdax2(), mm4_0 = g4Arr0[g4_0].MLambdax2(),
               jj4_3 = sps4[g4_3].Lambdax2(), mm4_3 = sps4[g4_3].MLambdax2();
 
-          auto accU4 = wigU4U3db.get(
+          auto [allowU4, accU4] = wigU4U3db.get(
               g4Arr0[g4_0].n14(), g4Arr0[g4_0].n24(), g4Arr0[g4_0].n34(),
               g4Arr0[g4_0].n44(), g4Arr0[g4_0].n13(), g4Arr0[g4_0].n23(),
               g4Arr0[g4_0].n33(), sps4[g4_3].n14(), sps4[g4_3].n24(),
@@ -184,8 +184,8 @@ namespace U3xU4
               g4.n44(), g4.n13(), g4.n23(), g4.n33());
           // accU4 should have only one column
 
-          // if (allowU4 == false)
-          //	continue;
+          if (allowU4 == false)
+          	continue;
 
           auto [allowU3_4, accU3_4] = wigU3U2db.get(
               g4Arr0[g4_0].n13(), g4Arr0[g4_0].n23(), g4Arr0[g4_0].n33(),
@@ -298,7 +298,7 @@ namespace U3xU4
           int jj4_1 = sps4[g4_1].Lambdax2(), mm4_1 = sps4[g4_1].MLambdax2(),
               jj4_2 = sps4[g4_2].Lambdax2(), mm4_2 = sps4[g4_2].MLambdax2();
 
-          auto accU4 = wigU4U3db.get(
+          auto [allowU4, accU4] = wigU4U3db.get(
               sps4[g4_1].n14(), sps4[g4_1].n24(), sps4[g4_1].n34(),
               sps4[g4_1].n44(), sps4[g4_1].n13(), sps4[g4_1].n23(),
               sps4[g4_1].n33(), sps4[g4_2].n14(), sps4[g4_2].n24(),
@@ -307,8 +307,8 @@ namespace U3xU4
               g4.n44(), g4.n13(), g4.n23(), g4.n33());
           // accU4 should have only one column
 
-          // if (allowU4 == false)
-          //	continue;
+          if (allowU4 == false)
+          	continue;
 
           auto [allowU3_4, accU3_4] = wigU3U2db.get(
               sps4[g4_1].n13(), sps4[g4_1].n23(), sps4[g4_1].n33(),
@@ -391,7 +391,7 @@ namespace U3xU4
           int jj4_0 = g4Arr0[g4_0].Lambdax2(), mm4_0 = g4Arr0[g4_0].MLambdax2(),
               jj4_3 = sps4[g4_3].Lambdax2(), mm4_3 = sps4[g4_3].MLambdax2();
 
-          auto accU4 = wigU4U3db.get(
+          auto [allowU4, accU4] = wigU4U3db.get(
               g4Arr0[g4_0].n14(), g4Arr0[g4_0].n24(), g4Arr0[g4_0].n34(),
               g4Arr0[g4_0].n44(), g4Arr0[g4_0].n13(), g4Arr0[g4_0].n23(),
               g4Arr0[g4_0].n33(), sps4[g4_3].n14(), sps4[g4_3].n24(),
@@ -400,8 +400,8 @@ namespace U3xU4
               g4.n44(), g4.n13(), g4.n23(), g4.n33());
           // accU4 should have only one column
 
-          // if (allowU4 == false)
-          //	continue;
+          if (allowU4 == false)
+          	continue;
 
           auto [allowU3_4, accU3_4] = wigU3U2db.get(
               g4Arr0[g4_0].n13(), g4Arr0[g4_0].n23(), g4Arr0[g4_0].n33(),
@@ -458,7 +458,7 @@ namespace U3xU4
                         const std::vector<u3::gelfand>& sps3_conj,
                         const std::vector<u4::gelfand>& sps4_conj,
                         u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-                        u4::WigU4U3_db& wigU4U3db) const
+                        u4::WigU4U3_db& wigU4U3db) 
   {
     std::vector<Eigen::RowVectorXd> coeffs;
     std::vector<std::vector<U3xU4::ad_gelfand>> adsArr;
@@ -500,13 +500,30 @@ namespace U3xU4
 
     else
     {
-      std::vector<u3::gelfand> g3Arr1 = u3::gelfandBasis(prod_ads.back().first),
-                               g3Arr2 = u3::gelfandBasis(prod_ats.back().first);
+      std::vector<u3::gelfand> g3Arr1, g3Arr2;
+      std::vector<u4::gelfand> g4Arr1, g4Arr2;
 
-      std::vector<u4::gelfand> g4Arr1 =
-                                   u4::gelfandBasis(prod_ads.back().second),
-                               g4Arr2 =
-                                   u4::gelfandBasis(prod_ats.back().second);
+      if (ads > 1)
+      {
+        g3Arr1 = u3::gelfandBasis(prod_ads.back().first);
+        g4Arr1 = u4::gelfandBasis(prod_ads.back().second);
+      }
+      else 
+      {
+        g3Arr1 = sps3;
+        g4Arr1 = sps4;
+      }
+
+      if (ats > 1)
+      {
+        g3Arr2 = u3::gelfandBasis(prod_ats.back().first);
+        g4Arr2 = u4::gelfandBasis(prod_ats.back().second);
+      }
+      else
+      {
+        g3Arr2 = sps3_conj;
+        g4Arr2 = sps4_conj;
+      }
 
       // uncouple the final tensor to Tad and Tat
       std::vector<std::pair<int, int>> uncouple_g3 =
@@ -547,7 +564,7 @@ namespace U3xU4
           int jj4_1 = g4Arr1[g4_1].Lambdax2(), mm4_1 = g4Arr1[g4_1].MLambdax2(),
               jj4_2 = g4Arr2[g4_2].Lambdax2(), mm4_2 = g4Arr2[g4_2].MLambdax2();
 
-          auto accU4 = wigU4U3db.get(
+          auto [allowU4, accU4] = wigU4U3db.get(
               g4Arr1[g4_1].n14(), g4Arr1[g4_1].n24(), g4Arr1[g4_1].n34(),
               g4Arr1[g4_1].n44(), g4Arr1[g4_1].n13(), g4Arr1[g4_1].n23(),
               g4Arr1[g4_1].n33(), g4Arr2[g4_2].n14(), g4Arr2[g4_2].n24(),
@@ -556,8 +573,8 @@ namespace U3xU4
               g4.n34(), g4.n44(), g4.n13(), g4.n23(), g4.n33());
           // accU4 should have etamax columns
 
-          // if (allowU4 == false)
-          //	continue;
+          if (allowU4 == false)
+          	continue;
 
           auto [allowU3_4, accU3_4] = wigU3U2db.get(
               g4Arr1[g4_1].n13(), g4Arr1[g4_1].n23(), g4Arr1[g4_1].n33(),
@@ -611,7 +628,7 @@ namespace U3xU4
             }
           }
         }
-      }
+      } 
     }
 
     return std::make_tuple(coeffs, adsArr, atsArr);
