@@ -50,6 +50,18 @@ namespace UNxU4
 
   std::size_t SlaterDeterminant::occupation() const { return bits.count(); }
 
+  std::size_t SlaterDeterminant::preceding_occupation(
+                                            std::size_t r, std::size_t c) const
+  {
+    std::size_t i = index(r,c);
+
+    std::size_t count = 0;
+    for (std::size_t k = 0; k < i; k++)
+      if (bits[k])
+        count++;
+    return count;
+  }
+
   std::size_t SlaterDeterminant::num_hop(std::size_t r_i, std::size_t c_i,
                                          std::size_t r_f, std::size_t c_f) const
   {

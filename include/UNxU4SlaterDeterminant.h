@@ -47,6 +47,9 @@ namespace UNxU4
     // Constructor
     SlaterDeterminant(std::size_t n);
     SlaterDeterminant(const boost::dynamic_bitset<>& b);
+    SlaterDeterminant(const SlaterDeterminant& other)
+      : bits(other.bits), N(other.N)
+    {}
 
     // Bit position
     std::size_t index(std::size_t r, std::size_t c) const;
@@ -65,6 +68,9 @@ namespace UNxU4
 
     // Count number of nucleons
     std::size_t occupation() const;
+
+    // Count number of all preceding occupied states
+    std::size_t preceding_occupation(std::size_t r, std::size_t c) const;
 
     // Count number of nucleons being hopped over
     std::size_t num_hop(std::size_t r_i, std::size_t c_i, std::size_t r_f,
