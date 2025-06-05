@@ -26,7 +26,7 @@ namespace U3xU4
 {
   std::vector<UNxU4::SlaterDeterminant>
   expand_to_SD(std::size_t A, std::size_t n, std::size_t N,
-  			   const u3::irrep& b, const std::vector<u3::gelfand>& sps3, 
+  			   const u3::irrep& b, const std::vector<u3::gelfand>& sps3,
   			   const u4::irrep& p, const std::vector<u4::gelfand>& sps4)
   {
     std::vector<UNxU4::SlaterDeterminant> SDarr;
@@ -363,8 +363,8 @@ namespace U3xU4
 #endif
 
     // check error
-    std::cout << "The matrix size is " << mat.size() << " with error " 
-              << u34utils::nullspace_error(mat, expansion) << std::endl; 
+    //std::cout << "The matrix size is " << mat.size() << " with error " 
+    //          << u34utils::nullspace_error(mat, expansion) << std::endl; 
 
     return std::make_pair(SDarr, expansion);
   }
