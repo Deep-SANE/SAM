@@ -22,12 +22,18 @@ int main(int argc, char* argv[])
   u3::WigU3U2_db wigU3U2db(cgcs);
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
 
-  u3::irrep i3(4,3,1), t3_1_0(3,1,0), t3_1(3,3,0), t3_2(3,2,0), t3(4,1,0), f3(5,3,2);
-  u4::irrep i4(3,1,0,0), t4_1_0(1,1,0,0), t4_1(2,1,0,0), t4_2(1,1,0,0), t4(1,0,0,0), f4(3,1,1,0);
+  //u3::irrep i3(4,3,1), t3_1_0(3,1,0), t3_1(3,3,0), t3_2(3,2,0), t3(4,1,0), f3(5,3,2);
+  //u4::irrep i4(3,1,0,0), t4_1_0(1,1,0,0), t4_1(2,1,0,0), t4_2(1,1,0,0), t4(1,0,0,0), f4(3,1,1,0);
 
-  std::size_t ads = 3, ats = 2;
+  //std::size_t ads = 3, ats = 2;
+
+  u3::irrep i3(14,2,0), t3_1(6,2,0), t3_2(6,4,0), t3(4,2,0), f3(14,2,0);
+  u4::irrep i4(1,1,1,1), t4_1(1,1,0,0), t4_2(1,1,0,0), t4(0,0,0,0), f4(1,1,1,1);
+
+  std::size_t ads = 2, ats = 2;
 
   std::vector<std::pair<u3::irrep, u4::irrep>> prod_ads, prod_ats;
+  //prod_ads.emplace_back(t3_1_0,t4_1_0);
   prod_ads.emplace_back(t3_1,t4_1);
   prod_ats.emplace_back(t3_2,t4_2);
 
