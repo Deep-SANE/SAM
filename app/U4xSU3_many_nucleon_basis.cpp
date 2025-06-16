@@ -2,20 +2,22 @@
 #include <chrono>
 #include <iostream>
 #include <numeric>
-#include <vector>
-#include <set>
 #include <ranges>
+#include <set>
+#include <vector>
 
 #include <U4basis.h>
-#include <UNtoU3.h>
 #include <U4decomposition.h>
+#include <UNtoU3.h>
 #include <UNxU4SlaterDeterminant.h>
 
 ////////////////////////// U4 /////////////////////////////
-struct MU4 {
-	uint16_t mult;
-	u4::irrep u4;
+struct MU4
+{
+  uint16_t mult;
+  u4::irrep u4;
 };
+
 using MU4_VEC = std::vector<MU4>;
 
 void Couple(const MU4& a, const MU4& b, MU4_VEC& resulting_mult_u4)
@@ -23,98 +25,103 @@ void Couple(const MU4& a, const MU4& b, MU4_VEC& resulting_mult_u4)
   auto [u4s, mults] = u4::decomposition(a.u4, b.u4);
   for (int i = 0; i < u4s.size(); i++)
   {
-		MU4 mu4;
-		mu4.mult = mults[i];
-		mu4.u4 = u4s[i];
-		resulting_mult_u4.push_back(mu4);
+    MU4 mu4;
+    mu4.mult = mults[i];
+    mu4.u4 = u4s[i];
+    resulting_mult_u4.push_back(mu4);
   }
 }
 
 ////////////////////////// SU3 /////////////////////////////
-struct MSU3 {
-   uint16_t mult;
-   int lm;
-   int mu;
+struct MSU3
+{
+  uint16_t mult;
+  int lm;
+  int mu;
 };
+
 using MSU3_VEC = std::vector<MSU3>;
 
-int su3mult(int lm1, int mu1, int lm2, int mu2, int lm3, int mu3) {
-   int result = 0;
-   int phase = lm1 + lm2 - lm3 - mu1 - mu2 + mu3;
-
-   if (phase % 3 == 0) {
-      int redphase;
-      int l1, l2, l3, m1, m2, m3;
-
-      redphase = phase / 3;
-      if (phase >= 0) {
-         l1 = lm1;
-         l2 = lm2;
-         l3 = lm3;
-         m1 = mu1;
-         m2 = mu2;
-         m3 = mu3;
-      } else {
-         l1 = mu1;
-         l2 = mu2;
-         l3 = mu3;
-         m1 = lm1;
-         m2 = lm2;
-         m3 = lm3;
-         redphase = -redphase;
-      }
-      phase = redphase + m1 + m2 - m3;
-
-      int invl1 = std::min(l1 - redphase, m2);
-      if (invl1 < 0) {
-         return result;
-      }
-
-      int invl2 = std::min(l2 - redphase, m1);
-      if (invl2 < 0) {
-         return result;
-      }
-      result = std::max(std::min(phase, invl2) - std::max(phase - invl1, 0) + 1, 0);
-   }
-   return result;
-}
-
-void couple(int lm1, int mu1, int lm2, int mu2, MSU3_VEC& ir3) {
-   ir3.reserve(3 * (lm1 + mu1 + lm2 + mu2));
-
-   int ix_max = std::min(mu1, lm2);
-   for (int ix = 0; ix <= ix_max; ++ix) {
-      int iy_max = std::min(lm1, lm2 + mu2 - ix);
-      for (int iy = 0; iy <= iy_max; ++iy) {
-         int iz_min = std::max(0, mu2 - mu1 + ix - iy);
-         int iz_max = std::min(mu2, lm2 + mu2 - ix - iy);
-         for (int iz = iz_min; iz <= iz_max; ++iz) {
-            int lm3 = lm1 + lm2 + mu2 - 2 * iy - ix - iz;
-            int mu3 = mu1 - mu2 - ix + iy + 2 * iz;
-            int ip = (2 * (mu3 - mu1) + lm3 - lm1 - lm2 + mu2) / 3;
-            int in = (2 * (lm1 + lm2 - lm3) + mu1 + mu2 - mu3) / 3;
-            int irho = ix - std::max({0, -ip, in - lm1}) + 1;
-            if (irho != 1) {
-               continue;
-            }
-            ir3.push_back(MSU3(su3mult(lm1, mu1, lm2, mu2, lm3, mu3), lm3, mu3));
-         }
-      }
-   }
-}
-
-void Couple(const MSU3& a, const MSU3&b, MSU3_VEC& result)
+int su3mult(int lm1, int mu1, int lm2, int mu2, int lm3, int mu3)
 {
-	int lm1 = a.lm;
-	int mu1 = a.mu;
-	int lm2 = b.lm;
-	int mu2 = b.mu;
-	couple(lm1, mu1, lm2, mu2, result);
+  int result = 0;
+  int phase = lm1 + lm2 - lm3 - mu1 - mu2 + mu3;
+
+  if (phase % 3 == 0)
+  {
+    int redphase;
+    int l1, l2, l3, m1, m2, m3;
+
+    redphase = phase / 3;
+    if (phase >= 0)
+    {
+      l1 = lm1;
+      l2 = lm2;
+      l3 = lm3;
+      m1 = mu1;
+      m2 = mu2;
+      m3 = mu3;
+    }
+    else
+    {
+      l1 = mu1;
+      l2 = mu2;
+      l3 = mu3;
+      m1 = lm1;
+      m2 = lm2;
+      m3 = lm3;
+      redphase = -redphase;
+    }
+    phase = redphase + m1 + m2 - m3;
+
+    int invl1 = std::min(l1 - redphase, m2);
+    if (invl1 < 0)
+      return result;
+
+    int invl2 = std::min(l2 - redphase, m1);
+    if (invl2 < 0)
+      return result;
+    result =
+        std::max(std::min(phase, invl2) - std::max(phase - invl1, 0) + 1, 0);
+  }
+  return result;
 }
 
+void couple(int lm1, int mu1, int lm2, int mu2, MSU3_VEC& ir3)
+{
+  ir3.reserve(3 * (lm1 + mu1 + lm2 + mu2));
 
+  int ix_max = std::min(mu1, lm2);
+  for (int ix = 0; ix <= ix_max; ++ix)
+  {
+    int iy_max = std::min(lm1, lm2 + mu2 - ix);
+    for (int iy = 0; iy <= iy_max; ++iy)
+    {
+      int iz_min = std::max(0, mu2 - mu1 + ix - iy);
+      int iz_max = std::min(mu2, lm2 + mu2 - ix - iy);
+      for (int iz = iz_min; iz <= iz_max; ++iz)
+      {
+        int lm3 = lm1 + lm2 + mu2 - 2 * iy - ix - iz;
+        int mu3 = mu1 - mu2 - ix + iy + 2 * iz;
+        int ip = (2 * (mu3 - mu1) + lm3 - lm1 - lm2 + mu2) / 3;
+        int in = (2 * (lm1 + lm2 - lm3) + mu1 + mu2 - mu3) / 3;
+        int irho = ix - std::max({0, -ip, in - lm1}) + 1;
+        if (irho != 1)
+          continue;
+        ir3.push_back(MSU3(su3mult(lm1, mu1, lm2, mu2, lm3, mu3), lm3, mu3));
+      }
+    }
+  }
+}
 
-
+void Couple(const MSU3& a, const MSU3& b, MSU3_VEC& result)
+{
+  int lm1 = a.lm;
+  int mu1 = a.mu;
+  int lm2 = b.lm;
+  int mu2 = b.mu;
+  couple(lm1, mu1, lm2, mu2, result);
+}
 
 /////////////   DISTRIBUTINS  /////////////////
 typedef std::vector<unsigned> tSHELLSCONFIG;
@@ -137,8 +144,8 @@ std::vector<std::vector<tSHELLSCONFIG>> generate_distributions(size_t Nmax,
   // This loop creates 0hw shell configuration
   while (iNParticlesLeft > 0)
   {
-  // number of nucleons that can fit into n-th HO shell
-    int N = 2 * (n + 1) * (n + 2); 
+    // number of nucleons that can fit into n-th HO shell
+    int N = 2 * (n + 1) * (n + 2);
     if ((iNParticlesLeft - N) > 0)
     {
       v0hwShellConfiguration.push_back(N);
@@ -211,7 +218,6 @@ std::vector<std::vector<tSHELLSCONFIG>> generate_distributions(size_t Nmax,
   return distributions;
 }
 
-
 void generate_U4_irreps(int A, int n, std::vector<u4::irrep>& u4_irreps)
 {
   int nsps = (n + 1) * (n + 2) / 2;
@@ -252,7 +258,8 @@ std::vector<int> UN_to_UN(const std::vector<size_t>& un5)
   return un;
 }
 
-void generateSU3U4(int n, int A, std::vector<std::pair<MU4, MSU3>>& allowedSU3U4irreps)
+void generateSU3U4(int n, int A,
+                   std::vector<std::pair<MU4, MSU3>>& allowedSU3U4irreps)
 {
   untou3::UNtoU3<4> gen;
   gen.set_shell(n);
@@ -268,56 +275,52 @@ void generateSU3U4(int n, int A, std::vector<std::pair<MU4, MSU3>>& allowedSU3U4
     {
       int lm = u3.lam();
       int mu = u3.mu();
-      allowedSU3U4irreps.push_back(std::make_pair(MU4(1, u4), MSU3(mult, lm, mu)));
+      allowedSU3U4irreps.push_back(
+          std::make_pair(MU4(1, u4), MSU3(mult, lm, mu)));
     }
   }
 }
 
 template <typename T>
-void gamma2omega(const std::vector<T>& gamma, std::vector<std::vector<T>>& omega)
+void gamma2omega(const std::vector<T>& gamma,
+                 std::vector<std::vector<T>>& omega)
 {
-	assert(gamma.size() >= 2);
+  assert(gamma.size() >= 2);
 
-	size_t nColumns = gamma.size() - 1;
-	std::vector<T> Row(nColumns);
-	std::vector<std::vector<T>> vStack(nColumns);
-	Couple(gamma[0], gamma[1], vStack[0]);
+  size_t nColumns = gamma.size() - 1;
+  std::vector<T> Row(nColumns);
+  std::vector<std::vector<T>> vStack(nColumns);
+  Couple(gamma[0], gamma[1], vStack[0]);
 
-	for (int icol = 0; ; )
-	{
-		if (icol == nColumns - 1)
-		{
-			for (size_t i = 0; i < vStack[icol].size(); ++i)
-			{
-				Row[icol] = vStack[icol][i];
-				omega.push_back(Row);
-			}
-			vStack[icol].resize(0);
-			if (icol > 0)
-			{
-				icol--;
-			}
-		}
+  for (int icol = 0;;)
+  {
+    if (icol == nColumns - 1)
+    {
+      for (size_t i = 0; i < vStack[icol].size(); ++i)
+      {
+        Row[icol] = vStack[icol][i];
+        omega.push_back(Row);
+      }
+      vStack[icol].resize(0);
+      if (icol > 0)
+        icol--;
+    }
 
-		if (!vStack[icol].empty())
-		{
-			Row[icol] = vStack[icol].back();
-			vStack[icol].pop_back();
-			Couple(Row[icol], gamma[icol+2], vStack[icol+1]);
-			icol++;
-		}
-		else
-		{
-			if (icol > 0)
-			{
-				icol--;
-			}
-			else	// at this point icol == 0 and vStack[icol == 0] is empty
-			{
-				break;
-			}
-		}
-	}
+    if (!vStack[icol].empty())
+    {
+      Row[icol] = vStack[icol].back();
+      vStack[icol].pop_back();
+      Couple(Row[icol], gamma[icol + 2], vStack[icol + 1]);
+      icol++;
+    }
+    else
+    {
+      if (icol > 0)
+        icol--;
+      else // at this point icol == 0 and vStack[icol == 0] is empty
+        break;
+    }
+  }
 }
 
 int kmax(int lm, int mu, int L)
@@ -342,7 +345,6 @@ int computeDim(int lm, int mu, int SS, int JJ)
   return dim;
 }
 
-
 int computeDim(int lm, int mu, const u4::irrep& u4, int MMT, int JJ)
 {
   int dim = 0;
@@ -353,14 +355,14 @@ int computeDim(int lm, int mu, const u4::irrep& u4, int MMT, int JJ)
     {
       int mult = labels.zeta;
       int SS = labels.SS;
-      dim += mult*computeDim(lm, mu, SS, JJ);
+      dim += mult * computeDim(lm, mu, SS, JJ);
     }
   }
   return dim;
 }
 
-
-uint64_t dimGamma(const std::vector<MU4>& gammas_u4, const std::vector<MSU3>& gammas_su3, int MMT, int JJ)
+uint64_t dimGamma(const std::vector<MU4>& gammas_u4,
+                  const std::vector<MSU3>& gammas_su3, int MMT, int JJ)
 {
   uint64_t dim = 0;
 
@@ -372,26 +374,20 @@ uint64_t dimGamma(const std::vector<MU4>& gammas_u4, const std::vector<MSU3>& ga
 
   uint32_t mult_gamma_u4 = 1;
   for (size_t i = 0; i < gammas_u4.size(); ++i)
-  {
     mult_gamma_u4 *= gammas_u4[i].mult;
-  }
   assert(mult_gamma_u4 == 1);
 
   uint32_t mult_gamma_su3 = 1;
   for (size_t i = 0; i < gammas_su3.size(); ++i)
-  {
     mult_gamma_su3 *= gammas_su3[i].mult;
-  }
 
-  uint32_t mult_gamma = mult_gamma_su3*mult_gamma_u4;
+  uint32_t mult_gamma = mult_gamma_su3 * mult_gamma_u4;
 
   for (const auto& mu4_vec : omega_mu4)
   {
     uint32_t mult_u4 = 1;
     for (size_t i = 0; i < mu4_vec.size(); ++i)
-    {
       mult_u4 *= mu4_vec[i].mult;
-    }
 
     for (const auto& msu3_vec : omega_msu3)
     {
@@ -402,26 +398,23 @@ uint64_t dimGamma(const std::vector<MU4>& gammas_u4, const std::vector<MSU3>& ga
       {
         MSU3 msu3 = msu3_vec[i];
         MU4 mu4 = mu4_vec[i];
-        std::cout << mu4.mult << "[" << mu4.u4.n14() << " "
-                  << mu4.u4.n24() << " " << mu4.u4.n34() << " " << mu4.u4.n44()
-                  << "] ";
+        std::cout << mu4.mult << "[" << mu4.u4.n14() << " " << mu4.u4.n24()
+                  << " " << mu4.u4.n34() << " " << mu4.u4.n44() << "] ";
         std::cout << msu3.mult << "(" << msu3.lm << " " << msu3.mu << ")   ";
       }
 
       uint32_t mult_su3 = 1;
       for (size_t i = 0; i < msu3_vec.size(); ++i)
-      {
         mult_su3 *= msu3_vec[i].mult;
-      }
-      uint32_t mult = mult_gamma*mult_u4*mult_su3;
+      uint32_t mult = mult_gamma * mult_u4 * mult_su3;
       MU4 mu4 = mu4_vec.back();
       MSU3 msu3 = msu3_vec.back();
       u4::irrep u4 = mu4.u4;
       int lm = msu3.lm;
       int mu = msu3.mu;
       uint32_t dim_irrep = computeDim(lm, mu, u4, MMT, JJ);
-      dim += mult*dim_irrep;
-      std::cout << " mult:" << mult << " dim:" << mult*dim_irrep << std::endl;
+      dim += mult * dim_irrep;
+      std::cout << " mult:" << mult << " dim:" << mult * dim_irrep << std::endl;
     }
   }
   return dim;
@@ -437,9 +430,7 @@ uint64_t dimDistribution(const tSHELLSCONFIG& distribution, int MMT, int JJ)
   {
     int A = distribution[n];
     if (A == 0)
-    {
       continue;
-    }
     std::vector<std::pair<MU4, MSU3>> allowedU4SU3irreps;
     generateSU3U4(n, A, allowedU4SU3irreps);
     vvU4SU3.push_back(allowedU4SU3irreps);
@@ -456,21 +447,25 @@ uint64_t dimDistribution(const tSHELLSCONFIG& distribution, int MMT, int JJ)
   // *vvSU3xSU2Irreps[NIrrepsSets].size()
   unsigned uNAllowedCombinations = 1;
 
-  for (size_t i = 0; i < NIrrepsSets; i++) {
+  for (size_t i = 0; i < NIrrepsSets; i++)
+  {
     vNSizes[i] = vvU4SU3[i].size();
     uNAllowedCombinations *= vNSizes[i];
   }
 
-  for (size_t i = 1; i < NIrrepsSets; i++) {
+  for (size_t i = 1; i < NIrrepsSets; i++)
+  {
     // if i == 0 => vElemsPerChange[0]=1 since constructor
     vElemsPerChange[i] = vElemsPerChange[i - 1] * vNSizes[i - 1];
   }
 
-  for (unsigned index = 0; index < uNAllowedCombinations; index++) {
+  for (unsigned index = 0; index < uNAllowedCombinations; index++)
+  {
     // in each step create a set of SU3xSU2 irreps to couple
     std::vector<MU4> gammas_u4;
     std::vector<MSU3> gammas_su3;
-    for (size_t i = 0; i < NIrrepsSets; i++) {
+    for (size_t i = 0; i < NIrrepsSets; i++)
+    {
       size_t iElement = (index / vElemsPerChange[i]) % vNSizes[i];
       gammas_u4.push_back(vvU4SU3[i][iElement].first);
       gammas_su3.push_back(vvU4SU3[i][iElement].second);
@@ -481,11 +476,14 @@ uint64_t dimDistribution(const tSHELLSCONFIG& distribution, int MMT, int JJ)
       MSU3 msu3 = gammas_su3[i];
       MU4 mu4 = gammas_u4[i];
       std::cout << "\tgamma[" << i << "]:";
-      std::cout << mu4.mult << "[" << mu4.u4.n14() << " " << mu4.u4.n24() << " " << mu4.u4.n34() << " " << mu4.u4.n44() << "] ";
-      std::cout << msu3.mult << "(" << msu3.lm << " " << msu3.mu << ")" << std::endl;
+      std::cout << mu4.mult << "[" << mu4.u4.n14() << " " << mu4.u4.n24() << " "
+                << mu4.u4.n34() << " " << mu4.u4.n44() << "] ";
+      std::cout << msu3.mult << "(" << msu3.lm << " " << msu3.mu << ")"
+                << std::endl;
     }
-    
-    if (gammas_u4.size() > 1) {
+
+    if (gammas_u4.size() > 1)
+    {
       dim += dimGamma(gammas_u4, gammas_su3, MMT, JJ);
     }
     else
@@ -494,7 +492,7 @@ uint64_t dimDistribution(const tSHELLSCONFIG& distribution, int MMT, int JJ)
       MU4 mu4 = gammas_u4[0];
       assert(mu4.mult == 1);
       uint32_t mult = msu3.mult;
-      dim += mult*computeDim(msu3.lm, msu3.mu, mu4.u4, MMT, JJ);
+      dim += mult * computeDim(msu3.lm, msu3.mu, mu4.u4, MMT, JJ);
     }
     std::cout << std::endl;
   }
@@ -527,9 +525,7 @@ int main()
     {
       std::cout << "distribution: [";
       for (auto A : distribution)
-      {
         std::cout << A << " ";
-      }
       std::cout << "]" << std::endl;
       dim += dimDistribution(distribution, MMT, JJ);
     }
