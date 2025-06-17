@@ -34,10 +34,6 @@ ifdef UNTOU3_DIR
 CXXFLAGS += -I$(UNTOU3_DIR)/include
 endif
 
-ifneq ($(HAVE_BOOST),1)
-  $(error "Environment variable 'HAVE_BOOST' must be set to '1' for building SAM!")
-endif
-
 ifdef BOOST_ROOT
 CXXFLAGS += -I$(BOOST_ROOT)/include
 endif
