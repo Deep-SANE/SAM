@@ -2,7 +2,7 @@
 #define SAM_SAM_CONFIG_H
 
 // C++23:
-#ifdef __cpp_lib_print
+#if defined __cpp_lib_print && defined __cpp_lib_format && defined __cpp_lib_format_ranges
 
 #include <print>
 

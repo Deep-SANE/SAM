@@ -33,9 +33,9 @@ int main()
 
     for (const auto& distribution : distributions[nhw])
     {
-      print("\t[{}]\n", fmt::join(distribution, ","));
+      print("\t{}\n", distribution);
 
-//    dim += dimDistribution(distribution, MMT, JJ);
+      dim += basis.dimDistribution(distribution, MMT, JJ);
     }
   }
 
