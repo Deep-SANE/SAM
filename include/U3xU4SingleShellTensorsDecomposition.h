@@ -33,9 +33,15 @@ namespace U3xU4
     std::size_t r, // U(4) Gelfand for [1,0,0,0]
         c;         // U(3) gelfand for [n,0,0]
 
+    const std::vector<u3::gelfand>& sps3; // Gelfand array for [n,0,0]
+    const std::vector<u4::gelfand>& sps4; // Gelfand array for [1,0,0,0]
+
   public:
     // Constructor
-    ad_gelfand(std::size_t c_, std::size_t r_) : c(c_), r(r_) { }
+    ad_gelfand(std::size_t c_, std::size_t r_, 
+               const std::vector<u3::gelfand>& sps3_,
+               const std::vector<u4::gelfand>& sps4_) 
+      : c(c_), r(r_), sps3(sps3_), sps4(sps4_) { }
 
     // Get tensor characters
     std::pair<std::size_t, std::size_t> getTensorCharacters() const
@@ -44,8 +50,7 @@ namespace U3xU4
     }
 
     // Print
-    void print(const std::vector<u3::gelfand>& sps3,
-               const std::vector<u4::gelfand>& sps4)
+    void print() const
     {
       std::cout << "[" << sps3[c] << "] x [" << sps4[r] << "]";
     }
@@ -68,11 +73,23 @@ namespace U3xU4
     std::size_t r, // U(4) Gelfand for [1,1,1,0]
         c;         // U(3) gelfand for [n,n,0]
 
-    bool tensor = true;
+    const std::vector<u3::gelfand>& sps3; // Gelfand array for [n,0,0]
+    const std::vector<u3::gelfand>& sps3_conj; // Gelfand array for [n,n,0]
+
+    const std::vector<u4::gelfand>& sps4; // Gelfand array for [1,0,0,0]
+    const std::vector<u4::gelfand>& sps4_conj; // Gelfand array for [1,1,1,0]
+
+    bool tensor = true; // flag indicating if this object is tensor or operator
 
   public:
     // Constructor
-    at_gelfand(std::size_t c_, std::size_t r_) : c(c_), r(r_) { }
+    at_gelfand(std::size_t c_, std::size_t r_,
+               const std::vector<u3::gelfand>& sps3_,
+               const std::vector<u3::gelfand>& sps3_conj_,
+               const std::vector<u4::gelfand>& sps4_,
+               const std::vector<u4::gelfand>& sps4_conj_) 
+      : c(c_), r(r_), sps3(sps3_), sps3_conj(sps3_conj_), 
+        sps4(sps4_), sps4_conj(sps4_conj_) { }
 
     // Get tensor characters
     std::pair<std::size_t, std::size_t> getTensorCharacters() const
@@ -82,22 +99,21 @@ namespace U3xU4
 
     // Turn it to a by conjugating, this method returns a phase
     // and change r & c to Gelfand patterns for conjugate irreps,
-    // [1,0,0,0] & [n,0,0], respectively
-    // after this method is executed, tensor is turned to false
-    double turnToAnnihilation(const std::vector<u3::gelfand>& sps3,
-                              const std::vector<u4::gelfand>& sps4,
-                              const std::vector<u3::gelfand>& sps3_conj,
-                              const std::vector<u4::gelfand>& sps4_conj);
+    // [1,0,0,0] & [n,0,0], respectively.
+    // After this method is executed, tensor is turned to false
+    double turnToAnnihilation();
 
     // Check if it is annihilation tensor or annihilation operator
     bool isTensor() const { return tensor; }
 
     // Print, note that if this is called after turnToAnnihilation()
     // sps3 and sps4 must the the conjugate Gelfand arrays
-    void print(const std::vector<u3::gelfand>& sps3,
-               const std::vector<u4::gelfand>& sps4)
+    void print()
     {
-      std::cout << "[" << sps3[c] << "] x [" << sps4[r] << "]";
+      if (tensor == true)
+        std::cout << "[" << sps3_conj[c] << "] x [" << sps4_conj[r] << "]";
+      else
+        std::cout << "[" << sps3[c] << "] x [" << sps4[r] << "]";
     }
   };
 
@@ -109,6 +125,9 @@ namespace U3xU4
   private:
     // tensor character of ad [n,0,0] x [1,0,0,0]
     std::size_t n;
+
+    const std::vector<u3::gelfand>& sps3; // Gelfand array for [n,0,0]
+    const std::vector<u4::gelfand>& sps4; // Gelfand array for [1,0,0,0]
 
     // coupled tensor characters
     // 0 element for ad
@@ -124,9 +143,11 @@ namespace U3xU4
   public:
     // Constructor
     Tad_gelfand(std::size_t n_,
+                const std::vector<u3::gelfand>& sps3_,
+                const std::vector<u4::gelfand>& sps4_,
                 const std::vector<std::pair<u3::irrep, u4::irrep>>& prod,
                 const u3::gelfand& b, const u4::gelfand& p)
-        : n(n_), prod_characters(prod), g3(b), g4(p)
+        : n(n_), sps3(sps3_), sps4(sps4_), prod_characters(prod), g3(b), g4(p)
     { }
 
     // Get the number of ad's
@@ -137,8 +158,7 @@ namespace U3xU4
 
     // Expand in terms of uncoupled products of ad's
     std::pair<std::vector<double>, std::vector<std::vector<U3xU4::ad_gelfand>>>
-    expand(const std::vector<u3::gelfand>& sps3,
-           const std::vector<u4::gelfand>& sps4, u34utils::SO3_CGC& cgcs,
+    expand(u34utils::SO3_CGC& cgcs,
            u3::WigU3U2_db& wigU3U2db, u4::WigU4U3_db& wigU4U3db) const;
   };
 
@@ -150,6 +170,12 @@ namespace U3xU4
   private:
     // tensor character of at [n,n,0] x [1,1,1,0]
     std::size_t n;
+
+    const std::vector<u3::gelfand>& sps3; // Gelfand array for [n,0,0]
+    const std::vector<u3::gelfand>& sps3_conj; // Gelfand array for [n,n,0]
+
+    const std::vector<u4::gelfand>& sps4; // Gelfand array for [1,0,0,0]
+    const std::vector<u4::gelfand>& sps4_conj; // Gelfand array for [1,1,1,0]
 
     // coupled tensor characters
     // 0 element for at
@@ -164,9 +190,14 @@ namespace U3xU4
   public:
     // Constructor
     Tat_gelfand(std::size_t n_,
+                const std::vector<u3::gelfand>& sps3_,
+                const std::vector<u3::gelfand>& sps3_conj_,
+                const std::vector<u4::gelfand>& sps4_,
+                const std::vector<u4::gelfand>& sps4_conj_,
                 const std::vector<std::pair<u3::irrep, u4::irrep>>& prod,
                 const u3::gelfand& b, const u4::gelfand& p)
-        : n(n_), prod_characters(prod), g3(b), g4(p)
+        : n(n_), sps3(sps3_), sps3_conj(sps3_conj_), 
+        sps4(sps4_), sps4_conj(sps4_conj_), prod_characters(prod), g3(b), g4(p)
     { }
 
     // Get the number of at's
@@ -178,11 +209,8 @@ namespace U3xU4
     // Expand in terms of uncoupled products of a's
     // (not at's because a phase is added)
     std::pair<std::vector<double>, std::vector<std::vector<U3xU4::at_gelfand>>>
-    expand(const std::vector<u3::gelfand>& sps3,
-           const std::vector<u4::gelfand>& sps4,
-           const std::vector<u3::gelfand>& sps3_conj,
-           const std::vector<u4::gelfand>& sps4_conj, u34utils::SO3_CGC& cgcs,
-           u3::WigU3U2_db& wigU3U2db, u4::WigU4U3_db& wigU4U3db) const;
+    expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db, 
+                             u4::WigU4U3_db& wigU4U3db) const;
   };
 
   /* class for holding single-shell tensors, which are coupled products
@@ -194,6 +222,12 @@ namespace U3xU4
     // tensor character of ad [n,0,0] x [1,0,0,0]
     // tensor character of at [n,n,0] x [1,1,1,0]
     std::size_t n;
+
+    const std::vector<u3::gelfand>& sps3; // Gelfand array for [n,0,0]
+    const std::vector<u3::gelfand>& sps3_conj; // Gelfand array for [n,n,0]
+
+    const std::vector<u4::gelfand>& sps4; // Gelfand array for [1,0,0,0]
+    const std::vector<u4::gelfand>& sps4_conj; // Gelfand array for [1,1,1,0]
 
     // coupled tensor characters
     // 0 element for ad
@@ -220,12 +254,21 @@ namespace U3xU4
 
   public:
     // Constructor
-    Tadat_gelfand(std::size_t n_, std::size_t ads_, std::size_t ats_,
+    Tadat_gelfand(std::size_t n_, 
+                  const std::vector<u3::gelfand>& sps3_,
+                  const std::vector<u3::gelfand>& sps3_conj_,
+                  const std::vector<u4::gelfand>& sps4_,
+                  const std::vector<u4::gelfand>& sps4_conj_, 
+                  std::size_t ads_, std::size_t ats_,
                   const std::vector<std::pair<u3::irrep, u4::irrep>>& prod_ads_,
                   const std::vector<std::pair<u3::irrep, u4::irrep>>& prod_ats_,
                   const u3::irrep& t3, const u3::gelfand& b, std::size_t Rhomax,
                   const u4::irrep& t4, const u4::gelfand& p, std::size_t Etamax)
         : n(n_),
+          sps3(sps3_),
+          sps3_conj(sps3_conj_),
+          sps4(sps4_),
+          sps4_conj(sps4_conj_),
           ads(ads_),
           ats(ats_),
           prod_ads(prod_ads_),
@@ -254,10 +297,7 @@ namespace U3xU4
     std::tuple<std::vector<Eigen::RowVectorXd>,             // coeffs
                std::vector<std::vector<U3xU4::ad_gelfand>>, // ad's
                std::vector<std::vector<U3xU4::at_gelfand>>> // a's
-    expand(const std::vector<u3::gelfand>& sps3,
-           const std::vector<u4::gelfand>& sps4,
-           const std::vector<u3::gelfand>& sps3_conj,
-           const std::vector<u4::gelfand>& sps4_conj, u34utils::SO3_CGC& cgcs,
-           u3::WigU3U2_db& wigU3U2db, u4::WigU4U3_db& wigU4U3db);
+    expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db, 
+                                   u4::WigU4U3_db& wigU4U3db);
   };
 } // namespace U3xU4
