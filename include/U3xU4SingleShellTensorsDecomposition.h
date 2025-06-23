@@ -68,6 +68,8 @@ namespace U3xU4
     std::size_t r, // U(4) Gelfand for [1,1,1,0]
         c;         // U(3) gelfand for [n,n,0]
 
+    bool tensor = true;
+
   public:
     // Constructor
     at_gelfand(std::size_t c_, std::size_t r_) : c(c_), r(r_) { }
@@ -81,10 +83,14 @@ namespace U3xU4
     // Turn it to a by conjugating, this method returns a phase
     // and change r & c to Gelfand patterns for conjugate irreps,
     // [1,0,0,0] & [n,0,0], respectively
+    // after this method is executed, tensor is turned to false
     double turnToAnnihilation(const std::vector<u3::gelfand>& sps3,
                               const std::vector<u4::gelfand>& sps4,
                               const std::vector<u3::gelfand>& sps3_conj,
                               const std::vector<u4::gelfand>& sps4_conj);
+
+    // Check if it is annihilation tensor or annihilation operator
+    bool isTensor() const { return tensor; }
 
     // Print, note that if this is called after turnToAnnihilation()
     // sps3 and sps4 must the the conjugate Gelfand arrays
@@ -233,10 +239,10 @@ namespace U3xU4
     { }
 
     // Get the number of ad's
-    std::size_t num_ads() const { return prod_ads.size() + 1; }
+    std::size_t num_ads() const { return ads; }
 
     // Get the number of at's
-    std::size_t num_ats() const { return prod_ats.size() + 1; }
+    std::size_t num_ats() const { return ats; }
 
     // Get shell number
     std::size_t shell() const { return n; }
