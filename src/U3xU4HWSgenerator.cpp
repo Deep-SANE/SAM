@@ -377,7 +377,6 @@ namespace U3xU4
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir) 
       throw std::runtime_error("Environment variable SAM_DIR not set");
-    
 
     std::filesystem::path dir = std::filesystem::path(sam_dir) / "data/hws";
 
@@ -390,22 +389,40 @@ namespace U3xU4
                          + std::to_string(p.n14()) + "-" 
                          + std::to_string(p.n24()) + "-" 
                          + std::to_string(p.n34()) + "-" 
-                         + std::to_string(p.n44()) + ".dat";
+                         + std::to_string(p.n44()) + ".bin";
 
     std::filesystem::path full_path = dir / filename;
 
     // If file doesn't exist, create it and save it with data
     if (!std::filesystem::exists(full_path)) 
     {
-        std::ofstream file(full_path);
+      //std::ofstream file(full_path);
+      std::ofstream file(full_path, std::ios::binary);
+      if (!file) 
+        throw std::runtime_error("Failed to open file for writing: " + full_path.string());
 
-        auto [SDarr, coeffs] = HWS_to_SD(A,n,b,p,sps3,sps4);
+      auto [SDarr, coeffs] = HWS_to_SD(A,n,b,p,sps3,sps4);
 
-        if (!file) 
-          throw std::runtime_error("Failed to open file for writing: " + full_path.string());
+      std::size_t rows = SDarr.size(), cols = coeffs.cols();
 
-        for (std::size_t i = 0; i < SDarr.size(); ++i) 
-          file << SDarr[i].bits << " " << coeffs.row(i) << '\n';
+      file.write(reinterpret_cast<const char*>(&rows), sizeof(rows));
+      file.write(reinterpret_cast<const char*>(&cols), sizeof(cols));
+
+      for (std::size_t i = 0; i < rows; i++) {
+        const auto& bits = SDarr[i].bits;
+        std::size_t bit_count = bits.size();
+        file.write(reinterpret_cast<const char*>(&bit_count), sizeof(bit_count));
+
+        std::vector<unsigned long> blocks;
+        boost::to_block_range(bits, std::back_inserter(blocks));  // Correct representation
+        std::size_t block_count = blocks.size();
+        file.write(reinterpret_cast<const char*>(blocks.data()), block_count * sizeof(unsigned long));
+
+        file.write(reinterpret_cast<const char*>(coeffs.row(i).data()), cols * sizeof(double));
+      }
+
+      //for (std::size_t i = 0; i < SDarr.size(); ++i) 
+        //file << SDarr[i].bits << " " << coeffs.row(i) << '\n';
     }
 
     return full_path;
@@ -414,13 +431,45 @@ namespace U3xU4
   std::pair<std::vector<UNxU4::SlaterDeterminant>, std::vector<Eigen::RowVectorXd>> 
   read_HWS_data(const std::filesystem::path& path) 
   {
-    std::ifstream file(path);
+    std::ifstream file(path, std::ios::binary);
     if (!file)
       throw std::runtime_error("Failed to open file for reading: " + path.string());
 
+    std::size_t rows = 0, cols = 0;
+    file.read(reinterpret_cast<char*>(&rows), sizeof(rows)); // read rows
+    file.read(reinterpret_cast<char*>(&cols), sizeof(cols)); // read cols
+
     std::vector<UNxU4::SlaterDeterminant> SDarr;
     std::vector<Eigen::RowVectorXd> coeffs;
+    SDarr.reserve(rows);
+    coeffs.reserve(rows);
 
+    //std::cout << rows << "," << cols << std::endl;
+
+    for (std::size_t i = 0; i < rows; i++) 
+    {
+      std::size_t bit_count = 0;
+      file.read(reinterpret_cast<char*>(&bit_count), sizeof(bit_count));
+
+      if (bit_count == 0 || bit_count > 10000)  // or another safe threshold
+        throw std::runtime_error("Corrupted file: unreasonable bit_count = " + std::to_string(bit_count));
+      
+      std::size_t block_count = (bit_count + sizeof(unsigned long) * 8 - 1) / (sizeof(unsigned long) * 8);
+      std::vector<unsigned long> blocks(block_count);
+      file.read(reinterpret_cast<char*>(blocks.data()), block_count * sizeof(unsigned long));
+
+      boost::dynamic_bitset<> bits(bit_count);
+      boost::from_block_range(blocks.begin(), blocks.end(), bits);
+      bits.resize(bit_count);  // Make sure to crop to the correct bit count
+
+      std::vector<double> coeff_vec(cols);
+      file.read(reinterpret_cast<char*>(coeff_vec.data()), cols * sizeof(double));
+      Eigen::RowVectorXd row = Eigen::Map<Eigen::RowVectorXd>(coeff_vec.data(), cols);
+
+      SDarr.emplace_back(bits);
+      coeffs.emplace_back(row);
+    }
+/*
     std::string line;
     while (std::getline(file, line)) 
     {
@@ -440,7 +489,7 @@ namespace U3xU4
       SDarr.push_back(SD);
       coeffs.push_back(row);
     }
-
+*/
     return std::make_pair(SDarr, coeffs);
   }
 
