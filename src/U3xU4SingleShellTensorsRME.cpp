@@ -25,12 +25,19 @@ namespace U3xU4
         if ((A_i - ats + ads) != A_f)
             throw std::invalid_argument("number of particles is not conserved");
 
+        if (A_i == 0 && A_f == 0)
+            throw std::invalid_argument("vacuum on both side");
+
         if (A_f == 0)
             n = N_quanta_i / A_i; 
         else if (A_i == 0)
             n = N_quanta_f / A_f;
         else
+        {
             n = N_quanta_i / A_i;
+            if (n != N_quanta_f / A_f)
+                throw std::invalid_argument("ket and bra are not in the same shell");
+        }
 
 		// Building single-particle states
   		u3::irrep x(n, 0, 0), x_conj(n, n, 0);
@@ -48,11 +55,26 @@ namespace U3xU4
         u4::gelfand i4hws(i4.n14(), i4.n24(), i4.n34(), i4.n44(), 
         				  i4.n14(), i4.n24(), i4.n34(), 
         				  i4.n14(), i4.n24(), 
-        				  i4.n14());                 	 	 
-		std::filesystem::path path_i = U3xU4::get_HWS_file(A_i,n,i3,i4,sps3,sps4);
-  		auto [SDarr_i, coeffs_i] = U3xU4::read_HWS_data(path_i);
+        				  i4.n14());       
+        std::vector<UNxU4::SlaterDeterminant> SDarr_i; 
+        std::vector<Eigen::RowVectorXd> coeffs_i;   
+        if (A_i == 0) // vacuum
+        {
+            const boost::dynamic_bitset<> bits(2 * (n + 1) * (n + 2), 0);
+            UNxU4::SlaterDeterminant SDi(bits);
+            SDarr_i.push_back(SDi);
+            Eigen::RowVectorXd c = Eigen::RowVectorXd::Constant(1, 1.0);
+            coeffs_i.push_back(c);
+        }     	 	 
+        else
+        {
+		  std::filesystem::path path_i = U3xU4::get_HWS_file(A_i,n,i3,i4,sps3,sps4);
+  		  std::tie(SDarr_i, coeffs_i) = U3xU4::read_HWS_data(path_i);
+        }
   		ai_max = coeffs_i[0].cols();
-
+        //std::cout << "coeffs_i:" << std::endl;
+        //for (int i = 0; i < coeffs_i.size(); i++)
+        //    std::cout << coeffs_i[i] << std::endl;
   		
   		// Generate HWS for the bra irrep
   		u3::gelfand f3hws(f3.n13(), f3.n23(), f3.n33(), 
@@ -62,9 +84,25 @@ namespace U3xU4
         				  f4.n14(), f4.n24(), f4.n34(), 
         				  f4.n14(), f4.n24(), 
         				  f4.n14());
-  		std::filesystem::path path_f = U3xU4::get_HWS_file(A_f,n,f3,f4,sps3,sps4);
-  		auto [SDarr_f, coeffs_f] = U3xU4::read_HWS_data(path_f);
+        std::vector<UNxU4::SlaterDeterminant> SDarr_f; 
+        std::vector<Eigen::RowVectorXd> coeffs_f;   
+        if (A_f == 0) // vacuum
+        {
+            const boost::dynamic_bitset<> bits(2 * (n + 1) * (n + 2), 0);
+            UNxU4::SlaterDeterminant SDf(bits);
+            SDarr_f.push_back(SDf);
+            Eigen::RowVectorXd c = Eigen::RowVectorXd::Constant(1, 1.0);
+            coeffs_f.push_back(c);
+        }            
+        else
+        {
+  		    std::filesystem::path path_f = U3xU4::get_HWS_file(A_f,n,f3,f4,sps3,sps4);
+  		    std::tie(SDarr_f, coeffs_f) = U3xU4::read_HWS_data(path_f);
+        }
   		af_max = coeffs_f[0].cols();
+        //std::cout << "coeffs_f:" << std::endl;
+        //for (int i = 0; i < coeffs_f.size(); i++)
+        //    std::cout << coeffs_f[i] << std::endl;
 
   		// Get outer multiplicities due to Wigner-Eckart theorem
   		rhomax = u3::Rho(i3,t3,f3); 
@@ -203,14 +241,14 @@ namespace U3xU4
     				if (!adArr.empty())
       				for (std::size_t j = 0; j < adArr[t].size(); j++)
       				{
-       					adArr[t][j].print(sps3, sps4);
+       					adArr[t][j].print();
         				std::cout << "\t";
       				}
 
     				if (!aArr.empty())
       				for (std::size_t j = 0; j < aArr[t].size(); j++)
       				{
-        				aArr[t][j].print(sps3, sps4);
+        				aArr[t][j].print();
         				std::cout << "\t";
      				}
 

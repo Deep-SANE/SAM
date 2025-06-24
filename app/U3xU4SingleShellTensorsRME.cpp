@@ -62,31 +62,46 @@ int main(int argc, char* argv[])
   */
 
   /* Example 3:
-                              (1,0,0) 
-    < (1,0,0) (1,0,0,0) ||| ad         ||| (0,0,0) (0,0,0,0) >
+                              (n,0,0) 
+    < (n,0,0) (1,0,0,0) ||| ad         ||| (0,0,0) (0,0,0,0) >
                               (1,0,0,0)
 
   */
   /*
-  std::size_t ads = 1, ats = 0;
-  u3::irrep i3(0,0,0), t3(1,0,0), f3(1,0,0);
+  std::size_t ads = 1, ats = 0, n = 4;
+  u3::irrep i3(0,0,0), t3(n,0,0), f3(n,0,0);
   u4::irrep i4(0,0,0,0), t4(1,0,0,0), f4(1,0,0,0);
 
   std::size_t rho0max = 1, eta0max = 1;
   */
 
   /* Example 4:
-                              (1,1,0) 
-    < (0,0,0) (0,0,0,0) ||| at         ||| (1,0,0) (1,0,0,0) >
+                              (n,n,0) 
+    < (0,0,0) (0,0,0,0) ||| at         ||| (n,0,0) (1,0,0,0) >
                               (1,1,1,0)
 
   */
-  
-  std::size_t ads = 0, ats = 1;
-  u3::irrep i3(1,0,0), t3(1,1,0), f3(0,0,0);
+  /*
+  std::size_t ads = 0, ats = 1, n = 4;
+  u3::irrep i3(n,0,0), t3(n,n,0), f3(0,0,0);
   u4::irrep i4(1,0,0,0), t4(1,1,1,0), f4(0,0,0,0);
 
   std::size_t rho0max = 1, eta0max = 1;
+  */
+
+  /* Example 5: generator type
+                                    (2,1,0)
+    / (n13 n23 n33)     ||| [ad x at]         ||| (n13 n23 n33)     \
+    \ (n14 n24 n34 n44) |||         (2,1,1,0) ||| (n14 n24 n34 n44) /
+  */
+
+  std::size_t ads = 1, ats = 1;
+  u3::irrep i3(3,1,0), t3(2,1,0), f3 = i3;
+  u4::irrep i4(2,1,1,0), t4(2,1,1,0), f4 = i4;
+
+  std::size_t rho0max = 1, eta0max = 1;
+
+  ////////////////////////////////////
 
   std::size_t alpha_i, alpha_f, rhomax, etamax;
 
