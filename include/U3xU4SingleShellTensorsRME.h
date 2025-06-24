@@ -30,6 +30,24 @@ namespace U3xU4
 	   For each matrix:
 	   		row = rho * max(eta) + eta
 	   		column = rho_0 * max(eta_0) + eta_0
+
+	   Inputs from user:
+	   i3, i4: initial irreps
+	   f3, f4: final irreps
+	   ads: number of ad's
+	   ats: number of a's (or at's)
+	   prod_ads: coupled irreps of ad's
+	   prod_ats: coupled irreps of at's
+	   t3, t4: final tensor characters
+	   rho0max: multiplicity of t3
+	   eta0max: multiplicity of t4
+	   cgcs, wigU3U2db, wigU4U3db: databases for coupling coefficients
+
+	   Output:
+	   RMEs stored in an array of matrices
+	   ai_max: outer multiplicity of i3
+	   af_max: outer multiplicity of f3
+	   rhomax, etamax: multiplicities of RMEs	
 	*/
 	std::vector<Eigen::MatrixXd> 
 	SingleShellRME(std::size_t& ai_max, const u3::irrep& i3, const u4::irrep& i4,

@@ -18,16 +18,19 @@ namespace U3xU4
            		   u3::WigU3U2_db& wigU3U2db, 
            		   u4::WigU4U3_db& wigU4U3db)
 	{
-		int A_i = i4.quanta(), N_quanta_i = i3.quanta();
-		int n = N_quanta_i / A_i; // shell number
+		int A_i = i4.quanta(), N_quanta_i = i3.quanta(), // initial irreps
+		    A_f = f4.quanta(), N_quanta_f = f3.quanta(), // final irreps
+            n; // shell number
 
-		int A_f = f4.quanta(), N_quanta_f = f3.quanta();
-  		
-  		if (n != (N_quanta_f / A_f))
-  			throw std::invalid_argument("irreps are not in the same shell");
+        if ((A_i - ats + ads) != A_f)
+            throw std::invalid_argument("number of particles is not conserved");
 
-  		if ((A_i - ats + ads) != A_f)
-  			throw std::invalid_argument("number of particles is not conserved");
+        if (A_f == 0)
+            n = N_quanta_i / A_i; 
+        else if (A_i == 0)
+            n = N_quanta_f / A_f;
+        else
+            n = N_quanta_i / A_i;
 
 		// Building single-particle states
   		u3::irrep x(n, 0, 0), x_conj(n, n, 0);
@@ -63,7 +66,7 @@ namespace U3xU4
   		auto [SDarr_f, coeffs_f] = U3xU4::read_HWS_data(path_f);
   		af_max = coeffs_f[0].cols();
 
-  		// Get outer multiplicities
+  		// Get outer multiplicities due to Wigner-Eckart theorem
   		rhomax = u3::Rho(i3,t3,f3); 
   		etamax = u4::Eta(i4,t4,f4);
 
@@ -187,11 +190,11 @@ namespace U3xU4
               			CGCs(row, r * etamax + e) = cgcU3(r) * cgcU4(e);
 
         		// Expand tensor into ad's and a's
-        		U3xU4::Tadat_gelfand Tadat(n, ads, ats, prod_ads, prod_ats, 
+        		U3xU4::Tadat_gelfand Tadat(n, sps3, sps3_conj, sps4, sps4_conj, 
+                                           ads, ats, prod_ads, prod_ats, 
         								   t3, gt3, rho0max, t4, gt4, eta0max);
 
-  				auto [coeffs, adArr, aArr] = Tadat.expand(sps3, sps4, sps3_conj, sps4_conj,
-                                             					cgcs, wigU3U2db, wigU4U3db);
+  				auto [coeffs, adArr, aArr] = Tadat.expand(cgcs, wigU3U2db, wigU4U3db);
 /*
   				for (std::size_t t = 0; t < coeffs.size(); t++)
   				{
