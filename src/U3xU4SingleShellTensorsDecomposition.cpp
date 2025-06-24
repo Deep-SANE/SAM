@@ -228,8 +228,7 @@ namespace U3xU4
 
           U3xU4::Tad_gelfand Tad(n, sps3, sps4, prod_0, g3Arr0[g3_0], g4Arr0[g4_0]);
 
-          auto [coeffs_0, tensors_0] =
-              Tad.expand(cgcs, wigU3U2db, wigU4U3db);
+          auto [coeffs_0, tensors_0] = Tad.expand(cgcs, wigU3U2db, wigU4U3db);
 
           for (std::size_t k = 0; k < coeffs_0.size(); k++)
           {
@@ -324,8 +323,8 @@ namespace U3xU4
               sps4_conj[g4_1].n44(), sps4_conj[g4_1].n13(), sps4_conj[g4_1].n23(),
               sps4_conj[g4_1].n33(), sps4_conj[g4_2].n14(), sps4_conj[g4_2].n24(),
               sps4_conj[g4_2].n34(), sps4_conj[g4_2].n44(), sps4_conj[g4_2].n13(),
-              sps4_conj[g4_2].n23(), sps4_conj[g4_2].n33(), g4.n14(), g4.n24(), g4.n34(),
-              g4.n44(), g4.n13(), g4.n23(), g4.n33());
+              sps4_conj[g4_2].n23(), sps4_conj[g4_2].n33(), g4.n14(), g4.n24(), 
+              g4.n34(), g4.n44(), g4.n13(), g4.n23(), g4.n33());
           // accU4 should have only one column
 
           if (allowU4 == false)
@@ -335,8 +334,7 @@ namespace U3xU4
               sps4_conj[g4_1].n13(), sps4_conj[g4_1].n23(), sps4_conj[g4_1].n33(),
               sps4_conj[g4_1].n12(), sps4_conj[g4_1].n22(), sps4_conj[g4_2].n13(),
               sps4_conj[g4_2].n23(), sps4_conj[g4_2].n33(), sps4_conj[g4_2].n12(),
-              sps4_conj[g4_2].n22(), g4.n13(), g4.n23(), g4.n33(), g4.n12(),
-              g4.n22());
+              sps4_conj[g4_2].n22(), g4.n13(), g4.n23(), g4.n33(), g4.n12(), g4.n22());
 
           if (allowU3_4 == false)
             continue;
@@ -368,7 +366,7 @@ namespace U3xU4
       }
     }
 
-    // three ad's
+    // three at's
     else if (num == 3)
     {
       std::vector<u3::gelfand> g3Arr0 =
