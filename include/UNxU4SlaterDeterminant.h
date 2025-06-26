@@ -48,8 +48,8 @@ namespace UNxU4
     SlaterDeterminant(std::size_t n);
     SlaterDeterminant(const boost::dynamic_bitset<>& b);
     SlaterDeterminant(const SlaterDeterminant& other)
-      : bits(other.bits), N(other.N)
-    {}
+        : bits(other.bits), N(other.N)
+    { }
 
     // Bit position
     std::size_t index(std::size_t r, std::size_t c) const;
@@ -85,6 +85,5 @@ namespace UNxU4
     // Compare two determinant
     bool operator==(const SlaterDeterminant& other) const;
   };
-
 
 } // namespace UNxU4

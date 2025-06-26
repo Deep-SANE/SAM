@@ -17,8 +17,8 @@ namespace U3xU4
 
     assert(tensor);
 
-    int n13b = sps3_conj[c].n13(), n22b = sps3_conj[c].n22(), 
-        n11b = sps3_conj[c].n11(), n33p = sps4_conj[r].n33(), 
+    int n13b = sps3_conj[c].n13(), n22b = sps3_conj[c].n22(),
+        n11b = sps3_conj[c].n11(), n33p = sps4_conj[r].n33(),
         n22p = sps4_conj[r].n22(), n11p = sps4_conj[r].n11();
 
     u3::gelfand g3(n13b, 0, 0, n13b - n22b, 0, n13b - n11b);
@@ -111,7 +111,7 @@ namespace U3xU4
           // accU4 should have only one column
 
           if (allowU4 == false)
-          	continue;
+            continue;
 
           auto [allowU3_4, accU3_4] = wigU3U2db.get(
               sps4[g4_1].n13(), sps4[g4_1].n23(), sps4[g4_1].n33(),
@@ -132,8 +132,8 @@ namespace U3xU4
           if (std::fabs(cgcU4) <= 1e-15)
             continue;
 
-          U3xU4::ad_gelfand ad1(g3_1, g4_1, sps3, sps4), 
-                            ad2(g3_2, g4_2, sps3, sps4);
+          U3xU4::ad_gelfand ad1(g3_1, g4_1, sps3, sps4),
+              ad2(g3_2, g4_2, sps3, sps4);
           std::vector<U3xU4::ad_gelfand> adad;
           adad.push_back(ad1);
           adad.push_back(ad2);
@@ -200,7 +200,7 @@ namespace U3xU4
           // accU4 should have only one column
 
           if (allowU4 == false)
-          	continue;
+            continue;
 
           auto [allowU3_4, accU3_4] = wigU3U2db.get(
               g4Arr0[g4_0].n13(), g4Arr0[g4_0].n23(), g4Arr0[g4_0].n33(),
@@ -226,7 +226,8 @@ namespace U3xU4
           std::vector<std::pair<u3::irrep, u4::irrep>> prod_0;
           prod_0.push_back(prod_characters[0]);
 
-          U3xU4::Tad_gelfand Tad(n, sps3, sps4, prod_0, g3Arr0[g3_0], g4Arr0[g4_0]);
+          U3xU4::Tad_gelfand Tad(n, sps3, sps4, prod_0, g3Arr0[g3_0],
+                                 g4Arr0[g4_0]);
 
           auto [coeffs_0, tensors_0] = Tad.expand(cgcs, wigU3U2db, wigU4U3db);
 
@@ -266,7 +267,8 @@ namespace U3xU4
     // one at
     if (num == 1)
     {
-      auto c = u3::findGelfand(g3, sps3_conj), r = u4::findGelfand(g4, sps4_conj);
+      auto c = u3::findGelfand(g3, sps3_conj),
+           r = u4::findGelfand(g4, sps4_conj);
       U3xU4::at_gelfand at(c, r, sps3, sps3_conj, sps4, sps4_conj);
       auto phase = at.turnToAnnihilation();
 
@@ -292,8 +294,10 @@ namespace U3xU4
       for (std::size_t i = 0; i < uncouple_g3.size(); i++)
       {
         int g3_1 = uncouple_g3[i].first, g3_2 = uncouple_g3[i].second;
-        int jj3_1 = sps3_conj[g3_1].Lambdax2(), mm3_1 = sps3_conj[g3_1].MLambdax2(),
-            jj3_2 = sps3_conj[g3_2].Lambdax2(), mm3_2 = sps3_conj[g3_2].MLambdax2();
+        int jj3_1 = sps3_conj[g3_1].Lambdax2(),
+            mm3_1 = sps3_conj[g3_1].MLambdax2(),
+            jj3_2 = sps3_conj[g3_2].Lambdax2(),
+            mm3_2 = sps3_conj[g3_2].MLambdax2();
 
         auto [allowU3, accU3] = wigU3U2db.get(
             sps3_conj[g3_1].n13(), sps3_conj[g3_1].n23(), sps3_conj[g3_1].n33(),
@@ -315,26 +319,32 @@ namespace U3xU4
         for (std::size_t j = 0; j < uncouple_g4.size(); j++)
         {
           int g4_1 = uncouple_g4[j].first, g4_2 = uncouple_g4[j].second;
-          int jj4_1 = sps4_conj[g4_1].Lambdax2(), mm4_1 = sps4_conj[g4_1].MLambdax2(),
-              jj4_2 = sps4_conj[g4_2].Lambdax2(), mm4_2 = sps4_conj[g4_2].MLambdax2();
+          int jj4_1 = sps4_conj[g4_1].Lambdax2(),
+              mm4_1 = sps4_conj[g4_1].MLambdax2(),
+              jj4_2 = sps4_conj[g4_2].Lambdax2(),
+              mm4_2 = sps4_conj[g4_2].MLambdax2();
 
           auto [allowU4, accU4] = wigU4U3db.get(
-              sps4_conj[g4_1].n14(), sps4_conj[g4_1].n24(), sps4_conj[g4_1].n34(),
-              sps4_conj[g4_1].n44(), sps4_conj[g4_1].n13(), sps4_conj[g4_1].n23(),
-              sps4_conj[g4_1].n33(), sps4_conj[g4_2].n14(), sps4_conj[g4_2].n24(),
-              sps4_conj[g4_2].n34(), sps4_conj[g4_2].n44(), sps4_conj[g4_2].n13(),
-              sps4_conj[g4_2].n23(), sps4_conj[g4_2].n33(), g4.n14(), g4.n24(), 
+              sps4_conj[g4_1].n14(), sps4_conj[g4_1].n24(),
+              sps4_conj[g4_1].n34(), sps4_conj[g4_1].n44(),
+              sps4_conj[g4_1].n13(), sps4_conj[g4_1].n23(),
+              sps4_conj[g4_1].n33(), sps4_conj[g4_2].n14(),
+              sps4_conj[g4_2].n24(), sps4_conj[g4_2].n34(),
+              sps4_conj[g4_2].n44(), sps4_conj[g4_2].n13(),
+              sps4_conj[g4_2].n23(), sps4_conj[g4_2].n33(), g4.n14(), g4.n24(),
               g4.n34(), g4.n44(), g4.n13(), g4.n23(), g4.n33());
           // accU4 should have only one column
 
           if (allowU4 == false)
-          	continue;
+            continue;
 
-          auto [allowU3_4, accU3_4] = wigU3U2db.get(
-              sps4_conj[g4_1].n13(), sps4_conj[g4_1].n23(), sps4_conj[g4_1].n33(),
-              sps4_conj[g4_1].n12(), sps4_conj[g4_1].n22(), sps4_conj[g4_2].n13(),
-              sps4_conj[g4_2].n23(), sps4_conj[g4_2].n33(), sps4_conj[g4_2].n12(),
-              sps4_conj[g4_2].n22(), g4.n13(), g4.n23(), g4.n33(), g4.n12(), g4.n22());
+          auto [allowU3_4, accU3_4] =
+              wigU3U2db.get(sps4_conj[g4_1].n13(), sps4_conj[g4_1].n23(),
+                            sps4_conj[g4_1].n33(), sps4_conj[g4_1].n12(),
+                            sps4_conj[g4_1].n22(), sps4_conj[g4_2].n13(),
+                            sps4_conj[g4_2].n23(), sps4_conj[g4_2].n33(),
+                            sps4_conj[g4_2].n12(), sps4_conj[g4_2].n22(),
+                            g4.n13(), g4.n23(), g4.n33(), g4.n12(), g4.n22());
 
           if (allowU3_4 == false)
             continue;
@@ -348,8 +358,8 @@ namespace U3xU4
           if (std::fabs(cgcU4) <= 1e-15)
             continue;
 
-          U3xU4::at_gelfand at1(g3_1, g4_1, sps3, sps3_conj, sps4, sps4_conj), 
-                            at2(g3_2, g4_2, sps3, sps3_conj, sps4, sps4_conj);
+          U3xU4::at_gelfand at1(g3_1, g4_1, sps3, sps3_conj, sps4, sps4_conj),
+              at2(g3_2, g4_2, sps3, sps3_conj, sps4, sps4_conj);
           auto phase1 = at1.turnToAnnihilation(),
                phase2 = at2.turnToAnnihilation();
 
@@ -387,7 +397,8 @@ namespace U3xU4
       {
         int g3_0 = uncouple_g3[i].first, g3_3 = uncouple_g3[i].second;
         int jj3_0 = g3Arr0[g3_0].Lambdax2(), mm3_0 = g3Arr0[g3_0].MLambdax2(),
-            jj3_3 = sps3_conj[g3_3].Lambdax2(), mm3_3 = sps3_conj[g3_3].MLambdax2();
+            jj3_3 = sps3_conj[g3_3].Lambdax2(),
+            mm3_3 = sps3_conj[g3_3].MLambdax2();
 
         auto [allowU3, accU3] = wigU3U2db.get(
             g3Arr0[g3_0].n13(), g3Arr0[g3_0].n23(), g3Arr0[g3_0].n33(),
@@ -410,26 +421,28 @@ namespace U3xU4
         {
           int g4_0 = uncouple_g4[j].first, g4_3 = uncouple_g4[j].second;
           int jj4_0 = g4Arr0[g4_0].Lambdax2(), mm4_0 = g4Arr0[g4_0].MLambdax2(),
-              jj4_3 = sps4_conj[g4_3].Lambdax2(), mm4_3 = sps4_conj[g4_3].MLambdax2();
+              jj4_3 = sps4_conj[g4_3].Lambdax2(),
+              mm4_3 = sps4_conj[g4_3].MLambdax2();
 
           auto [allowU4, accU4] = wigU4U3db.get(
               g4Arr0[g4_0].n14(), g4Arr0[g4_0].n24(), g4Arr0[g4_0].n34(),
               g4Arr0[g4_0].n44(), g4Arr0[g4_0].n13(), g4Arr0[g4_0].n23(),
               g4Arr0[g4_0].n33(), sps4_conj[g4_3].n14(), sps4_conj[g4_3].n24(),
-              sps4_conj[g4_3].n34(), sps4_conj[g4_3].n44(), sps4_conj[g4_3].n13(),
-              sps4_conj[g4_3].n23(), sps4_conj[g4_3].n33(), g4.n14(), g4.n24(), 
-              g4.n34(), g4.n44(), g4.n13(), g4.n23(), g4.n33());
+              sps4_conj[g4_3].n34(), sps4_conj[g4_3].n44(),
+              sps4_conj[g4_3].n13(), sps4_conj[g4_3].n23(),
+              sps4_conj[g4_3].n33(), g4.n14(), g4.n24(), g4.n34(), g4.n44(),
+              g4.n13(), g4.n23(), g4.n33());
           // accU4 should have only one column
 
           if (allowU4 == false)
-          	continue;
+            continue;
 
           auto [allowU3_4, accU3_4] = wigU3U2db.get(
               g4Arr0[g4_0].n13(), g4Arr0[g4_0].n23(), g4Arr0[g4_0].n33(),
               g4Arr0[g4_0].n12(), g4Arr0[g4_0].n22(), sps4_conj[g4_3].n13(),
-              sps4_conj[g4_3].n23(), sps4_conj[g4_3].n33(), sps4_conj[g4_3].n12(),
-              sps4_conj[g4_3].n22(), g4.n13(), g4.n23(), g4.n33(), g4.n12(),
-              g4.n22());
+              sps4_conj[g4_3].n23(), sps4_conj[g4_3].n33(),
+              sps4_conj[g4_3].n12(), sps4_conj[g4_3].n22(), g4.n13(), g4.n23(),
+              g4.n33(), g4.n12(), g4.n22());
 
           if (allowU3_4 == false)
             continue;
@@ -451,8 +464,8 @@ namespace U3xU4
           std::vector<std::pair<u3::irrep, u4::irrep>> prod_0;
           prod_0.push_back(prod_characters[0]);
 
-          U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj,
-                                 prod_0, g3Arr0[g3_0], g4Arr0[g4_0]);
+          U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj, prod_0,
+                                 g3Arr0[g3_0], g4Arr0[g4_0]);
 
           auto [coeffs_0, tensors_0] = Tat.expand(cgcs, wigU3U2db, wigU4U3db);
 
@@ -476,7 +489,7 @@ namespace U3xU4
              std::vector<std::vector<U3xU4::ad_gelfand>>, // ad's
              std::vector<std::vector<U3xU4::at_gelfand>>> // a's
   Tadat_gelfand::expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-                        u4::WigU4U3_db& wigU4U3db) 
+                        u4::WigU4U3_db& wigU4U3db)
   {
     std::vector<Eigen::RowVectorXd> coeffs;
     std::vector<std::vector<U3xU4::ad_gelfand>> adsArr;
@@ -509,7 +522,8 @@ namespace U3xU4
     // only ats
     else if (ads == 0)
     {
-      U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj, prod_ats, g3, g4);
+      U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj, prod_ats, g3,
+                             g4);
 
       auto [coeffs_, atsArr_] = Tat.expand(cgcs, wigU3U2db, wigU4U3db);
 
@@ -532,7 +546,7 @@ namespace U3xU4
         g3Arr1 = u3::gelfandBasis(prod_ads.back().first);
         g4Arr1 = u4::gelfandBasis(prod_ads.back().second);
       }
-      else 
+      else
       {
         g3Arr1 = sps3;
         g4Arr1 = sps4;
@@ -598,7 +612,7 @@ namespace U3xU4
           // accU4 should have etamax columns
 
           if (allowU4 == false)
-          	continue;
+            continue;
 
           auto [allowU3_4, accU3_4] = wigU3U2db.get(
               g4Arr1[g4_1].n13(), g4Arr1[g4_1].n23(), g4Arr1[g4_1].n33(),
@@ -623,11 +637,13 @@ namespace U3xU4
             continue;
 
           // uncouple Tad
-          U3xU4::Tad_gelfand Tad(n, sps3, sps4, prod_ads, g3Arr1[g3_1], g4Arr1[g4_1]);
+          U3xU4::Tad_gelfand Tad(n, sps3, sps4, prod_ads, g3Arr1[g3_1],
+                                 g4Arr1[g4_1]);
           auto [coeffs_ads, adsArr_] = Tad.expand(cgcs, wigU3U2db, wigU4U3db);
 
           // uncouple Tat
-          U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj, prod_ats, g3Arr2[g3_2], g4Arr2[g4_2]);
+          U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj, prod_ats,
+                                 g3Arr2[g3_2], g4Arr2[g4_2]);
           auto [coeffs_ats, atsArr_] = Tat.expand(cgcs, wigU3U2db, wigU4U3db);
 
           for (std::size_t k = 0; k < coeffs_ads.size(); k++)
@@ -650,7 +666,7 @@ namespace U3xU4
             }
           }
         }
-      } 
+      }
     }
 
     return std::make_tuple(coeffs, adsArr, atsArr);

@@ -25,9 +25,9 @@
 namespace U3xU4
 {
   std::vector<UNxU4::SlaterDeterminant>
-  expand_to_SD(std::size_t A, std::size_t n, std::size_t N,
-  			   const u3::irrep& b, const std::vector<u3::gelfand>& sps3,
-  			   const u4::irrep& p, const std::vector<u4::gelfand>& sps4)
+  expand_to_SD(std::size_t A, std::size_t n, std::size_t N, const u3::irrep& b,
+               const std::vector<u3::gelfand>& sps3, const u4::irrep& p,
+               const std::vector<u4::gelfand>& sps4)
   {
     std::vector<UNxU4::SlaterDeterminant> SDarr;
 
@@ -86,8 +86,8 @@ namespace U3xU4
   }
 
   static auto RaisingGenerator(std::vector<UNxU4::SlaterDeterminant>& SDarr,
-                   const std::vector<u3::gelfand>& sps3,
-                   const std::vector<u4::gelfand>& sps4)
+                               const std::vector<u3::gelfand>& sps3,
+                               const std::vector<u4::gelfand>& sps4)
   {
     /* Acting a raising generator on the expansion of SDs will result in
        a new expansion of SDs, each of which has vanishing coefficient.
@@ -139,7 +139,7 @@ namespace U3xU4
           if (it == opt_SD.end())
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e12());
+            ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
@@ -151,8 +151,8 @@ namespace U3xU4
           else
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(std::distance(opt_SD.begin(), it), i, 
-          									phase * sps3[c].e12());
+            ija.emplace_back(std::distance(opt_SD.begin(), it), i,
+                             phase * sps3[c].e12());
 #else
             mat_temp[std::distance(opt_SD.begin(), it)](i) =
                 phase * sps3[c].e12();
@@ -180,7 +180,7 @@ namespace U3xU4
           if (it == opt_SD.end())
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e23_12());
+            ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e23_12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
@@ -192,12 +192,12 @@ namespace U3xU4
           else
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(std::distance(opt_SD.begin(), it), i, 
-          									phase * sps3[c].e23_12());
+            ija.emplace_back(std::distance(opt_SD.begin(), it), i,
+                             phase * sps3[c].e23_12());
 #else
             mat_temp[std::distance(opt_SD.begin(), it)](i) =
                 phase * sps3[c].e23_12();
-#endif		
+#endif
           }
         }
 
@@ -221,7 +221,7 @@ namespace U3xU4
           if (it == opt_SD.end())
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e12());
+            ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
@@ -233,8 +233,8 @@ namespace U3xU4
           else
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(std::distance(opt_SD.begin(), it), i, 
-          									phase * sps4[r].e12());
+            ija.emplace_back(std::distance(opt_SD.begin(), it), i,
+                             phase * sps4[r].e12());
 #else
             mat_temp[std::distance(opt_SD.begin(), it)](i) =
                 phase * sps4[r].e12();
@@ -262,7 +262,7 @@ namespace U3xU4
           if (it == opt_SD.end())
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e23_12());
+            ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e23_12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
@@ -274,8 +274,8 @@ namespace U3xU4
           else
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(std::distance(opt_SD.begin(), it), i, 
-          									phase * sps4[r].e23_12());
+            ija.emplace_back(std::distance(opt_SD.begin(), it), i,
+                             phase * sps4[r].e23_12());
 #else
             mat_temp[std::distance(opt_SD.begin(), it)](i) =
                 phase * sps4[r].e23_12();
@@ -303,7 +303,7 @@ namespace U3xU4
           if (it == opt_SD.end())
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e34_13());
+            ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e34_13());
 #else
             Eigen::RowVectorXd x(SDarr.size());
             x.setZero();
@@ -315,8 +315,8 @@ namespace U3xU4
           else
           {
 #ifdef SAM_SPARSE_MAT
-          	ija.emplace_back(std::distance(opt_SD.begin(), it), i, 
-          									phase * sps4[r].e34_13());
+            ija.emplace_back(std::distance(opt_SD.begin(), it), i,
+                             phase * sps4[r].e34_13());
 #else
             mat_temp[std::distance(opt_SD.begin(), it)](i) =
                 phase * sps4[r].e34_13();
@@ -335,14 +335,14 @@ namespace U3xU4
       mat.row(i) = mat_temp[i];
 #endif
 
-    //std::cout << mat << std::endl;
+    // std::cout << mat << std::endl;
 
     return mat;
   }
 
   std::pair<std::vector<UNxU4::SlaterDeterminant>, Eigen::MatrixXd>
   HWS_to_SD(int A, int n, const u3::irrep& b, const u4::irrep& p,
-            const std::vector<u3::gelfand>& sps3, 
+            const std::vector<u3::gelfand>& sps3,
             const std::vector<u4::gelfand>& sps4)
   {
     int N = (n + 1) * (n + 2) / 2; // shell degeneracy
@@ -355,7 +355,7 @@ namespace U3xU4
 #ifdef SAM_USE_SLEPC
     untou3::UNtoU3<4> gen;
     gen.set_shell(n);
-    gen.reduceU4(p,N);
+    gen.reduceU4(p, N);
     auto multi = gen.multiplicity(b);
     Eigen::MatrixXd expansion = u34utils::null_space_slepc(mat, multi);
 #else
@@ -363,19 +363,19 @@ namespace U3xU4
 #endif
 
     // check error
-    //std::cout << "The matrix size is " << mat.size() << " with error " 
-    //          << u34utils::nullspace_error(mat, expansion) << std::endl; 
+    // std::cout << "The matrix size is " << mat.size() << " with error "
+    //          << u34utils::nullspace_error(mat, expansion) << std::endl;
 
     return std::make_pair(SDarr, expansion);
   }
 
-  std::filesystem::path 
-  get_HWS_file(int A, int n, const u3::irrep& b, const u4::irrep& p,
-               const std::vector<u3::gelfand>& sps3, 
-               const std::vector<u4::gelfand>& sps4) 
+  std::filesystem::path get_HWS_file(int A, int n, const u3::irrep& b,
+                                     const u4::irrep& p,
+                                     const std::vector<u3::gelfand>& sps3,
+                                     const std::vector<u4::gelfand>& sps4)
   {
     const char* sam_dir = std::getenv("SAM_DIR");
-    if (!sam_dir) 
+    if (!sam_dir)
       throw std::runtime_error("Environment variable SAM_DIR not set");
 
     std::filesystem::path dir = std::filesystem::path(sam_dir) / "data/hws";
@@ -383,57 +383,63 @@ namespace U3xU4
     // Create the directory (and parent dirs) if it doesn't exist
     std::filesystem::create_directories(dir);
 
-    std::string filename = std::to_string(b.n13()) + "-" 
-                         + std::to_string(b.n23()) + "-" 
-                         + std::to_string(b.n33()) + "-" 
-                         + std::to_string(p.n14()) + "-" 
-                         + std::to_string(p.n24()) + "-" 
-                         + std::to_string(p.n34()) + "-" 
-                         + std::to_string(p.n44()) + ".bin";
+    std::string filename =
+        std::to_string(b.n13()) + "-" + std::to_string(b.n23()) + "-" +
+        std::to_string(b.n33()) + "-" + std::to_string(p.n14()) + "-" +
+        std::to_string(p.n24()) + "-" + std::to_string(p.n34()) + "-" +
+        std::to_string(p.n44()) + ".bin";
 
     std::filesystem::path full_path = dir / filename;
 
     // If file doesn't exist, create it and save it with data
-    if (!std::filesystem::exists(full_path)) 
+    if (!std::filesystem::exists(full_path))
     {
-      //std::ofstream file(full_path);
+      // std::ofstream file(full_path);
       std::ofstream file(full_path, std::ios::binary);
-      if (!file) 
-        throw std::runtime_error("Failed to open file for writing: " + full_path.string());
+      if (!file)
+        throw std::runtime_error("Failed to open file for writing: " +
+                                 full_path.string());
 
-      auto [SDarr, coeffs] = HWS_to_SD(A,n,b,p,sps3,sps4);
+      auto [SDarr, coeffs] = HWS_to_SD(A, n, b, p, sps3, sps4);
 
       std::size_t rows = SDarr.size(), cols = coeffs.cols();
 
       file.write(reinterpret_cast<const char*>(&rows), sizeof(rows));
       file.write(reinterpret_cast<const char*>(&cols), sizeof(cols));
 
-      for (std::size_t i = 0; i < rows; i++) {
+      for (std::size_t i = 0; i < rows; i++)
+      {
         const auto& bits = SDarr[i].bits;
         std::size_t bit_count = bits.size();
-        file.write(reinterpret_cast<const char*>(&bit_count), sizeof(bit_count));
+        file.write(reinterpret_cast<const char*>(&bit_count),
+                   sizeof(bit_count));
 
         std::vector<unsigned long> blocks;
-        boost::to_block_range(bits, std::back_inserter(blocks));  // Correct representation
+        boost::to_block_range(
+            bits, std::back_inserter(blocks)); // Correct representation
         std::size_t block_count = blocks.size();
-        file.write(reinterpret_cast<const char*>(blocks.data()), block_count * sizeof(unsigned long));
+        file.write(reinterpret_cast<const char*>(blocks.data()),
+                   block_count * sizeof(unsigned long));
 
-        file.write(reinterpret_cast<const char*>(coeffs.row(i).data()), cols * sizeof(double));
+        file.write(reinterpret_cast<const char*>(coeffs.row(i).data()),
+                   cols * sizeof(double));
       }
 
-      //for (std::size_t i = 0; i < SDarr.size(); ++i) 
-        //file << SDarr[i].bits << " " << coeffs.row(i) << '\n';
+      // for (std::size_t i = 0; i < SDarr.size(); ++i)
+      // file << SDarr[i].bits << " " << coeffs.row(i) << '\n';
     }
 
     return full_path;
   }
 
-  std::pair<std::vector<UNxU4::SlaterDeterminant>, std::vector<Eigen::RowVectorXd>> 
-  read_HWS_data(const std::filesystem::path& path) 
+  std::pair<std::vector<UNxU4::SlaterDeterminant>,
+            std::vector<Eigen::RowVectorXd>>
+  read_HWS_data(const std::filesystem::path& path)
   {
     std::ifstream file(path, std::ios::binary);
     if (!file)
-      throw std::runtime_error("Failed to open file for reading: " + path.string());
+      throw std::runtime_error("Failed to open file for reading: " +
+                               path.string());
 
     std::size_t rows = 0, cols = 0;
     file.read(reinterpret_cast<char*>(&rows), sizeof(rows)); // read rows
@@ -444,52 +450,58 @@ namespace U3xU4
     SDarr.reserve(rows);
     coeffs.reserve(rows);
 
-    //std::cout << rows << "," << cols << std::endl;
+    // std::cout << rows << "," << cols << std::endl;
 
-    for (std::size_t i = 0; i < rows; i++) 
+    for (std::size_t i = 0; i < rows; i++)
     {
       std::size_t bit_count = 0;
       file.read(reinterpret_cast<char*>(&bit_count), sizeof(bit_count));
 
-      if (bit_count == 0 || bit_count > 10000)  // or another safe threshold
-        throw std::runtime_error("Corrupted file: unreasonable bit_count = " + std::to_string(bit_count));
-      
-      std::size_t block_count = (bit_count + sizeof(unsigned long) * 8 - 1) / (sizeof(unsigned long) * 8);
+      if (bit_count == 0 || bit_count > 10000) // or another safe threshold
+        throw std::runtime_error("Corrupted file: unreasonable bit_count = " +
+                                 std::to_string(bit_count));
+
+      std::size_t block_count = (bit_count + sizeof(unsigned long) * 8 - 1) /
+                                (sizeof(unsigned long) * 8);
       std::vector<unsigned long> blocks(block_count);
-      file.read(reinterpret_cast<char*>(blocks.data()), block_count * sizeof(unsigned long));
+      file.read(reinterpret_cast<char*>(blocks.data()),
+                block_count * sizeof(unsigned long));
 
       boost::dynamic_bitset<> bits(bit_count);
       boost::from_block_range(blocks.begin(), blocks.end(), bits);
-      bits.resize(bit_count);  // Make sure to crop to the correct bit count
+      bits.resize(bit_count); // Make sure to crop to the correct bit count
 
       std::vector<double> coeff_vec(cols);
-      file.read(reinterpret_cast<char*>(coeff_vec.data()), cols * sizeof(double));
-      Eigen::RowVectorXd row = Eigen::Map<Eigen::RowVectorXd>(coeff_vec.data(), cols);
+      file.read(reinterpret_cast<char*>(coeff_vec.data()),
+                cols * sizeof(double));
+      Eigen::RowVectorXd row =
+          Eigen::Map<Eigen::RowVectorXd>(coeff_vec.data(), cols);
 
       SDarr.emplace_back(bits);
       coeffs.emplace_back(row);
     }
-/*
-    std::string line;
-    while (std::getline(file, line)) 
-    {
-      std::istringstream iss(line);
-      std::string bitstr;
-      iss >> bitstr;
+    /*
+        std::string line;
+        while (std::getline(file, line))
+        {
+          std::istringstream iss(line);
+          std::string bitstr;
+          iss >> bitstr;
 
-      std::vector<double> coeff_vec;
-      double val;
-      while (iss >> val) 
-        coeff_vec.push_back(val);
-      
-      boost::dynamic_bitset<> bits(bitstr);  
-      UNxU4::SlaterDeterminant SD(bits);
-      Eigen::RowVectorXd row = Eigen::Map<Eigen::RowVectorXd>(coeff_vec.data(), coeff_vec.size());
+          std::vector<double> coeff_vec;
+          double val;
+          while (iss >> val)
+            coeff_vec.push_back(val);
 
-      SDarr.push_back(SD);
-      coeffs.push_back(row);
-    }
-*/
+          boost::dynamic_bitset<> bits(bitstr);
+          UNxU4::SlaterDeterminant SD(bits);
+          Eigen::RowVectorXd row =
+       Eigen::Map<Eigen::RowVectorXd>(coeff_vec.data(), coeff_vec.size());
+
+          SDarr.push_back(SD);
+          coeffs.push_back(row);
+        }
+    */
     return std::make_pair(SDarr, coeffs);
   }
 

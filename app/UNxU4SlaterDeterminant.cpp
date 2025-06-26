@@ -44,7 +44,7 @@ int main()
 
   std::cout << "Count preceding occupation: ";
   std::cin >> r >> c;
-  std::cout << sd.preceding_occupation(r,c);
+  std::cout << sd.preceding_occupation(r, c);
 
   return 0;
 }

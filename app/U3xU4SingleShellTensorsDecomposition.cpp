@@ -25,7 +25,8 @@ int main(int argc, char* argv[])
   /* Example 1: n = 2
                   (3,1,0)       (3,3,0)             (3,2,0)    (4,1,0; 4,0; 2)
       { [[ad x ad]         x ad]          x [at x at]         }
-                  (1,1,0,0)     (2,1,0,0)           (1,1,0,0)  (1,0,0,0; 1,0,0; 1,0; 0)
+                  (1,1,0,0)     (2,1,0,0)           (1,1,0,0)  (1,0,0,0; 1,0,0;
+     1,0; 0)
   */
   /*
   std::size_t n = 2, ads = 3, ats = 2;
@@ -39,7 +40,7 @@ int main(int argc, char* argv[])
   prod_ads.emplace_back(B1_0, P1_0);
   prod_ads.emplace_back(B1, P1);
   prod_ats.emplace_back(B2, P2);
-  */ 
+  */
 
   /* Example 2: n = 1
         (1,0,0)       (1,1,0)    (0,0,0; 0,0; 0)
@@ -55,7 +56,7 @@ int main(int argc, char* argv[])
   u4::irrep P1(1,0,0,0), P2(1,1,1,0), P(0,0,0,0);
   u4::gelfand p(0,0,0,0, 0,0,0, 0,0, 0);
   */
-  
+
   /* Example 3: n = 3
         (3,0,0)              (3,0,0)   (6,0,0; 6,0; 3)
     { ad          x [at x at]         }
@@ -64,13 +65,13 @@ int main(int argc, char* argv[])
 
   std::size_t n = 3, ads = 1, ats = 2;
 
-  u3::irrep B1(3,0,0), B2(3,0,0), B(6,0,0);
-  u3::gelfand b(6,0,0, 6,0, 3);
+  u3::irrep B1(3, 0, 0), B2(3, 0, 0), B(6, 0, 0);
+  u3::gelfand b(6, 0, 0, 6, 0, 3);
 
-  u4::irrep P1(1,0,0,0), P2(1,1,0,0), P(2,1,0,0);
-  u4::gelfand p(2,1,0,0, 1,1,0, 1,0, 0);
+  u4::irrep P1(1, 0, 0, 0), P2(1, 1, 0, 0), P(2, 1, 0, 0);
+  u4::gelfand p(2, 1, 0, 0, 1, 1, 0, 1, 0, 0);
 
-  prod_ats.emplace_back(B2,P2);
+  prod_ats.emplace_back(B2, P2);
 
   // Construct single particle states
   u3::irrep x(n, 0, 0), x_conj(n, n, 0);
@@ -93,7 +94,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  U3xU4::Tadat_gelfand Tadat(n, sps3, sps3_conj, sps4, sps4_conj, ads, ats, 
+  U3xU4::Tadat_gelfand Tadat(n, sps3, sps3_conj, sps4, sps4_conj, ads, ats,
                              prod_ads, prod_ats, B, b, rhomax, P, p, etamax);
 
   auto [coeffs, adArr, aArr] = Tadat.expand(cgcs, wigU3U2db, wigU4U3db);

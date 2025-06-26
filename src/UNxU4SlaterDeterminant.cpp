@@ -8,13 +8,13 @@ namespace UNxU4
 {
 
   SlaterDeterminant::SlaterDeterminant(std::size_t n)
-    : bits(2 * (n + 1) * (n + 2))
+      : bits(2 * (n + 1) * (n + 2))
   {
     N = (n + 1) * (n + 2) / 2;
   }
 
   SlaterDeterminant::SlaterDeterminant(const boost::dynamic_bitset<>& b)
-    : bits(b)
+      : bits(b)
   {
     N = b.size() / 4;
   }
@@ -50,10 +50,10 @@ namespace UNxU4
 
   std::size_t SlaterDeterminant::occupation() const { return bits.count(); }
 
-  std::size_t SlaterDeterminant::preceding_occupation(
-                                            std::size_t r, std::size_t c) const
+  std::size_t SlaterDeterminant::preceding_occupation(std::size_t r,
+                                                      std::size_t c) const
   {
-    std::size_t i = index(r,c);
+    std::size_t i = index(r, c);
 
     std::size_t count = 0;
     for (std::size_t k = 0; k < i; k++)

@@ -2,12 +2,13 @@
 #define SAM_SAM_CONFIG_H
 
 // C++23:
-#if defined __cpp_lib_print && defined __cpp_lib_format && defined __cpp_lib_format_ranges
+#if defined __cpp_lib_print && defined __cpp_lib_format &&                     \
+    defined __cpp_lib_format_ranges
 
 #include <print>
 
 using std::print;
-//using std::println;
+// using std::println;
 
 // {fmt} library:
 #elif defined(HAVE_FMT)
@@ -32,10 +33,11 @@ void println(fmt::format_string<Args...> fmt, Args&&... args) {
 #else
 
 template <typename... Ts>
-void print(const Ts&...) { }
+void print(const Ts&...)
+{ }
 
-//template <typename... Ts>
-//void println(const Ts&...) { }
+// template <typename... Ts>
+// void println(const Ts&...) { }
 
 #endif
 

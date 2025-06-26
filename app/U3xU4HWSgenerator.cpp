@@ -2,7 +2,6 @@
 #include <fstream>
 #include <iostream>
 
-
 #include <U3basis.h>
 #include <U4basis.h>
 
@@ -35,8 +34,8 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  int A = p.quanta(), // total number of nucleons
-      N_quanta = b.quanta();    // total number of quanta
+  int A = p.quanta(),        // total number of nucleons
+      N_quanta = b.quanta(); // total number of quanta
 
   assert(N_quanta % A == 0);
 
@@ -47,11 +46,11 @@ int main(int argc, char* argv[])
   u4::irrep y(1, 0, 0, 0);
   std::vector<u4::gelfand> sps4 = u4::gelfandBasis(y);
 
-  std::filesystem::path path = U3xU4::get_HWS_file(A,n,b,p,sps3,sps4);
+  std::filesystem::path path = U3xU4::get_HWS_file(A, n, b, p, sps3, sps4);
   auto [SDarr, coeffs] = U3xU4::read_HWS_data(path);
 
   // End time measurement
-  auto t1 = std::chrono::high_resolution_clock::now();  
+  auto t1 = std::chrono::high_resolution_clock::now();
 
   std::cout << "Outer multiplicity is " << coeffs[0].cols() << std::endl;
 
@@ -60,13 +59,13 @@ int main(int argc, char* argv[])
   std::cin >> print;
   if (print == true)
   {
-  	std::cout << "Slater Determinants are: " << std::endl;
+    std::cout << "Slater Determinants are: " << std::endl;
 
-  	for (std::size_t i = 0; i < SDarr.size(); i++)
-  	{
-    	SDarr[i].print();
-    	std::cout << "--> " << coeffs[i] << std::endl;
-  	}
+    for (std::size_t i = 0; i < SDarr.size(); i++)
+    {
+      SDarr[i].print();
+      std::cout << "--> " << coeffs[i] << std::endl;
+    }
   }
 
   // Calculate the duration
@@ -74,7 +73,7 @@ int main(int argc, char* argv[])
 
   // Output the time in seconds
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
-              << duration.count() / 60.0 << " minutes" << std::endl;
+            << duration.count() / 60.0 << " minutes" << std::endl;
 
 #ifdef SAM_USE_SLEPC
   SlepcFinalize();
