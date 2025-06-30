@@ -32,36 +32,38 @@ namespace JT
     case 4: // One-body part of CoM number operator
       if (na == nb && jja == jjb && mmja == mmjb && mmta == mmtb)
       {
-      	double factor = 1.0 / (jjb + 1);
-      	int nc = nb - 1, llc_min = (nc % 2 == 0) ? 0 : 2;
-      	for (int llc = 2 * nc; llc >= llc_min; llc -= 2)
-      	{
-      		for (int jjc = llc + 1; jjc >= llc - 1; jjc -= 2)
-      		{
-      			double phase = ((jjc - jjb) / 2 * 2 == 0) ? 1.0 : -1.0,
-      				   rme_bd, rme_b;
+        double factor = 1.0 / (jjb + 1);
+        int nc = nb - 1, llc_min = (nc % 2 == 0) ? 0 : 2;
+        for (int llc = 2 * nc; llc >= llc_min; llc -= 2)
+        {
+          for (int jjc = llc + 1; jjc >= llc - 1; jjc -= 2)
+          {
+            double phase = ((jjc - jjb) / 2 * 2 == 0) ? 1.0 : -1.0, rme_bd,
+                   rme_b;
 
-      			// < na la ja || bd || nc lc jc >, na = nb = nc + 1
-      			double coeff_bd = 1.0;
-      			if (lla == llc - 2)
-      				rme_bd = - coeff_bd * std::sqrt(llc * (2.0 * nc - llc + 4.0) / 4.0); 
-      			else if (lla == llc + 2)
-      				rme_bd = coeff_bd * std::sqrt((llc + 2.0) * (2.0 * nc + llc + 6.0) / 4.0); 
-      			else
-      				continue;
+            // < na la ja || bd || nc lc jc >, na = nb = nc + 1
+            double coeff_bd = 1.0;
+            if (lla == llc - 2)
+              rme_bd =
+                  -coeff_bd * std::sqrt(llc * (2.0 * nc - llc + 4.0) / 4.0);
+            else if (lla == llc + 2)
+              rme_bd = coeff_bd *
+                       std::sqrt((llc + 2.0) * (2.0 * nc + llc + 6.0) / 4.0);
+            else
+              continue;
 
-      			// < nc lc jc || b || nb lb jb > 
-      			double coeff_b = 1.0;
-      			if (llc == llb - 2)
-      				rme_b = - coeff_b * std::sqrt(llb * (2.0 * nb + llb + 2.0) / 4.0);
-      			else if (llc == llb + 2)
-      				rme_b = coeff_b * std::sqrt((llb + 2.0) * (2.0 * nb - llb) / 4.0);
-      			else
-      				continue;
+            // < nc lc jc || b || nb lb jb >
+            double coeff_b = 1.0;
+            if (llc == llb - 2)
+              rme_b = -coeff_b * std::sqrt(llb * (2.0 * nb + llb + 2.0) / 4.0);
+            else if (llc == llb + 2)
+              rme_b = coeff_b * std::sqrt((llb + 2.0) * (2.0 * nb - llb) / 4.0);
+            else
+              continue;
 
-      			x += phase * rme_bd * rme_b;
-      		}
-      	}
+            x += phase * rme_bd * rme_b;
+          }
+        }
       }
     default:
       throw std::invalid_argument("ME has not been implemented");
@@ -71,7 +73,8 @@ namespace JT
 
   // RME: < na lla jja || O || nb llb jjb >
   // = ME / ( < jb mjb ; J MJ | ja mja > * < 1/2 mtb ; T MT | 1/2 mta > )
-  double OneBodyOperator::sphericalRME(int na, int lla, int jja, int nb, int llb, int jjb)
+  double OneBodyOperator::sphericalRME(int na, int lla, int jja, int nb,
+                                       int llb, int jjb)
   {
     double x = 0.0;
     switch (type)
@@ -91,7 +94,9 @@ namespace JT
     return x;
   }
 
-  // Implement using sphericalRME to avoid loops over projection mj and mt
+  // Using sphericalRME by default to avoid loops over projection mj and mt
+  // Comment out the line below to use sphericalME
+#define USE_ONEBODY_SPHERICAL_RME
   std::vector<double> OneBodyOperator::getTensorStrength(
       int kappa0, int LL0, int SS0, int na, int nb,
       const std::vector<u3::physicalvector>& pv3as,
@@ -120,25 +125,25 @@ namespace JT
 
           // check if lla x llb -> LL0 coupling is allowed
           if (LL0 < std::fabs(lla - llb) || LL0 > lla + llb)
-          	continue;
+            continue;
 
           // loop over jjb
           for (int jjb = llb + 1; jjb >= std::fabs(llb - 1); jjb -= 2)
           {
-          	// check if jja x jjb -> JJ coupling is allowed
-          	if (JJ < std::fabs(jja - jjb) || JJ > jja + jjb)
-          		continue;
+            // check if jja x jjb -> JJ coupling is allowed
+            if (JJ < std::fabs(jja - jjb) || JJ > jja + jjb)
+              continue;
 
             double rme = sphericalRME(na, lla, jja, nb, llb, jjb);
             if (rme == 0.0)
-            	continue;
+              continue;
 
             double U9j;
             if (na <= nb)
               U9j = racah9.compute(lla, 1, jja, llb, 1, jjb, LL0, SS0, JJ);
             else // na > nb
               U9j = racah9.compute(llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ);
-            //std::cout << "U9j = " << U9j << std::endl;
+            // std::cout << "U9j = " << U9j << std::endl;
 
             double cgcU4;
             for (int i = 0; i < tArr4.size(); i++)
@@ -147,21 +152,22 @@ namespace JT
                 cgcU4 = coeffs4[i](0, 0);
                 break;
               }
-            //std::cout << "cgcU4 = " << cgcU4 << std::endl;
-
+            // std::cout << "cgcU4 = " << cgcU4 << std::endl;
+#ifdef USE_ONEBODY_SPHERICAL_RME
             if (na <= nb)
             {
-              double phase = ((nb + llb / 2 + 2)/2 % 2 == 0) ? 1.0 : -1.0,
-              factor = std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) / (TT + 1.0));
-              //std::cout << "phase = " << phase << std::endl;
+              double phase = ((nb + llb / 2 + 2) / 2 % 2 == 0) ? 1.0 : -1.0,
+                     factor =
+                         std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) / (TT + 1.0));
+              // std::cout << "phase = " << phase << std::endl;
               for (int i = 0; i < tArr3.size(); i++)
                 if (tArr3[i] == std::make_tuple(pv3a, pv3b, pv3))
                 {
                   for (int k = 0; k < kappa0; k++)
                   {
-                    double y = phase * U9j * coeffs3[i](k, 0) * cgcU4 
-                    		 * rme * factor ;
-                    //std::cout << y << std::endl;
+                    double y =
+                        phase * U9j * coeffs3[i](k, 0) * cgcU4 * rme * factor;
+                    // std::cout << y << std::endl;
                     x[k] += y;
                   }
                   break;
@@ -170,22 +176,85 @@ namespace JT
 
             else // na > nb
             {
-              double phase = ((nb + llb / 2 + jja + jjb - JJ - TT)/2 % 2 == 0) ? 1.0 : -1.0,
-              factor = std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) / (TT + 1.0));
-              //std::cout << "phase = " << phase << std::endl;
+              double phase = ((nb + llb / 2 + jja + jjb - JJ - TT) / 2 % 2 == 0)
+                                 ? 1.0
+                                 : -1.0,
+                     factor =
+                         std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) / (TT + 1.0));
+              // std::cout << "phase = " << phase << std::endl;
               for (int i = 0; i < tArr3.size(); i++)
                 if (tArr3[i] == std::make_tuple(pv3b, pv3a, pv3))
                 {
                   for (int k = 0; k < kappa0; k++)
                   {
-                    double y = phase * U9j * coeffs3[i](k, 0) * cgcU4 
-                    		 * rme * factor;
-                    //std::cout << y << std::endl;
+                    double y =
+                        phase * U9j * coeffs3[i](k, 0) * cgcU4 * rme * factor;
+                    // std::cout << y << std::endl;
                     x[k] -= y;
                   }
                   break;
                 }
             }
+#else
+            // loop over projections
+            for (int mmja = jja; mmja >= -jja; mmja -= 2)
+            {
+              int mmjb = mmja - MMJ; // selection rule of sphericalME
+
+              for (int mmta = 1; mmta >= -1; mmta -= 2)
+              {
+                int mmtb = mmta - MMT; // selection rule of sphericalME
+
+                double me = sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb,
+                                        mmjb, mmtb);
+                if (me == 0.0)
+                  continue;
+
+                // phase = (-)^{(nb + lb + 1)/2 - jb + mjb + mtb}
+                double phase =
+                    ((nb + pv3bs[pv3b].L + 1 - jjb + mmjb + mmtb) / 2 % 2 == 0)
+                        ? 1.0
+                        : -1.0;
+
+                if (na <= nb)
+                {
+                  double cgcJ = cgcs.compute(jja, jjb, JJ, mmja, -mmjb, MMJ),
+                         cgcT = cgcs.compute(1, 1, TT, mmta, -mmtb, MMT);
+
+                  for (int i = 0; i < tArr3.size(); i++)
+                    if (tArr3[i] == std::make_tuple(pv3a, pv3b, pv3))
+                    {
+                      for (int k = 0; k < kappa0; k++)
+                      {
+                        double y = phase * cgcJ * cgcT * U9j *
+                                   coeffs3[i](k, 0) * cgcU4 * me;
+                        // std::cout << y << std::endl;
+                        x[k] += y;
+                      }
+                      break;
+                    }
+                }
+                else // na > nb
+                {
+                  double cgcJ = cgcs.compute(jjb, jja, JJ, -mmjb, mmja, MMJ),
+                         cgcT = cgcs.compute(1, 1, TT, -mmtb, mmta, MMT);
+
+                  for (int i = 0; i < tArr3.size(); i++)
+                    if (tArr3[i] == std::make_tuple(pv3b, pv3a, pv3))
+                    {
+                      for (int k = 0; k < kappa0; k++)
+                      {
+                        double y = phase * cgcJ * cgcT * U9j *
+                                   coeffs3[i](k, 0) * cgcU4 * me;
+                        // std::cout << y << std::endl;
+                        x[k] -= y;
+                      }
+                      break;
+                    }
+                }
+              }
+            }
+#endif
           }
         }
       }
@@ -287,8 +356,8 @@ namespace JT
                 // couple LL0 and SS0 to JJ0
                 // the sum over CGCs will kill JJ0 != JJ and TT0 != TT
                 if (JJ < std::fabs(LL0 - SS0) || JJ > LL0 + SS0 || TT0 != TT)
-                	continue;
-                
+                  continue;
+
                 // the selection rule of CGCs also dictates that
                 // MMJ0 == MMJ and MMT0 == MMT
 
@@ -328,123 +397,3 @@ namespace JT
     return std::make_pair(coeffs, tensors);
   }
 } // namespace JT
-
-/* Implementation using sphericalME
-  std::vector<double> OneBodyOperator::getTensorStrength(
-      int kappa0, int LL0, int SS0, int na, int nb,
-      const std::vector<u3::physicalvector>& pv3as,
-      const std::vector<u3::physicalvector>& pv3bs,
-      const std::vector<u4::physicalvector>& pv4as,
-      const std::vector<u4::physicalvector>& pv4bs, int pv3,
-      const std::vector<std::tuple<int, int, int>>& tArr3,
-      const std::vector<Eigen::MatrixXd>& coeffs3, int pv4,
-      const std::vector<std::tuple<int, int, int>>& tArr4,
-      const std::vector<Eigen::MatrixXd>& coeffs4, u34utils::SO3_CGC& cgcs,
-      u34utils::SO3_Racah9& racah9)
-  {
-    std::vector<double> x(kappa0, 0.0);
-
-    // loop over la
-    for (int pv3a = 0; pv3a < pv3as.size(); pv3a++)
-    {
-      int lla = 2 * pv3as[pv3a].L;
-      // loop over jja
-      for (int jja = lla + 1; jja >= std::fabs(lla - 1); jja -= 2)
-      {
-        // loop over lb
-        for (int pv3b = 0; pv3b < pv3bs.size(); pv3b++)
-        {
-          int llb = 2 * pv3bs[pv3b].L;
-
-          if (LL0 < std::fabs(lla - llb) || LL0 > lla + llb)
-          	continue;
-
-          // loop over jjb
-          for (int jjb = llb + 1; jjb >= std::fabs(llb - 1); jjb -= 2)
-          {
-          	if (JJ < std::fabs(jja - jjb) || JJ > jja + jjb)
-          		continue;
-
-            double U9j;
-            if (na <= nb)
-              U9j = racah9.compute(lla, 1, jja, llb, 1, jjb, LL0, SS0, JJ);
-            else // na > nb
-              U9j = racah9.compute(llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ);
-            if (std::fabs(U9j) < 1e-14)
-              continue;
-            //std::cout << "U9j = " << U9j << std::endl;
-
-            double cgcU4;
-            for (int i = 0; i < tArr4.size(); i++)
-              if (tArr4[i] == std::make_tuple(0, 0, pv4))
-              {
-                cgcU4 = coeffs4[i](0, 0);
-                break;
-              }
-            //std::cout << "cgcU4 = " << cgcU4 << std::endl;
-
-            // loop over projections
-            for (int mmja = jja; mmja >= -jja; mmja -= 2)
-            {
-              int mmjb = mmja - MMJ; // selection rule of sphericalME
-
-              for (int mmta = 1; mmta >= -1; mmta -= 2)
-              {
-                int mmtb = mmta - MMT; // selection rule of sphericalME
-
-                double me = sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb,
-                                        mmjb, mmtb);
-                if (me == 0.0)
-                  continue;
-
-                // phase = (-)^{(nb + lb + 1)/2 - jb + mjb + mtb}
-                double phase =
-                    ((nb + pv3bs[pv3b].L + 1 - jjb + mmjb + mmtb) / 2 % 2 == 0)
-                        ? 1.0
-                        : -1.0;
-
-                if (na <= nb)
-                {
-                  double cgcJ = cgcs.compute(jja, jjb, JJ, mmja, -mmjb, MMJ),
-                         cgcT = cgcs.compute(1, 1, TT, mmta, -mmtb, MMT);
-
-                  for (int i = 0; i < tArr3.size(); i++)
-                    if (tArr3[i] == std::make_tuple(pv3a, pv3b, pv3))
-                    {
-                      for (int k = 0; k < kappa0; k++)
-                      {
-                        double y = phase * cgcJ * cgcT * U9j *
-                                   coeffs3[i](k, 0) * cgcU4 * me;
-                         std::cout << y << std::endl;
-                        x[k] += y;
-                      }
-                      break;
-                    }
-                }
-                else // na > nb
-                {
-                  double cgcJ = cgcs.compute(jjb, jja, JJ, -mmjb, mmja, MMJ),
-                         cgcT = cgcs.compute(1, 1, TT, -mmtb, mmta, MMT);
-
-                  for (int i = 0; i < tArr3.size(); i++)
-                    if (tArr3[i] == std::make_tuple(pv3b, pv3a, pv3))
-                    {
-                      for (int k = 0; k < kappa0; k++)
-                      {
-                        double y = phase * cgcJ * cgcT * U9j *
-                                   coeffs3[i](k, 0) * cgcU4 * me;
-                         std::cout << y << std::endl;
-                        x[k] -= y;
-                      }
-                      break;
-                    }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return x;
-  }
-*/

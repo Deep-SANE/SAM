@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
 
   // Example 1: number operator
-  
+
   JT::OneBodyOperator N(0, 0, 0, 0, 1);
   int maxShell = 10;
 
@@ -38,7 +38,6 @@ int main(int argc, char* argv[])
     std::cout << coeffs[i] << "\t";
     tensors[i].print();
   }
-  
 
   // Example 2: one-body part of the L^2 operator
   /*
