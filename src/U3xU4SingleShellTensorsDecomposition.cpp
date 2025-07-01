@@ -1,6 +1,7 @@
 #include <cassert>
+#include <stdexcept>
 
-#include <U3xU4SingleShellTensorsDecomposition.h>
+#include <U3xU4SingleShellTensors.h>
 
 namespace U3xU4
 {
@@ -36,7 +37,7 @@ namespace U3xU4
 
   // expand coupled product of creation tensors (ad's)
   // in terms of creation operators (no phase needed)
-  std::pair<std::vector<double>, std::vector<std::vector<U3xU4::ad_gelfand>>>
+  std::pair<std::vector<double>, std::vector<U3xU4::ads_gelfand>>
   Tad_gelfand::expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
                       u4::WigU4U3_db& wigU4U3db) const
   {
@@ -46,7 +47,7 @@ namespace U3xU4
     */
 
     std::vector<double> coeffs;
-    std::vector<std::vector<U3xU4::ad_gelfand>> tensorsArr;
+    std::vector<U3xU4::ads_gelfand> tensorsArr;
 
     std::size_t num = prod_characters.size() + 1;
 
@@ -56,7 +57,7 @@ namespace U3xU4
       coeffs.push_back(1.0);
       auto c = u3::findGelfand(g3, sps3), r = u4::findGelfand(g4, sps4);
       U3xU4::ad_gelfand ad(c, r, sps3, sps4);
-      std::vector<U3xU4::ad_gelfand> Tad(1, ad);
+      U3xU4::ads_gelfand Tad(1, ad);
       tensorsArr.push_back(Tad);
     }
 
@@ -134,7 +135,7 @@ namespace U3xU4
 
           U3xU4::ad_gelfand ad1(g3_1, g4_1, sps3, sps4),
               ad2(g3_2, g4_2, sps3, sps4);
-          std::vector<U3xU4::ad_gelfand> adad;
+          U3xU4::ads_gelfand adad;
           adad.push_back(ad1);
           adad.push_back(ad2);
 
@@ -223,7 +224,7 @@ namespace U3xU4
 
           U3xU4::ad_gelfand ad3(g3_3, g4_3, sps3, sps4);
 
-          std::vector<std::pair<u3::irrep, u4::irrep>> prod_0;
+          U3xU4::ListIrreps prod_0;
           prod_0.push_back(prod_characters[0]);
 
           U3xU4::Tad_gelfand Tad(n, sps3, sps4, prod_0, g3Arr0[g3_0],
@@ -234,7 +235,7 @@ namespace U3xU4
           for (std::size_t k = 0; k < coeffs_0.size(); k++)
           {
             coeffs.push_back(coeffs_0[k] * cgcU3 * cgcU4);
-            std::vector<U3xU4::ad_gelfand> tensorsArr_temp = tensors_0[k];
+            U3xU4::ads_gelfand tensorsArr_temp = tensors_0[k];
             tensorsArr_temp.push_back(ad3);
             tensorsArr.push_back(tensorsArr_temp);
           }
@@ -247,7 +248,7 @@ namespace U3xU4
 
   // expand coupled product of annihilation tensors (at's)
   // in terms of annihilation operators (a's) via a phase
-  std::pair<std::vector<double>, std::vector<std::vector<U3xU4::at_gelfand>>>
+  std::pair<std::vector<double>, std::vector<U3xU4::ats_gelfand>>
   Tat_gelfand::expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
                       u4::WigU4U3_db& wigU4U3db) const
   {
@@ -274,7 +275,7 @@ namespace U3xU4
 
       assert(!at.isTensor());
 
-      std::vector<U3xU4::at_gelfand> Tat(1, at);
+      U3xU4::ats_gelfand Tat(1, at);
       coeffs.push_back(phase);
       tensorsArr.push_back(Tat);
     }
@@ -366,7 +367,7 @@ namespace U3xU4
           assert(!at1.isTensor());
           assert(!at2.isTensor());
 
-          std::vector<U3xU4::at_gelfand> atat;
+          U3xU4::ats_gelfand atat;
           atat.push_back(at1);
           atat.push_back(at2);
 
@@ -461,7 +462,7 @@ namespace U3xU4
 
           assert(!at3.isTensor());
 
-          std::vector<std::pair<u3::irrep, u4::irrep>> prod_0;
+          U3xU4::ListIrreps prod_0;
           prod_0.push_back(prod_characters[0]);
 
           U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj, prod_0,
@@ -472,7 +473,7 @@ namespace U3xU4
           for (std::size_t k = 0; k < coeffs_0.size(); k++)
           {
             coeffs.push_back(phase3 * coeffs_0[k] * cgcU3 * cgcU4);
-            std::vector<U3xU4::at_gelfand> tensorsArr_temp = tensors_0[k];
+            U3xU4::ats_gelfand tensorsArr_temp = tensors_0[k];
             tensorsArr_temp.push_back(at3);
             tensorsArr.push_back(tensorsArr_temp);
           }
@@ -485,15 +486,15 @@ namespace U3xU4
 
   // expand coupled product of creation and annihilation tensors
   // in terms of creation and annihilation operators (ad's and a's)
-  std::tuple<std::vector<Eigen::RowVectorXd>,             // coeffs
-             std::vector<std::vector<U3xU4::ad_gelfand>>, // ad's
-             std::vector<std::vector<U3xU4::at_gelfand>>> // a's
+  std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
+             std::vector<U3xU4::ads_gelfand>, // ad's
+             std::vector<U3xU4::ats_gelfand>> // a's
   Tadat_gelfand::expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
                         u4::WigU4U3_db& wigU4U3db)
   {
     std::vector<Eigen::RowVectorXd> coeffs;
-    std::vector<std::vector<U3xU4::ad_gelfand>> adsArr;
-    std::vector<std::vector<U3xU4::at_gelfand>> atsArr;
+    std::vector<U3xU4::ads_gelfand> adsArr;
+    std::vector<U3xU4::ats_gelfand> atsArr;
 
     /* Reminder
     sps3: Gelfand array for [n,0,0]
@@ -671,5 +672,4 @@ namespace U3xU4
 
     return std::make_tuple(coeffs, adsArr, atsArr);
   }
-
 } // namespace U3xU4

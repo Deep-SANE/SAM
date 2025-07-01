@@ -6,7 +6,7 @@
 
 #include <U4basis.h>
 
-#include <U3xU4SingleShellTensorsRME.h>
+#include <U3xU4SingleShellTensors.h>
 
 #ifdef SAM_USE_SLEPC
 #include <slepcsys.h>
@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
   u3::WigU3U2_db wigU3U2db(cgcs);
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
 
-  std::vector<std::pair<u3::irrep, u4::irrep>> prod_ads, prod_ats;
+  U3xU4::ListIrreps prod_ads, prod_ats;
 
   /* Example 1:
     < alpha_i (4,3,1) (3,1,0,0) |||
@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
                                         ||| alpha_f (5,3,2) (3,1,1,0) >
   */
   /*
-  std::size_t ads = 3, ats = 2;
+  std::size_t n = 2, ads = 3, ats = 2;
   u3::irrep i3(4,3,1), t3_1_0(3,1,0), t3_1(3,3,0), t3_2(3,2,0), t3(4,1,0),
   f3(5,3,2); u4::irrep i4(3,1,0,0), t4_1_0(1,1,0,0), t4_1(2,1,0,0),
   t4_2(1,1,0,0), t4(1,0,0,0), f4(3,1,1,0);
@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
                 ||| alpha_f (14,2,0) (1,1,1,1) >
   */
   /*
-  std::size_t ads = 2, ats = 2;
+  std::size_t n = 4, ads = 2, ats = 2;
   u3::irrep i3(14,2,0), t3_1(6,2,0), t3_2(6,4,0), t3(4,2,0), f3(14,2,0);
   u4::irrep i4(1,1,1,1), t4_1(1,1,0,0), t4_2(1,1,0,0), t4(0,0,0,0), f4(1,1,1,1);
 
@@ -96,19 +96,20 @@ int main(int argc, char* argv[])
     \ (n14 n24 n34 n44) |||         (0,0,0,0) ||| (n14 n24 n34 n44) /
   */
 
-  std::size_t ads = 1, ats = 1;
-  u3::irrep i3(10, 0, 0), t3(0, 0, 0), f3 = i3;
+  std::size_t n = 8, ads = 1, ats = 1;
+  u3::irrep i3(n, 0, 0), t3(0, 0, 0), f3 = i3;
   u4::irrep i4(1, 0, 0, 0), t4(0, 0, 0, 0), f4 = i4;
 
   std::size_t rho0max = 1, eta0max = 1;
 
   ////////////////////////////////////
 
+  U3xU4::Tadat Tadxat(n, ads, ats, prod_ads, prod_ats, t3, rho0max, t4, eta0max);
+
   std::size_t alpha_i, alpha_f, rhomax, etamax;
 
-  std::vector<Eigen::MatrixXd> RMEs = U3xU4::SingleShellRME(
-      alpha_i, i3, i4, alpha_f, f3, f4, ads, ats, prod_ads, prod_ats, t3,
-      rho0max, t4, eta0max, rhomax, etamax, cgcs, wigU3U2db, wigU4U3db);
+  std::vector<Eigen::MatrixXd> RMEs = Tadxat.RME(
+      alpha_i, i3, i4, alpha_f, f3, f4, rhomax, etamax, cgcs, wigU3U2db, wigU4U3db);
 
   std::cout << "< " << alpha_f << f3 << f4 << " ||| ";
   for (int i = 0; i < ads; i++)

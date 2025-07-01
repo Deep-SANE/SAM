@@ -1,24 +1,20 @@
 #include <cassert>
 #include <stdexcept>
 
-#include <U3xU4SingleShellTensorsRME.h>
+#include <U3xU4HWSgenerator.h>
+#include <U3xU4SingleShellTensors.h>
 
 namespace U3xU4
 {
   std::vector<Eigen::MatrixXd>
-  SingleShellRME(std::size_t& ai_max, const u3::irrep& i3, const u4::irrep& i4,
-                 std::size_t& af_max, const u3::irrep& f3, const u4::irrep& f4,
-                 std::size_t ads, std::size_t ats,
-                 const std::vector<std::pair<u3::irrep, u4::irrep>>& prod_ads,
-                 const std::vector<std::pair<u3::irrep, u4::irrep>>& prod_ats,
-                 const u3::irrep& t3, std::size_t rho0max, const u4::irrep& t4,
-                 std::size_t eta0max, std::size_t& rhomax, std::size_t& etamax,
-                 u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-                 u4::WigU4U3_db& wigU4U3db)
+  Tadat::RME(std::size_t& ai_max, const u3::irrep& i3, const u4::irrep& i4,
+             std::size_t& af_max, const u3::irrep& f3, const u4::irrep& f4,
+             std::size_t& rhomax, std::size_t& etamax,
+             u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
+             u4::WigU4U3_db& wigU4U3db)
   {
     int A_i = i4.quanta(), N_quanta_i = i3.quanta(), // initial irreps
-        A_f = f4.quanta(), N_quanta_f = f3.quanta(), // final irreps
-        n;                                           // shell number
+        A_f = f4.quanta(), N_quanta_f = f3.quanta(); // final irreps
 
     if ((A_i - ats + ads) != A_f)
       throw std::invalid_argument("number of particles is not conserved");
