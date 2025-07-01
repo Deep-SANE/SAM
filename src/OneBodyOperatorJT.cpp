@@ -374,15 +374,15 @@ namespace JT
                     if (na <= nb)
                     {
                       U3xU4::OneBodyMultiShellTensor tensor(
-                          na, -nb, u3couple[i], u4couple[j], k + 1, LL0, SS0,
-                          TT, MMT, JJ, MMJ);
+                          na + 1, - nb - 1, u3couple[i], u4couple[j], k + 1, 
+                          LL0, SS0, TT, MMT, JJ, MMJ);
                       tensors.push_back(tensor);
                     }
                     else // na > nb
                     {
                       U3xU4::OneBodyMultiShellTensor tensor(
-                          -nb, na, u3couple[i], u4couple[j], k + 1, LL0, SS0,
-                          TT, MMT, JJ, MMJ);
+                          - nb - 1, na + 1, u3couple[i], u4couple[j], k + 1, 
+                          LL0, SS0, TT, MMT, JJ, MMJ);
                       tensors.push_back(tensor);
                     }
                   }

@@ -19,9 +19,10 @@
 namespace JT
 {
   /* Class for holding one-body operator in JT-coupled scheme
-           JJ TT					 (lam0 mu0) (P0 P0'
-     P0'') O  		= sum of [Ta x Tb] MMJ MMT
-     kappa0 2L0 2S0 2T0 2MT0 2J0 2MJ0 where MMJ = MMJ0 and MMT = MMT0
+   JJ TT					       (lam0 mu0) (P0 P0'P0'') 
+  O  		= sum of [Ta x Tb] 
+   MMJ MMT               kappa0 2L0 2S0 2T0 2MT0 2J0 2MJ0 
+   where MMJ = MMJ0 and MMT = MMT0
   */
   class OneBodyOperator
   {
