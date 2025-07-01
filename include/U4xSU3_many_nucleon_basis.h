@@ -5,6 +5,8 @@
 #include <numeric>
 #include <ranges>
 #include <set>
+#include <span>
+#include <tuple>
 #include <vector>
 
 #include <U4basis.h>
@@ -18,13 +20,139 @@ namespace U4xSU3
   {
   public:
     /////////////   DISTRIBUTIONS  /////////////////
-    typedef std::vector<unsigned> tSHELLSCONFIG;
+    typedef std::vector<uint32_t> tSHELLSCONFIG;
 
-    std::vector<std::vector<tSHELLSCONFIG>> generate_distributions(size_t Nmax,
-                                                                   unsigned A)
+    ////////////////////////// U4 /////////////////////////////
+    struct MU4
+    {
+      uint16_t mult;
+      u4::irrep u4;
+    };
+
+    using MU4_VEC = std::vector<MU4>;
+
+    ////////////////////////// SU3 /////////////////////////////
+    struct MSU3
+    {
+      uint16_t mult;
+      int lm;
+      int mu;
+    };
+
+    using MSU3_VEC = std::vector<MSU3>;
+
+  private:
+    int A_;
+    int MMT_;
+    int Nmax_;
+    int JJ_;
+
+    std::size_t dim_;
+
+    // distributions:
+    std::vector<tSHELLSCONFIG> distributions_;
+    // indices of distributions for `nhw` are from [nhw] to [nhw+1]-1:
+    std::vector<std::size_t> nhw_dist_ids_;
+
+    // gammas:
+    std::vector<MU4> gammas_u4_;
+    std::vector<MSU3> gammas_su3_;
+    // for each distribution: #of gamma sets, #of gammas in each set, initial
+    // index into `gammas_...` arrays:
+    std::vector<std::tuple<int, int, std::size_t>> dist_gamma_sets_;
+
+    // omegas:
+
+  public:
+    ManyNucleonBasis(int A, int MMT, int Nmax, int JJ)
+        : A_(A), MMT_(MMT), Nmax_(Nmax), JJ_(JJ), dim_(0)
+    { }
+
+    void construct()
+    {
+      dim_ = 0;
+
+      generate_distributions();
+      generate_gammas();
+    }
+
+    // returns an index extent for distributions for particular `nhw`:
+    auto distributions_ids(int nhw) const
+    {
+      assert(nhw >= 0);
+      assert(nhw + 1 < nhw_dist_ids_.size());
+
+      auto begin = nhw_dist_ids_[nhw];
+      auto end = nhw_dist_ids_[nhw + 1];
+
+      return std::pair(begin, end);
+    }
+
+    // return distribution by index:
+    const auto& distribution(std::size_t dist_id)
+    {
+      assert(dist_id < distributions_.size());
+
+      return distributions_[dist_id];
+    }
+
+    // returns a span of distributions for particular `nhw`:
+    auto distributions(int nhw) const
+    {
+      auto [begin, end] = distributions_ids(nhw);
+
+      return std::span(distributions_.data() + begin, distributions_.data() + end);
+    }
+
+    //
+    auto dist_gamma_n_sets(std::size_t dist_id) const
+    {
+      assert(dist_id < dist_gamma_sets_.size());
+
+      return std::get<0>(dist_gamma_sets_[dist_id]);
+    }
+
+    //
+    auto dist_gamma_n_gammas(std::size_t dist_id) const
+    {
+      assert(dist_id < dist_gamma_sets_.size());
+
+      return std::get<1>(dist_gamma_sets_[dist_id]);
+    }
+
+    //
+    auto dist_gamma_sets(std::size_t dist_id) const
+    {
+      assert(dist_id < dist_gamma_sets_.size());
+
+      auto [n_sets, n_gammas, index] = dist_gamma_sets_[dist_id];
+
+      assert(index + n_sets * n_gammas <= gammas_u4_.size());
+      assert(index + n_sets * n_gammas <= gammas_su3_.size());
+
+      return std::tuple(n_sets, n_gammas, gammas_u4_.data() + index,
+                        gammas_su3_.data() + index);
+    }
+
+    //
+    auto dist_gamma_set(std::size_t dist_id, std::size_t i_set) const
+    {
+      auto [n_sets, n_gammas, u4_begin, su3_begin] = dist_gamma_sets(dist_id);
+
+      assert(i_set < n_sets);
+
+      auto offset = i_set * n_gammas;
+
+      return std::pair(std::span(u4_begin + offset, n_gammas),
+                       std::span(su3_begin + offset, n_gammas));
+    }
+
+  private:
+    /////////////   DISTRIBUTIONS  /////////////////
+    void generate_distributions()
     {
       // we generate 0hw, 1hw, 2hw, ... , Nmaxhw distribution of nucleons
-      std::vector<std::set<tSHELLSCONFIG>> ConfRepository(Nmax + 1);
+      std::vector<std::set<tSHELLSCONFIG>> ConfRepository(Nmax_ + 1);
 
       tSHELLSCONFIG v0hwShellConfiguration;
       // setOfShellConfigurations stores a set of unique distributions for a
@@ -32,7 +160,7 @@ namespace U4xSU3
       // can produce several identical distributions
       std::set<tSHELLSCONFIG> setOfShellConfigurations;
 
-      int iNParticlesLeft = A;
+      int iNParticlesLeft = A_;
       unsigned nmax; // the last HO shell available
       unsigned n = 0;
 
@@ -54,7 +182,7 @@ namespace U4xSU3
         }
       }
       // This is maximal HO shell that can contain maximally 1 particle
-      int last_shell = nmax = Nmax + n;
+      int last_shell = nmax = Nmax_ + n;
 
       // We need to resize vShellConfiguration up to nmax+1 elements
       v0hwShellConfiguration.resize(nmax + 1, 0);
@@ -65,7 +193,7 @@ namespace U4xSU3
       // Iterate through N\hbar\Omega subspaces up to Nmax\hbar\Omega
       // and for each subspace (Nsubspace) generate allowed
       // shell configurations
-      for (size_t Nsubspace = 1; Nsubspace <= Nmax; Nsubspace++)
+      for (size_t Nsubspace = 1; Nsubspace <= Nmax_; Nsubspace++)
       {
         // We will reuse setOfShellConfigurations data structure over and over
         // again So we need to clean it first
@@ -100,29 +228,26 @@ namespace U4xSU3
         ConfRepository[Nsubspace] = setOfShellConfigurations;
       }
 
-      std::vector<std::vector<tSHELLSCONFIG>> distributions(Nmax + 1);
+      nhw_dist_ids_.clear();
+      nhw_dist_ids_.push_back(0);
+
+      distributions_.clear();
+
       // iterate through all shell configurations belonging to N = Nsubspace
       // subspace Transfer data from ConfRepository into m_ShellConfigurations
-      for (size_t Nsubspace = 0; Nsubspace <= Nmax; Nsubspace++)
+      for (size_t Nsubspace = 0; Nsubspace <= Nmax_; Nsubspace++)
       {
         std::set<tSHELLSCONFIG>::const_iterator citShellConfs =
             ConfRepository[Nsubspace].begin();
         for (; citShellConfs != ConfRepository[Nsubspace].end();
              ++citShellConfs)
-          distributions[Nsubspace].push_back(*citShellConfs);
+          distributions_.push_back(*citShellConfs);
+
+        nhw_dist_ids_.push_back(distributions_.size());
       }
-      return distributions;
     }
 
     ////////////////////////// U4 /////////////////////////////
-    struct MU4
-    {
-      uint16_t mult;
-      u4::irrep u4;
-    };
-
-    using MU4_VEC = std::vector<MU4>;
-
     void Couple(const MU4& a, const MU4& b, MU4_VEC& resulting_mult_u4)
     {
       auto [u4s, mults] = u4::decomposition(a.u4, b.u4);
@@ -135,19 +260,31 @@ namespace U4xSU3
       }
     }
 
-    ////////////////////////// SU3 /////////////////////////////
-    struct MSU3
+    void generate_gammas()
     {
-      uint16_t mult;
-      int lm;
-      int mu;
-    };
+      gammas_u4_.clear();
+      gammas_su3_.clear();
 
-    using MSU3_VEC = std::vector<MSU3>;
+      dist_gamma_sets_.clear();
+      dist_gamma_sets_.resize(distributions_.size());
 
-    uint64_t dimDistribution(const tSHELLSCONFIG& distribution, int MMT, int JJ)
+      int n0hw = Nmax_ % 2;
+
+      for (int nhw = n0hw; nhw <= Nmax_; nhw += 2)
+      {
+        auto [dist_id_begin, dist_id_end] = distributions_ids(nhw);
+
+        for (std::size_t dist_id = dist_id_begin; dist_id < dist_id_end; dist_id++)
+          generate_gammas_for_dist(dist_id);
+      }
+    }
+
+    void generate_gammas_for_dist(std::size_t dist_id)
     {
-      uint64_t dim = 0;
+   // uint64_t dim = 0;
+
+      assert(dist_id < distributions_.size());
+      const auto& distribution = distributions_[dist_id];
 
       std::vector<std::vector<std::pair<MU4, MSU3>>> vvU4SU3;
       int n = 0; // HO shell
@@ -184,6 +321,14 @@ namespace U4xSU3
         vElemsPerChange[i] = vElemsPerChange[i - 1] * vNSizes[i - 1];
       }
 
+      assert(dist_id < dist_gamma_sets_.size());
+      assert(gammas_u4_.size() == gammas_su3_.size());
+
+      auto& tuple = dist_gamma_sets_[dist_id];
+      std::get<0>(tuple) = uNAllowedCombinations;
+      std::get<1>(tuple) = NIrrepsSets;
+      std::get<2>(tuple) = gammas_u4_.size();
+
       for (unsigned index = 0; index < uNAllowedCombinations; index++)
       {
         // in each step create a set of SU3xSU2 irreps to couple
@@ -196,6 +341,7 @@ namespace U4xSU3
           gammas_su3.push_back(vvU4SU3[i][iElement].second);
         }
 
+        /*
         for (size_t i = 0; i < gammas_u4.size(); ++i)
         {
           MSU3 msu3 = gammas_su3[i];
@@ -206,7 +352,15 @@ namespace U4xSU3
           std::cout << msu3.mult << "(" << msu3.lm << " " << msu3.mu << ")"
                     << std::endl;
         }
+        */
 
+        assert(gammas_u4.size() > 0);
+
+        gammas_u4_.insert(gammas_u4_.end(), gammas_u4.begin(), gammas_u4.end());
+        gammas_su3_.insert(gammas_su3_.end(), gammas_su3.begin(),
+                           gammas_su3.end());
+
+        /*
         if (gammas_u4.size() > 1)
         {
           dim += dimGamma(gammas_u4, gammas_su3, MMT, JJ);
@@ -220,8 +374,10 @@ namespace U4xSU3
           dim += mult * computeDim(msu3.lm, msu3.mu, mu4.u4, MMT, JJ);
         }
         std::cout << std::endl;
+        */
       }
-      return dim;
+
+   // dim_ += dim;
     }
 
     int computeDim(int lm, int mu, int SS, int JJ)

@@ -21,23 +21,44 @@ int main()
   MMT = abs(Z - N);
   bool n0hw = Nmax % 2;
 
-  U4xSU3::ManyNucleonBasis basis;
+  U4xSU3::ManyNucleonBasis basis(A, MMT, Nmax, JJ);
+  basis.construct();
 
-  auto distributions = basis.generate_distributions(Nmax, A);
-
-  uint64_t dim = 0;
+//uint64_t dim = 0;
 
   for (int nhw = n0hw; nhw <= Nmax; nhw += 2)
   {
     print("hw: {}\n", nhw);
 
-    for (const auto& distribution : distributions[nhw])
-    {
-      print("\t{}\n", distribution);
+    auto [dist_id_begin, dist_id_end] = basis.distributions_ids(nhw);
 
-      dim += basis.dimDistribution(distribution, MMT, JJ);
+    for (std::size_t dist_id = dist_id_begin; dist_id < dist_id_end; dist_id++)
+    {
+      print("distribution: {}\n", basis.distribution(dist_id));
+
+      auto n_sets = basis.dist_gamma_n_sets(dist_id);
+
+      for (int i_set = 0; i_set < n_sets; i_set++)
+      {
+        auto [gammas_u4, gammas_su3] = basis.dist_gamma_set(dist_id, i_set);
+        auto n_gammas = gammas_u4.size();
+
+        for (int i_gamma = 0; i_gamma < n_gammas; i_gamma++)
+        {
+          print("\tgamma[{}]:", i_gamma);
+
+          auto& mu4 = gammas_u4[i_gamma];
+          print(" {}[{} {} {} {}]", mu4.mult, mu4.u4.n14(), mu4.u4.n24(),
+                mu4.u4.n34(), mu4.u4.n44());
+
+          auto& msu3 = gammas_su3[i_gamma];
+          print(" {}({} {})\n", msu3.mult, msu3.lm, msu3.mu);
+        }
+
+        print("\n");
+      }
     }
   }
 
-  print("Basis dimension: {}\n", dim);
+//print("Basis dimension: {}\n", dim);
 }
