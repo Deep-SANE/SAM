@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
   u3::WigU3U2_db wigU3U2db(cgcs);
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
 
-  U3xU4::ListIrreps prod_ads, prod_ats;
+  std::vector<U3xU4::irrep> prod_ads, prod_ats;
 
   /* Example 1: n = 2
                   (3,1,0)       (3,3,0)             (3,2,0)    (4,1,0; 4,0; 2)
@@ -31,15 +31,14 @@ int main(int argc, char* argv[])
   /*
   std::size_t n = 2, ads = 3, ats = 2;
 
-  u3::irrep B1_0(3, 1, 0), B1(3, 3, 0), B2(3, 2, 0), B(4, 1, 0);
+  U3xU4::irrep T1_0(3,1,0, 1,1,0,0), T1(3,3,0, 2,1,0,0),
+               T2(3,2,0, 1,1,0,0), T(4,1,0, 1,0,0,0);
   u3::gelfand b(4,1,0, 4,0, 2);
-
-  u4::irrep P1_0(1, 1, 0, 0), P1(2, 1, 0, 0), P2(1, 1, 0, 0), P(1, 0, 0, 0);
   u4::gelfand p(1,0,0,0, 1,0,0, 1,0, 0);
 
-  prod_ads.emplace_back(B1_0, P1_0);
-  prod_ads.emplace_back(B1, P1);
-  prod_ats.emplace_back(B2, P2);
+  prod_ads.push_back(T1_0);
+  prod_ads.push_back(T1);
+  prod_ats.push_back(T2);
   */
 
   /* Example 2: n = 1
@@ -47,32 +46,29 @@ int main(int argc, char* argv[])
     { ad          x at          }
         (1,0,0,0)     (1,1,1,0)  (0,0,0,0; 0,0,0; 0,0; 0)
   */
-  /*
+  
   std::size_t n = 1, ads = 1, ats = 1;
 
-  u3::irrep B1(1,0,0), B2(1,1,0), B(0,0,0);
+  U3xU4::irrep T1(1,0,0, 1,0,0,0), T2(1,1,0, 1,1,1,0), T(0,0,0, 0,0,0,0);
   u3::gelfand b(0,0,0, 0,0, 0);
-
-  u4::irrep P1(1,0,0,0), P2(1,1,1,0), P(0,0,0,0);
   u4::gelfand p(0,0,0,0, 0,0,0, 0,0, 0);
-  */
+  
 
   /* Example 3: n = 3
         (3,0,0)              (3,0,0)   (6,0,0; 6,0; 3)
     { ad          x [at x at]         }
         (1,0,0,0)            (1,1,0,0) (2,1,0,0; 1,1,0; 1,0; 0)
   */
-
+  /*
   std::size_t n = 3, ads = 1, ats = 2;
 
-  u3::irrep B1(3, 0, 0), B2(3, 0, 0), B(6, 0, 0);
+  U3xU4::irrep T1(3,0,0, 1,0,0,0), T2(3,0,0, 1,1,0,0), T(6,0,0, 2,1,0,0);
   u3::gelfand b(6, 0, 0, 6, 0, 3);
-
-  u4::irrep P1(1, 0, 0, 0), P2(1, 1, 0, 0), P(2, 1, 0, 0);
   u4::gelfand p(2, 1, 0, 0, 1, 1, 0, 1, 0, 0);
 
-  prod_ats.emplace_back(B2, P2);
-
+  prod_ats.push_back(T2);
+  */
+  
   // Construct single particle states
   u3::irrep x(n, 0, 0), x_conj(n, n, 0);
   std::vector<u3::gelfand> sps3 = u3::gelfandBasis(x),
@@ -83,21 +79,19 @@ int main(int argc, char* argv[])
                            sps4_conj = u4::gelfandBasis(y_conj);
 
   // Multiplicities of the final tensor
-  auto rhomax = u3::Rho(B1, B2, B);
-  auto etamax = u4::Eta(P1, P2, P);
-
-  if (!b.check() || !p.check() || b.n13() != B.n13() || b.n23() != B.n23() ||
-      b.n33() != B.n33() || p.n14() != P.n14() || p.n24() != P.n24() ||
-      p.n34() != P.n34() || p.n44() != P.n44())
-  {
-    std::cout << "Tensor components invalid!";
-    return 1;
-  }
+  auto rhomax = u3::Rho(T1.u3,T2.u3,T.u3);
+  auto etamax = u4::Eta(T1.u4,T2.u4,T.u4);
 
   U3xU4::Tadat_gelfand Tadat_Gelfand(n, sps3, sps3_conj, sps4, sps4_conj, 
-                ads, ats, prod_ads, prod_ats, B, b, rhomax, P, p, etamax);
+      ads, ats, prod_ads, prod_ats, T, rhomax, etamax, b, p);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
 
   auto [coeffs, adArr, aArr] = Tadat_Gelfand.expand(cgcs, wigU3U2db, wigU4U3db);
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
 
   Eigen::RowVectorXd norm(rhomax * etamax);
   norm.setZero();
@@ -110,22 +104,27 @@ int main(int argc, char* argv[])
     if (!adArr.empty())
       for (std::size_t j = 0; j < adArr[i].size(); j++)
       {
-        adArr[i][j].print();
-        std::cout << "\t";
+        std::cout << adArr[i][j] << "\t";
       }
 
     if (!aArr.empty())
       for (std::size_t j = 0; j < aArr[i].size(); j++)
       {
         assert(!aArr[i][j].isTensor());
-        aArr[i][j].print();
-        std::cout << "\t";
+        std::cout << aArr[i][j] << "\t";
       }
 
     std::cout << std::endl;
   }
 
   std::cout << "Normalization: " << norm << std::endl;
+
+  // Calculate the duration
+  std::chrono::duration<double> duration = t1 - t0;
+
+  // Output the time in seconds
+  std::cout << "Elapsed time: " << duration.count() << " seconds or "
+            << duration.count() / 60.0 << " minutes" << std::endl;
 
 #ifdef SAM_USE_SLEPC
   SlepcFinalize();

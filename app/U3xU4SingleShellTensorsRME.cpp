@@ -2,10 +2,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <U3basis.h>
-
-#include <U4basis.h>
-
+#include <U3xU4Irrep.h>
 #include <U3xU4SingleShellTensors.h>
 
 #ifdef SAM_USE_SLEPC
@@ -22,7 +19,7 @@ int main(int argc, char* argv[])
   u3::WigU3U2_db wigU3U2db(cgcs);
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
 
-  U3xU4::ListIrreps prod_ads, prod_ats;
+  std::vector<U3xU4::irrep> prod_ads, prod_ats;
 
   /* Example 1:
     < alpha_i (4,3,1) (3,1,0,0) |||
@@ -33,15 +30,16 @@ int main(int argc, char* argv[])
   */
   /*
   std::size_t n = 2, ads = 3, ats = 2;
-  u3::irrep i3(4,3,1), t3_1_0(3,1,0), t3_1(3,3,0), t3_2(3,2,0), t3(4,1,0),
-  f3(5,3,2); u4::irrep i4(3,1,0,0), t4_1_0(1,1,0,0), t4_1(2,1,0,0),
-  t4_2(1,1,0,0), t4(1,0,0,0), f4(3,1,1,0);
+  U3xU4::irrep i(4,3,1, 3,1,0,0), f(5,3,2, 3,1,1,0),
+               T1_0(3,1,0, 1,1,0,0), T1(3,3,0, 2,1,0,0),
+               T2(3,2,0, 1,1,0,0), T(4,1,0, 1,0,0,0);
 
-  prod_ads.emplace_back(t3_1_0,t4_1_0);
-  prod_ads.emplace_back(t3_1,t4_1);
-  prod_ats.emplace_back(t3_2,t4_2);
+  prod_ads.push_back(T1_0);
+  prod_ads.push_back(T1);
+  prod_ats.emplace_back(T2);
 
-  std::size_t rho0max = u3::Rho(t3_1,t3_2,t3), eta0max = u4::Eta(t4_1,t4_2,t4);
+  std::size_t rho0max = u3::Rho(T1.u3,T2.u3,T.u3), 
+              eta0max = u4::Eta(T1.u4,T2.u4,T.u4);
   */
 
   /* Example 2:
@@ -51,16 +49,18 @@ int main(int argc, char* argv[])
                 (1,1,0,0)           (1,1,0,0) (0,0,0,0)
                 ||| alpha_f (14,2,0) (1,1,1,1) >
   */
-  /*
+  
   std::size_t n = 4, ads = 2, ats = 2;
-  u3::irrep i3(14,2,0), t3_1(6,2,0), t3_2(6,4,0), t3(4,2,0), f3(14,2,0);
-  u4::irrep i4(1,1,1,1), t4_1(1,1,0,0), t4_2(1,1,0,0), t4(0,0,0,0), f4(1,1,1,1);
+  U3xU4::irrep i(14,2,0, 1,1,1,1), f(14,2,0, 1,1,1,1),
+               T1(6,2,0, 1,1,0,0), T2(6,4,0, 1,1,0,0),
+               T(4,2,0, 0,0,0,0);
 
-  prod_ads.emplace_back(t3_1,t4_1);
-  prod_ats.emplace_back(t3_2,t4_2);
+  prod_ads.push_back(T1);
+  prod_ats.push_back(T2);
 
-  std::size_t rho0max = u3::Rho(t3_1,t3_2,t3), eta0max = u4::Eta(t4_1,t4_2,t4);
-  */
+  std::size_t rho0max = u3::Rho(T1.u3,T2.u3,T.u3), 
+              eta0max = u4::Eta(T1.u4,T2.u4,T.u4);
+  
 
   /* Example 3:
                               (n,0,0)
@@ -70,9 +70,7 @@ int main(int argc, char* argv[])
   */
   /*
   std::size_t ads = 1, ats = 0, n = 4;
-  u3::irrep i3(0,0,0), t3(n,0,0), f3(n,0,0);
-  u4::irrep i4(0,0,0,0), t4(1,0,0,0), f4(1,0,0,0);
-
+  U3xU4::irrep i(0,0,0, 0,0,0,0), T(n,0,0, 1,0,0,0), f(n,0,0, 1,0,0,0);
   std::size_t rho0max = 1, eta0max = 1;
   */
 
@@ -84,9 +82,7 @@ int main(int argc, char* argv[])
   */
   /*
   std::size_t ads = 0, ats = 1, n = 4;
-  u3::irrep i3(n,0,0), t3(n,n,0), f3(0,0,0);
-  u4::irrep i4(1,0,0,0), t4(1,1,1,0), f4(0,0,0,0);
-
+  U3xU4::irrep i(n,0,0, 1,0,0,0), T(n,n,0, 1,1,1,0), f(0,0,0, 0,0,0,0);
   std::size_t rho0max = 1, eta0max = 1;
   */
 
@@ -95,28 +91,28 @@ int main(int argc, char* argv[])
     / (n13 n23 n33)     ||| [ad x at]         ||| (n13 n23 n33)     \
     \ (n14 n24 n34 n44) |||         (0,0,0,0) ||| (n14 n24 n34 n44) /
   */
-
+  /*
   std::size_t n = 8, ads = 1, ats = 1;
-  u3::irrep i3(n, 0, 0), t3(0, 0, 0), f3 = i3;
-  u4::irrep i4(1, 0, 0, 0), t4(0, 0, 0, 0), f4 = i4;
-
+  U3xU4::irrep i(n,0,0, 1,0,0,0), T(0,0,0, 0,0,0,0), f(n,0,0, 1,0,0,0);
   std::size_t rho0max = 1, eta0max = 1;
+  */
 
   ////////////////////////////////////
 
-  U3xU4::Tadat Tadxat(n, ads, ats, prod_ads, prod_ats, t3, rho0max, t4, eta0max);
+  U3xU4::Tadat Tadxat(n, ads, ats, prod_ads, prod_ats, T, rho0max, eta0max);
 
   std::size_t alpha_i, alpha_f, rhomax, etamax;
 
-  std::vector<Eigen::MatrixXd> RMEs = Tadxat.RME(
-      alpha_i, i3, i4, alpha_f, f3, f4, rhomax, etamax, cgcs, wigU3U2db, wigU4U3db);
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
 
-  std::cout << "< " << alpha_f << f3 << f4 << " ||| ";
-  for (int i = 0; i < ads; i++)
-    std::cout << "ad ";
-  for (int i = 0; i < ats; i++)
-    std::cout << "at ";
-  std::cout << rho0max << t3 << eta0max << t4 << " ||| " << alpha_i << i3 << i4
+  std::vector<Eigen::MatrixXd> RMEs = Tadxat.RME(
+    alpha_i, i, alpha_f, f, rhomax, etamax, cgcs, wigU3U2db, wigU4U3db);
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  std::cout << "< " << alpha_f << f << " ||| " << Tadxat << " ||| " << alpha_i << i
             << " >" << rhomax << "," << etamax << std::endl;
 
   for (std::size_t ai = 0; ai < alpha_i; ai++)
@@ -136,6 +132,13 @@ int main(int argc, char* argv[])
                                                    rho0 * eta0max + eta0)
                         << std::endl;
     }
+
+  // Calculate the duration
+  std::chrono::duration<double> duration = t1 - t0;
+
+  // Output the time in seconds
+  std::cout << "Elapsed time: " << duration.count() << " seconds or "
+            << duration.count() / 60.0 << " minutes" << std::endl;
 
 #ifdef SAM_USE_SLEPC
   SlepcFinalize();

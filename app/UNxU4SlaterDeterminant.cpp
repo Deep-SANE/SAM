@@ -19,8 +19,8 @@ int main()
       break;
     sd.occupy(r, c);
   }
-  std::cout << "Your SD is" << std::endl;
-  sd.print();
+  std::cout << "Your SD is \n" << sd << std::endl;
+  //sd.print();
 
   bool decision;
   std::cout << "Want to vacate any state? 1 for yes, 0 for no ";
@@ -38,8 +38,8 @@ int main()
         break;
       sd.vacate(i, j);
     }
-    std::cout << "Your SD has changed to" << std::endl;
-    sd.print();
+    std::cout << "Your SD has changed to \n" << sd << std::endl;
+    //sd.print();
   }
 
   std::cout << "Count preceding occupation: ";

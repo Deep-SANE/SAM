@@ -134,7 +134,7 @@ namespace U3xU4
             continue;
 
           U3xU4::ad_gelfand ad1(g3_1, g4_1, sps3, sps4),
-              ad2(g3_2, g4_2, sps3, sps4);
+                            ad2(g3_2, g4_2, sps3, sps4);
           U3xU4::ads_gelfand adad;
           adad.push_back(ad1);
           adad.push_back(ad2);
@@ -149,9 +149,9 @@ namespace U3xU4
     else if (num == 3)
     {
       std::vector<u3::gelfand> g3Arr0 =
-          u3::gelfandBasis(prod_characters[0].first);
+          u3::gelfandBasis(prod_characters[0].u3);
       std::vector<u4::gelfand> g4Arr0 =
-          u4::gelfandBasis(prod_characters[0].second);
+          u4::gelfandBasis(prod_characters[0].u4);
 
       std::vector<std::pair<int, int>> uncouple_g3 =
           u3::expand_to_uncoupled(g3, g3Arr0, sps3);
@@ -224,7 +224,7 @@ namespace U3xU4
 
           U3xU4::ad_gelfand ad3(g3_3, g4_3, sps3, sps4);
 
-          U3xU4::ListIrreps prod_0;
+          std::vector<U3xU4::irrep> prod_0;
           prod_0.push_back(prod_characters[0]);
 
           U3xU4::Tad_gelfand Tad(n, sps3, sps4, prod_0, g3Arr0[g3_0],
@@ -381,9 +381,9 @@ namespace U3xU4
     else if (num == 3)
     {
       std::vector<u3::gelfand> g3Arr0 =
-          u3::gelfandBasis(prod_characters[0].first);
+          u3::gelfandBasis(prod_characters[0].u3);
       std::vector<u4::gelfand> g4Arr0 =
-          u4::gelfandBasis(prod_characters[0].second);
+          u4::gelfandBasis(prod_characters[0].u4);
 
       std::vector<std::pair<int, int>> uncouple_g3 =
           u3::expand_to_uncoupled(g3, g3Arr0, sps3_conj);
@@ -462,7 +462,7 @@ namespace U3xU4
 
           assert(!at3.isTensor());
 
-          U3xU4::ListIrreps prod_0;
+          std::vector<U3xU4::irrep> prod_0;
           prod_0.push_back(prod_characters[0]);
 
           U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj, prod_0,
@@ -544,8 +544,8 @@ namespace U3xU4
 
       if (ads > 1)
       {
-        g3Arr1 = u3::gelfandBasis(prod_ads.back().first);
-        g4Arr1 = u4::gelfandBasis(prod_ads.back().second);
+        g3Arr1 = u3::gelfandBasis(prod_ads.back().u3);
+        g4Arr1 = u4::gelfandBasis(prod_ads.back().u4);
       }
       else
       {
@@ -555,8 +555,8 @@ namespace U3xU4
 
       if (ats > 1)
       {
-        g3Arr2 = u3::gelfandBasis(prod_ats.back().first);
-        g4Arr2 = u4::gelfandBasis(prod_ats.back().second);
+        g3Arr2 = u3::gelfandBasis(prod_ats.back().u3);
+        g4Arr2 = u4::gelfandBasis(prod_ats.back().u4);
       }
       else
       {

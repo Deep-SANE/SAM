@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ostream>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -8,16 +9,13 @@
 
 #include <so3Coeffs/SO3_CGC.h>
 
-#include <U3basis.h>
-#include <U3U2xU3U2.h>
+#include <U3xU4Irrep.h>
 
-#include <U4basis.h>
+#include <U3U2xU3U2.h>
 #include <U4U3xU4U3.h>
 
 namespace U3xU4
 {
-  using ListIrreps = std::vector<std::pair<u3::irrep, u4::irrep>>;
-
   /* Class for defining creation operator a^dagger
      with tensor components given by Gelfand patterns
                      [n,0,0,n12b,0,n11b]
@@ -33,7 +31,7 @@ namespace U3xU4
   {
   private:
     std::size_t r, // U(4) Gelfand for [1,0,0,0]
-        c;         // U(3) gelfand for [n,0,0]
+                c; // U(3) gelfand for [n,0,0]
 
     const std::vector<u3::gelfand>& sps3; // Gelfand array for [n,0,0]
     const std::vector<u4::gelfand>& sps4; // Gelfand array for [1,0,0,0]
@@ -53,9 +51,13 @@ namespace U3xU4
     }
 
     // Print
-    void print() const
+    /* void print() const
     {
       std::cout << "[" << sps3[c] << "] x [" << sps4[r] << "]";
+    } */
+    friend std::ostream& operator<<(std::ostream& s, const ad_gelfand& x)
+    {
+      return s << "ad[" << x.sps3[x.c] << "][" << x.sps4[x.r] << "]";
     }
   };
   using ads_gelfand = std::vector<U3xU4::ad_gelfand>;
@@ -75,7 +77,7 @@ namespace U3xU4
   {
   private:
     std::size_t r, // U(4) Gelfand for [1,1,1,0]
-        c;         // U(3) gelfand for [n,n,0]
+                c; // U(3) gelfand for [n,n,0]
 
     const std::vector<u3::gelfand>& sps3;      // Gelfand array for [n,0,0]
     const std::vector<u3::gelfand>& sps3_conj; // Gelfand array for [n,n,0]
@@ -117,12 +119,19 @@ namespace U3xU4
 
     // Print, note that if this is called after turnToAnnihilation()
     // sps3 and sps4 must the the conjugate Gelfand arrays
-    void print() const
+    /* void print() const
     {
       if (tensor == true)
         std::cout << "[" << sps3_conj[c] << "] x [" << sps4_conj[r] << "]";
       else
         std::cout << "[" << sps3[c] << "] x [" << sps4[r] << "]";
+    } */
+    friend std::ostream& operator<<(std::ostream& s, const at_gelfand& x)
+    {
+      if (x.tensor == true)
+        return s << "at[" << x.sps3_conj[x.c] << "][" << x.sps4_conj[x.r] << "]";
+      else
+        return s << "a[" << x.sps3[x.c] << "][" << x.sps4[x.r] << "]";
     }
   };
   using ats_gelfand = std::vector<U3xU4::at_gelfand>;
@@ -144,7 +153,7 @@ namespace U3xU4
     // 0 element for ad
     // 1 element for [ad x ad](U3 x U4)
     // 2 elements for [[ad x ad](U30 x U40) x ad](U3 x U4)
-    U3xU4::ListIrreps prod_characters;
+    std::vector<U3xU4::irrep> prod_characters;
 
     // tensor component represented by two Gelfand patterns
     // which is associated with the last element of prod_characters
@@ -155,7 +164,7 @@ namespace U3xU4
     // Constructor
     Tad_gelfand(std::size_t n_, const std::vector<u3::gelfand>& sps3_,
                 const std::vector<u4::gelfand>& sps4_,
-                const U3xU4::ListIrreps& prod,
+                const std::vector<U3xU4::irrep>& prod,
                 const u3::gelfand& b, const u4::gelfand& p)
         : n(n_), sps3(sps3_), sps4(sps4_), prod_characters(prod), g3(b), g4(p)
     { }
@@ -192,7 +201,7 @@ namespace U3xU4
     // 0 element for at
     // 1 element for [at x at](U3 x U4)
     // 2 elements for [[at x at](U30 x U40) x at](U3 x U4)
-    std::vector<std::pair<u3::irrep, u4::irrep>> prod_characters;
+    std::vector<U3xU4::irrep> prod_characters;
 
     // tensor component represented by two Gelfand patterns
     u3::gelfand g3;
@@ -204,7 +213,7 @@ namespace U3xU4
                 const std::vector<u3::gelfand>& sps3_conj_,
                 const std::vector<u4::gelfand>& sps4_,
                 const std::vector<u4::gelfand>& sps4_conj_,
-                const U3xU4::ListIrreps& prod,
+                const std::vector<U3xU4::irrep>& prod,
                 const u3::gelfand& b, const u4::gelfand& p)
         : n(n_),
           sps3(sps3_),
@@ -250,7 +259,7 @@ namespace U3xU4
     // 0 element for ad
     // 1 element for [ad x ad](U3 x U4)
     // 2 elements for [[ad x ad](U3 x U4) x ad](U3_1 x U4_1)
-    U3xU4::ListIrreps prod_ads;
+    std::vector<U3xU4::irrep> prod_ads;
     // number of ad's
     std::size_t ads;
 
@@ -258,13 +267,12 @@ namespace U3xU4
     // 0 element for at
     // 1 element for [at x at](U3 x U4)
     // 2 elements for [[at x at](U3 x U4) x at](U3_2 x U4_2)
-    U3xU4::ListIrreps prod_ats;
+    std::vector<U3xU4::irrep> prod_ats;
     // number of at's
     std::size_t ats;
 
     // final tensor coupling
-    u3::irrep T3;
-    u4::irrep T4;
+    U3xU4::irrep T;
     std::size_t rhomax, etamax;
 
     // tensor component represented by two Gelfand patterns
@@ -278,10 +286,10 @@ namespace U3xU4
                   const std::vector<u4::gelfand>& sps4_,
                   const std::vector<u4::gelfand>& sps4_conj_, std::size_t ads_,
                   std::size_t ats_,
-                  const U3xU4::ListIrreps& prod_ads_,
-                  const U3xU4::ListIrreps& prod_ats_,
-                  const u3::irrep& t3, const u3::gelfand& b, std::size_t Rhomax,
-                  const u4::irrep& t4, const u4::gelfand& p, std::size_t Etamax)
+                  const std::vector<U3xU4::irrep>& prod_ads_,
+                  const std::vector<U3xU4::irrep>& prod_ats_,
+                  const U3xU4::irrep& t, std::size_t Rhomax, std::size_t Etamax, 
+                  const u3::gelfand& b, const u4::gelfand& p)
         : n(n_),
           sps3(sps3_),
           sps3_conj(sps3_conj_),
@@ -291,12 +299,11 @@ namespace U3xU4
           ats(ats_),
           prod_ads(prod_ads_),
           prod_ats(prod_ats_),
-          T3(t3),
-          g3(b),
+          T(t),
           rhomax(Rhomax),
-          T4(t4),
-          g4(p),
-          etamax(Etamax)
+          etamax(Etamax),
+          g3(b),
+          g4(p)
     { }
 
     // Get the number of ad's
@@ -334,7 +341,7 @@ namespace U3xU4
     // 0 element for ad
     // 1 element for [ad x ad](U3 x U4)
     // 2 elements for [[ad x ad](U3 x U4) x ad](U3_1 x U4_1)
-    U3xU4::ListIrreps prod_ads;
+    std::vector<U3xU4::irrep> prod_ads;
     // number of ad's
     std::size_t ads;
 
@@ -342,30 +349,27 @@ namespace U3xU4
     // 0 element for at
     // 1 element for [at x at](U3 x U4)
     // 2 elements for [[at x at](U3 x U4) x at](U3_2 x U4_2)
-    U3xU4::ListIrreps prod_ats;
+    std::vector<U3xU4::irrep> prod_ats;
     // number of at's
     std::size_t ats;
-
+  public:
     // final tensor coupling
-    u3::irrep t3;
-    u4::irrep t4;
+    U3xU4::irrep T;
     std::size_t rho0max, eta0max;
 
   public:
     // Constructor
     Tadat(std::size_t n_, std::size_t ads_, std::size_t ats_,
-          const U3xU4::ListIrreps& prod_ads_,
-          const U3xU4::ListIrreps& prod_ats_,
-          const u3::irrep& t3_, std::size_t rho0max_,
-          const u4::irrep& t4_, std::size_t eta0max_)
+          const std::vector<U3xU4::irrep>& prod_ads_,
+          const std::vector<U3xU4::irrep>& prod_ats_,
+          const U3xU4::irrep& t, std::size_t rho0max_, std::size_t eta0max_)
         : n(n_),
           ads(ads_),
           ats(ats_),
           prod_ads(prod_ads_),
           prod_ats(prod_ats_),
-          t3(t3_),
+          T(t),
           rho0max(rho0max_),
-          t4(t4_),
           eta0max(eta0max_)
     { }
 
@@ -379,7 +383,24 @@ namespace U3xU4
     std::size_t shell() const { return n; }
 
     // Print out
-    void print() const;
+    friend std::ostream& operator<<(std::ostream& s, const Tadat& x)
+    {
+      s << "[ ";
+      if (x.ads > 0)
+      {
+        s << x.ads << "ads ";
+        for (auto ad : x.prod_ads) s << ad << " ";
+        if (x.ats > 0)
+          s << "x ";
+      }
+      if (x.ats > 0)
+      {
+        s << x.ats << "ats ";
+        for (auto at : x.prod_ats) s << at << " ";
+      }
+      s << "] rho0max" << x.rho0max << " eta0max" << x.eta0max << x.T; 
+      return s;
+    }
 
     /* Compute RMEs of single-shell U(3)xU(4) tensors
                               rho_0 U(3)_0
@@ -395,20 +416,20 @@ namespace U3xU4
                   row = rho * max(eta) + eta
                   column = rho_0 * max(eta_0) + eta_0
 
-      Inputs from user:
+      Inputs:
       i3, i4: initial irreps
       f3, f4: final irreps
       cgcs, wigU3U2db, wigU4U3db: databases for coupling coefficients
 
-      Output:
+      Outputs:
       RMEs stored in an array of matrices
       ai_max: outer multiplicity of i3
       af_max: outer multiplicity of f3
       rhomax, etamax: multiplicities of RMEs
     */
     std::vector<Eigen::MatrixXd>
-    RME(std::size_t& ai_max, const u3::irrep& i3, const u4::irrep& i4,
-        std::size_t& af_max, const u3::irrep& f3, const u4::irrep& f4,
+    RME(std::size_t& ai_max, const U3xU4::irrep& i,
+        std::size_t& af_max, const U3xU4::irrep& f,
         std::size_t& rhomax, std::size_t& etamax,
         u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
         u4::WigU4U3_db& wigU4U3db);

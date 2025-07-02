@@ -7,14 +7,14 @@
 namespace U3xU4
 {
   std::vector<Eigen::MatrixXd>
-  Tadat::RME(std::size_t& ai_max, const u3::irrep& i3, const u4::irrep& i4,
-             std::size_t& af_max, const u3::irrep& f3, const u4::irrep& f4,
+  Tadat::RME(std::size_t& ai_max, const U3xU4::irrep& i,
+             std::size_t& af_max, const U3xU4::irrep& f,
              std::size_t& rhomax, std::size_t& etamax,
              u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
              u4::WigU4U3_db& wigU4U3db)
   {
-    int A_i = i4.quanta(), N_quanta_i = i3.quanta(), // initial irreps
-        A_f = f4.quanta(), N_quanta_f = f3.quanta(); // final irreps
+    int A_i = i.particles(), N_quanta_i = i.quanta(), // initial irreps
+        A_f = f.particles(), N_quanta_f = f.quanta(); // final irreps
 
     if ((A_i - ats + ads) != A_f)
       throw std::invalid_argument("number of particles is not conserved");
@@ -43,10 +43,10 @@ namespace U3xU4
                              sps4_conj = u4::gelfandBasis(y_conj);
 
     // Generate HWS for the ket irrep
-    u3::gelfand i3hws(i3.n13(), i3.n23(), i3.n33(), i3.n13(), i3.n23(),
-                      i3.n13());
-    u4::gelfand i4hws(i4.n14(), i4.n24(), i4.n34(), i4.n44(), i4.n14(),
-                      i4.n24(), i4.n34(), i4.n14(), i4.n24(), i4.n14());
+    u3::gelfand i3hws(i.u3.n13(), i.u3.n23(), i.u3.n33(), i.u3.n13(), i.u3.n23(),
+                      i.u3.n13());
+    u4::gelfand i4hws(i.u4.n14(), i.u4.n24(), i.u4.n34(), i.u4.n44(), i.u4.n14(),
+                      i.u4.n24(), i.u4.n34(), i.u4.n14(), i.u4.n24(), i.u4.n14());
     std::vector<UNxU4::SlaterDeterminant> SDarr_i;
     std::vector<Eigen::RowVectorXd> coeffs_i;
     if (A_i == 0) // vacuum
@@ -60,7 +60,7 @@ namespace U3xU4
     else
     {
       std::filesystem::path path_i =
-          U3xU4::get_HWS_file(A_i, n, i3, i4, sps3, sps4);
+          U3xU4::get_HWS_file(A_i, n, i, sps3, sps4);
       std::tie(SDarr_i, coeffs_i) = U3xU4::read_HWS_data(path_i);
     }
     ai_max = coeffs_i[0].cols();
@@ -69,10 +69,10 @@ namespace U3xU4
     //     std::cout << coeffs_i[i] << std::endl;
 
     // Generate HWS for the bra irrep
-    u3::gelfand f3hws(f3.n13(), f3.n23(), f3.n33(), f3.n13(), f3.n23(),
-                      f3.n13());
-    u4::gelfand f4hws(f4.n14(), f4.n24(), f4.n34(), f4.n44(), f4.n14(),
-                      f4.n24(), f4.n34(), f4.n14(), f4.n24(), f4.n14());
+    u3::gelfand f3hws(f.u3.n13(), f.u3.n23(), f.u3.n33(), f.u3.n13(), f.u3.n23(),
+                      f.u3.n13());
+    u4::gelfand f4hws(f.u4.n14(), f.u4.n24(), f.u4.n34(), f.u4.n44(), f.u4.n14(),
+                      f.u4.n24(), f.u4.n34(), f.u4.n14(), f.u4.n24(), f.u4.n14());
     std::vector<UNxU4::SlaterDeterminant> SDarr_f;
     std::vector<Eigen::RowVectorXd> coeffs_f;
     if (A_f == 0) // vacuum
@@ -86,7 +86,7 @@ namespace U3xU4
     else
     {
       std::filesystem::path path_f =
-          U3xU4::get_HWS_file(A_f, n, f3, f4, sps3, sps4);
+          U3xU4::get_HWS_file(A_f, n, f, sps3, sps4);
       std::tie(SDarr_f, coeffs_f) = U3xU4::read_HWS_data(path_f);
     }
     af_max = coeffs_f[0].cols();
@@ -95,8 +95,8 @@ namespace U3xU4
     //     std::cout << coeffs_f[i] << std::endl;
 
     // Get outer multiplicities due to Wigner-Eckart theorem
-    rhomax = u3::Rho(i3, t3, f3);
-    etamax = u4::Eta(i4, t4, f4);
+    rhomax = u3::Rho(i.u3, T.u3, f.u3);
+    etamax = u4::Eta(i.u4, T.u4, f.u4);
 
     if (rhomax == 0)
       throw std::invalid_argument("i3 x t3 does not produce f3");
@@ -121,23 +121,23 @@ namespace U3xU4
     CGCs.setZero();
 
     // Generate tensor components of the tensor
-    std::vector<u3::gelfand> g3Arr = u3::gelfandBasis(t3);
+    std::vector<u3::gelfand> g3Arr = u3::gelfandBasis(T.u3);
     std::vector<std::size_t> g3Arr0;
-    int missing3 = (i3.n13() + i3.n23() + i3.n33() + t3.n13() + t3.n23() +
-                    t3.n33() - f3.n13() - f3.n23() - f3.n33()) /
-                   3;
+    int missing3 = (i.u3.n13() + i.u3.n23() + i.u3.n33() + 
+                    T.u3.n13() + T.u3.n23() + T.u3.n33() - 
+                    f.u3.n13() - f.u3.n23() - f.u3.n33()) / 3;
 
     for (std::size_t i = 0; i < g3Arr.size(); i++)
       if ((i3hws.e22() + g3Arr[i].e22()) == (f3hws.e22() + missing3) &&
           (i3hws.e11() + g3Arr[i].e11()) == (f3hws.e11() + missing3))
         g3Arr0.push_back(i);
 
-    std::vector<u4::gelfand> g4Arr = u4::gelfandBasis(t4);
+    std::vector<u4::gelfand> g4Arr = u4::gelfandBasis(T.u4);
     std::vector<std::size_t> g4Arr0;
     int missing4 =
-        (i4.n14() + i4.n24() + i4.n34() + i4.n44() + t4.n14() + t4.n24() +
-         t4.n34() + t4.n44() - f4.n14() - f4.n24() - f4.n34() - f4.n44()) /
-        4;
+        (i.u4.n14() + i.u4.n24() + i.u4.n34() + i.u4.n44() + 
+         T.u4.n14() + T.u4.n24() + T.u4.n34() + T.u4.n44() - 
+         f.u4.n14() - f.u4.n24() - f.u4.n34() - f.u4.n44()) / 4;
 
     for (std::size_t i = 0; i < g4Arr.size(); i++)
       if ((i4hws.e33() + g4Arr[i].e33()) == (f4hws.e33() + missing4) &&
@@ -218,8 +218,7 @@ namespace U3xU4
 
         // Expand tensor into ad's and a's
         U3xU4::Tadat_gelfand Tadat(n, sps3, sps3_conj, sps4, sps4_conj, ads,
-                                   ats, prod_ads, prod_ats, t3, gt3, rho0max,
-                                   t4, gt4, eta0max);
+                                   ats, prod_ads, prod_ats, T, rho0max, eta0max, gt3, gt4);
 
         auto [coeffs, adArr, aArr] = Tadat.expand(cgcs, wigU3U2db, wigU4U3db);
         /*
@@ -323,6 +322,10 @@ namespace U3xU4
     {
       // std::cout << "FME = " << FMEs[i] << std::endl;
       RMEs[i] = factorize.solve(FMEs[i]);
+      for (int r = 0; r < RMEs[i].rows(); r++)
+        for (int c = 0; c < RMEs[i].cols(); c++)
+          if (std::fabs(RMEs[i](r,c)) < 1e-10)
+            RMEs[i](r,c) = 0.0;
     }
 
     return RMEs;
