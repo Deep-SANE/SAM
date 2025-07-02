@@ -78,16 +78,6 @@ namespace UNxU4
 
   std::size_t SlaterDeterminant::num_sps() const { return bits.size(); }
 
-  void SlaterDeterminant::print() const
-  {
-    for (std::size_t i = 0; i < bits.size(); i++)
-    {
-      std::cout << bits[i];
-      if ((i + 1) % N == 0)
-        std::cout << std::endl;
-    }
-  }
-
   bool SlaterDeterminant::operator==(const SlaterDeterminant& other) const
   {
     return bits == other.bits;

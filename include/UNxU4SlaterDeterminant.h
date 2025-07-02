@@ -6,8 +6,6 @@
 #include <stdexcept>
 #include <utility>
 
-#include <U4basis.h>
-
 namespace UNxU4
 {
 
@@ -80,7 +78,17 @@ namespace UNxU4
     std::size_t num_sps() const;
 
     // Print the determinant
-    void print() const;
+    //void print() const;
+    friend std::ostream& operator<<(std::ostream& s, const SlaterDeterminant& sd)
+    {
+      for (std::size_t i = 0; i < sd.bits.size(); i++)
+      {   
+        s << sd.bits[i];
+        if ((i + 1) % sd.N == 0)
+          s << std::endl;
+      }
+      return s;
+    }
 
     // Compare two determinant
     bool operator==(const SlaterDeterminant& other) const;

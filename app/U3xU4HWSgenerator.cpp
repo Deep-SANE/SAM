@@ -31,9 +31,6 @@ int main(int argc, char* argv[])
   if (!p.check())
     throw std::out_of_range("Invalid irrep");
 
-  // Start time measurement
-  auto t0 = std::chrono::high_resolution_clock::now();
-
   int A = p.quanta(),        // total number of nucleons
       N_quanta = b.quanta(); // total number of quanta
 
@@ -46,7 +43,10 @@ int main(int argc, char* argv[])
   u4::irrep y(1, 0, 0, 0);
   std::vector<u4::gelfand> sps4 = u4::gelfandBasis(y);
 
-  std::filesystem::path path = U3xU4::get_HWS_file(A, n, b, p, sps3, sps4);
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  std::filesystem::path path = U3xU4::get_HWS_file(A, n, U3xU4::irrep(b,p), sps3, sps4);
   auto [SDarr, coeffs] = U3xU4::read_HWS_data(path);
 
   // End time measurement
@@ -63,8 +63,8 @@ int main(int argc, char* argv[])
 
     for (std::size_t i = 0; i < SDarr.size(); i++)
     {
-      SDarr[i].print();
-      std::cout << "--> " << coeffs[i] << std::endl;
+      //SDarr[i].print();
+      std::cout << SDarr[i] << "--> " << coeffs[i] << std::endl;
     }
   }
 

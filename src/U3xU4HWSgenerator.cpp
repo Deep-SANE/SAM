@@ -25,10 +25,13 @@
 namespace U3xU4
 {
   std::vector<UNxU4::SlaterDeterminant>
-  expand_to_SD(std::size_t A, std::size_t n, std::size_t N, const u3::irrep& b,
-               const std::vector<u3::gelfand>& sps3, const u4::irrep& p,
+  expand_to_SD(std::size_t A, std::size_t n, std::size_t N, const U3xU4::irrep& x,
+               const std::vector<u3::gelfand>& sps3,
                const std::vector<u4::gelfand>& sps4)
   {
+    const u3::irrep b = x.u3;
+    const u4::irrep p = x.u4;
+
     std::vector<UNxU4::SlaterDeterminant> SDarr;
 
     // an array to store the position of the particles
@@ -52,9 +55,9 @@ namespace U3xU4
         N11p += sps4[r].n11();
       }
 
-      if (N12b == (b.n13() + b.n23()) && N11b == b.n13() &&
-          N13p == (p.n14() + p.n24() + p.n34()) &&
-          N12p == (p.n14() + p.n24()) && N11p == p.n14())
+      if (N12b == (x.u3.n13() + x.u3.n23()) && N11b == x.u3.n13() &&
+          N13p == (x.u4.n14() + x.u4.n24() + x.u4.n34()) &&
+          N12p == (x.u4.n14() + x.u4.n24()) && N11p == x.u4.n14())
       {
         UNxU4::SlaterDeterminant SD(n);
         // fill SD with positions
@@ -341,22 +344,22 @@ namespace U3xU4
   }
 
   std::pair<std::vector<UNxU4::SlaterDeterminant>, Eigen::MatrixXd>
-  HWS_to_SD(int A, int n, const u3::irrep& b, const u4::irrep& p,
+  HWS_to_SD(int A, int n, const U3xU4::irrep& x,
             const std::vector<u3::gelfand>& sps3,
             const std::vector<u4::gelfand>& sps4)
   {
     int N = (n + 1) * (n + 2) / 2; // shell degeneracy
 
     std::vector<UNxU4::SlaterDeterminant> SDarr =
-        expand_to_SD(A, n, N, b, sps3, p, sps4);
+        expand_to_SD(A, n, N, x, sps3, sps4);
 
     auto mat = RaisingGenerator(SDarr, sps3, sps4);
 
 #ifdef SAM_USE_SLEPC
     untou3::UNtoU3<4> gen;
     gen.set_shell(n);
-    gen.reduceU4(p, N);
-    auto multi = gen.multiplicity(b);
+    gen.reduceU4(x.u4, N);
+    auto multi = gen.multiplicity(x.u3);
     Eigen::MatrixXd expansion = u34utils::null_space_slepc(mat, multi);
 #else
     Eigen::MatrixXd expansion = u34utils::null_space(mat);
@@ -369,8 +372,7 @@ namespace U3xU4
     return std::make_pair(SDarr, expansion);
   }
 
-  std::filesystem::path get_HWS_file(int A, int n, const u3::irrep& b,
-                                     const u4::irrep& p,
+  std::filesystem::path get_HWS_file(int A, int n, const U3xU4::irrep& x,
                                      const std::vector<u3::gelfand>& sps3,
                                      const std::vector<u4::gelfand>& sps4)
   {
@@ -384,10 +386,10 @@ namespace U3xU4
     std::filesystem::create_directories(dir);
 
     std::string filename =
-        std::to_string(b.n13()) + "-" + std::to_string(b.n23()) + "-" +
-        std::to_string(b.n33()) + "-" + std::to_string(p.n14()) + "-" +
-        std::to_string(p.n24()) + "-" + std::to_string(p.n34()) + "-" +
-        std::to_string(p.n44()) + ".bin";
+        std::to_string(x.u3.n13()) + "-" + std::to_string(x.u3.n23()) + "-" +
+        std::to_string(x.u3.n33()) + "-" + std::to_string(x.u4.n14()) + "-" +
+        std::to_string(x.u4.n24()) + "-" + std::to_string(x.u4.n34()) + "-" +
+        std::to_string(x.u4.n44()) + ".bin";
 
     std::filesystem::path full_path = dir / filename;
 
@@ -400,7 +402,7 @@ namespace U3xU4
         throw std::runtime_error("Failed to open file for writing: " +
                                  full_path.string());
 
-      auto [SDarr, coeffs] = HWS_to_SD(A, n, b, p, sps3, sps4);
+      auto [SDarr, coeffs] = HWS_to_SD(A, n, x, sps3, sps4);
 
       std::size_t rows = SDarr.size(), cols = coeffs.cols();
 
