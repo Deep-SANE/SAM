@@ -6,14 +6,13 @@
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
 
-#include <U3basis.h>
 #include <U3SO3xU3SO3.h>
 #include <U3U2xU3U2.h>
 
-#include <U4basis.h>
 #include <U4SU2SU2xU4SU2SU2.h>
 #include <U4U3xU4U3.h>
 
+#include <U3xU4Irrep.h>
 #include <U3xU4MultiShellTensors.h>
 
 namespace JT
@@ -67,22 +66,26 @@ namespace JT
     double sphericalRME(int na, int lla, int jja, int nb, int llb, int jjb);
 
     // compute the coefficients in the sum
-    std::vector<double>
-    getTensorStrength(int kappa0, int LL0, int SS0, int na, int nb,
+    std::pair<bool, std::vector<double>>
+    getTensorStrength(int lam0, int mu0, int P10, int P20, int P30, 
+                      int kappa0, int LL0, int SS0, int na, int nb,
                       const std::vector<u3::physicalvector>& pv3as,
                       const std::vector<u3::physicalvector>& pv3bs,
                       const std::vector<u4::physicalvector>& pv4as,
-                      const std::vector<u4::physicalvector>& pv4bs, int pv3,
-                      const std::vector<std::tuple<int, int, int>>& tArr3,
-                      const std::vector<Eigen::MatrixXd>& coeffs3, int pv4,
-                      const std::vector<std::tuple<int, int, int>>& tArr4,
-                      const std::vector<Eigen::MatrixXd>& coeffs4,
-                      u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9);
+                      const std::vector<u4::physicalvector>& pv4bs, 
+                      //int pv3,
+                      // const std::vector<std::tuple<int, int, int>>& tArr3,
+                      //const std::vector<Eigen::MatrixXd>& coeffs3, 
+                      //int pv4,
+                      //const std::vector<std::tuple<int, int, int>>& tArr4,
+                      //const std::vector<Eigen::MatrixXd>& coeffs4,
+                      u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+                      u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db);
 
     // expand into a sum of multi-shell one-body tensors
-    std::pair<std::vector<double>, std::vector<U3xU4::OneBodyMultiShellTensor>>
+    std::vector<U3xU4::OneBodyMultiShellTensor>
     expand(int maxShell, u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
-           u3::WigU3U2_db& wigU3U2db, u4::WigU4U3_db& wigU4U3db);
+           u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db);
   };
 
 } // namespace JT

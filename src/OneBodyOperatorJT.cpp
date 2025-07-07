@@ -97,19 +97,20 @@ namespace JT
   // Using sphericalRME by default to avoid loops over projection mj and mt
   // Comment out the line below to use sphericalME
 #define USE_ONEBODY_SPHERICAL_RME
-  std::vector<double> OneBodyOperator::getTensorStrength(
+  std::pair<bool, std::vector<double>> OneBodyOperator::getTensorStrength(
+      int lam0, int mu0, int P10, int P20, int P30,
       int kappa0, int LL0, int SS0, int na, int nb,
       const std::vector<u3::physicalvector>& pv3as,
       const std::vector<u3::physicalvector>& pv3bs,
       const std::vector<u4::physicalvector>& pv4as,
-      const std::vector<u4::physicalvector>& pv4bs, int pv3,
-      const std::vector<std::tuple<int, int, int>>& tArr3,
-      const std::vector<Eigen::MatrixXd>& coeffs3, int pv4,
-      const std::vector<std::tuple<int, int, int>>& tArr4,
-      const std::vector<Eigen::MatrixXd>& coeffs4, u34utils::SO3_CGC& cgcs,
-      u34utils::SO3_Racah9& racah9)
+      const std::vector<u4::physicalvector>& pv4bs, 
+      u34utils::SO3_CGC& cgcs,
+      u34utils::SO3_Racah9& racah9, 
+      u3::WigU3SO3_db& wigU3SO3db,
+      u4::WigU4SU2SU2_db& wigU4SU2SU2db)
   {
     std::vector<double> x(kappa0, 0.0);
+    double sum = 0.0;
 
     // loop over la
     for (int pv3a = 0; pv3a < pv3as.size(); pv3a++)
@@ -134,44 +135,52 @@ namespace JT
             if (JJ < std::fabs(jja - jjb) || JJ > jja + jjb)
               continue;
 
+#ifdef USE_ONEBODY_SPHERICAL_RME
             double rme = sphericalRME(na, lla, jja, nb, llb, jjb);
             if (rme == 0.0)
               continue;
+#endif
 
             double U9j;
             if (na <= nb)
               U9j = racah9.compute(lla, 1, jja, llb, 1, jjb, LL0, SS0, JJ);
             else // na > nb
               U9j = racah9.compute(llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ);
-            // std::cout << "U9j = " << U9j << std::endl;
 
-            double cgcU4;
-            for (int i = 0; i < tArr4.size(); i++)
-              if (tArr4[i] == std::make_tuple(0, 0, pv4))
-              {
-                cgcU4 = coeffs4[i](0, 0);
-                break;
-              }
-            // std::cout << "cgcU4 = " << cgcU4 << std::endl;
+            Eigen::MatrixXd Coeffs3, Coeffs4;
+            if (na <= nb)
+            {
+              Coeffs3 = wigU3SO3db.get(na, 0, lla/2, 
+                                       0, nb, llb/2,
+                                       lam0, mu0, LL0/2).second;
+              Coeffs4 = wigU4SU2SU2db.get(1, 0, 0, 1, 1,
+                                          0, 0, 1, 1, 1,
+                                          P10, P20, P30, SS0, TT).second;
+            }
+            else // na > nb
+            {
+              Coeffs3 = wigU3SO3db.get(0, nb, llb/2, 
+                                       na, 0, lla/2,
+                                       lam0, mu0, LL0/2).second;
+              Coeffs4 = wigU4SU2SU2db.get(0, 0, 1, 1, 1,
+                                          1, 0, 0, 1, 1,
+                                          P10, P20, P30, SS0, TT).second;
+            }
+
 #ifdef USE_ONEBODY_SPHERICAL_RME
             if (na <= nb)
             {
               double phase = ((nb + llb / 2 + 2) / 2 % 2 == 0) ? 1.0 : -1.0,
                      factor =
                          std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) / (TT + 1.0));
-              // std::cout << "phase = " << phase << std::endl;
-              for (int i = 0; i < tArr3.size(); i++)
-                if (tArr3[i] == std::make_tuple(pv3a, pv3b, pv3))
-                {
-                  for (int k = 0; k < kappa0; k++)
-                  {
-                    double y =
-                        phase * U9j * coeffs3[i](k, 0) * cgcU4 * rme * factor;
-                    // std::cout << y << std::endl;
-                    x[k] += y;
-                  }
-                  break;
-                }
+              for (int k = 0; k < kappa0; k++)
+              {
+                double y =
+                  phase * U9j * Coeffs3(k,0) * Coeffs4(0,0) * rme * factor;
+                // std::cout << y << std::endl;
+                sum += y;
+                x[k] += y;
+              }
             }
 
             else // na > nb
@@ -181,19 +190,14 @@ namespace JT
                                  : -1.0,
                      factor =
                          std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) / (TT + 1.0));
-              // std::cout << "phase = " << phase << std::endl;
-              for (int i = 0; i < tArr3.size(); i++)
-                if (tArr3[i] == std::make_tuple(pv3b, pv3a, pv3))
-                {
-                  for (int k = 0; k < kappa0; k++)
-                  {
-                    double y =
-                        phase * U9j * coeffs3[i](k, 0) * cgcU4 * rme * factor;
-                    // std::cout << y << std::endl;
-                    x[k] -= y;
-                  }
-                  break;
-                }
+              for (int k = 0; k < kappa0; k++)
+              {
+                double y =
+                  phase * U9j * Coeffs3(k,0) * Coeffs4(0,0) * rme * factor;
+                // std::cout << y << std::endl;
+                sum += y;
+                x[k] += y;
+              }
             }
 #else
             // loop over projections
@@ -221,36 +225,28 @@ namespace JT
                   double cgcJ = cgcs.compute(jja, jjb, JJ, mmja, -mmjb, MMJ),
                          cgcT = cgcs.compute(1, 1, TT, mmta, -mmtb, MMT);
 
-                  for (int i = 0; i < tArr3.size(); i++)
-                    if (tArr3[i] == std::make_tuple(pv3a, pv3b, pv3))
-                    {
-                      for (int k = 0; k < kappa0; k++)
-                      {
-                        double y = phase * cgcJ * cgcT * U9j *
-                                   coeffs3[i](k, 0) * cgcU4 * me;
-                        // std::cout << y << std::endl;
-                        x[k] += y;
-                      }
-                      break;
-                    }
+                  for (int k = 0; k < kappa0; k++)
+                  {
+                    double y = phase * cgcJ * cgcT * U9j *
+                                   Coeffs3(k, 0) * Coeffs4(0,0) * me;
+                    // std::cout << y << std::endl;
+                    sum += y;
+                    x[k] += y;
+                  }
                 }
                 else // na > nb
                 {
                   double cgcJ = cgcs.compute(jjb, jja, JJ, -mmjb, mmja, MMJ),
                          cgcT = cgcs.compute(1, 1, TT, -mmtb, mmta, MMT);
 
-                  for (int i = 0; i < tArr3.size(); i++)
-                    if (tArr3[i] == std::make_tuple(pv3b, pv3a, pv3))
-                    {
-                      for (int k = 0; k < kappa0; k++)
-                      {
-                        double y = phase * cgcJ * cgcT * U9j *
-                                   coeffs3[i](k, 0) * cgcU4 * me;
-                        // std::cout << y << std::endl;
-                        x[k] -= y;
-                      }
-                      break;
-                    }
+                  for (int k = 0; k < kappa0; k++)
+                  {
+                    double y = phase * cgcJ * cgcT * U9j *
+                               Coeffs3(k, 0) * Coeffs4(0,0) * me;
+                    // std::cout << y << std::endl;
+                    sum -= y;
+                    x[k] -= y;
+                  }
                 }
               }
             }
@@ -259,15 +255,15 @@ namespace JT
         }
       }
     }
-    return x;
+    return std::make_pair((std::fabs(sum) < 1e-8), x);
   }
 
-  std::pair<std::vector<double>, std::vector<U3xU4::OneBodyMultiShellTensor>>
+  std::vector<U3xU4::OneBodyMultiShellTensor>
   OneBodyOperator::expand(int maxShell, u34utils::SO3_CGC& cgcs,
                           u34utils::SO3_Racah9& racah9,
-                          u3::WigU3U2_db& wigU3U2db, u4::WigU4U3_db& wigU4U3db)
+                          u3::WigU3SO3_db& wigU3SO3db, 
+                          u4::WigU4SU2SU2_db& wigU4SU2SU2db)
   {
-    std::vector<double> coeffs;
     std::vector<U3xU4::OneBodyMultiShellTensor> tensors;
 
     // loop for ad
@@ -315,17 +311,6 @@ namespace JT
           // decompose into L0
           std::vector<u3::physicalvector> pv3s = u3::physicalBasis(u3couple[i]);
 
-          // compute coupling coefficients
-          std::vector<std::tuple<int, int, int>> tArr3;
-          std::vector<Eigen::MatrixXd> coeffs3;
-
-          if (na <= nb)
-            coeffs3 = u3::WigU3SO3(u3multi[i], pv3as, pv3bs, pv3s, tArr3, cgcs,
-                                   wigU3U2db);
-          else // na > nb
-            coeffs3 = u3::WigU3SO3(u3multi[i], pv3bs, pv3as, pv3s, tArr3, cgcs,
-                                   wigU3U2db);
-
           for (int j = 0; j < u4couple.size(); j++)
           {
             assert(u4multi[j] == 1);
@@ -334,57 +319,52 @@ namespace JT
             std::vector<u4::physicalvector> pv4s =
                 u4::physicalBasis(u4couple[j]);
 
-            // compute coupling coefficients
-            std::vector<std::tuple<int, int, int>> tArr4;
-            std::vector<Eigen::MatrixXd> coeffs4;
-
-            if (na <= nb)
-              coeffs4 = u4::WigU4SU2SU2(u4multi[j], pv4as, pv4bs, pv4s, tArr4,
-                                        cgcs, wigU3U2db, wigU4U3db);
-            else // na > nb
-              coeffs4 = u4::WigU4SU2SU2(u4multi[j], pv4bs, pv4as, pv4s, tArr4,
-                                        cgcs, wigU3U2db, wigU4U3db);
-
             for (int pv3 = 0; pv3 < pv3s.size(); pv3++)
             {
-              int kappa0 = pv3s[pv3].kappa, LL0 = 2 * pv3s[pv3].L;
+              int lam0 = pv3s[pv3].toprow.lam(), mu0 = pv3s[pv3].toprow.mu(),
+                  kappa0 = pv3s[pv3].kappa, LL0 = 2 * pv3s[pv3].L;
 
               for (int pv4 = 0; pv4 < pv4s.size(); pv4++)
               {
-                int SS0 = pv4s[pv4].SS, TT0 = pv4s[pv4].TT;
+                int P10 = pv4s[pv4].toprow.P1(), 
+                    P20 = pv4s[pv4].toprow.P2(),
+                    P30 = pv4s[pv4].toprow.P3(), 
+                    SS0 = pv4s[pv4].SS, TT0 = pv4s[pv4].TT;
 
                 // couple LL0 and SS0 to JJ0
                 // the sum over CGCs will kill JJ0 != JJ and TT0 != TT
-                if (JJ < std::fabs(LL0 - SS0) || JJ > LL0 + SS0 || TT0 != TT)
+                if (JJ < std::fabs(LL0 - SS0) || JJ > (LL0 + SS0) || TT0 != TT)
                   continue;
 
                 // the selection rule of CGCs also dictates that
                 // MMJ0 == MMJ and MMT0 == MMT
 
-                // compute the expansion coefficient
-                std::vector<double> coeff = getTensorStrength(
-                    kappa0, LL0, SS0, na, nb, pv3as, pv3bs, pv4as, pv4bs, pv3,
-                    tArr3, coeffs3, pv4, tArr4, coeffs4, cgcs, racah9);
+                // compute the expansion coefficients
+                auto [ignore, coeff] = getTensorStrength(
+                  lam0, mu0, P10, P20, P30,
+                  kappa0, LL0, SS0, na, nb, 
+                  pv3as, pv3bs, pv4as, pv4bs, 
+                  cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
-                for (int k = 0; k < kappa0; k++)
+                if (ignore == false)
                 {
-                  if (std::fabs(coeff[k]) > 1e-8)
+                  if (na <= nb)
                   {
-                    coeffs.push_back(coeff[k]);
-                    if (na <= nb)
-                    {
-                      U3xU4::OneBodyMultiShellTensor tensor(
-                          na + 1, - nb - 1, u3couple[i], u4couple[j], k + 1, 
-                          LL0, SS0, TT, MMT, JJ, MMJ);
-                      tensors.push_back(tensor);
-                    }
-                    else // na > nb
-                    {
-                      U3xU4::OneBodyMultiShellTensor tensor(
-                          - nb - 1, na + 1, u3couple[i], u4couple[j], k + 1, 
-                          LL0, SS0, TT, MMT, JJ, MMJ);
-                      tensors.push_back(tensor);
-                    }
+                    U3xU4::OneBodyMultiShellTensor tensor(
+                        U3xU4::irrep(na,0,0, 1,0,0,0), 
+                        U3xU4::irrep(nb,nb,0, 1,1,1,0),
+                        U3xU4::irrep(u3couple[i], u4couple[j]), 
+                        kappa0, LL0, SS0, TT, MMT, JJ, MMJ, coeff);
+                    tensors.push_back(tensor);
+                  }
+                  else // na > nb
+                  {
+                    U3xU4::OneBodyMultiShellTensor tensor(
+                        U3xU4::irrep(nb,nb,0, 1,1,1,0),
+                        U3xU4::irrep(na,0,0, 1,0,0,0), 
+                        U3xU4::irrep(u3couple[i], u4couple[j]), 
+                        kappa0, LL0, SS0, TT, MMT, JJ, MMJ, coeff);
+                    tensors.push_back(tensor);
                   }
                 }
               }
@@ -394,6 +374,6 @@ namespace JT
       }
     }
 
-    return std::make_pair(coeffs, tensors);
+    return tensors;
   }
 } // namespace JT

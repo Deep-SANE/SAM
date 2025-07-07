@@ -16,28 +16,27 @@ int main(int argc, char* argv[])
   u34utils::SO3_CGC cgcs;
   u34utils::SO3_Racah9 racah9;
   u3::WigU3U2_db wigU3U2db(cgcs);
+  u3::WigU3SO3_db wigU3SO3db(cgcs, wigU3U2db);
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
+  u4::WigU4SU2SU2_db wigU4SU2SU2db(cgcs, wigU3U2db, wigU4U3db);
 
   // Example 1: number operator
-
+  
   JT::OneBodyOperator N(0, 0, 0, 0, 1);
   int maxShell = 10;
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [coeffs, tensors] =
-      N.expand(maxShell, cgcs, racah9, wigU3U2db, wigU4U3db);
+  auto tensors =
+      N.expand(maxShell, cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
   N.is();
-  for (int i = 0; i < coeffs.size(); i++)
-  {
-    std::cout << coeffs[i] << "\t";
-    tensors[i].print();
-  }
+  for (auto tensor : tensors) std::cout << tensor << std::endl;
+  
 
   // Example 2: one-body part of the L^2 operator
   /*
@@ -47,18 +46,14 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [coeffs, tensors] =
-      oneL2.expand(maxShell, cgcs, racah9, wigU3U2db, wigU4U3db);
+  auto tensors =
+      oneL2.expand(maxShell, cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
   oneL2.is();
-  for (int i = 0; i < coeffs.size(); i++)
-  {
-    std::cout << coeffs[i] << "\t";
-    tensors[i].print();
-  }
+  for (auto tensor : tensors) std::cout << tensor << std::endl;
   */
 
   // Calculate the duration
