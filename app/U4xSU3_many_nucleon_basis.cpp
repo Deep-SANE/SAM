@@ -36,24 +36,23 @@ int main()
     {
       print("distribution: {}\n", basis.distribution(dist_id));
 
-      auto [first_gamma_id, n_gammas] = basis.dist_gammas(dist_id);
-      auto end_gamma_id = first_gamma_id + n_gammas;
-      
+      auto [gamma_id_begin, n_gammas] = basis.dist_gammas(dist_id);
 
-      for (std::size_t i_gamma = first_gamma_id; i_gamma < end_gamma_id; i_gamma++)
+      for (int i_gamma = 0; i_gamma < n_gammas; i_gamma++)
       {
-        auto [gammas_u4, gammas_su3] = basis.gamma_irreps(i_gamma);
-        auto n_gammas = gammas_u4.size();
+        auto gamma_id = gamma_id_begin + i_gamma;
+        auto [gammas_u4, gammas_su3] = basis.gamma_irreps(gamma_id);
+        auto n_irreps = gammas_u4.size();
 
-        for (int i_gamma = 0; i_gamma < n_gammas; i_gamma++)
+        for (int i_irrep = 0; i_irrep < n_irreps; i_irrep++)
         {
-          print("\tgamma[{}]:", i_gamma);
+          print("\tgamma[{}]:", i_irrep);
 
-          auto& mu4 = gammas_u4[i_gamma];
+          auto& mu4 = gammas_u4[i_irrep];
           print(" {}[{} {} {} {}]", mu4.mult, mu4.u4.n14(), mu4.u4.n24(),
                 mu4.u4.n34(), mu4.u4.n44());
 
-          auto& msu3 = gammas_su3[i_gamma];
+          auto& msu3 = gammas_su3[i_irrep];
           print(" {}({} {})\n", msu3.mult, msu3.lm, msu3.mu);
         }
 
