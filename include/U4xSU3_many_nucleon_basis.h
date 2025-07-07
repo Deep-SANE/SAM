@@ -46,6 +46,7 @@ namespace U4xSU3
     int MMT_;
     int Nmax_;
     int JJ_;
+    int n0hw_;
 
     std::size_t dim_;
 
@@ -54,18 +55,19 @@ namespace U4xSU3
     // indices of distributions for `nhw` are from [nhw] to [nhw+1]-1:
     std::vector<std::size_t> nhw_dist_ids_;
 
-    // gammas:
+    // for each distribution: index of first gamma, #of gammas:
+    std::vector<std::pair<std::size_t, std::size_t>> dist_gammas_;
+    // for each gamma: index of first irrep, #of irreps
+    std::vector<std::pair<std::size_t, std::size_t>> gammas_;
+    // gammas irreps:
     std::vector<MU4> gammas_u4_;
     std::vector<MSU3> gammas_su3_;
-    // for each distribution: #of gamma sets, #of gammas in each set, initial
-    // index into `gammas_...` arrays:
-    std::vector<std::tuple<int, int, std::size_t>> dist_gamma_sets_;
 
     // omegas:
 
   public:
     ManyNucleonBasis(int A, int MMT, int Nmax, int JJ)
-        : A_(A), MMT_(MMT), Nmax_(Nmax), JJ_(JJ), dim_(0)
+        : A_(A), MMT_(MMT), Nmax_(Nmax), JJ_(JJ), n0hw_(Nmax % 2), dim_(0)
     { }
 
     void construct()
@@ -74,6 +76,7 @@ namespace U4xSU3
 
       generate_distributions();
       generate_gammas();
+      generate_omegas();
     }
 
     // returns an index extent for distributions for particular `nhw`:
@@ -104,47 +107,26 @@ namespace U4xSU3
       return std::span(distributions_.data() + begin, distributions_.data() + end);
     }
 
-    //
-    auto dist_gamma_n_sets(std::size_t dist_id) const
+    // returns (first gamma id, #of gammas) for distribution:
+    const auto& dist_gammas(std::size_t dist_id) const
     {
-      assert(dist_id < dist_gamma_sets_.size());
+      assert(dist_id < dist_gammas_.size());
 
-      return std::get<0>(dist_gamma_sets_[dist_id]);
+      return dist_gammas_[dist_id];
     }
 
-    //
-    auto dist_gamma_n_gammas(std::size_t dist_id) const
+    // returns irrpes for gamma:
+    auto gamma_irreps(std::size_t gamma_id) const
     {
-      assert(dist_id < dist_gamma_sets_.size());
+      assert(gamma_id < gammas_.size());
 
-      return std::get<1>(dist_gamma_sets_[dist_id]);
-    }
+      auto [first, count] = gammas_[gamma_id];
 
-    //
-    auto dist_gamma_sets(std::size_t dist_id) const
-    {
-      assert(dist_id < dist_gamma_sets_.size());
+      assert(first + count <= gammas_u4_.size());
+      assert(first + count <= gammas_su3_.size());
 
-      auto [n_sets, n_gammas, index] = dist_gamma_sets_[dist_id];
-
-      assert(index + n_sets * n_gammas <= gammas_u4_.size());
-      assert(index + n_sets * n_gammas <= gammas_su3_.size());
-
-      return std::tuple(n_sets, n_gammas, gammas_u4_.data() + index,
-                        gammas_su3_.data() + index);
-    }
-
-    //
-    auto dist_gamma_set(std::size_t dist_id, std::size_t i_set) const
-    {
-      auto [n_sets, n_gammas, u4_begin, su3_begin] = dist_gamma_sets(dist_id);
-
-      assert(i_set < n_sets);
-
-      auto offset = i_set * n_gammas;
-
-      return std::pair(std::span(u4_begin + offset, n_gammas),
-                       std::span(su3_begin + offset, n_gammas));
+      return std::pair(std::span(gammas_u4_.data() + first, count),
+                       std::span(gammas_su3_.data() + first, count));
     }
 
   private:
@@ -262,15 +244,14 @@ namespace U4xSU3
 
     void generate_gammas()
     {
+      dist_gammas_.clear();
+      gammas_.clear();
       gammas_u4_.clear();
       gammas_su3_.clear();
 
-      dist_gamma_sets_.clear();
-      dist_gamma_sets_.resize(distributions_.size());
+      dist_gammas_.resize(distributions_.size());
 
-      int n0hw = Nmax_ % 2;
-
-      for (int nhw = n0hw; nhw <= Nmax_; nhw += 2)
+      for (int nhw = n0hw_; nhw <= Nmax_; nhw += 2)
       {
         auto [dist_id_begin, dist_id_end] = distributions_ids(nhw);
 
@@ -321,13 +302,12 @@ namespace U4xSU3
         vElemsPerChange[i] = vElemsPerChange[i - 1] * vNSizes[i - 1];
       }
 
-      assert(dist_id < dist_gamma_sets_.size());
+      assert(dist_id < dist_gammas_.size());
       assert(gammas_u4_.size() == gammas_su3_.size());
 
-      auto& tuple = dist_gamma_sets_[dist_id];
-      std::get<0>(tuple) = uNAllowedCombinations;
-      std::get<1>(tuple) = NIrrepsSets;
-      std::get<2>(tuple) = gammas_u4_.size();
+      auto& pair = dist_gammas_[dist_id];
+      std::get<0>(pair) = gammas_.size();
+      std::get<1>(pair) = uNAllowedCombinations;
 
       for (unsigned index = 0; index < uNAllowedCombinations; index++)
       {
@@ -354,7 +334,10 @@ namespace U4xSU3
         }
         */
 
+        assert(gammas_u4.size() == gammas_su3.size());
         assert(gammas_u4.size() > 0);
+
+        gammas_.emplace_back(gammas_u4_.size(), gammas_u4.size());
 
         gammas_u4_.insert(gammas_u4_.end(), gammas_u4.begin(), gammas_u4.end());
         gammas_su3_.insert(gammas_su3_.end(), gammas_su3.begin(),
@@ -378,6 +361,10 @@ namespace U4xSU3
       }
 
    // dim_ += dim;
+    }
+
+    void generate_omegas()
+    {
     }
 
     int computeDim(int lm, int mu, int SS, int JJ)

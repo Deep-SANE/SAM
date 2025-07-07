@@ -19,7 +19,7 @@ int main()
 
   int A = Z + N;
   MMT = abs(Z - N);
-  bool n0hw = Nmax % 2;
+  int n0hw = Nmax % 2;
 
   U4xSU3::ManyNucleonBasis basis(A, MMT, Nmax, JJ);
   basis.construct();
@@ -36,11 +36,13 @@ int main()
     {
       print("distribution: {}\n", basis.distribution(dist_id));
 
-      auto n_sets = basis.dist_gamma_n_sets(dist_id);
+      auto [first_gamma_id, n_gammas] = basis.dist_gammas(dist_id);
+      auto end_gamma_id = first_gamma_id + n_gammas;
+      
 
-      for (int i_set = 0; i_set < n_sets; i_set++)
+      for (std::size_t i_gamma = first_gamma_id; i_gamma < end_gamma_id; i_gamma++)
       {
-        auto [gammas_u4, gammas_su3] = basis.dist_gamma_set(dist_id, i_set);
+        auto [gammas_u4, gammas_su3] = basis.gamma_irreps(i_gamma);
         auto n_gammas = gammas_u4.size();
 
         for (int i_gamma = 0; i_gamma < n_gammas; i_gamma++)
