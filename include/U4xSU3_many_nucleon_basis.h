@@ -1,7 +1,6 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
-#include <iostream>
 #include <numeric>
 #include <ranges>
 #include <set>
@@ -63,7 +62,14 @@ namespace U4xSU3
     std::vector<MU4> gammas_u4_;
     std::vector<MSU3> gammas_su3_;
 
-    // omegas:
+    // for each gamma: index of first omega, #of omegas:
+    std::vector<std::pair<std::size_t, std::size_t>> gamma_omegas_;
+    // for each omega: index of first irrep, #of irreps, multiplicity,
+    // dimension:
+    std::vector<std::tuple<std::size_t, std::size_t, int, int>> omegas_;
+    // omegas irreps:
+    std::vector<MU4> omegas_u4_;
+    std::vector<MSU3> omegas_su3_;
 
   public:
     ManyNucleonBasis(int A, int MMT, int Nmax, int JJ)
@@ -128,6 +134,31 @@ namespace U4xSU3
       return std::pair(std::span(gammas_u4_.data() + first, count),
                        std::span(gammas_su3_.data() + first, count));
     }
+
+    // returns (first omega id, #of omegas) for gamma:
+    const auto& gamma_omegas(std::size_t gamma_id) const
+    {
+      assert(gamma_id < gamma_omegas_.size());
+
+      return gamma_omegas_[gamma_id];
+    }
+
+    // returns irreps for omega plus their multiplicity and dimension:
+    auto omega_irreps(std::size_t omega_id) const
+    {
+      assert(omega_id < omegas_.size());
+
+      auto [first, count, mult, dim] = omegas_[omega_id];
+
+      assert(first + count <= omegas_u4_.size());
+      assert(first + count <= omegas_su3_.size());
+
+      return std::tuple(std::span(omegas_u4_.data() + first, count),
+                        std::span(omegas_su3_.data() + first, count), mult,
+                        dim);
+    }
+
+    auto dim() const { return dim_; }
 
   private:
     /////////////   DISTRIBUTIONS  /////////////////
@@ -365,9 +396,44 @@ namespace U4xSU3
 
     void generate_omegas()
     {
+      gamma_omegas_.clear();
+      omegas_.clear();
+      omegas_u4_.clear();
+      omegas_su3_.clear();
+
+      gamma_omegas_.resize(gammas_.size());
+
+      for (std::size_t gamma_id = 0; gamma_id < gammas_.size(); gamma_id++)
+        generate_omegas_for_gamma(gamma_id);
     }
 
-    int computeDim(int lm, int mu, int SS, int JJ)
+    void generate_omegas_for_gamma(std::size_t gamma_id)
+    {
+      assert(gamma_id < gammas_.size());
+
+      auto [begin, count] = gammas_[gamma_id];
+
+      auto gamma_u4 = std::span(gammas_u4_.data() + begin, count);
+      auto gamma_su3 = std::span(gammas_su3_.data() + begin, count);
+
+      assert(gamma_u4.size() == gamma_su3.size());
+      assert(gamma_u4.size() > 0);
+
+      if (gamma_u4.size() == 1)
+      {
+        const auto& mu4 = gamma_u4[0];
+        const auto& msu3 = gamma_su3[0];
+
+        assert(mu4.mult == 1);
+
+        uint32_t mult = msu3.mult;
+        dim_ += mult * computeDim(msu3.lm, msu3.mu, mu4.u4);
+      }
+      else
+        generate_omegas_for_gamma(gamma_id, gamma_u4, gamma_su3);
+    }
+
+    int computeDim(int lm, int mu, int SS)
     {
       int dim = 0;
       for (int l = 0; l <= lm + mu; ++l)
@@ -376,24 +442,24 @@ namespace U4xSU3
         if (k0max)
         {
           for (size_t jj = abs(2 * l - SS); jj <= (2 * l + SS); jj += 2)
-            if ((jj == JJ) || (JJ == -1))
+            if ((jj == JJ_) || (JJ_ == -1))
               dim += k0max;
         }
       }
       return dim;
     }
 
-    int computeDim(int lm, int mu, const u4::irrep& u4, int MMT, int JJ)
+    int computeDim(int lm, int mu, const u4::irrep& u4)
     {
       int dim = 0;
       auto u4_basis = u4::physicalBasis(u4);
       for (auto const& labels : u4_basis)
       {
-        if (labels.TT >= MMT)
+        if (labels.TT >= MMT_)
         {
           int mult = labels.zeta;
           int SS = labels.SS;
-          dim += mult * computeDim(lm, mu, SS, JJ);
+          dim += mult * computeDim(lm, mu, SS);
         }
       }
       return dim;
@@ -534,9 +600,8 @@ namespace U4xSU3
       couple(lm1, mu1, lm2, mu2, result);
     }
 
-    template <typename T>
-    void gamma2omega(const std::vector<T>& gamma,
-                     std::vector<std::vector<T>>& omega)
+    template <typename T, std::size_t Extent>
+    void gamma2omega(std::span<T, Extent> gamma, std::vector<std::vector<T>>& omega)
     {
       assert(gamma.size() >= 2);
 
@@ -576,27 +641,32 @@ namespace U4xSU3
       }
     }
 
-    uint64_t dimGamma(const std::vector<MU4>& gammas_u4,
-                      const std::vector<MSU3>& gammas_su3, int MMT, int JJ)
+    void generate_omegas_for_gamma(std::size_t gamma_id, auto gamma_u4, auto gamma_su3)
     {
       uint64_t dim = 0;
 
       std::vector<MU4_VEC> omega_mu4;
-      gamma2omega(gammas_u4, omega_mu4);
+      gamma2omega(gamma_u4, omega_mu4);
 
       std::vector<MSU3_VEC> omega_msu3;
-      gamma2omega(gammas_su3, omega_msu3);
+      gamma2omega(gamma_su3, omega_msu3);
 
       uint32_t mult_gamma_u4 = 1;
-      for (size_t i = 0; i < gammas_u4.size(); ++i)
-        mult_gamma_u4 *= gammas_u4[i].mult;
+      for (size_t i = 0; i < gamma_u4.size(); ++i)
+        mult_gamma_u4 *= gamma_u4[i].mult;
       assert(mult_gamma_u4 == 1);
 
       uint32_t mult_gamma_su3 = 1;
-      for (size_t i = 0; i < gammas_su3.size(); ++i)
-        mult_gamma_su3 *= gammas_su3[i].mult;
+      for (size_t i = 0; i < gamma_su3.size(); ++i)
+        mult_gamma_su3 *= gamma_su3[i].mult;
 
       uint32_t mult_gamma = mult_gamma_su3 * mult_gamma_u4;
+
+      assert(gamma_id < gamma_omegas_.size());
+
+      auto& [omega_id_begin, n_omegas] = gamma_omegas_[gamma_id];
+      omega_id_begin = omegas_.size();
+      n_omegas = 0;
 
       for (const auto& mu4_vec : omega_mu4)
       {
@@ -608,6 +678,7 @@ namespace U4xSU3
         {
           assert(mu4_vec.size() == msu3_vec.size());
 
+          /*
           std::cout << "\t\t";
           for (size_t i = 0; i < mu4_vec.size(); i++)
           {
@@ -618,6 +689,7 @@ namespace U4xSU3
             std::cout << msu3.mult << "(" << msu3.lm << " " << msu3.mu
                       << ")   ";
           }
+          */
 
           uint32_t mult_su3 = 1;
           for (size_t i = 0; i < msu3_vec.size(); ++i)
@@ -628,13 +700,31 @@ namespace U4xSU3
           u4::irrep u4 = mu4.u4;
           int lm = msu3.lm;
           int mu = msu3.mu;
-          uint32_t dim_irrep = computeDim(lm, mu, u4, MMT, JJ);
+          uint32_t dim_irrep = computeDim(lm, mu, u4);
           dim += mult * dim_irrep;
+
+          /*
           std::cout << " mult:" << mult << " dim:" << mult * dim_irrep
                     << std::endl;
+          */
+
+          if (mult * dim_irrep > 0)
+          {
+            omegas_.emplace_back(omegas_u4_.size(), mu4_vec.size(), mult,
+                                 mult * dim_irrep);
+
+            for (std::size_t i = 0; i < mu4_vec.size(); i++)
+            {
+              omegas_u4_.push_back(mu4_vec[i]);
+              omegas_su3_.push_back(msu3_vec[i]);
+            }
+
+            n_omegas++;
+          }
         }
       }
-      return dim;
+
+      dim_ += dim;
     }
 
     /*

@@ -24,8 +24,6 @@ int main()
   U4xSU3::ManyNucleonBasis basis(A, MMT, Nmax, JJ);
   basis.construct();
 
-//uint64_t dim = 0;
-
   for (int nhw = n0hw; nhw <= Nmax; nhw += 2)
   {
     print("hw: {}\n", nhw);
@@ -56,10 +54,31 @@ int main()
           print(" {}({} {})\n", msu3.mult, msu3.lm, msu3.mu);
         }
 
+        auto [omega_id_begin, n_omegas] = basis.gamma_omegas(gamma_id);
+
+        for (int i_omega = 0; i_omega < n_omegas; i_omega++)
+        {
+          auto omega_id = omega_id_begin + i_omega;
+          auto [omegas_u4, omegas_su3, mult, dim] = basis.omega_irreps(omega_id);
+          auto n_irreps = omegas_u4.size();
+
+          print("\t\t");
+          for (int i_irrep = 0; i_irrep < n_irreps; i_irrep++)
+          {
+            auto& mu4 = omegas_u4[i_irrep];
+            print(" {}[{} {} {} {}]", mu4.mult, mu4.u4.n14(), mu4.u4.n24(),
+                  mu4.u4.n34(), mu4.u4.n44());
+
+            auto& msu3 = omegas_su3[i_irrep];
+            print(" {}({} {})  ", msu3.mult, msu3.lm, msu3.mu);
+          }
+          print("mult:{} dim:{}\n", mult, dim);
+        }
+
         print("\n");
       }
     }
-  }
 
-//print("Basis dimension: {}\n", dim);
+    print("Basis dimension: {}\n", basis.dim());
+  }
 }
