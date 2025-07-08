@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <ostream>
 #include <tuple>
 #include <utility>
@@ -8,14 +9,19 @@
 #include <Eigen/Dense>
 
 #include <so3Coeffs/SO3_CGC.h>
+#include <so3Coeffs/SO3_Racah.h>
 
 #include <U3xU4Irrep.h>
 
 #include <U3U2xU3U2.h>
+#include <U3SO3xU3SO3.h>
 #include <U4U3xU4U3.h>
+#include <U4SU2SU2xU4SU2SU2.h>
 
 namespace U3xU4
 {
+  /////////////////// CREATION OPERATOR/TENSOR /////////////////
+
   /* Class for defining creation operator a^dagger
      with tensor components given by Gelfand patterns
                      [n,0,0,n12b,0,n11b]
@@ -61,6 +67,38 @@ namespace U3xU4
     }
   };
   using ads_gelfand = std::vector<U3xU4::ad_gelfand>;
+
+  /* Class for defining creation operator a^dagger
+     with tensor components given by 
+                     [n,0,0][1,0,0,0]
+                    ad
+                      ll jj mmj mmt
+     Here ss = tt = 1 is automatically implied.
+  */
+  class ad_phys
+  {
+  public:
+    int16_t n,       // shell number
+            ll,      // twice orbital angular momentum
+            jj, mmj, // twice total angular momentum
+            mmt;     // twice isospin projection
+
+    // Constructor
+    ad_phys(int16_t n_, int16_t ll_, int16_t jj_, 
+            int16_t mmj_, int16_t mmt_)
+        : n(n_), ll(ll_), jj(jj_), mmj(mmj_), mmt(mmt_)
+    { }
+
+    // Print
+    friend std::ostream& operator<<(std::ostream& s, const ad_phys& x)
+    {
+      return s << "ad(" << x.n << "," << x.ll << "," 
+               << x.jj << "," << x.mmj << "," << x.mmt << ")";
+    }
+  };
+  using ads_phys = std::vector<U3xU4::ad_phys>;
+
+  /////////////////// ANNIHILATION OPERATOR/TENSOR /////////////////
 
   /* Class for defining annihilation tensor a^tilde
      with tensor components given by Gelfand patterns
@@ -136,6 +174,65 @@ namespace U3xU4
   };
   using ats_gelfand = std::vector<U3xU4::at_gelfand>;
 
+  /* Class for defining annihilation tensor a^tilde
+     with tensor components given by Gelfand patterns
+                     [n,n,0][1,1,1,0]
+                    at
+                     ll jj mmj mmt
+     Turn it to annihilation operator
+              [n,0,0][1,0,0,0]
+     (-)^phi a
+              ll jj -mmj -mmt 
+     where the phase phi = (n + l + 1)/2 - j - mj - mt
+  */
+  class at_phys
+  {
+  private:
+    // flag indicating if this object is tensor or operator
+    bool tensor = true; 
+
+  public:
+    int16_t n,       // shell number
+            ll,      // twice orbital angular momentum
+            jj, mmj, // twice total angular momentum
+            mmt;     // twice isospin projection
+
+    // Constructor
+    at_phys(int16_t n_, int16_t ll_, int16_t jj_, 
+            int16_t mmj_, int16_t mmt_)
+        : n(n_), ll(ll_), jj(jj_), mmj(mmj_), mmt(mmt_)
+    { }
+
+    // Turn it to a by conjugating, this method returns a phase
+    // and change mmj to -mmj, mmt to -mmt
+    // After this method is executed, tensor is turned to false
+    double turnToAnnihilation()
+    {
+      int phi = (n + ll/2 + 1 - jj - mmj - mmt)/2;
+      mmj *= -1;
+      mmt *= -1;
+      tensor = false;
+      return (phi % 2 == 0) ? 1.0 : -1.0;
+    }
+
+    // Check if it is annihilation tensor or annihilation operator
+    bool isTensor() const { return tensor; }
+
+    // Print
+    friend std::ostream& operator<<(std::ostream& s, const at_phys& x)
+    {
+      if (x.tensor)
+        return s << "at(" << x.n << "," << x.ll << "," 
+                 << x.jj << "," << x.mmj << "," << x.mmt << ")";
+      else
+        return s << "a(" << x.n << "," << x.ll << "," 
+                 << x.jj << "," << x.mmj << "," << x.mmt << ")";
+    }
+  };
+  using ats_phys = std::vector<U3xU4::at_phys>;
+
+  /////////////// PRODUCT OF CREATION OPERATORS/TENSORS /////////////////
+
   /* Class for holding coupled products of ad's, it can have up to 3 ad's
      ad, [ad x ad], [[ad x ad] x ad]
      Tensor components are represented by Gelfand patterns
@@ -180,6 +277,53 @@ namespace U3xU4
     expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
            u4::WigU4U3_db& wigU4U3db) const;
   };
+
+  /* Class for holding coupled products of ad's, it can have up to 3 ad's
+     ad, [ad x ad], [[ad x ad] x ad]
+     Tensor components are represented by kappa LL zeta SS TT MMT JJ MMJ
+  */
+  class Tad_phys
+  {
+  public:
+    // tensor character of ad [n,0,0] x [1,0,0,0]
+    int16_t n;
+
+    // coupled tensor characters
+    // 0 element for ad
+    // 1 element for [ad x ad](U3 x U4)
+    // 2 elements for [[ad x ad](U30 x U40) x ad](U3 x U4)
+    std::vector<U3xU4::irrep> prod_characters;
+
+    // tensor components 
+    int16_t kappa, LL, SS, TT, MMT, JJ, MMJ;
+
+    // Constructor
+    Tad_phys(int16_t n_, const std::vector<U3xU4::irrep>& prod,
+             int16_t LL_, int16_t SS_, int16_t TT_, int16_t MMT_, 
+             int16_t JJ_, int16_t MMJ_)
+        : n(n_), prod_characters(prod), LL(LL_), 
+          SS(SS_), TT(TT_), MMT(MMT_), JJ(JJ_), MMJ(MMJ_)
+    { 
+      if (prod.empty())
+        kappa = 1;
+      else
+        kappa = u3::Kappa(prod.back().u3, LL/2);
+    }
+
+    // Get the number of ad's
+    std::size_t num_ads() const { return prod_characters.size() + 1; }
+
+    // Get shell number
+    std::size_t shell() const { return n; }
+
+    // Expand in terms of uncoupled products of ad's
+    std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
+              std::vector<U3xU4::ads_phys>>
+    expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+           u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+  };
+
+  /////////////// PRODUCT OF ANNIHILATION OPERATORS/TENSORS ///////////////
 
   /* Class for holding coupled products of at's, it can have up to 3 at's
      at, [at x at], [[at x at] x at]
@@ -238,6 +382,53 @@ namespace U3xU4
            u4::WigU4U3_db& wigU4U3db) const;
   };
 
+  /* Class for holding coupled products of at's, it can have up to 3 at's
+     at, [at x at], [[at x at] x at]
+     Tensor components are represented by kappa LL zeta SS TT MMT JJ MMJ
+  */
+  class Tat_phys
+  {
+  public:
+    // tensor character of at [n,n,0] x [1,1,1,0]
+    int16_t n;
+
+    // coupled tensor characters
+    // 0 element for at
+    // 1 element for [at x at](U3 x U4)
+    // 2 elements for [[at x at](U30 x U40) x at](U3 x U4)
+    std::vector<U3xU4::irrep> prod_characters;
+
+    // tensor components 
+    int16_t kappa, LL, SS, TT, MMT, JJ, MMJ;
+
+    // Constructor
+    Tat_phys(int16_t n_, const std::vector<U3xU4::irrep>& prod,
+             int16_t LL_, int16_t SS_, int16_t TT_, int16_t MMT_, 
+             int16_t JJ_, int16_t MMJ_)
+        : n(n_), prod_characters(prod), LL(LL_), 
+          SS(SS_), TT(TT_), MMT(MMT_), JJ(JJ_), MMJ(MMJ_)
+    { 
+      if (prod.empty())
+        kappa = 1;
+      else
+        kappa = u3::Kappa(prod.back().u3, LL/2);
+    }
+
+    // Get the number of at's
+    std::size_t num_ats() const { return prod_characters.size() + 1; }
+
+    // Get shell number
+    std::size_t shell() const { return n; }
+
+    // Expand in terms of uncoupled products of at's
+    std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
+              std::vector<U3xU4::ats_phys>>
+    expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+           u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+  };
+
+  ////// PRODUCT OF CREATION AND ANNIHILATION OPERATORS/TENSORS ///////
+
   /* Class for holding single-shell tensors, which are coupled products
      of ad's and at's. It can have up to 3 ad's and 3 at's
      Tensor components are represented by Gelfand patterns
@@ -276,8 +467,8 @@ namespace U3xU4
     std::size_t rhomax, etamax;
 
     // tensor component represented by two Gelfand patterns
-    u3::gelfand g3; // associated with T3
-    u4::gelfand g4; // associated with T4
+    u3::gelfand g3; // associated with T.u3
+    u4::gelfand g4; // associated with T.u4
 
   public:
     // Constructor
@@ -323,8 +514,78 @@ namespace U3xU4
                std::vector<U3xU4::ads_gelfand>, // ad's
                std::vector<U3xU4::ats_gelfand>> // a's
     expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-           u4::WigU4U3_db& wigU4U3db);
+           u4::WigU4U3_db& wigU4U3db) const;
   };
+
+  /* Class for holding single-shell tensors, which are coupled products
+     of ad's and at's. It can have up to 3 ad's and 3 at's
+     Tensor components are represented by kappa LL zeta SS TT MMT JJ MMJ
+  */
+  class Tadat_phys
+  {
+  public:
+    // tensor character of ad [n,0,0] x [1,0,0,0]
+    // tensor character of at [n,n,0] x [1,1,1,0]
+    int16_t n;
+
+    // coupled tensor characters
+    // 0 element for ad
+    // 1 element for [ad x ad](U3 x U4)
+    // 2 elements for [[ad x ad](U3 x U4) x ad](U3_1 x U4_1)
+    std::vector<U3xU4::irrep> prod_ads;
+    // number of ad's
+    uint8_t ads;
+
+    // coupled tensor characters
+    // 0 element for at
+    // 1 element for [at x at](U3 x U4)
+    // 2 elements for [[at x at](U3 x U4) x at](U3_2 x U4_2)
+    std::vector<U3xU4::irrep> prod_ats;
+    // number of at's
+    uint8_t ats;
+
+    // final tensor coupling
+    U3xU4::irrep T;
+    uint8_t rhomax, etamax;
+
+    // tensor components 
+    int16_t kappa, LL, zeta, SS, TT, MMT, JJ, MMJ;
+
+    // Constructor
+    Tadat_phys(int16_t n_, uint8_t ads_, uint8_t ats_,
+                  const std::vector<U3xU4::irrep>& prod_ads_,
+                  const std::vector<U3xU4::irrep>& prod_ats_,
+                  const U3xU4::irrep& t, uint8_t Rhomax, uint8_t Etamax, 
+                  int16_t LL_, int16_t SS_, int16_t TT_, int16_t MMT_,
+                  int16_t JJ_, int16_t MMJ_)
+        : n(n_), ads(ads_), ats(ats_),
+          prod_ads(prod_ads_), prod_ats(prod_ats_),
+          T(t), rhomax(Rhomax), etamax(Etamax),
+          LL(LL_), SS(SS_), TT(TT_), MMT(MMT_), JJ(JJ_), MMJ(MMJ_)
+    { 
+      kappa = u3::Kappa(T.u3, LL/2);
+      zeta = u4::Zeta(T.u4, SS, TT);
+    }
+
+    // Get the number of ad's
+    uint8_t num_ads() const { return ads; }
+
+    // Get the number of at's
+    uint8_t num_ats() const { return ats; }
+
+    // Get shell number
+    int16_t shell() const { return n; }
+
+    // Expand in terms of uncoupled products of ad's and a's
+    // (not at's because a phase is added)
+    // coeffs have rhomax x etamax x kappa x zeta columns, index of each column is
+    // ((rho * etamax + eta) * kappa + k) * zeta + z
+    std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
+               std::vector<U3xU4::ads_phys>, // ad's
+               std::vector<U3xU4::ats_phys>> // a's
+    expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+           u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+  }; 
 
   /* Class for holding single-shell tensors, which are coupled products
      of ad's and at's. It can have up to 3 ad's and 3 at's
