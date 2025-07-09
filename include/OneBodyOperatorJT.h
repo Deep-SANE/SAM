@@ -73,12 +73,6 @@ namespace JT
                       const std::vector<u3::physicalvector>& pv3bs,
                       const std::vector<u4::physicalvector>& pv4as,
                       const std::vector<u4::physicalvector>& pv4bs, 
-                      //int pv3,
-                      // const std::vector<std::tuple<int, int, int>>& tArr3,
-                      //const std::vector<Eigen::MatrixXd>& coeffs3, 
-                      //int pv4,
-                      //const std::vector<std::tuple<int, int, int>>& tArr4,
-                      //const std::vector<Eigen::MatrixXd>& coeffs4,
                       u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
                       u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db);
 
