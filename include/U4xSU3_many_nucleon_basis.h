@@ -71,6 +71,9 @@ namespace U4xSU3
     std::vector<MU4> omegas_u4_;
     std::vector<MSU3> omegas_su3_;
 
+    // for each irrep: nhw, dist_id, gamma_id, omega_id, offset:
+    std::vector<std::tuple<int, std::size_t, std::size_t, std::size_t, std::size_t>> irreps_;
+
   public:
     ManyNucleonBasis(int A, int MMT, int Nmax, int JJ)
         : A_(A), MMT_(MMT), Nmax_(Nmax), JJ_(JJ), n0hw_(Nmax % 2), dim_(0)
@@ -156,6 +159,15 @@ namespace U4xSU3
       return std::tuple(std::span(omegas_u4_.data() + first, count),
                         std::span(omegas_su3_.data() + first, count), mult,
                         dim);
+    }
+
+    auto n_irreps() const { return irreps_.size(); }
+
+    const auto& irrep(size_t irrep_id) const
+    {
+      assert(irrep_id < irreps_.size());
+
+      return irreps_[irrep_id];
     }
 
     auto dim() const { return dim_; }
@@ -403,11 +415,24 @@ namespace U4xSU3
 
       gamma_omegas_.resize(gammas_.size());
 
-      for (std::size_t gamma_id = 0; gamma_id < gammas_.size(); gamma_id++)
-        generate_omegas_for_gamma(gamma_id);
+      for (int nhw = n0hw_; nhw <= Nmax_; nhw += 2)
+      {
+        auto [dist_id_begin, dist_id_end] = distributions_ids(nhw);
+
+        for (std::size_t dist_id = dist_id_begin; dist_id < dist_id_end; dist_id++)
+        {
+          auto [gamma_id_begin, n_gammas] = dist_gammas_[dist_id];
+
+          for (std::size_t i_gamma = 0; i_gamma < n_gammas; i_gamma++)
+          {
+            auto gamma_id = gamma_id_begin + i_gamma;
+            generate_omegas_for_gamma(nhw, dist_id, gamma_id);
+          }
+        }
+      }
     }
 
-    void generate_omegas_for_gamma(std::size_t gamma_id)
+    void generate_omegas_for_gamma(int nhw, std::size_t dist_id, std::size_t gamma_id)
     {
       assert(gamma_id < gammas_.size());
 
@@ -427,10 +452,14 @@ namespace U4xSU3
         assert(mu4.mult == 1);
 
         uint32_t mult = msu3.mult;
-        dim_ += mult * computeDim(msu3.lm, msu3.mu, mu4.u4);
+        auto dim = mult * computeDim(msu3.lm, msu3.mu, mu4.u4);
+
+        irreps_.emplace_back(nhw, dist_id, gamma_id, gamma_id, dim_);
+
+        dim_ += dim;
       }
       else
-        generate_omegas_for_gamma(gamma_id, gamma_u4, gamma_su3);
+        generate_omegas_for_gamma(nhw, dist_id, gamma_id, gamma_u4, gamma_su3);
     }
 
     int computeDim(int lm, int mu, int SS)
@@ -641,7 +670,9 @@ namespace U4xSU3
       }
     }
 
-    void generate_omegas_for_gamma(std::size_t gamma_id, auto gamma_u4, auto gamma_su3)
+    void generate_omegas_for_gamma(int nhw, std::size_t dist_id,
+                                   std::size_t gamma_id, auto gamma_u4,
+                                   auto gamma_su3)
     {
       uint64_t dim = 0;
 
@@ -701,15 +732,19 @@ namespace U4xSU3
           int lm = msu3.lm;
           int mu = msu3.mu;
           uint32_t dim_irrep = computeDim(lm, mu, u4);
-          dim += mult * dim_irrep;
+
+          auto dim_omega = mult * dim_irrep;
+          dim += dim_omega;
 
           /*
           std::cout << " mult:" << mult << " dim:" << mult * dim_irrep
                     << std::endl;
           */
 
-          if (mult * dim_irrep > 0)
+          if (dim_omega > 0)
           {
+            irreps_.emplace_back(nhw, dist_id, gamma_id, omegas_.size(), dim_);
+
             omegas_.emplace_back(omegas_u4_.size(), mu4_vec.size(), mult,
                                  mult * dim_irrep);
 
@@ -720,11 +755,13 @@ namespace U4xSU3
             }
 
             n_omegas++;
+
+            dim_ += dim_omega;
           }
         }
       }
 
-      dim_ += dim;
+   // dim_ += dim;
     }
 
     /*

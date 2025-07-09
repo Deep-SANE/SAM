@@ -78,7 +78,30 @@ int main()
         print("\n");
       }
     }
-
-    print("Basis dimension: {}\n", basis.dim());
   }
+
+  // irrep id interface:
+  auto n_irreps = basis.n_irreps();
+  for (std::size_t i_irrep = 0; i_irrep < n_irreps; i_irrep++)
+  {
+    auto [nhw, dist_id, gamma_id, omega_id, offset] = basis.irrep(i_irrep);
+
+    const auto& distribution = basis.distribution(dist_id);
+    auto gamma = basis.gamma_irreps(gamma_id);
+
+    if (gamma.first.size() == 1)
+      print("nhw: {}, distribution: {}, #of gamma irreps: {}, offset: {}\n",
+            nhw, distribution, gamma.first.size(), offset);
+    else
+    {
+      auto omega = basis.omega_irreps(omega_id);
+
+      print("nhw: {}, distribution: {}, #of gamma irreps: {}, #of omega "
+            "irreps: {}, offset: {}\n",
+            nhw, distribution, gamma.first.size(), std::get<0>(omega).size(),
+            offset);
+    }
+  }
+
+  print("\nBasis dimension: {}\n", basis.dim());
 }
