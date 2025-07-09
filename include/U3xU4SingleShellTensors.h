@@ -585,6 +585,9 @@ namespace U3xU4
     expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
   }; 
+  using Tadats_phys = std::vector<U3xU4::Tadat_phys>;
+  using ads_ats_phys = std::vector<std::variant<U3xU4::ad_phys,U3xU4::at_phys>>;
+
 
   /* Class for holding single-shell tensors, which are coupled products
      of ad's and at's. It can have up to 3 ad's and 3 at's
@@ -592,7 +595,7 @@ namespace U3xU4
   */
   class Tadat
   {
-  private:
+  public:
     // tensor character of ad [n,0,0] x [1,0,0,0]
     // tensor character of at [n,n,0] x [1,1,1,0]
     int16_t n;
@@ -613,12 +616,10 @@ namespace U3xU4
     // number of at's
     uint8_t ats;
 
-  public:
     // final tensor coupling
     U3xU4::irrep T;
     uint8_t rho0max, eta0max;
 
-  public:
     // Constructor
     Tadat(int16_t n_, uint8_t ads_, uint8_t ats_,
           const std::vector<U3xU4::irrep>& prod_ads_,
