@@ -595,7 +595,7 @@ namespace U3xU4
   private:
     // tensor character of ad [n,0,0] x [1,0,0,0]
     // tensor character of at [n,n,0] x [1,1,1,0]
-    std::size_t n;
+    int16_t n;
 
     // coupled tensor characters
     // 0 element for ad
@@ -603,7 +603,7 @@ namespace U3xU4
     // 2 elements for [[ad x ad](U3 x U4) x ad](U3_1 x U4_1)
     std::vector<U3xU4::irrep> prod_ads;
     // number of ad's
-    std::size_t ads;
+    uint8_t ads;
 
     // coupled tensor characters
     // 0 element for at
@@ -611,18 +611,19 @@ namespace U3xU4
     // 2 elements for [[at x at](U3 x U4) x at](U3_2 x U4_2)
     std::vector<U3xU4::irrep> prod_ats;
     // number of at's
-    std::size_t ats;
+    uint8_t ats;
+
   public:
     // final tensor coupling
     U3xU4::irrep T;
-    std::size_t rho0max, eta0max;
+    uint8_t rho0max, eta0max;
 
   public:
     // Constructor
-    Tadat(std::size_t n_, std::size_t ads_, std::size_t ats_,
+    Tadat(int16_t n_, uint8_t ads_, uint8_t ats_,
           const std::vector<U3xU4::irrep>& prod_ads_,
           const std::vector<U3xU4::irrep>& prod_ats_,
-          const U3xU4::irrep& t, std::size_t rho0max_, std::size_t eta0max_)
+          const U3xU4::irrep& t, uint8_t rho0max_, uint8_t eta0max_)
         : n(n_),
           ads(ads_),
           ats(ats_),
@@ -634,13 +635,13 @@ namespace U3xU4
     { }
 
     // Get the number of ad's
-    std::size_t num_ads() const { return ads; }
+    uint8_t num_ads() const { return ads; }
 
     // Get the number of at's
-    std::size_t num_ats() const { return ats; }
+    uint8_t num_ats() const { return ats; }
 
     // Get shell number
-    std::size_t shell() const { return n; }
+    int16_t shell() const { return n; }
 
     // Print out
     friend std::ostream& operator<<(std::ostream& s, const Tadat& x)
