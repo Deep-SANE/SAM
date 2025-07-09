@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  Eigen::RowVectorXd norm(rhomax * etamax * Tadat.kappa * Tadat.zeta);
+  Eigen::RowVectorXd norm(rhomax * etamax * Tadat.kappamax * Tadat.zetamax);
   norm.setZero();
 
   for (std::size_t i = 0; i < coeffsArr.size(); i++)

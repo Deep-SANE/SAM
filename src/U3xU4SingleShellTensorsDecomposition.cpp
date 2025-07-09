@@ -323,9 +323,9 @@ namespace U3xU4
                          cgcT = cgcs.compute(1, 1, TT, mmta, mmtb, MMT),
                          factor = cgcU4(0,0) * U9j * cgcJ * cgcT;
 
-                  Eigen::RowVectorXd coeffs(kappa);
+                  Eigen::RowVectorXd coeffs(kappamax);
                   coeffs.setZero();
-                  for (int k = 0; k < kappa; k++)
+                  for (int k = 0; k < kappamax; k++)
                     coeffs(k) += cgcU3(k,0) * factor;
 
                   if (coeffs.norm() < 1e-12)
@@ -419,11 +419,11 @@ namespace U3xU4
 
                     for (int i = 0; i < coeffsArr0.size(); i++)
                     {
-                      Eigen::RowVectorXd coeffs(kappa);
+                      Eigen::RowVectorXd coeffs(kappamax);
                       coeffs.setZero();
-                      for (int k = 0; k < kappa; k++)
-                        for (int k0 = 0; k0 < Tad0.kappa; k0++)
-                          coeffs(k) += cgcU3(k0 * kappa + k,0) * factor * coeffsArr0[i](k0);
+                      for (int k = 0; k < kappamax; k++)
+                        for (int k0 = 0; k0 < Tad0.kappamax; k0++)
+                          coeffs(k) += cgcU3(k0 * kappamax + k,0) * factor * coeffsArr0[i](k0);
 
                       if (coeffs.norm() < 1e-12)
                         continue;
@@ -766,9 +766,9 @@ namespace U3xU4
                          phase2 = at2.turnToAnnihilation(),
                          factor = cgcU4(0,0) * U9j * cgcJ * cgcT * phase1 * phase2;
 
-                  Eigen::RowVectorXd coeffs(kappa);
+                  Eigen::RowVectorXd coeffs(kappamax);
                   coeffs.setZero();
-                  for (int k = 0; k < kappa; k++)
+                  for (int k = 0; k < kappamax; k++)
                     coeffs(k) += cgcU3(k,0) * factor;
 
                   if (coeffs.norm() < 1e-12)
@@ -866,11 +866,11 @@ namespace U3xU4
                       U3xU4::at_phys at3(n, llc, jjc, mmjc, mmtc);
                       double phase3 = at3.turnToAnnihilation();
 
-                      Eigen::RowVectorXd coeffs(kappa);
+                      Eigen::RowVectorXd coeffs(kappamax);
                       coeffs.setZero();
-                      for (int k = 0; k < kappa; k++)
-                        for (int k0 = 0; k0 < Tat0.kappa; k0++)
-                          coeffs(k) += cgcU3(k0 * kappa + k,0) * factor 
+                      for (int k = 0; k < kappamax; k++)
+                        for (int k0 = 0; k0 < Tat0.kappamax; k0++)
+                          coeffs(k) += cgcU3(k0 * kappamax + k,0) * factor 
                                     * coeffsArr0[i](k0) * phase3;
 
                       if (coeffs.norm() < 1e-12)
@@ -1215,17 +1215,17 @@ namespace U3xU4
                       {
                         for (int j = 0; j < coeffs2.size(); j++)
                         {
-                          Eigen::RowVectorXd x(rhomax * etamax * kappa * zeta);
+                          Eigen::RowVectorXd x(rhomax * etamax * kappamax * zetamax);
                           x.setZero();
                           for (int rho = 0; rho < rhomax; rho++)
                             for (int eta = 0; eta < etamax; eta++)
-                              for (int k = 0; k < kappa; k++)
-                                for (int z = 0; z < zeta; z++)
+                              for (int k = 0; k < kappamax; k++)
+                                for (int z = 0; z < zetamax; z++)
                                 {
-                                  int index = ((rho * etamax + eta) * kappa + k) * zeta + z;
+                                  int index = ((rho * etamax + eta) * kappamax + k) * zetamax + z;
                                   for (int k1 = 0; k1 < kappa1; k1++)
                                     for (int k2 = 0; k2 < kappa2; k2++)
-                                      x(index) += cgcU3((k1 * kappa2 + k2) * kappa + k,rho)
+                                      x(index) += cgcU3((k1 * kappa2 + k2) * kappamax + k,rho)
                                                 * cgcU4(z,eta) * U9j * cgcJ * cgcT
                                                 * coeffs1[i](k1) * coeffs2[j](k2);
                                 }

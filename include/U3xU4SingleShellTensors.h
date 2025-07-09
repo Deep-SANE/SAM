@@ -295,7 +295,7 @@ namespace U3xU4
     std::vector<U3xU4::irrep> prod_characters;
 
     // tensor components 
-    int16_t kappa, LL, SS, TT, MMT, JJ, MMJ;
+    int16_t kappamax, LL, SS, TT, MMT, JJ, MMJ;
 
     // Constructor
     Tad_phys(int16_t n_, const std::vector<U3xU4::irrep>& prod,
@@ -305,9 +305,9 @@ namespace U3xU4
           SS(SS_), TT(TT_), MMT(MMT_), JJ(JJ_), MMJ(MMJ_)
     { 
       if (prod.empty())
-        kappa = 1;
+        kappamax = 1;
       else
-        kappa = u3::Kappa(prod.back().u3, LL/2);
+        kappamax = u3::Kappa(prod.back().u3, LL/2);
     }
 
     // Get the number of ad's
@@ -317,7 +317,7 @@ namespace U3xU4
     std::size_t shell() const { return n; }
 
     // Expand in terms of uncoupled products of ad's
-    std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
+    std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappamax
               std::vector<U3xU4::ads_phys>>
     expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
@@ -399,7 +399,7 @@ namespace U3xU4
     std::vector<U3xU4::irrep> prod_characters;
 
     // tensor components 
-    int16_t kappa, LL, SS, TT, MMT, JJ, MMJ;
+    int16_t kappamax, LL, SS, TT, MMT, JJ, MMJ;
 
     // Constructor
     Tat_phys(int16_t n_, const std::vector<U3xU4::irrep>& prod,
@@ -409,9 +409,9 @@ namespace U3xU4
           SS(SS_), TT(TT_), MMT(MMT_), JJ(JJ_), MMJ(MMJ_)
     { 
       if (prod.empty())
-        kappa = 1;
+        kappamax = 1;
       else
-        kappa = u3::Kappa(prod.back().u3, LL/2);
+        kappamax = u3::Kappa(prod.back().u3, LL/2);
     }
 
     // Get the number of at's
@@ -421,7 +421,7 @@ namespace U3xU4
     std::size_t shell() const { return n; }
 
     // Expand in terms of uncoupled products of at's
-    std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
+    std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappamax
               std::vector<U3xU4::ats_phys>>
     expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
@@ -548,7 +548,7 @@ namespace U3xU4
     uint8_t rhomax, etamax;
 
     // tensor components 
-    int16_t kappa, LL, zeta, SS, TT, MMT, JJ, MMJ;
+    int16_t kappamax, LL, zetamax, SS, TT, MMT, JJ, MMJ;
 
     // Constructor
     Tadat_phys(int16_t n_, uint8_t ads_, uint8_t ats_,
@@ -562,8 +562,8 @@ namespace U3xU4
           T(t), rhomax(Rhomax), etamax(Etamax),
           LL(LL_), SS(SS_), TT(TT_), MMT(MMT_), JJ(JJ_), MMJ(MMJ_)
     { 
-      kappa = u3::Kappa(T.u3, LL/2);
-      zeta = u4::Zeta(T.u4, SS, TT);
+      kappamax = u3::Kappa(T.u3, LL/2);
+      zetamax = u4::Zeta(T.u4, SS, TT);
     }
 
     // Get the number of ad's
@@ -577,8 +577,8 @@ namespace U3xU4
 
     // Expand in terms of uncoupled products of ad's and a's
     // (not at's because a phase is added)
-    // coeffs have rhomax x etamax x kappa x zeta columns, index of each column is
-    // ((rho * etamax + eta) * kappa + k) * zeta + z
+    // coeffs have rhomax x etamax x kappamax x zetamax columns, index of each column is
+    // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
     std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
                std::vector<U3xU4::ads_phys>, // ad's
                std::vector<U3xU4::ats_phys>> // a's
