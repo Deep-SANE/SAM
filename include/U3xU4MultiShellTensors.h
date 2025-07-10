@@ -165,12 +165,14 @@ namespace U3xU4
       for (auto coeff : x.coeffs) s << "\t" << coeff;
       return s;
     }
-
+    
+    /*
     // Expand into single-shell tensors
     std::pair<std::vector<Eigen::RowVectorXd>, // coeffs
               std::vector<U3xU4::Tadats_phys>> // list of Tadat's
     expand_to_single_shell_tensors(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+    */
 
     // Expand into uncoupled products of creation operators (ad) 
     // and annihilation operators (a)
