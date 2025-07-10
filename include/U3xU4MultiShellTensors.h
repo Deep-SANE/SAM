@@ -142,7 +142,7 @@ namespace U3xU4
       JJ(JJ_), MMJ(MMJ_), coeffs(coeffs_)
     { 
       assert(single_shell_tensors_.size() > 0); 
-      assert(single_shell_tensors_.size() = coupled_irreps_.size() + 1);
+      assert(single_shell_tensors_.size() == coupled_irreps_.size() + 1);
     }
 
     // Get specific coefficient
