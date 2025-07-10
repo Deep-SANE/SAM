@@ -650,17 +650,18 @@ namespace U3xU4
       s << "[ ";
       if (x.ads > 0)
       {
-        s << x.ads << "ads ";
+        s << static_cast<int>(x.ads) << "ads ";
         for (auto ad : x.prod_ads) s << ad << " ";
         if (x.ats > 0)
           s << "x ";
       }
       if (x.ats > 0)
       {
-        s << x.ats << "ats ";
+        s << static_cast<int>(x.ats) << "ats ";
         for (auto at : x.prod_ats) s << at << " ";
       }
-      s << "] rho0max" << x.rho0max << " eta0max" << x.eta0max << x.T; 
+      s << "] rho0max" << static_cast<int>(x.rho0max) 
+        << " eta0max" << static_cast<int>(x.eta0max) << x.T; 
       return s;
     }
 
