@@ -31,10 +31,6 @@ namespace JT
           cgc += (mu == 0 ? 1.0 : -1.0) *
                  cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
                  cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
-
-        // std::cout << "phase = " << phase << ",factor = " << factor
-        //           << ", U1 = " << U1 << ", U2 = " << U2 << ", cgc = " << cgc
-        //           << std::endl;
         x = phase * factor * U1 * U2 * cgc;
       }
       break;
@@ -65,8 +61,6 @@ namespace JT
         {
           for (int nd = 0; nd <= maxShell; nd++)
           {
-            // std::cout << na << "," << nb << "," << nc << "," << nd <<
-            // std::endl;
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
             na_nb_nc_nd.push_back(ns);
           }
@@ -107,9 +101,6 @@ namespace JT
               atxat_Nhw += (nd - valenceShell);
             if (atxat_Nhw > Nmax)
               continue;
-
-            // std::cout << na << "," << nb << "," << nc << "," << nd <<
-            // std::endl;
 
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
             na_nb_nc_nd.push_back(ns);
@@ -277,8 +268,6 @@ namespace JT
     if (ignore == false)
       tensor.coeffs = coeffs_;
 
-    // std::cout << ignore << std::endl;
-
     return ignore;
   }
 
@@ -296,23 +285,16 @@ namespace JT
 #else
     auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell);
 #endif
-    // int count = 0;
+    
     for (int i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
       auto [sorted_ns, inverse, global_phase] = sort_shells(all_na_nb_nc_nd[i]);
-      // std::cout << global_phase;
-      // for (auto n : sorted_ns) std::cout << " " << n;
-      // std::cout << std::endl;
 
       auto groups_ns = group_same_shell(sorted_ns);
       std::vector<std::vector<U3xU4::Tadat>> Tadat_lists;
 
-      // std::cout << "Group tensors: " << std::endl;
       for (auto group : groups_ns)
       {
-        // for (auto y : group) std::cout << y << " ";
-        // std::cout << std::endl;
-
         Tadat_lists.push_back(U3xU4::GenerateSingleShellTensors(
             std::get<0>(group), std::get<1>(group), std::get<2>(group)));
       }
@@ -323,23 +305,16 @@ namespace JT
 
       for (const auto& [Tadat_choices, coupling_info_list] : all_results)
       {
-        // for (const auto& Tadat : Tadat_choices) std::cout << Tadat << " ";
-
-        // std::cout << "| coupled irreps: ";
         std::vector<U3xU4::irrep> coupled_irreps;
         int Rhomax, Etamax;
         for (const auto& [irrep, rhomax, etamax] : coupling_info_list)
         {
-          // std::cout << "rhoMax" << rhomax << "etaMax" << etamax << irrep << "
-          // ";
           assert(rhomax == 1);
           assert(etamax == 1);
           coupled_irreps.push_back(irrep);
           Rhomax = rhomax;
           Etamax = etamax;
         }
-
-        // std::cout << std::endl;
 
         // decompose into L
         std::vector<u3::physicalvector> pv3s;
@@ -369,7 +344,7 @@ namespace JT
             if (JJ < std::fabs(LL0 - SS0) || JJ > (LL0 + SS0) || TT0 != TT)
               continue;
 
-            // compute the expansion coefficients ... TBC
+            // no coupled irrep, it collapses into a single-shell tensor
             if (coupled_irreps.empty())
             {
               U3xU4::TwoBodyMultiShellTensor tensor(
@@ -382,6 +357,7 @@ namespace JT
               if (ignore == false)
                 tensors.push_back(tensor);
             }
+            // otherwise, it remains a multi-shell tensor
             else
             {
               U3xU4::TwoBodyMultiShellTensor tensor(
@@ -393,8 +369,6 @@ namespace JT
               if (ignore == false)
                 tensors.push_back(tensor);
             }
-            // std::cout << count << std::endl;
-            // count++;
           }
         }
       }
