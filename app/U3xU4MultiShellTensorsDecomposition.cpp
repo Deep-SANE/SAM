@@ -22,16 +22,52 @@ int main(int argc, char* argv[])
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
   u4::WigU4SU2SU2_db wigU4SU2SU2db(cgcs, wigU3U2db, wigU4U3db);
 
-  U3xU4::irrep T1(0,0,0, 2,1,1,0), T2(0,0,0, 2,1,1,0), T(0,0,0, 0,0,0,0);
-  U3xU4::Tadat tadat1(1,1,1,{},{},T1,1,1), tadat2(3,1,1,{},{},T2,1,1);
+  /*
+  U3xU4::irrep Gamma1(2,1,0, 2,1,1,0), Gamma2(2,2,0, 1,1,1,0), 
+  	Gamma3(3,0,0, 1,0,0,0), Omega1(4,3,0, 3,2,2,0), Omega2(7,3,0, 4,2,2,0);
+
+  U3xU4::Tadat tadat1(1,1,1,{},{},Gamma1,1,1), 
+  			   tadat2(2,0,1,{},{},Gamma2,1,1),
+  			   tadat3(3,1,0,{},{},Gamma3,1,1);
+
+  std::vector<U3xU4::Tadat> single_shell_tensors = {tadat1,tadat2,tadat3};
+
+  std::vector<U3xU4::irrep> coupled_irreps = {Omega1,Omega2};
+
+  U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors,
+    coupled_irreps,1,1,1,4,1,4,0,0,0,0,{});
+  */
+  
+  /*
+  U3xU4::irrep Gamma1(0,0,0, 1,0,0,0), Gamma2(1,1,0, 1,1,1,0), 
+  	Omega1(1,1,0, 2,1,1,0), Gamma3(2,2,0, 1,1,1,0), Omega2(3,3,0, 3,2,2,0),
+  	Gamma4(3,0,0, 1,0,0,0), Omega3(6,3,0, 4,2,2,0);
+
+  U3xU4::Tadat tadat1(0,1,0,{},{},Gamma1,1,1), 
+  			   tadat2(1,0,1,{},{},Gamma2,1,1),
+  			   tadat3(2,0,1,{},{},Gamma3,1,1),
+  			   tadat4(3,1,0,{},{},Gamma4,1,1);
+
+  std::vector<U3xU4::Tadat> single_shell_tensors = {tadat1,tadat2,tadat3,tadat4};
+
+  std::vector<U3xU4::irrep> coupled_irreps = {Omega1,Omega2,Omega3};
+
+  U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors,
+    coupled_irreps,1,1,1,4,1,4,0,0,0,0,{});
+  */
+
+  
+  U3xU4::irrep Gamma1(0,0,0, 3,1,1,0), Gamma2(1,1,0, 1,1,1,0), Omega1(1,1,0, 3,1,0,0);
+  U3xU4::Tadat tadat1(0,2,1,{U3xU4::irrep(0,0,0, 2,0,0,0)},{},Gamma1,1,1), 
+  			   tadat2(1,0,1,{},{},Gamma2,1,1);
 
   std::vector<U3xU4::Tadat> single_shell_tensors = {tadat1,tadat2};
 
-  std::vector<U3xU4::irrep> coupled_irreps = {T};
-  std::vector<double> coeffs;
+  std::vector<U3xU4::irrep> coupled_irreps = {Omega1};
 
   U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors,
-    coupled_irreps,1,1,1,0,1,0,0,0,0,0,coeffs);
+    coupled_irreps,1,1,1,2,1,2,0,0,0,0,{});
+  
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
