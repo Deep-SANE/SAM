@@ -50,9 +50,9 @@ int main(int argc, char* argv[])
                 ||| alpha_f (14,2,0) (1,1,1,1) >
   */
 
-  std::size_t n = 1, ads = 2, ats = 2;
-  U3xU4::irrep i(2, 0, 0, 1, 1, 0, 0), f(2, 0, 0, 1, 1, 0, 0),
-      T1(2, 0, 0, 1, 1, 0, 0), T2(2, 2, 0, 1, 1, 0, 0), T(0, 0, 0, 0, 0, 0, 0);
+  std::size_t n = 4, ads = 2, ats = 2;
+  U3xU4::irrep i(14, 2, 0, 1, 1, 1, 1), f(14, 2, 0, 1, 1, 1, 1),
+      T1(6, 2, 0, 1, 1, 0, 0), T2(6, 4, 0, 1, 1, 0, 0), T(4, 2, 0, 0, 0, 0, 0);
 
   prod_ads.push_back(T1);
   prod_ats.push_back(T2);
