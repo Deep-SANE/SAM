@@ -647,7 +647,7 @@ namespace U3xU4
     // Print out
     friend std::ostream& operator<<(std::ostream& s, const Tadat& x)
     {
-      s << "[ ";
+      s << "[ (n=" << x.n << ") ";
       if (x.ads > 0)
       {
         s << static_cast<int>(x.ads) << "ads ";
