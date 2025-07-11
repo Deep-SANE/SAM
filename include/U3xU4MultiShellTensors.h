@@ -39,10 +39,10 @@ namespace U3xU4
                  t; // coupled tensor
 
     int16_t kappamax,   // multiplicity of LL
-            LL,      // twice orbital angular momentum
-            SS,      // twice spin
-            TT, MMT, // twice isospin and projection
-            JJ, MMJ; // twice total angular momentum and projection
+            LL,         // twice orbital angular momentum
+            SS,         // twice spin
+            TT, MMT,    // twice isospin and projection
+            JJ, MMJ;    // twice total angular momentum and projection
 
     // Store coefficients in the expansion of one-body JT-coupled operator.
     // The size of this array is equal to kappamax.
@@ -112,11 +112,11 @@ namespace U3xU4
     int16_t rhomax,     // U(3) multiplicity
             etamax,     // U(4) multiplicity
             kappamax,   // multiplicity of LL
-            LL,      // twice orbital angular momentum
+            LL,         // twice orbital angular momentum
             zetamax,    // multiplicity of (SS,TT)
-            SS,      // twice spin
-            TT, MMT, // twice isospin and projection
-            JJ, MMJ; // twice total angular momentum and projection
+            SS,         // twice spin
+            TT, MMT,    // twice isospin and projection
+            JJ, MMJ;    // twice total angular momentum and projection
 
     /* Store coefficients in the expansion of two-body JT-coupled operator.
        The size of this array is equal to rhomax * etamax * kappamax * zetamax.
@@ -165,14 +165,6 @@ namespace U3xU4
       for (auto coeff : x.coeffs) s << "\t" << coeff;
       return s;
     }
-    
-    /*
-    // Expand into single-shell tensors
-    std::pair<std::vector<Eigen::RowVectorXd>, // coeffs
-              std::vector<U3xU4::Tadats_phys>> // list of Tadat's
-    expand_to_single_shell_tensors(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
-           u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
-    */
 
     // Expand into uncoupled products of creation operators (ad) 
     // and annihilation operators (a)

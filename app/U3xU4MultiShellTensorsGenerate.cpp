@@ -5,8 +5,8 @@
 
 int main()
 {
-  std::vector<std::array<int, 3>> groups = {{1, 0, 1},
-											                      {5, 1, 1},
+  std::vector<std::array<int, 3>> groups = {{0, 2, 1},
+											                      {1, 0, 1},
 											                      {8, 1, 0}};
 
   std::vector<std::vector<U3xU4::Tadat>> Tadat_lists;
