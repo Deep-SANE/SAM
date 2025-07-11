@@ -55,24 +55,35 @@ namespace JT
     double sphericalME(int na, int lla, int jja, int mmja, int mmta, int nb,
                        int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                        int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
-                       int mmjd, int mmtd);
+                       int mmjd, int mmtd, u34utils::SO3_CGC& cgcs,
+                       u34utils::SO3_Racah& racah) const;
 
     // Generate a list of al {na, nb, nc, nd} combinations such that
     // 0 <= na, nb, nc, nd <= maxShell
-    std::vector<std::array<int, 4>> GenerateAllCombinationsHOShells(int maxShell);
-    // Restrict: 
+    std::vector<std::array<int, 4>>
+    GenerateAllCombinationsHOShells(int maxShell) const;
+    // Restrict:
     // 0 <= (na - valenceShell + (nb - valenceShell) <= Nmax
     // 0 <= (nc - valenceShell + (nd - valenceShell) <= Nmax
-    std::vector<std::array<int, 4>> GenerateAllCombinationsHOShells(int Nmax, 
-    											int valenceShell, int maxShell);
+    std::vector<std::array<int, 4>>
+    GenerateAllCombinationsHOShells(int Nmax, int valenceShell,
+                                    int maxShell) const;
+
+    // Set coefficient for two-body multi-shell tensor.
+    // It returns a flag, which indicate whether this tensor can be ignored.
+    bool setCoefficient(U3xU4::TwoBodyMultiShellTensor& tensor, double phase,
+                        const std::vector<int>& inverse,
+                        u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah& racah,
+                        u34utils::SO3_Racah9& racah9,
+                        u3::WigU3SO3_db& wigU3SO3db,
+                        u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
 
     // expand into a sum of multi-shell two-body tensors
     std::vector<U3xU4::TwoBodyMultiShellTensor>
-    expand(int Nmax, int valenceShell, int maxShell, 
-    	   u34utils::SO3_CGC& cgcs, 
-    	   u34utils::SO3_Racah9& racah9, 
-    	   u3::WigU3U2_db& wigU3U2db, 
-    	   u4::WigU4U3_db& wigU4U3db);
+    expand(int Nmax, int valenceShell, int maxShell, u34utils::SO3_CGC& cgcs,
+           u34utils::SO3_Racah& racah, u34utils::SO3_Racah9& racah9,
+           u3::WigU3SO3_db& wigU3SO3db,
+           u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
   };
 
 } // namespace JT
