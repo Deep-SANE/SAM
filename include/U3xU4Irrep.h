@@ -22,7 +22,8 @@ namespace U3xU4
     // constructor
     irrep(const u3::irrep& u3_, const u4::irrep& u4_) : u3(u3_), u4(u4_) { }
     irrep(int n13, int n23, int n33, int n14, int n24, int n34, int n44)
-      : u3(n13,n23,n33), u4(n14,n24,n34,n44) {}
+        : u3(n13, n23, n33), u4(n14, n24, n34, n44)
+    { }
 
     // comparison operator
     bool operator==(const irrep& other) const

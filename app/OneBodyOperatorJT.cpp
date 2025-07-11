@@ -21,22 +21,21 @@ int main(int argc, char* argv[])
   u4::WigU4SU2SU2_db wigU4SU2SU2db(cgcs, wigU3U2db, wigU4U3db);
 
   // Example 1: number operator
-  
+
   JT::OneBodyOperator N(0, 0, 0, 0, 1);
   int maxShell = 10;
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto tensors =
-      N.expand(maxShell, cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+  auto tensors = N.expand(maxShell, cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
   N.is();
-  for (auto tensor : tensors) std::cout << tensor << std::endl;
-  
+  for (auto tensor : tensors)
+    std::cout << tensor << std::endl;
 
   // Example 2: one-body part of the L^2 operator
   /*

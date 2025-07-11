@@ -98,15 +98,12 @@ namespace JT
   // Comment out the line below to use sphericalME
 #define USE_ONEBODY_SPHERICAL_RME
   std::pair<bool, std::vector<double>> OneBodyOperator::getTensorStrength(
-      int lam0, int mu0, int P10, int P20, int P30,
-      int kappa0, int LL0, int SS0, int na, int nb,
-      const std::vector<u3::physicalvector>& pv3as,
+      int lam0, int mu0, int P10, int P20, int P30, int kappa0, int LL0,
+      int SS0, int na, int nb, const std::vector<u3::physicalvector>& pv3as,
       const std::vector<u3::physicalvector>& pv3bs,
       const std::vector<u4::physicalvector>& pv4as,
-      const std::vector<u4::physicalvector>& pv4bs, 
-      u34utils::SO3_CGC& cgcs,
-      u34utils::SO3_Racah9& racah9, 
-      u3::WigU3SO3_db& wigU3SO3db,
+      const std::vector<u4::physicalvector>& pv4bs, u34utils::SO3_CGC& cgcs,
+      u34utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
       u4::WigU4SU2SU2_db& wigU4SU2SU2db)
   {
     std::vector<double> x(kappa0, 0.0);
@@ -150,21 +147,25 @@ namespace JT
             Eigen::MatrixXd Coeffs3, Coeffs4;
             if (na <= nb)
             {
-              Coeffs3 = wigU3SO3db.get(na, 0, lla/2, 
-                                       0, nb, llb/2,
-                                       lam0, mu0, LL0/2).second;
-              Coeffs4 = wigU4SU2SU2db.get(1, 0, 0, 1, 1,
-                                          0, 0, 1, 1, 1,
-                                          P10, P20, P30, SS0, TT).second;
+              Coeffs3 =
+                  wigU3SO3db
+                      .get(na, 0, lla / 2, 0, nb, llb / 2, lam0, mu0, LL0 / 2)
+                      .second;
+              Coeffs4 =
+                  wigU4SU2SU2db
+                      .get(1, 0, 0, 1, 1, 0, 0, 1, 1, 1, P10, P20, P30, SS0, TT)
+                      .second;
             }
             else // na > nb
             {
-              Coeffs3 = wigU3SO3db.get(0, nb, llb/2, 
-                                       na, 0, lla/2,
-                                       lam0, mu0, LL0/2).second;
-              Coeffs4 = wigU4SU2SU2db.get(0, 0, 1, 1, 1,
-                                          1, 0, 0, 1, 1,
-                                          P10, P20, P30, SS0, TT).second;
+              Coeffs3 =
+                  wigU3SO3db
+                      .get(0, nb, llb / 2, na, 0, lla / 2, lam0, mu0, LL0 / 2)
+                      .second;
+              Coeffs4 =
+                  wigU4SU2SU2db
+                      .get(0, 0, 1, 1, 1, 1, 0, 0, 1, 1, P10, P20, P30, SS0, TT)
+                      .second;
             }
 
 #ifdef USE_ONEBODY_SPHERICAL_RME
@@ -176,7 +177,7 @@ namespace JT
               for (int k = 0; k < kappa0; k++)
               {
                 double y =
-                  phase * U9j * Coeffs3(k,0) * Coeffs4(0,0) * rme * factor;
+                    phase * U9j * Coeffs3(k, 0) * Coeffs4(0, 0) * rme * factor;
                 // std::cout << y << std::endl;
                 sum += y;
                 x[k] += y;
@@ -193,7 +194,7 @@ namespace JT
               for (int k = 0; k < kappa0; k++)
               {
                 double y =
-                  phase * U9j * Coeffs3(k,0) * Coeffs4(0,0) * rme * factor;
+                    phase * U9j * Coeffs3(k, 0) * Coeffs4(0, 0) * rme * factor;
                 // std::cout << y << std::endl;
                 sum += y;
                 x[k] += y;
@@ -227,8 +228,8 @@ namespace JT
 
                   for (int k = 0; k < kappa0; k++)
                   {
-                    double y = phase * cgcJ * cgcT * U9j *
-                                   Coeffs3(k, 0) * Coeffs4(0,0) * me;
+                    double y = phase * cgcJ * cgcT * U9j * Coeffs3(k, 0) *
+                               Coeffs4(0, 0) * me;
                     // std::cout << y << std::endl;
                     sum += y;
                     x[k] += y;
@@ -241,8 +242,8 @@ namespace JT
 
                   for (int k = 0; k < kappa0; k++)
                   {
-                    double y = phase * cgcJ * cgcT * U9j *
-                               Coeffs3(k, 0) * Coeffs4(0,0) * me;
+                    double y = phase * cgcJ * cgcT * U9j * Coeffs3(k, 0) *
+                               Coeffs4(0, 0) * me;
                     // std::cout << y << std::endl;
                     sum -= y;
                     x[k] -= y;
@@ -258,11 +259,9 @@ namespace JT
     return std::make_pair((std::fabs(sum) < 1e-8), x);
   }
 
-  std::vector<U3xU4::OneBodyMultiShellTensor>
-  OneBodyOperator::expand(int maxShell, u34utils::SO3_CGC& cgcs,
-                          u34utils::SO3_Racah9& racah9,
-                          u3::WigU3SO3_db& wigU3SO3db, 
-                          u4::WigU4SU2SU2_db& wigU4SU2SU2db)
+  std::vector<U3xU4::OneBodyMultiShellTensor> OneBodyOperator::expand(
+      int maxShell, u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+      u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db)
   {
     std::vector<U3xU4::OneBodyMultiShellTensor> tensors;
 
@@ -326,10 +325,9 @@ namespace JT
 
               for (int pv4 = 0; pv4 < pv4s.size(); pv4++)
               {
-                int P10 = pv4s[pv4].toprow.P1(), 
-                    P20 = pv4s[pv4].toprow.P2(),
-                    P30 = pv4s[pv4].toprow.P3(), 
-                    SS0 = pv4s[pv4].SS, TT0 = pv4s[pv4].TT;
+                int P10 = pv4s[pv4].toprow.P1(), P20 = pv4s[pv4].toprow.P2(),
+                    P30 = pv4s[pv4].toprow.P3(), SS0 = pv4s[pv4].SS,
+                    TT0 = pv4s[pv4].TT;
 
                 // couple LL0 and SS0 to JJ0
                 // the sum over CGCs will kill JJ0 != JJ and TT0 != TT
@@ -340,30 +338,29 @@ namespace JT
                 // MMJ0 == MMJ and MMT0 == MMT
 
                 // compute the expansion coefficients
-                auto [ignore, coeff] = getTensorStrength(
-                  lam0, mu0, P10, P20, P30,
-                  kappa0, LL0, SS0, na, nb, 
-                  pv3as, pv3bs, pv4as, pv4bs, 
-                  cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                auto [ignore, coeff] =
+                    getTensorStrength(lam0, mu0, P10, P20, P30, kappa0, LL0,
+                                      SS0, na, nb, pv3as, pv3bs, pv4as, pv4bs,
+                                      cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
                 if (ignore == false)
                 {
                   if (na <= nb)
                   {
                     U3xU4::OneBodyMultiShellTensor tensor(
-                        U3xU4::irrep(na,0,0, 1,0,0,0), 
-                        U3xU4::irrep(nb,nb,0, 1,1,1,0),
-                        U3xU4::irrep(u3couple[i], u4couple[j]), 
-                        kappa0, LL0, SS0, TT, MMT, JJ, MMJ, coeff);
+                        U3xU4::irrep(na, 0, 0, 1, 0, 0, 0),
+                        U3xU4::irrep(nb, nb, 0, 1, 1, 1, 0),
+                        U3xU4::irrep(u3couple[i], u4couple[j]), kappa0, LL0,
+                        SS0, TT, MMT, JJ, MMJ, coeff);
                     tensors.push_back(tensor);
                   }
                   else // na > nb
                   {
                     U3xU4::OneBodyMultiShellTensor tensor(
-                        U3xU4::irrep(nb,nb,0, 1,1,1,0),
-                        U3xU4::irrep(na,0,0, 1,0,0,0), 
-                        U3xU4::irrep(u3couple[i], u4couple[j]), 
-                        kappa0, LL0, SS0, TT, MMT, JJ, MMJ, coeff);
+                        U3xU4::irrep(nb, nb, 0, 1, 1, 1, 0),
+                        U3xU4::irrep(na, 0, 0, 1, 0, 0, 0),
+                        U3xU4::irrep(u3couple[i], u4couple[j]), kappa0, LL0,
+                        SS0, TT, MMT, JJ, MMJ, coeff);
                     tensors.push_back(tensor);
                   }
                 }

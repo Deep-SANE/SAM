@@ -72,7 +72,9 @@ namespace U4xSU3
     std::vector<MSU3> omegas_su3_;
 
     // for each irrep: nhw, dist_id, gamma_id, omega_id, offset:
-    std::vector<std::tuple<int, std::size_t, std::size_t, std::size_t, std::size_t>> irreps_;
+    std::vector<
+        std::tuple<int, std::size_t, std::size_t, std::size_t, std::size_t>>
+        irreps_;
 
   public:
     ManyNucleonBasis(int A, int MMT, int Nmax, int JJ)
@@ -113,7 +115,8 @@ namespace U4xSU3
     {
       auto [begin, end] = distributions_ids(nhw);
 
-      return std::span(distributions_.data() + begin, distributions_.data() + end);
+      return std::span(distributions_.data() + begin,
+                       distributions_.data() + end);
     }
 
     // returns (first gamma id, #of gammas) for distribution:
@@ -298,14 +301,15 @@ namespace U4xSU3
       {
         auto [dist_id_begin, dist_id_end] = distributions_ids(nhw);
 
-        for (std::size_t dist_id = dist_id_begin; dist_id < dist_id_end; dist_id++)
+        for (std::size_t dist_id = dist_id_begin; dist_id < dist_id_end;
+             dist_id++)
           generate_gammas_for_dist(dist_id);
       }
     }
 
     void generate_gammas_for_dist(std::size_t dist_id)
     {
-   // uint64_t dim = 0;
+      // uint64_t dim = 0;
 
       assert(dist_id < distributions_.size());
       const auto& distribution = distributions_[dist_id];
@@ -403,7 +407,7 @@ namespace U4xSU3
         */
       }
 
-   // dim_ += dim;
+      // dim_ += dim;
     }
 
     void generate_omegas()
@@ -419,7 +423,8 @@ namespace U4xSU3
       {
         auto [dist_id_begin, dist_id_end] = distributions_ids(nhw);
 
-        for (std::size_t dist_id = dist_id_begin; dist_id < dist_id_end; dist_id++)
+        for (std::size_t dist_id = dist_id_begin; dist_id < dist_id_end;
+             dist_id++)
         {
           auto [gamma_id_begin, n_gammas] = dist_gammas_[dist_id];
 
@@ -432,7 +437,8 @@ namespace U4xSU3
       }
     }
 
-    void generate_omegas_for_gamma(int nhw, std::size_t dist_id, std::size_t gamma_id)
+    void generate_omegas_for_gamma(int nhw, std::size_t dist_id,
+                                   std::size_t gamma_id)
     {
       assert(gamma_id < gammas_.size());
 
@@ -630,7 +636,8 @@ namespace U4xSU3
     }
 
     template <typename T, std::size_t Extent>
-    void gamma2omega(std::span<T, Extent> gamma, std::vector<std::vector<T>>& omega)
+    void gamma2omega(std::span<T, Extent> gamma,
+                     std::vector<std::vector<T>>& omega)
     {
       assert(gamma.size() >= 2);
 
@@ -761,7 +768,7 @@ namespace U4xSU3
         }
       }
 
-   // dim_ += dim;
+      // dim_ += dim;
     }
 
     /*

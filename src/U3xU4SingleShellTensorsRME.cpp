@@ -7,9 +7,8 @@
 namespace U3xU4
 {
   std::vector<Eigen::MatrixXd>
-  Tadat::RME(std::size_t& ai_max, const U3xU4::irrep& i,
-             std::size_t& af_max, const U3xU4::irrep& f,
-             std::size_t& rhomax, std::size_t& etamax,
+  Tadat::RME(std::size_t& ai_max, const U3xU4::irrep& i, std::size_t& af_max,
+             const U3xU4::irrep& f, std::size_t& rhomax, std::size_t& etamax,
              u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
              u4::WigU4U3_db& wigU4U3db)
   {
@@ -43,10 +42,11 @@ namespace U3xU4
                              sps4_conj = u4::gelfandBasis(y_conj);
 
     // Generate HWS for the ket irrep
-    u3::gelfand i3hws(i.u3.n13(), i.u3.n23(), i.u3.n33(), i.u3.n13(), i.u3.n23(),
-                      i.u3.n13());
-    u4::gelfand i4hws(i.u4.n14(), i.u4.n24(), i.u4.n34(), i.u4.n44(), i.u4.n14(),
-                      i.u4.n24(), i.u4.n34(), i.u4.n14(), i.u4.n24(), i.u4.n14());
+    u3::gelfand i3hws(i.u3.n13(), i.u3.n23(), i.u3.n33(), i.u3.n13(),
+                      i.u3.n23(), i.u3.n13());
+    u4::gelfand i4hws(i.u4.n14(), i.u4.n24(), i.u4.n34(), i.u4.n44(),
+                      i.u4.n14(), i.u4.n24(), i.u4.n34(), i.u4.n14(),
+                      i.u4.n24(), i.u4.n14());
     std::vector<UNxU4::SlaterDeterminant> SDarr_i;
     std::vector<Eigen::RowVectorXd> coeffs_i;
     if (A_i == 0) // vacuum
@@ -59,8 +59,7 @@ namespace U3xU4
     }
     else
     {
-      std::filesystem::path path_i =
-          U3xU4::get_HWS_file(A_i, n, i, sps3, sps4);
+      std::filesystem::path path_i = U3xU4::get_HWS_file(A_i, n, i, sps3, sps4);
       std::tie(SDarr_i, coeffs_i) = U3xU4::read_HWS_data(path_i);
     }
     ai_max = coeffs_i[0].cols();
@@ -69,10 +68,11 @@ namespace U3xU4
     //     std::cout << coeffs_i[i] << std::endl;
 
     // Generate HWS for the bra irrep
-    u3::gelfand f3hws(f.u3.n13(), f.u3.n23(), f.u3.n33(), f.u3.n13(), f.u3.n23(),
-                      f.u3.n13());
-    u4::gelfand f4hws(f.u4.n14(), f.u4.n24(), f.u4.n34(), f.u4.n44(), f.u4.n14(),
-                      f.u4.n24(), f.u4.n34(), f.u4.n14(), f.u4.n24(), f.u4.n14());
+    u3::gelfand f3hws(f.u3.n13(), f.u3.n23(), f.u3.n33(), f.u3.n13(),
+                      f.u3.n23(), f.u3.n13());
+    u4::gelfand f4hws(f.u4.n14(), f.u4.n24(), f.u4.n34(), f.u4.n44(),
+                      f.u4.n14(), f.u4.n24(), f.u4.n34(), f.u4.n14(),
+                      f.u4.n24(), f.u4.n14());
     std::vector<UNxU4::SlaterDeterminant> SDarr_f;
     std::vector<Eigen::RowVectorXd> coeffs_f;
     if (A_f == 0) // vacuum
@@ -85,8 +85,7 @@ namespace U3xU4
     }
     else
     {
-      std::filesystem::path path_f =
-          U3xU4::get_HWS_file(A_f, n, f, sps3, sps4);
+      std::filesystem::path path_f = U3xU4::get_HWS_file(A_f, n, f, sps3, sps4);
       std::tie(SDarr_f, coeffs_f) = U3xU4::read_HWS_data(path_f);
     }
     af_max = coeffs_f[0].cols();
@@ -123,9 +122,10 @@ namespace U3xU4
     // Generate tensor components of the tensor
     std::vector<u3::gelfand> g3Arr = u3::gelfandBasis(T.u3);
     std::vector<std::size_t> g3Arr0;
-    int missing3 = (i.u3.n13() + i.u3.n23() + i.u3.n33() + 
-                    T.u3.n13() + T.u3.n23() + T.u3.n33() - 
-                    f.u3.n13() - f.u3.n23() - f.u3.n33()) / 3;
+    int missing3 =
+        (i.u3.n13() + i.u3.n23() + i.u3.n33() + T.u3.n13() + T.u3.n23() +
+         T.u3.n33() - f.u3.n13() - f.u3.n23() - f.u3.n33()) /
+        3;
 
     for (std::size_t i = 0; i < g3Arr.size(); i++)
       if ((i3hws.e22() + g3Arr[i].e22()) == (f3hws.e22() + missing3) &&
@@ -134,10 +134,10 @@ namespace U3xU4
 
     std::vector<u4::gelfand> g4Arr = u4::gelfandBasis(T.u4);
     std::vector<std::size_t> g4Arr0;
-    int missing4 =
-        (i.u4.n14() + i.u4.n24() + i.u4.n34() + i.u4.n44() + 
-         T.u4.n14() + T.u4.n24() + T.u4.n34() + T.u4.n44() - 
-         f.u4.n14() - f.u4.n24() - f.u4.n34() - f.u4.n44()) / 4;
+    int missing4 = (i.u4.n14() + i.u4.n24() + i.u4.n34() + i.u4.n44() +
+                    T.u4.n14() + T.u4.n24() + T.u4.n34() + T.u4.n44() -
+                    f.u4.n14() - f.u4.n24() - f.u4.n34() - f.u4.n44()) /
+                   4;
 
     for (std::size_t i = 0; i < g4Arr.size(); i++)
       if ((i4hws.e33() + g4Arr[i].e33()) == (f4hws.e33() + missing4) &&
@@ -218,7 +218,8 @@ namespace U3xU4
 
         // Expand tensor into ad's and a's
         U3xU4::Tadat_gelfand Tadat(n, sps3, sps3_conj, sps4, sps4_conj, ads,
-                                   ats, prod_ads, prod_ats, T, rho0max, eta0max, gt3, gt4);
+                                   ats, prod_ads, prod_ats, T, rho0max, eta0max,
+                                   gt3, gt4);
 
         auto [coeffs, adArr, aArr] = Tadat.expand(cgcs, wigU3U2db, wigU4U3db);
         /*
@@ -324,8 +325,8 @@ namespace U3xU4
       RMEs[i] = factorize.solve(FMEs[i]);
       for (int r = 0; r < RMEs[i].rows(); r++)
         for (int c = 0; c < RMEs[i].cols(); c++)
-          if (std::fabs(RMEs[i](r,c)) < 1e-10)
-            RMEs[i](r,c) = 0.0;
+          if (std::fabs(RMEs[i](r, c)) < 1e-10)
+            RMEs[i](r, c) = 0.0;
     }
 
     return RMEs;

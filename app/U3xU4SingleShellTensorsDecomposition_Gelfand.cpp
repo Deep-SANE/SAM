@@ -47,13 +47,13 @@ int main(int argc, char* argv[])
     { ad          x at          }
         (1,0,0,0)     (1,1,1,0)  (0,0,0,0; 0,0,0; 0,0; 0)
   */
-  
+
   std::size_t n = 1, ads = 1, ats = 1;
 
-  U3xU4::irrep T1(1,0,0, 1,0,0,0), T2(1,1,0, 1,1,1,0), T(0,0,0, 0,0,0,0);
-  u3::gelfand b(0,0,0, 0,0, 0);
-  u4::gelfand p(0,0,0,0, 0,0,0, 0,0, 0);
-  
+  U3xU4::irrep T1(1, 0, 0, 1, 0, 0, 0), T2(1, 1, 0, 1, 1, 1, 0),
+      T(0, 0, 0, 0, 0, 0, 0);
+  u3::gelfand b(0, 0, 0, 0, 0, 0);
+  u4::gelfand p(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
   /* Example 3: n = 3
         (3,0,0)              (3,0,0)   (6,0,0; 6,0; 3)
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 
   prod_ats.push_back(T2);
   */
-  
+
   // Construct single particle states
   u3::irrep x(n, 0, 0), x_conj(n, n, 0);
   std::vector<u3::gelfand> sps3 = u3::gelfandBasis(x),
@@ -80,11 +80,12 @@ int main(int argc, char* argv[])
                            sps4_conj = u4::gelfandBasis(y_conj);
 
   // Multiplicities of the final tensor
-  auto rhomax = u3::Rho(T1.u3,T2.u3,T.u3);
-  auto etamax = u4::Eta(T1.u4,T2.u4,T.u4);
+  auto rhomax = u3::Rho(T1.u3, T2.u3, T.u3);
+  auto etamax = u4::Eta(T1.u4, T2.u4, T.u4);
 
-  U3xU4::Tadat_gelfand Tadat_Gelfand(n, sps3, sps3_conj, sps4, sps4_conj, 
-      ads, ats, prod_ads, prod_ats, T, rhomax, etamax, b, p);
+  U3xU4::Tadat_gelfand Tadat_Gelfand(n, sps3, sps3_conj, sps4, sps4_conj, ads,
+                                     ats, prod_ads, prod_ats, T, rhomax, etamax,
+                                     b, p);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
@@ -104,9 +105,7 @@ int main(int argc, char* argv[])
 
     if (!adArr.empty())
       for (std::size_t j = 0; j < adArr[i].size(); j++)
-      {
         std::cout << adArr[i][j] << "\t";
-      }
 
     if (!aArr.empty())
       for (std::size_t j = 0; j < aArr[i].size(); j++)

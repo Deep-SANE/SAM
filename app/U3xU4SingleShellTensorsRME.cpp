@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
   prod_ads.push_back(T1);
   prod_ats.emplace_back(T2);
 
-  std::size_t rho0max = u3::Rho(T1.u3,T2.u3,T.u3), 
+  std::size_t rho0max = u3::Rho(T1.u3,T2.u3,T.u3),
               eta0max = u4::Eta(T1.u4,T2.u4,T.u4);
   */
 
@@ -49,18 +49,16 @@ int main(int argc, char* argv[])
                 (1,1,0,0)           (1,1,0,0) (0,0,0,0)
                 ||| alpha_f (14,2,0) (1,1,1,1) >
   */
-  
-  std::size_t n = 4, ads = 2, ats = 2;
-  U3xU4::irrep i(14,2,0, 1,1,1,1), f(14,2,0, 1,1,1,1),
-               T1(6,2,0, 1,1,0,0), T2(6,4,0, 1,1,0,0),
-               T(4,2,0, 0,0,0,0);
+
+  std::size_t n = 1, ads = 2, ats = 2;
+  U3xU4::irrep i(2, 0, 0, 1, 1, 0, 0), f(2, 0, 0, 1, 1, 0, 0),
+      T1(2, 0, 0, 1, 1, 0, 0), T2(2, 2, 0, 1, 1, 0, 0), T(0, 0, 0, 0, 0, 0, 0);
 
   prod_ads.push_back(T1);
   prod_ats.push_back(T2);
 
-  std::size_t rho0max = u3::Rho(T1.u3,T2.u3,T.u3), 
-              eta0max = u4::Eta(T1.u4,T2.u4,T.u4);
-  
+  std::size_t rho0max = u3::Rho(T1.u3, T2.u3, T.u3),
+              eta0max = u4::Eta(T1.u4, T2.u4, T.u4);
 
   /* Example 3:
                               (n,0,0)
@@ -107,13 +105,13 @@ int main(int argc, char* argv[])
   auto t0 = std::chrono::high_resolution_clock::now();
 
   std::vector<Eigen::MatrixXd> RMEs = Tadxat.RME(
-    alpha_i, i, alpha_f, f, rhomax, etamax, cgcs, wigU3U2db, wigU4U3db);
+      alpha_i, i, alpha_f, f, rhomax, etamax, cgcs, wigU3U2db, wigU4U3db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  std::cout << "< " << alpha_f << f << " ||| " << Tadxat << " ||| " << alpha_i << i
-            << " >" << rhomax << "," << etamax << std::endl;
+  std::cout << "< " << alpha_f << f << " ||| " << Tadxat << " ||| " << alpha_i
+            << i << " >" << rhomax << "," << etamax << std::endl;
 
   for (std::size_t ai = 0; ai < alpha_i; ai++)
     for (std::size_t af = 0; af < alpha_f; af++)

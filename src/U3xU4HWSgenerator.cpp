@@ -25,8 +25,8 @@
 namespace U3xU4
 {
   std::vector<UNxU4::SlaterDeterminant>
-  expand_to_SD(std::size_t A, std::size_t n, std::size_t N, const U3xU4::irrep& x,
-               const std::vector<u3::gelfand>& sps3,
+  expand_to_SD(std::size_t A, std::size_t n, std::size_t N,
+               const U3xU4::irrep& x, const std::vector<u3::gelfand>& sps3,
                const std::vector<u4::gelfand>& sps4)
   {
     const u3::irrep b = x.u3;

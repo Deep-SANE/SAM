@@ -59,7 +59,8 @@ int main()
         for (int i_omega = 0; i_omega < n_omegas; i_omega++)
         {
           auto omega_id = omega_id_begin + i_omega;
-          auto [omegas_u4, omegas_su3, mult, dim] = basis.omega_irreps(omega_id);
+          auto [omegas_u4, omegas_su3, mult, dim] =
+              basis.omega_irreps(omega_id);
           auto n_irreps = omegas_u4.size();
 
           print("\t\t");

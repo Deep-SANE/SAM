@@ -46,7 +46,8 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  std::filesystem::path path = U3xU4::get_HWS_file(A, n, U3xU4::irrep(b,p), sps3, sps4);
+  std::filesystem::path path =
+      U3xU4::get_HWS_file(A, n, U3xU4::irrep(b, p), sps3, sps4);
   auto [SDarr, coeffs] = U3xU4::read_HWS_data(path);
 
   // End time measurement
@@ -63,7 +64,7 @@ int main(int argc, char* argv[])
 
     for (std::size_t i = 0; i < SDarr.size(); i++)
     {
-      //SDarr[i].print();
+      // SDarr[i].print();
       std::cout << SDarr[i] << "--> " << coeffs[i] << std::endl;
     }
   }

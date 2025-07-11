@@ -38,20 +38,21 @@ int main(int argc, char* argv[])
   */
 
   /* Example 2: n = 5
-              (7,3,0)(1,1,0,0)  
-      [ad x ad]             
+              (7,3,0)(1,1,0,0)
+      [ad x ad]
               kappa=2,L=5,SS=2,TT=0=MMT,JJ=10,MMJ=0
   */
   /*
   U3xU4::irrep T1(7,3,0, 1,1,0,0);
   prod_ads.push_back(T1);
   int rhomax = 1, etamax = 1;
-  U3xU4::Tadat_phys Tadat(5,2,0,prod_ads,prod_ats,T1,rhomax,etamax,10,2,0,0,10,0);
+  U3xU4::Tadat_phys
+  Tadat(5,2,0,prod_ads,prod_ats,T1,rhomax,etamax,10,2,0,0,10,0);
   */
 
   /* Example 3: n = 1
-              (0,0,0)(0,0,0,0)  
-      [ad x at]             
+              (0,0,0)(0,0,0,0)
+      [ad x at]
               kappa=1,L=0,SS=0,TT=0=MMT,JJ=0=MMJ
   */
   /*
@@ -65,20 +66,21 @@ int main(int argc, char* argv[])
   { [[ad x ad]     x ad] x [at x at]         }
              (1,1,0,0) (2,1,0,0)   (1,1,0,0) kappa=1,L=1,SS=1,TT=1=MMT,JJ=1=MMJ
   */
-  
-  U3xU4::irrep T1_0(3,1,0, 1,1,0,0), T1(3,3,0, 2,1,0,0),
-               T2(3,2,0, 1,1,0,0), T(4,1,0, 1,0,0,0);
+
+  U3xU4::irrep T1_0(3, 1, 0, 1, 1, 0, 0), T1(3, 3, 0, 2, 1, 0, 0),
+      T2(3, 2, 0, 1, 1, 0, 0), T(4, 1, 0, 1, 0, 0, 0);
   prod_ads.push_back(T1_0);
   prod_ads.push_back(T1);
   prod_ats.push_back(T2);
   int rhomax = 1, etamax = 1;
-  U3xU4::Tadat_phys Tadat(2,3,2,prod_ads,prod_ats,T,rhomax,etamax,2,1,1,1,1,1);
-  
+  U3xU4::Tadat_phys Tadat(2, 3, 2, prod_ads, prod_ats, T, rhomax, etamax, 2, 1,
+                          1, 1, 1, 1);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
-  
-  auto [coeffsArr, adsArr, atsArr] = Tadat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+  auto [coeffsArr, adsArr, atsArr] =
+      Tadat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -100,7 +102,7 @@ int main(int argc, char* argv[])
         std::cout << at << "\t";
 
     std::cout << std::endl;
-  } 
+  }
 
   std::cout << "Normalization: " << norm << std::endl;
 

@@ -138,7 +138,7 @@ namespace U3xU4
             continue;
 
           U3xU4::ad_gelfand ad1(g3_1, g4_1, sps3, sps4),
-                            ad2(g3_2, g4_2, sps3, sps4);
+              ad2(g3_2, g4_2, sps3, sps4);
           U3xU4::ads_gelfand adad;
           adad.push_back(ad1);
           adad.push_back(ad2);
@@ -152,10 +152,8 @@ namespace U3xU4
     // three ad's
     else if (num == 3)
     {
-      std::vector<u3::gelfand> g3Arr0 =
-          u3::gelfandBasis(prod_characters[0].u3);
-      std::vector<u4::gelfand> g4Arr0 =
-          u4::gelfandBasis(prod_characters[0].u4);
+      std::vector<u3::gelfand> g3Arr0 = u3::gelfandBasis(prod_characters[0].u3);
+      std::vector<u4::gelfand> g4Arr0 = u4::gelfandBasis(prod_characters[0].u4);
 
       std::vector<std::pair<int, int>> uncouple_g3 =
           u3::expand_to_uncoupled(g3, g3Arr0, sps3);
@@ -252,10 +250,9 @@ namespace U3xU4
 
   // Expand in terms of uncoupled products of ad's
   std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
-              std::vector<U3xU4::ads_phys>>
-  Tad_phys::expand(u34utils::SO3_CGC& cgcs, 
-                   u34utils::SO3_Racah9& racah9,
-                   u3::WigU3SO3_db& wigU3SO3db, 
+            std::vector<U3xU4::ads_phys>>
+  Tad_phys::expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+                   u3::WigU3SO3_db& wigU3SO3db,
                    u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     std::vector<Eigen::RowVectorXd> coeffsArr;
@@ -277,7 +274,7 @@ namespace U3xU4
     // two ad's
     else if (num == 2)
     {
-      std::vector<u3::physicalvector> pvs = u3::physicalBasis(u3::irrep(n,0));
+      std::vector<u3::physicalvector> pvs = u3::physicalBasis(u3::irrep(n, 0));
       int lam = prod_characters.back().u3.lam(),
           mu = prod_characters.back().u3.mu(),
           P1 = prod_characters.back().u4.P1(),
@@ -295,38 +292,36 @@ namespace U3xU4
           if (std::abs(lla - llb) > LL || (lla + llb) < LL)
             continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(n, 0, lla/2,
-                                                 n, 0, llb/2,
-                                                 lam, mu, LL/2);
+          auto [allowU3, cgcU3] =
+              wigU3SO3db.get(n, 0, lla / 2, n, 0, llb / 2, lam, mu, LL / 2);
 
-          auto [allowU4, cgcU4] = wigU4SU2SU2db.get(1, 0, 0, 1, 1,
-                                                    1, 0, 0, 1, 1,
-                                                    P1, P2, P3, SS, TT);
+          auto [allowU4, cgcU4] = wigU4SU2SU2db.get(1, 0, 0, 1, 1, 1, 0, 0, 1,
+                                                    1, P1, P2, P3, SS, TT);
 
-          for (int jja = lla + 1; jja >= std::abs(lla - 1); jja-=2)
+          for (int jja = lla + 1; jja >= std::abs(lla - 1); jja -= 2)
           {
-            for (int jjb = llb + 1; jjb >=  std::abs(llb - 1); jjb-=2)
+            for (int jjb = llb + 1; jjb >= std::abs(llb - 1); jjb -= 2)
             {
               if (std::abs(jja - jjb) > JJ || (jja + jjb) < JJ)
                 continue;
 
               double U9j = racah9.compute(lla, llb, LL, 1, 1, SS, jja, jjb, JJ);
 
-              for (int mmja = jja; mmja >= -jja; mmja-=2)
+              for (int mmja = jja; mmja >= -jja; mmja -= 2)
               {
                 int mmjb = MMJ - mmja;
-                for (int mmta = 1; mmta >= -1; mmta-=2)
+                for (int mmta = 1; mmta >= -1; mmta -= 2)
                 {
                   int mmtb = MMT - mmta;
 
                   double cgcJ = cgcs.compute(jja, jjb, JJ, mmja, mmjb, MMJ),
                          cgcT = cgcs.compute(1, 1, TT, mmta, mmtb, MMT),
-                         factor = cgcU4(0,0) * U9j * cgcJ * cgcT;
+                         factor = cgcU4(0, 0) * U9j * cgcJ * cgcT;
 
                   Eigen::RowVectorXd coeffs(kappamax);
                   coeffs.setZero();
                   for (int k = 0; k < kappamax; k++)
-                    coeffs(k) += cgcU3(k,0) * factor;
+                    coeffs(k) += cgcU3(k, 0) * factor;
 
                   if (coeffs.norm() < 1e-12)
                     continue;
@@ -334,7 +329,7 @@ namespace U3xU4
                   coeffsArr.push_back(coeffs);
 
                   U3xU4::ad_phys ad1(n, lla, jja, mmja, mmta),
-                                 ad2(n, llb, jjb, mmjb, mmtb);
+                      ad2(n, llb, jjb, mmjb, mmtb);
                   U3xU4::ads_phys Tad = {ad1, ad2};
                   tensorsArr.push_back(Tad);
                 }
@@ -348,26 +343,24 @@ namespace U3xU4
     // three ad's
     else if (num == 3)
     {
-      std::vector<u3::physicalvector> 
-        pv3s = u3::physicalBasis(u3::irrep(n,0)),
-        pv3s0 = u3::physicalBasis(prod_characters[0].u3);
-      std::vector<u4::physicalvector>
-        pv4s0 = u4::physicalBasis(prod_characters[0].u4);
+      std::vector<u3::physicalvector> pv3s = u3::physicalBasis(u3::irrep(n, 0)),
+                                      pv3s0 = u3::physicalBasis(
+                                          prod_characters[0].u3);
+      std::vector<u4::physicalvector> pv4s0 =
+          u4::physicalBasis(prod_characters[0].u4);
 
       int lam = prod_characters.back().u3.lam(),
           mu = prod_characters.back().u3.mu(),
           P1 = prod_characters.back().u4.P1(),
           P2 = prod_characters.back().u4.P2(),
           P3 = prod_characters.back().u4.P3(),
-          lam0 = prod_characters[0].u3.lam(),
-          mu0 = prod_characters[0].u3.mu(),
-          P10 = prod_characters[0].u4.P1(),
-          P20 = prod_characters[0].u4.P2(),
+          lam0 = prod_characters[0].u3.lam(), mu0 = prod_characters[0].u3.mu(),
+          P10 = prod_characters[0].u4.P1(), P20 = prod_characters[0].u4.P2(),
           P30 = prod_characters[0].u4.P3();
 
       for (int pvc = 0; pvc < pv3s.size(); pvc++)
       {
-        int llc = 2 * pv3s[pvc].L; 
+        int llc = 2 * pv3s[pvc].L;
 
         for (int pv30 = 0; pv30 < pv3s0.size(); pv30++)
         {
@@ -376,9 +369,8 @@ namespace U3xU4
           if (std::abs(LL0 - llc) > LL || (LL0 + llc) < LL)
             continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(lam0, mu0, LL0/2,
-                                                 n, 0, llc/2,
-                                                 lam, mu, LL/2);
+          auto [allowU3, cgcU3] = wigU3SO3db.get(lam0, mu0, LL0 / 2, n, 0,
+                                                 llc / 2, lam, mu, LL / 2);
 
           for (int pv40 = 0; pv40 < pv4s0.size(); pv40++)
           {
@@ -388,34 +380,35 @@ namespace U3xU4
                 std::abs(TT0 - 1) > TT || (TT0 + 1) < TT)
               continue;
 
-            auto [allowU4, cgcU4] = wigU4SU2SU2db.get(P10, P20, P30, SS0, TT0,
-                                                      1, 0, 0, 1, 1,
-                                                      P1, P2, P3, SS, TT);
-            for (int jjc = llc + 1; jjc >= std::abs(llc - 1); jjc-=2)
+            auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+                P10, P20, P30, SS0, TT0, 1, 0, 0, 1, 1, P1, P2, P3, SS, TT);
+            for (int jjc = llc + 1; jjc >= std::abs(llc - 1); jjc -= 2)
             {
-              for (int JJ0 = LL0 + SS0; JJ0 >= std::abs(LL0 - SS0); JJ0-=2)
+              for (int JJ0 = LL0 + SS0; JJ0 >= std::abs(LL0 - SS0); JJ0 -= 2)
               {
                 if (std::abs(JJ0 - jjc) > JJ || (JJ0 + jjc) < JJ)
-                  continue;  
+                  continue;
 
-                double U9j = racah9.compute(LL0, llc, LL, SS0, 1, SS, JJ0, jjc, JJ);
+                double U9j =
+                    racah9.compute(LL0, llc, LL, SS0, 1, SS, JJ0, jjc, JJ);
 
-                for (int mmjc = jjc; mmjc >= -jjc; mmjc-=2)
+                for (int mmjc = jjc; mmjc >= -jjc; mmjc -= 2)
                 {
                   int MMJ0 = MMJ - mmjc;
-                  for (int mmtc = 1; mmtc >= -1; mmtc-=2)
+                  for (int mmtc = 1; mmtc >= -1; mmtc -= 2)
                   {
                     int MMT0 = MMT - mmtc;
 
                     double cgcJ = cgcs.compute(JJ0, jjc, JJ, MMJ0, mmjc, MMJ),
                            cgcT = cgcs.compute(TT0, 1, TT, MMT0, mmtc, MMT),
-                           factor = cgcU4(0,0) * U9j * cgcJ * cgcT;
+                           factor = cgcU4(0, 0) * U9j * cgcJ * cgcT;
 
                     std::vector<U3xU4::irrep> prod_ads0(1, prod_characters[0]);
-                    U3xU4::Tad_phys Tad0(n,prod_ads0,LL0,SS0,TT0,MMT0,JJ0,MMJ0);
+                    U3xU4::Tad_phys Tad0(n, prod_ads0, LL0, SS0, TT0, MMT0, JJ0,
+                                         MMJ0);
 
-                    auto [coeffsArr0, adArr0] = Tad0.expand(
-                      cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                    auto [coeffsArr0, adArr0] =
+                        Tad0.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
                     for (int i = 0; i < coeffsArr0.size(); i++)
                     {
@@ -423,7 +416,8 @@ namespace U3xU4
                       coeffs.setZero();
                       for (int k = 0; k < kappamax; k++)
                         for (int k0 = 0; k0 < Tad0.kappamax; k0++)
-                          coeffs(k) += cgcU3(k0 * kappamax + k,0) * factor * coeffsArr0[i](k0);
+                          coeffs(k) += cgcU3(k0 * kappamax + k, 0) * factor *
+                                       coeffsArr0[i](k0);
 
                       if (coeffs.norm() < 1e-12)
                         continue;
@@ -439,14 +433,13 @@ namespace U3xU4
                 }
               }
             }
-
           }
         }
       }
-    } 
+    }
 
     return std::make_pair(coeffsArr, tensorsArr);
-  }  
+  }
 
   /////////////// PRODUCT OF ANNIHILATION OPERATORS/TENSORS ///////////////
 
@@ -584,10 +577,8 @@ namespace U3xU4
     // three at's
     else if (num == 3)
     {
-      std::vector<u3::gelfand> g3Arr0 =
-          u3::gelfandBasis(prod_characters[0].u3);
-      std::vector<u4::gelfand> g4Arr0 =
-          u4::gelfandBasis(prod_characters[0].u4);
+      std::vector<u3::gelfand> g3Arr0 = u3::gelfandBasis(prod_characters[0].u3);
+      std::vector<u4::gelfand> g4Arr0 = u4::gelfandBasis(prod_characters[0].u4);
 
       std::vector<std::pair<int, int>> uncouple_g3 =
           u3::expand_to_uncoupled(g3, g3Arr0, sps3_conj);
@@ -690,10 +681,9 @@ namespace U3xU4
 
   // expand in terms of uncoupled products of at's
   std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
-              std::vector<U3xU4::ats_phys>>
-  Tat_phys::expand(u34utils::SO3_CGC& cgcs, 
-                   u34utils::SO3_Racah9& racah9,
-                   u3::WigU3SO3_db& wigU3SO3db, 
+            std::vector<U3xU4::ats_phys>>
+  Tat_phys::expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+                   u3::WigU3SO3_db& wigU3SO3db,
                    u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     std::vector<Eigen::RowVectorXd> coeffsArr;
@@ -715,7 +705,7 @@ namespace U3xU4
     // two at's
     else if (num == 2)
     {
-      std::vector<u3::physicalvector> pvs = u3::physicalBasis(u3::irrep(0,n));
+      std::vector<u3::physicalvector> pvs = u3::physicalBasis(u3::irrep(0, n));
       int lam = prod_characters.back().u3.lam(),
           mu = prod_characters.back().u3.mu(),
           P1 = prod_characters.back().u4.P1(),
@@ -733,27 +723,25 @@ namespace U3xU4
           if (std::abs(lla - llb) > LL || (lla + llb) < LL)
             continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(0, n, lla/2,
-                                                 0, n, llb/2,
-                                                 lam, mu, LL/2);
+          auto [allowU3, cgcU3] =
+              wigU3SO3db.get(0, n, lla / 2, 0, n, llb / 2, lam, mu, LL / 2);
 
-          auto [allowU4, cgcU4] = wigU4SU2SU2db.get(0, 0, 1, 1, 1,
-                                                    0, 0, 1, 1, 1,
-                                                    P1, P2, P3, SS, TT);
+          auto [allowU4, cgcU4] = wigU4SU2SU2db.get(0, 0, 1, 1, 1, 0, 0, 1, 1,
+                                                    1, P1, P2, P3, SS, TT);
 
-          for (int jja = lla + 1; jja >= std::fabs(lla - 1); jja-=2)
+          for (int jja = lla + 1; jja >= std::fabs(lla - 1); jja -= 2)
           {
-            for (int jjb = llb + 1; jjb >=  std::fabs(llb - 1); jjb-=2)
+            for (int jjb = llb + 1; jjb >= std::fabs(llb - 1); jjb -= 2)
             {
               if (std::abs(jja - jjb) > JJ || (jja + jjb) < JJ)
                 continue;
 
               double U9j = racah9.compute(lla, llb, LL, 1, 1, SS, jja, jjb, JJ);
 
-              for (int mmja = jja; mmja >= -jja; mmja-=2)
+              for (int mmja = jja; mmja >= -jja; mmja -= 2)
               {
                 int mmjb = MMJ - mmja;
-                for (int mmta = 1; mmta >= -1; mmta-=2)
+                for (int mmta = 1; mmta >= -1; mmta -= 2)
                 {
                   int mmtb = MMT - mmta;
 
@@ -761,15 +749,16 @@ namespace U3xU4
                          cgcT = cgcs.compute(1, 1, TT, mmta, mmtb, MMT);
 
                   U3xU4::at_phys at1(n, lla, jja, mmja, mmta),
-                                 at2(n, llb, jjb, mmjb, mmtb);
+                      at2(n, llb, jjb, mmjb, mmtb);
                   double phase1 = at1.turnToAnnihilation(),
                          phase2 = at2.turnToAnnihilation(),
-                         factor = cgcU4(0,0) * U9j * cgcJ * cgcT * phase1 * phase2;
+                         factor =
+                             cgcU4(0, 0) * U9j * cgcJ * cgcT * phase1 * phase2;
 
                   Eigen::RowVectorXd coeffs(kappamax);
                   coeffs.setZero();
                   for (int k = 0; k < kappamax; k++)
-                    coeffs(k) += cgcU3(k,0) * factor;
+                    coeffs(k) += cgcU3(k, 0) * factor;
 
                   if (coeffs.norm() < 1e-12)
                     continue;
@@ -792,26 +781,24 @@ namespace U3xU4
     // three at's
     else if (num == 3)
     {
-      std::vector<u3::physicalvector> 
-        pv3s = u3::physicalBasis(u3::irrep(0,n)),
-        pv3s0 = u3::physicalBasis(prod_characters[0].u3);
-      std::vector<u4::physicalvector>
-        pv4s0 = u4::physicalBasis(prod_characters[0].u4);
+      std::vector<u3::physicalvector> pv3s = u3::physicalBasis(u3::irrep(0, n)),
+                                      pv3s0 = u3::physicalBasis(
+                                          prod_characters[0].u3);
+      std::vector<u4::physicalvector> pv4s0 =
+          u4::physicalBasis(prod_characters[0].u4);
 
       int lam = prod_characters.back().u3.lam(),
           mu = prod_characters.back().u3.mu(),
           P1 = prod_characters.back().u4.P1(),
           P2 = prod_characters.back().u4.P2(),
           P3 = prod_characters.back().u4.P3(),
-          lam0 = prod_characters[0].u3.lam(),
-          mu0 = prod_characters[0].u3.mu(),
-          P10 = prod_characters[0].u4.P1(),
-          P20 = prod_characters[0].u4.P2(),
+          lam0 = prod_characters[0].u3.lam(), mu0 = prod_characters[0].u3.mu(),
+          P10 = prod_characters[0].u4.P1(), P20 = prod_characters[0].u4.P2(),
           P30 = prod_characters[0].u4.P3();
 
       for (int pvc = 0; pvc < pv3s.size(); pvc++)
       {
-        int llc = 2 * pv3s[pvc].L; 
+        int llc = 2 * pv3s[pvc].L;
 
         for (int pv30 = 0; pv30 < pv3s0.size(); pv30++)
         {
@@ -820,9 +807,8 @@ namespace U3xU4
           if (std::abs(LL0 - llc) > LL || (LL0 + llc) < LL)
             continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(lam0, mu0, LL0/2,
-                                                 0, n, llc/2,
-                                                 lam, mu, LL/2);
+          auto [allowU3, cgcU3] = wigU3SO3db.get(lam0, mu0, LL0 / 2, 0, n,
+                                                 llc / 2, lam, mu, LL / 2);
 
           for (int pv40 = 0; pv40 < pv4s0.size(); pv40++)
           {
@@ -832,34 +818,35 @@ namespace U3xU4
                 std::abs(TT0 - 1) > TT || (TT0 + 1) < TT)
               continue;
 
-            auto [allowU4, cgcU4] = wigU4SU2SU2db.get(P10, P20, P30, SS0, TT0,
-                                                      0, 0, 1, 1, 1,
-                                                      P1, P2, P3, SS, TT);
-            for (int jjc = llc + 1; jjc >= std::abs(llc - 1); jjc-=2)
+            auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+                P10, P20, P30, SS0, TT0, 0, 0, 1, 1, 1, P1, P2, P3, SS, TT);
+            for (int jjc = llc + 1; jjc >= std::abs(llc - 1); jjc -= 2)
             {
-              for (int JJ0 = LL0 + SS0; JJ0 >= std::abs(LL0 - SS0); JJ0-=2)
+              for (int JJ0 = LL0 + SS0; JJ0 >= std::abs(LL0 - SS0); JJ0 -= 2)
               {
                 if (std::abs(JJ0 - jjc) > JJ || (JJ0 + jjc) < JJ)
-                  continue;  
+                  continue;
 
-                double U9j = racah9.compute(LL0, llc, LL, SS0, 1, SS, JJ0, jjc, JJ);
+                double U9j =
+                    racah9.compute(LL0, llc, LL, SS0, 1, SS, JJ0, jjc, JJ);
 
-                for (int mmjc = jjc; mmjc >= -jjc; mmjc-=2)
+                for (int mmjc = jjc; mmjc >= -jjc; mmjc -= 2)
                 {
                   int MMJ0 = MMJ - mmjc;
-                  for (int mmtc = 1; mmtc >= -1; mmtc-=2)
+                  for (int mmtc = 1; mmtc >= -1; mmtc -= 2)
                   {
                     int MMT0 = MMT - mmtc;
 
                     double cgcJ = cgcs.compute(JJ0, jjc, JJ, MMJ0, mmjc, MMJ),
                            cgcT = cgcs.compute(TT0, 1, TT, MMT0, mmtc, MMT),
-                           factor = cgcU4(0,0) * U9j * cgcJ * cgcT;
+                           factor = cgcU4(0, 0) * U9j * cgcJ * cgcT;
 
                     std::vector<U3xU4::irrep> prod_ats0(1, prod_characters[0]);
-                    U3xU4::Tat_phys Tat0(n,prod_ats0,LL0,SS0,TT0,MMT0,JJ0,MMJ0);
+                    U3xU4::Tat_phys Tat0(n, prod_ats0, LL0, SS0, TT0, MMT0, JJ0,
+                                         MMJ0);
 
-                    auto [coeffsArr0, aArr0] = Tat0.expand(
-                      cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                    auto [coeffsArr0, aArr0] =
+                        Tat0.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
                     for (int i = 0; i < coeffsArr0.size(); i++)
                     {
@@ -870,8 +857,8 @@ namespace U3xU4
                       coeffs.setZero();
                       for (int k = 0; k < kappamax; k++)
                         for (int k0 = 0; k0 < Tat0.kappamax; k0++)
-                          coeffs(k) += cgcU3(k0 * kappamax + k,0) * factor 
-                                    * coeffsArr0[i](k0) * phase3;
+                          coeffs(k) += cgcU3(k0 * kappamax + k, 0) * factor *
+                                       coeffsArr0[i](k0) * phase3;
 
                       if (coeffs.norm() < 1e-12)
                         continue;
@@ -886,11 +873,10 @@ namespace U3xU4
                 }
               }
             }
-
           }
         }
       }
-    } 
+    }
 
     return std::make_pair(coeffsArr, tensorsArr);
   }
@@ -1089,10 +1075,11 @@ namespace U3xU4
   // expand coupled product of creation and annihilation tensors
   // in terms of creation and annihilation operators (ad's and a's)
   std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
-               std::vector<U3xU4::ads_phys>, // ad's
-               std::vector<U3xU4::ats_phys>> // a's
+             std::vector<U3xU4::ads_phys>,    // ad's
+             std::vector<U3xU4::ats_phys>>    // a's
   Tadat_phys::expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
-           u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+                     u3::WigU3SO3_db& wigU3SO3db,
+                     u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     std::vector<Eigen::RowVectorXd> coeffs;
     std::vector<U3xU4::ads_phys> adsArr;
@@ -1102,14 +1089,16 @@ namespace U3xU4
     if (ats == 0)
     {
       U3xU4::Tad_phys Tad(n, prod_ads, LL, SS, TT, MMT, JJ, MMJ);
-      std::tie(coeffs,adsArr) = Tad.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+      std::tie(coeffs, adsArr) =
+          Tad.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
     }
 
     // only ats
     else if (ads == 0)
     {
       U3xU4::Tat_phys Tat(n, prod_ats, LL, SS, TT, MMT, JJ, MMJ);
-      std::tie(coeffs,atsArr) = Tat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+      std::tie(coeffs, atsArr) =
+          Tat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
     }
 
     else
@@ -1124,8 +1113,8 @@ namespace U3xU4
       }
       else
       {
-        pv3s1 = u3::physicalBasis(u3::irrep(n,0));
-        pv4s1 = u4::physicalBasis(u4::irrep(1,0,0));
+        pv3s1 = u3::physicalBasis(u3::irrep(n, 0));
+        pv4s1 = u4::physicalBasis(u4::irrep(1, 0, 0));
       }
 
       if (ats > 1)
@@ -1135,99 +1124,101 @@ namespace U3xU4
       }
       else
       {
-        pv3s2 = u3::physicalBasis(u3::irrep(0,n));
-        pv4s2 = u4::physicalBasis(u4::irrep(0,0,1));
+        pv3s2 = u3::physicalBasis(u3::irrep(0, n));
+        pv4s2 = u4::physicalBasis(u4::irrep(0, 0, 1));
       }
 
       // uncouple the final tensor to Tad and Tat
       for (int pv31 = 0; pv31 < pv3s1.size(); pv31++)
       {
-        int lam1 = pv3s1[pv31].toprow.lam(), 
-            mu1 = pv3s1[pv31].toprow.mu(),
-            kappa1 = pv3s1[pv31].kappa, 
-            LL1 = 2 * pv3s1[pv31].L;
+        int lam1 = pv3s1[pv31].toprow.lam(), mu1 = pv3s1[pv31].toprow.mu(),
+            kappa1 = pv3s1[pv31].kappa, LL1 = 2 * pv3s1[pv31].L;
 
         for (int pv32 = 0; pv32 < pv3s2.size(); pv32++)
         {
-          int lam2 = pv3s2[pv32].toprow.lam(), 
-              mu2 = pv3s2[pv32].toprow.mu(),
-              kappa2 = pv3s2[pv32].kappa,
-              LL2 = 2 * pv3s2[pv32].L;
+          int lam2 = pv3s2[pv32].toprow.lam(), mu2 = pv3s2[pv32].toprow.mu(),
+              kappa2 = pv3s2[pv32].kappa, LL2 = 2 * pv3s2[pv32].L;
 
           if (std::abs(LL1 - LL2) > LL || (LL1 + LL2) < LL)
             continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(lam1, mu1, LL1/2,
-                                                 lam2, mu2, LL2/2,
-                                                 T.u3.lam(), T.u3.mu(), LL/2);
+          auto [allowU3, cgcU3] =
+              wigU3SO3db.get(lam1, mu1, LL1 / 2, lam2, mu2, LL2 / 2, T.u3.lam(),
+                             T.u3.mu(), LL / 2);
 
           for (int pv41 = 0; pv41 < pv4s1.size(); pv41++)
           {
-            int P11 = pv4s1[pv41].toprow.P1(), 
-                P21 = pv4s1[pv41].toprow.P2(),
-                P31 = pv4s1[pv41].toprow.P3(),
-                SS1 = pv4s1[pv41].SS,
+            int P11 = pv4s1[pv41].toprow.P1(), P21 = pv4s1[pv41].toprow.P2(),
+                P31 = pv4s1[pv41].toprow.P3(), SS1 = pv4s1[pv41].SS,
                 TT1 = pv4s1[pv41].TT;
 
             for (int pv42 = 0; pv42 < pv4s2.size(); pv42++)
             {
-              int P12 = pv4s2[pv42].toprow.P1(), 
-                  P22 = pv4s2[pv42].toprow.P2(),
-                  P32 = pv4s2[pv42].toprow.P3(),
-                  SS2 = pv4s2[pv42].SS,
+              int P12 = pv4s2[pv42].toprow.P1(), P22 = pv4s2[pv42].toprow.P2(),
+                  P32 = pv4s2[pv42].toprow.P3(), SS2 = pv4s2[pv42].SS,
                   TT2 = pv4s2[pv42].TT;
 
               if (std::abs(SS1 - SS2) > SS || (SS1 + SS2) < SS ||
                   std::abs(TT1 - TT2) > TT || (TT1 + TT2) < TT)
                 continue;
 
-              auto [allowU4, cgcU4] = wigU4SU2SU2db.get(P11, P21, P31, SS1, TT1,
-                                                        P12, P22, P32, SS2, TT2,
-                                                        T.u4.P1(), T.u4.P2(), T.u4.P3(), SS, TT);
+              auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+                  P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2, T.u4.P1(),
+                  T.u4.P2(), T.u4.P3(), SS, TT);
 
-              for (int JJ1 = LL1 + SS1; JJ1 >= std::abs(LL1 - SS1); JJ1-=2)
+              for (int JJ1 = LL1 + SS1; JJ1 >= std::abs(LL1 - SS1); JJ1 -= 2)
               {
-                for (int JJ2 = LL2 + SS2; JJ2 >= std::abs(LL2 - SS2); JJ2-=2)
+                for (int JJ2 = LL2 + SS2; JJ2 >= std::abs(LL2 - SS2); JJ2 -= 2)
                 {
                   if (std::abs(JJ1 - JJ2) > JJ || (JJ1 + JJ2) < JJ)
-                    continue; 
-                  double U9j = racah9.compute(LL1, LL2, LL,
-                                              SS1, SS2, SS,
-                                              JJ1, JJ2, JJ);
+                    continue;
+                  double U9j =
+                      racah9.compute(LL1, LL2, LL, SS1, SS2, SS, JJ1, JJ2, JJ);
 
-                  for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1-=2)
+                  for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
                   {
                     int MMJ2 = MMJ - MMJ1;
                     double cgcJ = cgcs.compute(JJ1, JJ2, JJ, MMJ1, MMJ2, MMJ);
 
-                    for (int MMT1 = TT1; MMT1 >= -TT1; MMT1-=2)
+                    for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
                     {
                       int MMT2 = MMT - MMT1;
                       double cgcT = cgcs.compute(TT1, TT2, TT, MMT1, MMT2, MMT);
 
-                      U3xU4::Tad_phys Tad(n,prod_ads,LL1,SS1,TT1,MMT1,JJ1,MMJ1);
-                      auto [coeffs1, adArr] = Tad.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                      U3xU4::Tad_phys Tad(n, prod_ads, LL1, SS1, TT1, MMT1, JJ1,
+                                          MMJ1);
+                      auto [coeffs1, adArr] =
+                          Tad.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
-                      U3xU4::Tat_phys Tat(n,prod_ats,LL2,SS2,TT2,MMT2,JJ2,MMJ2);
-                      auto [coeffs2, atArr] = Tat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                      U3xU4::Tat_phys Tat(n, prod_ats, LL2, SS2, TT2, MMT2, JJ2,
+                                          MMJ2);
+                      auto [coeffs2, atArr] =
+                          Tat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
                       for (int i = 0; i < coeffs1.size(); i++)
                       {
                         for (int j = 0; j < coeffs2.size(); j++)
                         {
-                          Eigen::RowVectorXd x(rhomax * etamax * kappamax * zetamax);
+                          Eigen::RowVectorXd x(rhomax * etamax * kappamax *
+                                               zetamax);
                           x.setZero();
                           for (int rho = 0; rho < rhomax; rho++)
                             for (int eta = 0; eta < etamax; eta++)
                               for (int k = 0; k < kappamax; k++)
                                 for (int z = 0; z < zetamax; z++)
                                 {
-                                  int index = ((rho * etamax + eta) * kappamax + k) * zetamax + z;
+                                  int index =
+                                      ((rho * etamax + eta) * kappamax + k) *
+                                          zetamax +
+                                      z;
                                   for (int k1 = 0; k1 < kappa1; k1++)
                                     for (int k2 = 0; k2 < kappa2; k2++)
-                                      x(index) += cgcU3((k1 * kappa2 + k2) * kappamax + k,rho)
-                                                * cgcU4(z,eta) * U9j * cgcJ * cgcT
-                                                * coeffs1[i](k1) * coeffs2[j](k2);
+                                      x(index) +=
+                                          cgcU3((k1 * kappa2 + k2) * kappamax +
+                                                    k,
+                                                rho) *
+                                          cgcU4(z, eta) * U9j * cgcJ * cgcT *
+                                          coeffs1[i](k1) * coeffs2[j](k2);
                                 }
 
                           if (x.norm() < 1e-12)
@@ -1235,12 +1226,12 @@ namespace U3xU4
 
                           coeffs.push_back(x);
                           adsArr.push_back(adArr[i]);
-                          atsArr.push_back(atArr[j]); 
+                          atsArr.push_back(atArr[j]);
                         }
                       }
                     }
                   }
-                }  
+                }
               }
             }
           }

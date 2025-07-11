@@ -14,8 +14,8 @@ namespace U3xU4
 {
   // find all SDs in the expansion of the HWS
   std::vector<UNxU4::SlaterDeterminant>
-  expand_to_SD(std::size_t A, std::size_t n, std::size_t N, const U3xU4::irrep& x,
-               const std::vector<u3::gelfand>& sps3,
+  expand_to_SD(std::size_t A, std::size_t n, std::size_t N,
+               const U3xU4::irrep& x, const std::vector<u3::gelfand>& sps3,
                const std::vector<u4::gelfand>& sps4);
 
   // find the expansion of the HWS

@@ -18,9 +18,9 @@
 namespace JT
 {
   /* Class for holding one-body operator in JT-coupled scheme
-   JJ TT					       (lam0 mu0) (P0 P0'P0'') 
-  O  		= sum of [Ta x Tb] 
-   MMJ MMT               kappa0 2L0 2S0 2T0 2MT0 2J0 2MJ0 
+   JJ TT					       (lam0 mu0) (P0 P0'P0'')
+  O  		= sum of [Ta x Tb]
+   MMJ MMT               kappa0 2L0 2S0 2T0 2MT0 2J0 2MJ0
    where MMJ = MMJ0 and MMT = MMT0
   */
   class OneBodyOperator
@@ -66,15 +66,14 @@ namespace JT
     double sphericalRME(int na, int lla, int jja, int nb, int llb, int jjb);
 
     // compute the coefficients in the sum
-    std::pair<bool, std::vector<double>>
-    getTensorStrength(int lam0, int mu0, int P10, int P20, int P30, 
-                      int kappa0, int LL0, int SS0, int na, int nb,
-                      const std::vector<u3::physicalvector>& pv3as,
-                      const std::vector<u3::physicalvector>& pv3bs,
-                      const std::vector<u4::physicalvector>& pv4as,
-                      const std::vector<u4::physicalvector>& pv4bs, 
-                      u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
-                      u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db);
+    std::pair<bool, std::vector<double>> getTensorStrength(
+        int lam0, int mu0, int P10, int P20, int P30, int kappa0, int LL0,
+        int SS0, int na, int nb, const std::vector<u3::physicalvector>& pv3as,
+        const std::vector<u3::physicalvector>& pv3bs,
+        const std::vector<u4::physicalvector>& pv4as,
+        const std::vector<u4::physicalvector>& pv4bs, u34utils::SO3_CGC& cgcs,
+        u34utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
+        u4::WigU4SU2SU2_db& wigU4SU2SU2db);
 
     // expand into a sum of multi-shell one-body tensors
     std::vector<U3xU4::OneBodyMultiShellTensor>
