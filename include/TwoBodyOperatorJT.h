@@ -57,6 +57,12 @@ namespace JT
                        int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
                        int mmjd, int mmtd, u34utils::SO3_CGC& cgcs,
                        u34utils::SO3_Racah& racah) const;
+    // Antisymmetrized matrix element
+    double sphericalME_AS(int na, int lla, int jja, int mmja, int mmta, int nb,
+                       int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
+                       int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
+                       int mmjd, int mmtd, u34utils::SO3_CGC& cgcs,
+                       u34utils::SO3_Racah& racah) const;
 
     // Generate a list of al {na, nb, nc, nd} combinations such that
     // 0 <= na, nb, nc, nd <= maxShell

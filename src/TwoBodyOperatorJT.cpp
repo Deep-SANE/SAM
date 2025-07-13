@@ -31,7 +31,7 @@ namespace JT
           cgc += (mu == 0 ? 1.0 : -1.0) *
                  cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
                  cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
-        x = phase * factor * U1 * U2 * cgc;
+        x = 2 * phase * factor * U1 * U2 * cgc;
       }
       break;
     case 2: // Two-body part of L.S
@@ -45,6 +45,23 @@ namespace JT
     }
 
     return x;
+  }
+
+  // Antisymmetrized ME
+  double TwoBodyOperator::sphericalME_AS(int na, int lla, int jja, int mmja,
+                                      int mmta, int nb, int llb, int jjb,
+                                      int mmjb, int mmtb, int nc, int llc,
+                                      int jjc, int mmjc, int mmtc, int nd,
+                                      int lld, int jjd, int mmjd, int mmtd,
+                                      u34utils::SO3_CGC& cgcs,
+                                      u34utils::SO3_Racah& racah) const
+  {
+    return (sphericalME(na,lla,jja,mmja,mmta, nb,llb,jjb,mmjb,mmtb,
+                        nc,llc,jjc,mmjc,mmtc, nd,lld,jjd,mmjd,mmtd, 
+                        cgcs,racah) -
+            sphericalME(na,lla,jja,mmja,mmta, nb,llb,jjb,mmjb,mmtb,
+                        nd,lld,jjd,mmjd,mmtd, nc,llc,jjc,mmjc,mmtc,
+                        cgcs, racah))/4.0;
   }
 
   // Generate a list of al {na+1, nb+1, -nc-1, -nd-1} combinations such that
@@ -243,7 +260,7 @@ namespace JT
                          mmjs_orig = inverse_permutation(mmjs, inverse),
                          mmts_orig = inverse_permutation(mmts, inverse);
 
-      double me = sphericalME(
+      double me = sphericalME_AS(
           ns_orig[0], lls_orig[0], jjs_orig[0], mmjs_orig[0], mmts_orig[0],
           ns_orig[1], lls_orig[1], jjs_orig[1], mmjs_orig[1], mmts_orig[1],
           ns_orig[2], lls_orig[2], jjs_orig[2], mmjs_orig[2], mmts_orig[2],
