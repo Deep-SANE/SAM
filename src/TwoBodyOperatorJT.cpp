@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <tuple>
@@ -66,10 +67,15 @@ namespace JT
 
   // Generate a list of al {na+1, nb+1, -nc-1, -nd-1} combinations such that
   // 0 <= na, nb, nc, nd <= maxShell
-  std::vector<std::array<int, 4>>
+  std::tuple<std::vector<std::array<int, 4>>,
+             std::vector<std::vector<std::vector<int>>>,
+             std::vector<std::vector<int>>>
   TwoBodyOperator::GenerateAllCombinationsHOShells(int maxShell) const
   {
-    std::vector<std::array<int, 4>> na_nb_nc_nd;
+    std::vector<std::array<int, 4>> na_nb_nc_nds;
+    std::vector<std::vector<std::vector<int>>> inverses;
+    std::vector<std::vector<int>> phases;
+
     for (int na = 0; na <= maxShell; na++)
     {
       for (int nb = 0; nb <= maxShell; nb++)
@@ -79,22 +85,41 @@ namespace JT
           for (int nd = 0; nd <= maxShell; nd++)
           {
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
-            na_nb_nc_nd.push_back(ns);
+            auto [sorted_ns, inverse, phase] = sort_shells(ns);
+
+            auto it = std::find(na_nb_nc_nds.begin(), na_nb_nc_nds.end(), sorted_ns);
+            if (it != na_nb_nc_nds.end())
+            {
+              int index = std::distance(na_nb_nc_nds.begin(), it);
+              inverses[index].push_back(inverse);
+              phases[index].push_back(phase);
+            }
+            else
+            {
+              na_nb_nc_nds.push_back(sorted_ns);
+              inverses.push_back({inverse});
+              phases.push_back({phase});
+            }
           }
         }
       }
     }
-    return na_nb_nc_nd;
+    return std::make_tuple(na_nb_nc_nds, inverses, phases);
   }
 
   // Restrict:
   // 0 <= (na - valenceShell + (nb - valenceShell) <= Nmax
   // 0 <= (nc - valenceShell + (nd - valenceShell) <= Nmax
-  std::vector<std::array<int, 4>>
+  std::tuple<std::vector<std::array<int, 4>>,
+             std::vector<std::vector<std::vector<int>>>,
+             std::vector<std::vector<int>>>
   TwoBodyOperator::GenerateAllCombinationsHOShells(int Nmax, int valenceShell,
                                                    int maxShell) const
   {
-    std::vector<std::array<int, 4>> na_nb_nc_nd;
+    std::vector<std::array<int, 4>> na_nb_nc_nds;
+    std::vector<std::vector<std::vector<int>>> inverses;
+    std::vector<std::vector<int>> phases;
+
     for (int na = 0; na <= maxShell; na++)
     {
       for (int nb = 0; nb <= maxShell; nb++)
@@ -120,20 +145,34 @@ namespace JT
               continue;
 
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
-            na_nb_nc_nd.push_back(ns);
+            auto [sorted_ns, inverse, phase] = sort_shells(ns);
+
+            auto it = std::find(na_nb_nc_nds.begin(), na_nb_nc_nds.end(), sorted_ns);
+            if (it != na_nb_nc_nds.end())
+            {
+              int index = std::distance(na_nb_nc_nds.begin(), it);
+              inverses[index].push_back(inverse);
+              phases[index].push_back(phase);
+            }
+            else
+            {
+              na_nb_nc_nds.push_back(sorted_ns);
+              inverses.push_back({inverse});
+              phases.push_back({phase});
+            }
           }
         }
       }
     }
-    return na_nb_nc_nd;
+    return std::make_tuple(na_nb_nc_nds, inverses, phases);
   }
 
   // Perform permutation of tensor in increasing shell.
   // For tensors of the same shell, ad's are in the front of at's.
   // Exchange of 2 tensors always incurs a phase of -1.0.
   // No exchange of ad and a of the same shell occurs.
-  static std::tuple<std::array<int, 4>, std::vector<int>, int>
-  sort_shells(const std::array<int, 4>& original)
+  std::tuple<std::array<int, 4>, std::vector<int>, int>
+  TwoBodyOperator::sort_shells(const std::array<int, 4>& original) const
   {
     // index vector
     std::vector<int> indices = {0, 1, 2, 3};
@@ -174,9 +213,9 @@ namespace JT
   }
 
   // Restores the original ordering using inverse permutation
-  static std::array<int, 4>
-  inverse_permutation(const std::array<int, 4>& sorted,
-                      const std::vector<int>& inverse)
+  std::array<int, 4>
+  TwoBodyOperator::inverse_permutation(const std::array<int, 4>& sorted,
+                                       const std::vector<int>& inverse) const
   {
     std::array<int, 4> restored;
     for (int i = 0; i < 4; ++i)
@@ -189,8 +228,8 @@ namespace JT
   // first: shell number
   // second: number of ad's
   // thrid: number of at's
-  static std::vector<std::array<int, 3>>
-  group_same_shell(const std::array<int, 4>& sorted)
+  std::vector<std::array<int, 3>>
+  TwoBodyOperator::group_same_shell(const std::array<int, 4>& sorted) const
   {
     std::vector<std::array<int, 3>> groups;
     for (int i = 0; i < 4; i++)
@@ -213,8 +252,10 @@ namespace JT
   // Set coefficient for two-body multi-shell tensor.
   // It returns a flag, which indicate whether this tensor can be ignored.
   bool TwoBodyOperator::setCoefficient(
-      U3xU4::TwoBodyMultiShellTensor& tensor, double phase,
-      const std::vector<int>& inverse, u34utils::SO3_CGC& cgcs,
+      U3xU4::TwoBodyMultiShellTensor& tensor, 
+      const std::vector<std::vector<int>>& inverse, 
+      const std::vector<int>& phase,
+      u34utils::SO3_CGC& cgcs,
       u34utils::SO3_Racah& racah, u34utils::SO3_Racah9& racah9,
       u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
@@ -254,18 +295,23 @@ namespace JT
         j++;
       }
 
-      std::array<int, 4> ns_orig = inverse_permutation(ns, inverse),
-                         lls_orig = inverse_permutation(lls, inverse),
-                         jjs_orig = inverse_permutation(jjs, inverse),
-                         mmjs_orig = inverse_permutation(mmjs, inverse),
-                         mmts_orig = inverse_permutation(mmts, inverse);
+      double me = 0.0;
 
-      double me = sphericalME_AS(
+      for (int k = 0; k < inverse.size(); k++)
+      {
+        std::array<int, 4> ns_orig = inverse_permutation(ns, inverse[k]),
+                           lls_orig = inverse_permutation(lls, inverse[k]),
+                           jjs_orig = inverse_permutation(jjs, inverse[k]),
+                           mmjs_orig = inverse_permutation(mmjs, inverse[k]),
+                           mmts_orig = inverse_permutation(mmts, inverse[k]);
+
+        me += phase[k] * sphericalME_AS(
           ns_orig[0], lls_orig[0], jjs_orig[0], mmjs_orig[0], mmts_orig[0],
           ns_orig[1], lls_orig[1], jjs_orig[1], mmjs_orig[1], mmts_orig[1],
           ns_orig[2], lls_orig[2], jjs_orig[2], mmjs_orig[2], mmts_orig[2],
           ns_orig[3], lls_orig[3], jjs_orig[3], mmjs_orig[3], mmts_orig[3],
           cgcs, racah);
+      }
 
       if (std::fabs(me) < 1e-12)
         continue;
@@ -277,7 +323,7 @@ namespace JT
     double norm = 0.0;
     for (int c = 0; c < coeffs_.size(); c++)
     {
-      coeffs_[c] *= phase;
+      //coeffs_[c] *= phase;
       norm += std::fabs(coeffs_[c]);
     }
     bool ignore = (norm < 1e-10);
@@ -297,7 +343,7 @@ namespace JT
     std::vector<U3xU4::TwoBodyMultiShellTensor> tensors;
 
 #ifdef RESTRICT_WITH_NMAX
-    auto all_na_nb_nc_nd =
+    auto [all_na_nb_nc_nd, all_inverse, all_phase] =
         GenerateAllCombinationsHOShells(Nmax, valenceShell, maxShell);
 #else
     auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell);
@@ -305,11 +351,18 @@ namespace JT
     
     for (int i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
-      auto [sorted_ns, inverse, global_phase] = sort_shells(all_na_nb_nc_nd[i]);
+/*
+      for (auto sorted_n : all_na_nb_nc_nd[i]) 
+        std::cout << sorted_n << " ";
+      std::cout << "\n phases = ";
+      for (auto phase : all_phase[i])
+        std::cout << phase << " ";
+      std::cout << "\n";
+*/
 
-      auto groups_ns = group_same_shell(sorted_ns);
+      //auto groups_ns = group_same_shell(sorted_ns);
+      auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
       std::vector<std::vector<U3xU4::Tadat>> Tadat_lists;
-
       for (auto group : groups_ns)
       {
         Tadat_lists.push_back(U3xU4::GenerateSingleShellTensors(
@@ -369,10 +422,13 @@ namespace JT
                   Tadat_choices[0].eta0max, kappa0, LL0, zeta0, SS0, TT, MMT,
                   JJ, MMJ, {});
               bool ignore =
-                  setCoefficient(tensor, global_phase, inverse, cgcs, racah,
+                  setCoefficient(tensor, all_inverse[i], all_phase[i], cgcs, racah,
                                  racah9, wigU3SO3db, wigU4SU2SU2db);
               if (ignore == false)
+              {
+                //std::cout << tensor << std::endl;
                 tensors.push_back(tensor);
+              }
             }
             // otherwise, it remains a multi-shell tensor
             else
@@ -381,14 +437,17 @@ namespace JT
                   Tadat_choices, coupled_irreps, Rhomax, Etamax, kappa0, LL0,
                   zeta0, SS0, TT, MMT, JJ, MMJ, {});
               bool ignore =
-                  setCoefficient(tensor, global_phase, inverse, cgcs, racah,
+                  setCoefficient(tensor, all_inverse[i], all_phase[i], cgcs, racah,
                                  racah9, wigU3SO3db, wigU4SU2SU2db);
               if (ignore == false)
+              {
+                //std::cout << tensor << std::endl;
                 tensors.push_back(tensor);
+              }
             }
           }
         }
-      }
+      } 
     }
 
     return tensors;

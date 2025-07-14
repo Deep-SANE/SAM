@@ -64,25 +64,36 @@ namespace JT
                        int mmjd, int mmtd, u34utils::SO3_CGC& cgcs,
                        u34utils::SO3_Racah& racah) const;
 
-    // Generate a list of al {na, nb, nc, nd} combinations such that
+    // Generate a list of all {na, nb, nc, nd} combinations such that
     // 0 <= na, nb, nc, nd <= maxShell
-    std::vector<std::array<int, 4>>
+    std::tuple<std::vector<std::array<int, 4>>,
+               std::vector<std::vector<std::vector<int>>>,
+               std::vector<std::vector<int>>>
     GenerateAllCombinationsHOShells(int maxShell) const;
     // Restrict:
     // 0 <= (na - valenceShell + (nb - valenceShell) <= Nmax
     // 0 <= (nc - valenceShell + (nd - valenceShell) <= Nmax
-    std::vector<std::array<int, 4>>
+    std::tuple<std::vector<std::array<int, 4>>,
+               std::vector<std::vector<std::vector<int>>>,
+               std::vector<std::vector<int>>>
     GenerateAllCombinationsHOShells(int Nmax, int valenceShell,
                                     int maxShell) const;
+    // Note that for both cases, permutation on {na, nb, nc, nd} is applied
+    // to obtain a combination in the order of increasing shells. Different 
+    // unpermuted combinations may be permuted to the same one. These two
+    // methods only return permuted combinations together with their phases
+    // and arrays for the purpose of inverting the permutations.
+    
 
     // Set coefficient for two-body multi-shell tensor.
     // It returns a flag, which indicate whether this tensor can be ignored.
-    bool setCoefficient(U3xU4::TwoBodyMultiShellTensor& tensor, double phase,
-                        const std::vector<int>& inverse,
-                        u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah& racah,
-                        u34utils::SO3_Racah9& racah9,
-                        u3::WigU3SO3_db& wigU3SO3db,
-                        u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+    bool setCoefficient(
+      U3xU4::TwoBodyMultiShellTensor& tensor, 
+      const std::vector<std::vector<int>>& inverse, 
+      const std::vector<int>& phase,
+      u34utils::SO3_CGC& cgcs,
+      u34utils::SO3_Racah& racah, u34utils::SO3_Racah9& racah9,
+      u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
 
     // expand into a sum of multi-shell two-body tensors
     std::vector<U3xU4::TwoBodyMultiShellTensor>
@@ -90,6 +101,27 @@ namespace JT
            u34utils::SO3_Racah& racah, u34utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db,
            u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+  private:
+
+    // Perform permutation of tensor in increasing shell.
+    // For tensors of the same shell, ad's are in the front of at's.
+    // Exchange of 2 tensors always incurs a phase of -1.0.
+    // No exchange of ad and a of the same shell occurs.
+    std::tuple<std::array<int, 4>, std::vector<int>, int>
+      sort_shells(const std::array<int, 4>& original) const;
+
+    // Restores the original ordering using inverse permutation
+    std::array<int, 4>
+      inverse_permutation(const std::array<int, 4>& sorted,
+                          const std::vector<int>& inverse) const;
+
+    // Group tensors of the same shell
+    // Results are contained in a list of 3-element arrays:
+    // first: shell number
+    // second: number of ad's
+    // thrid: number of at's
+    std::vector<std::array<int, 3>>
+      group_same_shell(const std::array<int, 4>& sorted) const;
   };
 
 } // namespace JT
