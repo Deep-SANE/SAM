@@ -280,16 +280,11 @@ namespace U4xSU3
     }
 
     ////////////////////////// U4 /////////////////////////////
-    void Couple(const MU4& a, const MU4& b, MU4_VEC& resulting_mult_u4)
+    void Couple(const MU4& a, const MU4& b, MU4_VEC& result)
     {
       auto [u4s, mults] = u4::decomposition(a.u4, b.u4);
       for (int i = 0; i < u4s.size(); i++)
-      {
-        MU4 mu4;
-        mu4.mult = mults[i];
-        mu4.u4 = u4s[i];
-        resulting_mult_u4.push_back(mu4);
-      }
+        result.emplace_back(mults[i], u4s[i]);
     }
 
     void generate_gammas()
@@ -512,50 +507,6 @@ namespace U4xSU3
     }
 
   private:
-    int su3mult(int lm1, int mu1, int lm2, int mu2, int lm3, int mu3)
-    {
-      int result = 0;
-      int phase = lm1 + lm2 - lm3 - mu1 - mu2 + mu3;
-
-      if (phase % 3 == 0)
-      {
-        int redphase;
-        int l1, l2, l3, m1, m2, m3;
-
-        redphase = phase / 3;
-        if (phase >= 0)
-        {
-          l1 = lm1;
-          l2 = lm2;
-          l3 = lm3;
-          m1 = mu1;
-          m2 = mu2;
-          m3 = mu3;
-        }
-        else
-        {
-          l1 = mu1;
-          l2 = mu2;
-          l3 = mu3;
-          m1 = lm1;
-          m2 = lm2;
-          m3 = lm3;
-          redphase = -redphase;
-        }
-        phase = redphase + m1 + m2 - m3;
-
-        int invl1 = std::min(l1 - redphase, m2);
-        if (invl1 < 0)
-          return result;
-
-        int invl2 = std::min(l2 - redphase, m1);
-        if (invl2 < 0)
-          return result;
-        result = std::max(
-            std::min(phase, invl2) - std::max(phase - invl1, 0) + 1, 0);
-      }
-      return result;
-    }
 
     int kmax(int lm, int mu, int L)
     {
@@ -601,9 +552,9 @@ namespace U4xSU3
         auto res = gen.irreps();
         for (const auto& [u3, mult] : res)
         {
-          su3::irrep su3(u3.lam(), u3.mu());
+       // su3::irrep su3(u3.lam(), u3.mu());
           allowedSU3U4irreps.push_back(
-              std::make_pair(MU4(1, u4), MSU3(mult, su3)));
+              std::make_pair(MU4(1, u4), MSU3(mult, u3)));
         }
       }
     }
@@ -636,23 +587,12 @@ namespace U4xSU3
             int irho = ix - std::max({0, -ip, in - lm1}) + 1;
             if (irho != 1)
               continue;
-            result.push_back(MSU3(su3mult(lm1, mu1, lm2, mu2, lm3, mu3),
+            result.push_back(MSU3(su3::Rho(lm1, mu1, lm2, mu2, lm3, mu3),
                                   su3::irrep(lm3, mu3)));
           }
         }
       }
     }
-
-    /*
-    void Couple(const MSU3& a, const MSU3& b, MSU3_VEC& result)
-    {
-      int lm1 = a.lm;
-      int mu1 = a.mu;
-      int lm2 = b.lm;
-      int mu2 = b.mu;
-      couple(lm1, mu1, lm2, mu2, result);
-    }
-    */
 
     template <typename T, std::size_t Extent>
     void gamma2omega(std::span<T, Extent> gamma,
@@ -791,24 +731,5 @@ namespace U4xSU3
 
       // dim_ += dim;
     }
-
-    /*
-    std::vector<int> UN_to_UN(const std::vector<size_t>& un5)
-    {
-      int N = std::reduce(un5.begin(), un5.end());
-      std::vector<int> un(N, 0);
-
-      size_t index = 0;
-      for (size_t i = 0; i <= 4; ++i)
-      {
-        int A = 4 - i;
-        // n ... number of labels with A particles
-        int n = un5[i];
-        for (size_t j = 1; j <= n; ++j)
-          un[index++] = A;
-      }
-      return un;
-    }
-    */
   };
 } // namespace U4xSU3
