@@ -8,10 +8,15 @@
 #include <tuple>
 #include <vector>
 
+#include <U3basis.h>
+#include <U3decomposition.h>
+#include <U3irrep.h>
+
 #include <U4basis.h>
 #include <U4decomposition.h>
+#include <U4irrep.h>
+
 #include <UNtoU3.h>
-#include <UNxU4SlaterDeterminant.h>
 
 namespace U4xSU3
 {
@@ -34,8 +39,7 @@ namespace U4xSU3
     struct MSU3
     {
       uint16_t mult;
-      int lm;
-      int mu;
+      su3::irrep su3;
     };
 
     using MSU3_VEC = std::vector<MSU3>;
@@ -458,7 +462,8 @@ namespace U4xSU3
         assert(mu4.mult == 1);
 
         uint32_t mult = msu3.mult;
-        auto dim = mult * computeDim(msu3.lm, msu3.mu, mu4.u4);
+     // auto dim = mult * computeDim(msu3.lm, msu3.mu, mu4.u4);
+        auto dim = mult * computeDim(msu3.su3, mu4.u4);
 
         irreps_.emplace_back(nhw, dist_id, gamma_id, gamma_id, dim_);
 
@@ -468,9 +473,14 @@ namespace U4xSU3
         generate_omegas_for_gamma(nhw, dist_id, gamma_id, gamma_u4, gamma_su3);
     }
 
-    int computeDim(int lm, int mu, int SS)
+ // int computeDim(int lm, int mu, int SS)
+    int computeDim(const su3::irrep& u3, int SS)
     {
+      auto lm = u3.lambda();
+      auto mu = u3.mu();
+
       int dim = 0;
+
       for (int l = 0; l <= lm + mu; ++l)
       {
         int k0max = kmax(lm, mu, l);
@@ -484,7 +494,8 @@ namespace U4xSU3
       return dim;
     }
 
-    int computeDim(int lm, int mu, const u4::irrep& u4)
+ // int computeDim(int lm, int mu, const u4::irrep& u4)
+    int computeDim(const su3::irrep& su3, const u4::irrep& u4)
     {
       int dim = 0;
       auto u4_basis = u4::physicalBasis(u4);
@@ -494,7 +505,7 @@ namespace U4xSU3
         {
           int mult = labels.zeta;
           int SS = labels.SS;
-          dim += mult * computeDim(lm, mu, SS);
+          dim += mult * computeDim(su3, SS);
         }
       }
       return dim;
@@ -590,17 +601,23 @@ namespace U4xSU3
         auto res = gen.irreps();
         for (const auto& [u3, mult] : res)
         {
-          int lm = u3.lam();
-          int mu = u3.mu();
+          su3::irrep su3(u3.lam(), u3.mu());
           allowedSU3U4irreps.push_back(
-              std::make_pair(MU4(1, u4), MSU3(mult, lm, mu)));
+              std::make_pair(MU4(1, u4), MSU3(mult, su3)));
         }
       }
     }
 
-    void couple(int lm1, int mu1, int lm2, int mu2, MSU3_VEC& ir3)
+ // void couple(int lm1, int mu1, int lm2, int mu2, MSU3_VEC& ir3)
+    void Couple(const MSU3& a, const MSU3& b, MSU3_VEC& result)
     {
-      ir3.reserve(3 * (lm1 + mu1 + lm2 + mu2));
+      auto lm1 = a.su3.lambda();
+      auto mu1 = a.su3.mu();
+
+      auto lm2 = b.su3.lambda();
+      auto mu2 = b.su3.mu();
+
+      result.reserve(3 * (lm1 + mu1 + lm2 + mu2));
 
       int ix_max = std::min(mu1, lm2);
       for (int ix = 0; ix <= ix_max; ++ix)
@@ -619,13 +636,14 @@ namespace U4xSU3
             int irho = ix - std::max({0, -ip, in - lm1}) + 1;
             if (irho != 1)
               continue;
-            ir3.push_back(
-                MSU3(su3mult(lm1, mu1, lm2, mu2, lm3, mu3), lm3, mu3));
+            result.push_back(MSU3(su3mult(lm1, mu1, lm2, mu2, lm3, mu3),
+                                  su3::irrep(lm3, mu3)));
           }
         }
       }
     }
 
+    /*
     void Couple(const MSU3& a, const MSU3& b, MSU3_VEC& result)
     {
       int lm1 = a.lm;
@@ -634,6 +652,7 @@ namespace U4xSU3
       int mu2 = b.mu;
       couple(lm1, mu1, lm2, mu2, result);
     }
+    */
 
     template <typename T, std::size_t Extent>
     void gamma2omega(std::span<T, Extent> gamma,
@@ -716,6 +735,11 @@ namespace U4xSU3
         {
           assert(mu4_vec.size() == msu3_vec.size());
 
+          uint32_t mult_su3 = 1;
+          for (size_t i = 0; i < msu3_vec.size(); ++i)
+            mult_su3 *= msu3_vec[i].mult;
+          uint32_t mult = mult_gamma * mult_u4 * mult_su3;
+
           /*
           std::cout << "\t\t";
           for (size_t i = 0; i < mu4_vec.size(); i++)
@@ -729,16 +753,13 @@ namespace U4xSU3
           }
           */
 
-          uint32_t mult_su3 = 1;
-          for (size_t i = 0; i < msu3_vec.size(); ++i)
-            mult_su3 *= msu3_vec[i].mult;
-          uint32_t mult = mult_gamma * mult_u4 * mult_su3;
           MU4 mu4 = mu4_vec.back();
           MSU3 msu3 = msu3_vec.back();
-          u4::irrep u4 = mu4.u4;
-          int lm = msu3.lm;
-          int mu = msu3.mu;
-          uint32_t dim_irrep = computeDim(lm, mu, u4);
+       // u4::irrep u4 = mu4.u4;
+       // su3::irerp su3 = msu3.su3;
+       // int lm = msu3.lm;
+       // int mu = msu3.mu;
+          uint32_t dim_irrep = computeDim(msu3.su3, mu4.u4);
 
           auto dim_omega = mult * dim_irrep;
           dim += dim_omega;

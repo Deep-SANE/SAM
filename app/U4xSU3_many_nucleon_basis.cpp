@@ -51,7 +51,7 @@ int main()
                 mu4.u4.n34(), mu4.u4.n44());
 
           auto& msu3 = gammas_su3[i_irrep];
-          print(" {}({} {})\n", msu3.mult, msu3.lm, msu3.mu);
+          print(" {}({} {})\n", msu3.mult, msu3.su3.lambda(), msu3.su3.mu());
         }
 
         auto [omega_id_begin, n_omegas] = basis.gamma_omegas(gamma_id);
@@ -71,7 +71,7 @@ int main()
                   mu4.u4.n34(), mu4.u4.n44());
 
             auto& msu3 = omegas_su3[i_irrep];
-            print(" {}({} {})  ", msu3.mult, msu3.lm, msu3.mu);
+            print(" {}({} {})  ", msu3.mult, msu3.su3.lambda(), msu3.su3.mu());
           }
           print("mult:{} dim:{}\n", mult, dim);
         }
