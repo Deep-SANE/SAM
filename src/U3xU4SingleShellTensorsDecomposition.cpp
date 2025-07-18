@@ -266,7 +266,7 @@ namespace U3xU4
       Eigen::RowVectorXd c(1);
       c(0) = 1.0;
       coeffsArr.push_back(c);
-      U3xU4::ad_phys ad(n, LL, JJ, MMJ, MMT);
+      U3xU4::ad_phys ad(n, LL, JJ, MMJ, MMT, labels);
       U3xU4::ads_phys Tad(1, ad);
       tensorsArr.push_back(Tad);
     }
@@ -310,9 +310,14 @@ namespace U3xU4
               for (int mmja = jja; mmja >= -jja; mmja -= 2)
               {
                 int mmjb = MMJ - mmja;
+                if (std::abs(mmjb) > jjb)
+                  continue;
+
                 for (int mmta = 1; mmta >= -1; mmta -= 2)
                 {
                   int mmtb = MMT - mmta;
+                  if (std::abs(mmtb) > 1)
+                    continue;
 
                   double cgcJ = cgcs.compute(jja, jjb, JJ, mmja, mmjb, MMJ),
                          cgcT = cgcs.compute(1, 1, TT, mmta, mmtb, MMT),
@@ -328,8 +333,8 @@ namespace U3xU4
 
                   coeffsArr.push_back(coeffs);
 
-                  U3xU4::ad_phys ad1(n, lla, jja, mmja, mmta),
-                      ad2(n, llb, jjb, mmjb, mmtb);
+                  U3xU4::ad_phys ad1(n, lla, jja, mmja, mmta, labels),
+                      ad2(n, llb, jjb, mmjb, mmtb, labels);
                   U3xU4::ads_phys Tad = {ad1, ad2};
                   tensorsArr.push_back(Tad);
                 }
@@ -395,9 +400,14 @@ namespace U3xU4
                 for (int mmjc = jjc; mmjc >= -jjc; mmjc -= 2)
                 {
                   int MMJ0 = MMJ - mmjc;
+                  if (std::abs(MMJ0) > JJ0)
+                    continue;
+
                   for (int mmtc = 1; mmtc >= -1; mmtc -= 2)
                   {
                     int MMT0 = MMT - mmtc;
+                    if (std::abs(MMT0) > TT0)
+                      continue;
 
                     double cgcJ = cgcs.compute(JJ0, jjc, JJ, MMJ0, mmjc, MMJ),
                            cgcT = cgcs.compute(TT0, 1, TT, MMT0, mmtc, MMT),
@@ -405,7 +415,7 @@ namespace U3xU4
 
                     std::vector<U3xU4::irrep> prod_ads0(1, prod_characters[0]);
                     U3xU4::Tad_phys Tad0(n, prod_ads0, LL0, SS0, TT0, MMT0, JJ0,
-                                         MMJ0);
+                                         MMJ0, labels);
 
                     auto [coeffsArr0, adArr0] =
                         Tad0.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
@@ -425,7 +435,7 @@ namespace U3xU4
                       coeffsArr.push_back(coeffs);
 
                       U3xU4::ads_phys adad = adArr0[i];
-                      U3xU4::ad_phys ad3(n, llc, jjc, mmjc, mmtc);
+                      U3xU4::ad_phys ad3(n, llc, jjc, mmjc, mmtc, labels);
                       adad.push_back(ad3);
                       tensorsArr.push_back(adad);
                     }
@@ -695,7 +705,7 @@ namespace U3xU4
     if (num == 1)
     {
       Eigen::RowVectorXd c(1);
-      U3xU4::at_phys at(n, LL, JJ, MMJ, MMT);
+      U3xU4::at_phys at(n, LL, JJ, MMJ, MMT, labels);
       c(0) = at.turnToAnnihilation();
       coeffsArr.push_back(c);
       U3xU4::ats_phys Tat(1, at);
@@ -741,15 +751,20 @@ namespace U3xU4
               for (int mmja = jja; mmja >= -jja; mmja -= 2)
               {
                 int mmjb = MMJ - mmja;
+                if (std::abs(mmjb) > jjb)
+                  continue;
+
                 for (int mmta = 1; mmta >= -1; mmta -= 2)
                 {
                   int mmtb = MMT - mmta;
+                  if (std::abs(mmtb) > 1)
+                    continue;
 
                   double cgcJ = cgcs.compute(jja, jjb, JJ, mmja, mmjb, MMJ),
                          cgcT = cgcs.compute(1, 1, TT, mmta, mmtb, MMT);
 
-                  U3xU4::at_phys at1(n, lla, jja, mmja, mmta),
-                      at2(n, llb, jjb, mmjb, mmtb);
+                  U3xU4::at_phys at1(n, lla, jja, mmja, mmta, labels),
+                      at2(n, llb, jjb, mmjb, mmtb, labels);
                   double phase1 = at1.turnToAnnihilation(),
                          phase2 = at2.turnToAnnihilation(),
                          factor =
@@ -833,9 +848,14 @@ namespace U3xU4
                 for (int mmjc = jjc; mmjc >= -jjc; mmjc -= 2)
                 {
                   int MMJ0 = MMJ - mmjc;
+                  if (std::abs(MMJ0) > JJ0)
+                    continue;
+
                   for (int mmtc = 1; mmtc >= -1; mmtc -= 2)
                   {
                     int MMT0 = MMT - mmtc;
+                    if (std::abs(MMT0) > TT0)
+                      continue;
 
                     double cgcJ = cgcs.compute(JJ0, jjc, JJ, MMJ0, mmjc, MMJ),
                            cgcT = cgcs.compute(TT0, 1, TT, MMT0, mmtc, MMT),
@@ -843,14 +863,14 @@ namespace U3xU4
 
                     std::vector<U3xU4::irrep> prod_ats0(1, prod_characters[0]);
                     U3xU4::Tat_phys Tat0(n, prod_ats0, LL0, SS0, TT0, MMT0, JJ0,
-                                         MMJ0);
+                                         MMJ0, labels);
 
                     auto [coeffsArr0, aArr0] =
                         Tat0.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
                     for (int i = 0; i < coeffsArr0.size(); i++)
                     {
-                      U3xU4::at_phys at3(n, llc, jjc, mmjc, mmtc);
+                      U3xU4::at_phys at3(n, llc, jjc, mmjc, mmtc, labels);
                       double phase3 = at3.turnToAnnihilation();
 
                       Eigen::RowVectorXd coeffs(kappamax);
@@ -1088,7 +1108,7 @@ namespace U3xU4
     // only ads
     if (ats == 0)
     {
-      U3xU4::Tad_phys Tad(n, prod_ads, LL, SS, TT, MMT, JJ, MMJ);
+      U3xU4::Tad_phys Tad(n, prod_ads, LL, SS, TT, MMT, JJ, MMJ, labels);
       std::tie(coeffs, adsArr) =
           Tad.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
     }
@@ -1096,7 +1116,7 @@ namespace U3xU4
     // only ats
     else if (ads == 0)
     {
-      U3xU4::Tat_phys Tat(n, prod_ats, LL, SS, TT, MMT, JJ, MMJ);
+      U3xU4::Tat_phys Tat(n, prod_ats, LL, SS, TT, MMT, JJ, MMJ, labels);
       std::tie(coeffs, atsArr) =
           Tat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
     }
@@ -1178,20 +1198,26 @@ namespace U3xU4
                   for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
                   {
                     int MMJ2 = MMJ - MMJ1;
+                    if (std::abs(MMJ2) > JJ2)
+                      continue;
+
                     double cgcJ = cgcs.compute(JJ1, JJ2, JJ, MMJ1, MMJ2, MMJ);
 
                     for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
                     {
                       int MMT2 = MMT - MMT1;
+                      if (std::abs(MMT2) > TT2)
+                        continue;
+                      
                       double cgcT = cgcs.compute(TT1, TT2, TT, MMT1, MMT2, MMT);
 
                       U3xU4::Tad_phys Tad(n, prod_ads, LL1, SS1, TT1, MMT1, JJ1,
-                                          MMJ1);
+                                          MMJ1, labels);
                       auto [coeffs1, adArr] =
                           Tad.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
                       U3xU4::Tat_phys Tat(n, prod_ats, LL2, SS2, TT2, MMT2, JJ2,
-                                          MMJ2);
+                                          MMJ2, labels);
                       auto [coeffs2, atArr] =
                           Tat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 

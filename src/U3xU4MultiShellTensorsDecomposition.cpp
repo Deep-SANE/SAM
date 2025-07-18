@@ -30,7 +30,7 @@ namespace U3xU4
       const U3xU4::Tadat& tadat = single_shell_tensors[0];
       U3xU4::Tadat_phys tadat_phys(tadat.n, tadat.ads, tadat.ats,
                                    tadat.prod_ads, tadat.prod_ats, tadat.T,
-                                   rhomax, etamax, LL, SS, TT, MMT, JJ, MMJ);
+                                   rhomax, etamax, LL, SS, TT, MMT, JJ, MMJ, labels);
 
       auto [coeffs, ads, ats] =
           tadat_phys.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
@@ -116,24 +116,30 @@ namespace U3xU4
                   for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
                   {
                     int MMJ2 = MMJ - MMJ1;
+                    if (std::abs(MMJ2) > JJ2)
+                      continue;
+
                     double cgcJ = cgcs.compute(JJ1, JJ2, JJ, MMJ1, MMJ2, MMJ);
 
                     for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
                     {
                       int MMT2 = MMT - MMT1;
+                      if (std::abs(MMT2) > TT2)
+                        continue;
+
                       double cgcT = cgcs.compute(TT1, TT2, TT, MMT1, MMT2, MMT);
 
                       U3xU4::Tadat_phys tadat_phys1(
                           tadat1.n, tadat1.ads, tadat1.ats, tadat1.prod_ads,
                           tadat1.prod_ats, tadat1.T, tadat1.rho0max,
-                          tadat1.eta0max, LL1, SS1, TT1, MMT1, JJ1, MMJ1);
+                          tadat1.eta0max, LL1, SS1, TT1, MMT1, JJ1, MMJ1, labels);
                       auto [coeffsArr1, adsArr1, asArr1] = tadat_phys1.expand(
                           cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
                       U3xU4::Tadat_phys tadat_phys2(
                           tadat2.n, tadat2.ads, tadat2.ats, tadat2.prod_ads,
                           tadat2.prod_ats, tadat2.T, tadat2.rho0max,
-                          tadat2.eta0max, LL2, SS2, TT2, MMT2, JJ2, MMJ2);
+                          tadat2.eta0max, LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels);
                       auto [coeffsArr2, adsArr2, asArr2] = tadat_phys2.expand(
                           cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 
@@ -280,11 +286,17 @@ namespace U3xU4
                   for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
                   {
                     int MMJ2 = MMJ - MMJ1;
+                    if (std::abs(MMJ2) > JJ2)
+                      continue;
+
                     double cgcJ = cgcs.compute(JJ1, JJ2, JJ, MMJ1, MMJ2, MMJ);
 
                     for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
                     {
                       int MMT2 = MMT - MMT1;
+                      if (std::abs(MMT2) > TT2)
+                        continue;
+
                       double cgcT = cgcs.compute(TT1, TT2, TT, MMT1, MMT2, MMT);
 
                       // Even though the extracted tensor is no longer a
@@ -294,7 +306,7 @@ namespace U3xU4
                       // 1
                       U3xU4::TwoBodyMultiShellTensor new_multi_shell_tensor(
                           single_shell_tensors_new, coupled_irreps_new, 1, 1,
-                          kappa1, LL1, zeta1, SS1, TT1, MMT1, JJ1, MMJ1, {});
+                          kappa1, LL1, zeta1, SS1, TT1, MMT1, JJ1, MMJ1, {}, labels);
 
                       auto [coeffsArr1, opsArr1] =
                           new_multi_shell_tensor.expand(
@@ -303,7 +315,7 @@ namespace U3xU4
                       U3xU4::Tadat_phys tadat_phys(
                           tadat.n, tadat.ads, tadat.ats, tadat.prod_ads,
                           tadat.prod_ats, tadat.T, tadat.rho0max, tadat.eta0max,
-                          LL2, SS2, TT2, MMT2, JJ2, MMJ2);
+                          LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels);
                       auto [coeffsArr2, adsArr2, asArr2] = tadat_phys.expand(
                           cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
 

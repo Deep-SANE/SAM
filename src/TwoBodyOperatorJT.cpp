@@ -285,11 +285,12 @@ namespace JT
         std::visit(
             [&](auto&& o)
             {
-              ns[j] = o.n;
+              /* ns[j] = o.n;
               lls[j] = o.ll;
               jjs[j] = o.jj;
               mmjs[j] = o.mmj;
-              mmts[j] = o.mmt;
+              mmts[j] = o.mmt; */
+              std::tie(ns[j], lls[j], jjs[j], mmjs[j], mmts[j]) = o.getLabels();
             },
             op);
         j++;
@@ -337,9 +338,10 @@ namespace JT
 
 #define RESTRICT_WITH_NMAX
   std::vector<U3xU4::TwoBodyMultiShellTensor> TwoBodyOperator::expand(
-      int Nmax, int valenceShell, int maxShell, u34utils::SO3_CGC& cgcs,
-      u34utils::SO3_Racah& racah, u34utils::SO3_Racah9& racah9,
-      u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+      int Nmax, int valenceShell, int maxShell, HO::Table_nljmjmt& labels,
+      u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah& racah, 
+      u34utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db, 
+      u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     std::vector<U3xU4::TwoBodyMultiShellTensor> tensors;
 
@@ -421,7 +423,7 @@ namespace JT
               U3xU4::TwoBodyMultiShellTensor tensor(
                   Tadat_choices, coupled_irreps, Tadat_choices[0].rho0max,
                   Tadat_choices[0].eta0max, kappa0, LL0, zeta0, SS0, TT, MMT,
-                  JJ, MMJ, {});
+                  JJ, MMJ, {}, labels);
               bool ignore =
                   setCoefficient(tensor, all_inverse[i], all_phase[i], cgcs, racah,
                                  racah9, wigU3SO3db, wigU4SU2SU2db);
@@ -436,7 +438,7 @@ namespace JT
             {
               U3xU4::TwoBodyMultiShellTensor tensor(
                   Tadat_choices, coupled_irreps, Rhomax, Etamax, kappa0, LL0,
-                  zeta0, SS0, TT, MMT, JJ, MMJ, {});
+                  zeta0, SS0, TT, MMT, JJ, MMJ, {}, labels);
               bool ignore =
                   setCoefficient(tensor, all_inverse[i], all_phase[i], cgcs, racah,
                                  racah9, wigU3SO3db, wigU4SU2SU2db);

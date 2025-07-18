@@ -12,12 +12,13 @@
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
 
-#include <U3xU4Irrep.h>
-
 #include <U3SO3xU3SO3.h>
 #include <U3U2xU3U2.h>
 #include <U4SU2SU2xU4SU2SU2.h>
 #include <U4U3xU4U3.h>
+
+#include <U3xU4Irrep.h>
+#include <HOutilities.h>
 
 namespace U3xU4
 {
@@ -78,22 +79,35 @@ namespace U3xU4
   */
   class ad_phys
   {
-  public:
-    int16_t n,   // shell number
-        ll,      // twice orbital angular momentum
-        jj, mmj, // twice total angular momentum
-        mmt;     // twice isospin projection
+  private: 
+    // A lookup table for the labels and location in the table
+    HO::Table_nljmjmt& labels;
+    int index;
 
+  public:    
     // Constructor
-    ad_phys(int16_t n_, int16_t ll_, int16_t jj_, int16_t mmj_, int16_t mmt_)
-        : n(n_), ll(ll_), jj(jj_), mmj(mmj_), mmt(mmt_)
-    { }
+    ad_phys(int16_t n_,                 // shell number
+            int16_t ll_,                // twice orbital angular momentum
+            int16_t jj_, int16_t mmj_,  // twice total angular momentum
+            int16_t mmt_,               // twice isospin projection
+            HO::Table_nljmjmt& labels_)
+        : labels(labels_)
+    { 
+      index = labels.getIndex(n_, ll_, jj_, mmj_, mmt_);
+    }
+
+    // Get labels
+    auto getLabels() const
+    {
+      return labels.getLabels(index);
+    }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s, const ad_phys& x)
     {
-      return s << "ad(" << x.n << "," << x.ll << "," << x.jj << "," << x.mmj
-               << "," << x.mmt << ")";
+      auto [n, ll, jj, mmj, mmt] = x.getLabels();
+      return s << "ad(" << n << "," << ll << "," << jj << "," << mmj
+               << "," << mmt << ")";
     }
   };
   using ads_phys = std::vector<U3xU4::ad_phys>;
@@ -192,26 +206,39 @@ namespace U3xU4
     // flag indicating if this object is tensor or operator
     bool tensor = true;
 
-  public:
-    int16_t n,   // shell number
-        ll,      // twice orbital angular momentum
-        jj, mmj, // twice total angular momentum
-        mmt;     // twice isospin projection
+    // A lookup table for the labels and location in the table
+    HO::Table_nljmjmt& labels;
+    int index;
 
+  public:
     // Constructor
-    at_phys(int16_t n_, int16_t ll_, int16_t jj_, int16_t mmj_, int16_t mmt_)
-        : n(n_), ll(ll_), jj(jj_), mmj(mmj_), mmt(mmt_)
-    { }
+    at_phys(int16_t n_,                 // shell number
+            int16_t ll_,                // twice orbital angular momentum
+            int16_t jj_, int16_t mmj_,  // twice total angular momentum
+            int16_t mmt_,               // twice isospin projection
+            HO::Table_nljmjmt& labels_)
+        : labels(labels_)
+    { 
+      index = labels.getIndex(n_,ll_,jj_,mmj_,mmt_);
+    }
+
+    // Get labels
+    auto getLabels() const
+    {
+      return labels.getLabels(index);
+    }
 
     // Turn it to a by conjugating, this method returns a phase
     // and change mmj to -mmj, mmt to -mmt
     // After this method is executed, tensor is turned to false
     double turnToAnnihilation()
     {
+      auto [n, ll, jj, mmj, mmt] = labels.getLabels(index);
       int phi = (n + ll / 2 + 1 - jj - mmj - mmt) / 2;
       mmj *= -1;
       mmt *= -1;
       tensor = false;
+      index = labels.getIndex(n,ll,jj,mmj,mmt);
       return (phi % 2 == 0) ? 1.0 : -1.0;
     }
 
@@ -221,12 +248,13 @@ namespace U3xU4
     // Print
     friend std::ostream& operator<<(std::ostream& s, const at_phys& x)
     {
+      auto [n, ll, jj, mmj, mmt] = x.getLabels();
       if (x.tensor)
-        return s << "at(" << x.n << "," << x.ll << "," << x.jj << "," << x.mmj
-                 << "," << x.mmt << ")";
+        return s << "at(" << n << "," << ll << "," << jj << "," << mmj
+                 << "," << mmt << ")";
       else
-        return s << "a(" << x.n << "," << x.ll << "," << x.jj << "," << x.mmj
-                 << "," << x.mmt << ")";
+        return s << "a(" << n << "," << ll << "," << jj << "," << mmj
+                 << "," << mmt << ")";
     }
   };
   using ats_phys = std::vector<U3xU4::at_phys>;
@@ -284,6 +312,10 @@ namespace U3xU4
   */
   class Tad_phys
   {
+  private:
+    // A lookup table for the labels 
+    HO::Table_nljmjmt& labels;
+
   public:
     // tensor character of ad [n,0,0] x [1,0,0,0]
     int16_t n;
@@ -299,7 +331,8 @@ namespace U3xU4
 
     // Constructor
     Tad_phys(int16_t n_, const std::vector<U3xU4::irrep>& prod, int16_t LL_,
-             int16_t SS_, int16_t TT_, int16_t MMT_, int16_t JJ_, int16_t MMJ_)
+             int16_t SS_, int16_t TT_, int16_t MMT_, int16_t JJ_, int16_t MMJ_,
+             HO::Table_nljmjmt& labels_)
         : n(n_),
           prod_characters(prod),
           LL(LL_),
@@ -307,7 +340,8 @@ namespace U3xU4
           TT(TT_),
           MMT(MMT_),
           JJ(JJ_),
-          MMJ(MMJ_)
+          MMJ(MMJ_),
+          labels(labels_)
     {
       if (prod.empty())
         kappamax = 1;
@@ -395,6 +429,10 @@ namespace U3xU4
   */
   class Tat_phys
   {
+  private:
+    // A lookup table for the labels 
+    HO::Table_nljmjmt& labels;
+
   public:
     // tensor character of at [n,n,0] x [1,1,1,0]
     int16_t n;
@@ -410,7 +448,8 @@ namespace U3xU4
 
     // Constructor
     Tat_phys(int16_t n_, const std::vector<U3xU4::irrep>& prod, int16_t LL_,
-             int16_t SS_, int16_t TT_, int16_t MMT_, int16_t JJ_, int16_t MMJ_)
+             int16_t SS_, int16_t TT_, int16_t MMT_, int16_t JJ_, int16_t MMJ_,
+             HO::Table_nljmjmt& labels_)
         : n(n_),
           prod_characters(prod),
           LL(LL_),
@@ -418,7 +457,8 @@ namespace U3xU4
           TT(TT_),
           MMT(MMT_),
           JJ(JJ_),
-          MMJ(MMJ_)
+          MMJ(MMJ_),
+          labels(labels_)
     {
       if (prod.empty())
         kappamax = 1;
@@ -535,6 +575,10 @@ namespace U3xU4
   */
   class Tadat_phys
   {
+  private:
+    // A lookup table for the labels 
+    HO::Table_nljmjmt& labels;
+
   public:
     // tensor character of ad [n,0,0] x [1,0,0,0]
     // tensor character of at [n,n,0] x [1,1,1,0]
@@ -569,7 +613,7 @@ namespace U3xU4
                const std::vector<U3xU4::irrep>& prod_ats_,
                const U3xU4::irrep& t, uint8_t Rhomax, uint8_t Etamax,
                int16_t LL_, int16_t SS_, int16_t TT_, int16_t MMT_, int16_t JJ_,
-               int16_t MMJ_)
+               int16_t MMJ_, HO::Table_nljmjmt& labels_)
         : n(n_),
           ads(ads_),
           ats(ats_),
@@ -583,7 +627,8 @@ namespace U3xU4
           TT(TT_),
           MMT(MMT_),
           JJ(JJ_),
-          MMJ(MMJ_)
+          MMJ(MMJ_),
+          labels(labels_)
     {
       kappamax = u3::Kappa(T.u3, LL / 2);
       zetamax = u4::Zeta(T.u4, SS, TT);

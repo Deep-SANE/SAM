@@ -25,11 +25,12 @@ int main(int argc, char* argv[])
 
   JT::TwoBodyOperator twoL2(0, 0, 0, 0, 1);
   int valenceShell = 1, Nmax = 2, maxShell = 3;
+  HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto tensors = twoL2.expand(Nmax, valenceShell, maxShell, cgcs, racah, racah9,
+  auto tensors = twoL2.expand(Nmax, valenceShell, maxShell, labels, cgcs, racah, racah9,
                               wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement

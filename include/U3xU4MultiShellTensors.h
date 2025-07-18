@@ -111,6 +111,9 @@ namespace U3xU4
   */
   class TwoBodyMultiShellTensor
   {
+  private:
+    HO::Table_nljmjmt& labels;
+    
   public:
     // List of single-shell tensors, each corresponds to Gamma in the document.
     std::vector<U3xU4::Tadat> single_shell_tensors;
@@ -145,7 +148,7 @@ namespace U3xU4
         const std::vector<U3xU4::Tadat>& single_shell_tensors_,
         const std::vector<U3xU4::irrep>& coupled_irreps_, int rho_, int eta_,
         int kappa_, int LL_, int zeta_, int SS_, int TT_, int MMT_, int JJ_,
-        int MMJ_, const std::vector<double>& coeffs_)
+        int MMJ_, const std::vector<double>& coeffs_, HO::Table_nljmjmt& labels_)
         : single_shell_tensors(single_shell_tensors_),
           coupled_irreps(coupled_irreps_),
           rhomax(rho_),
@@ -158,7 +161,8 @@ namespace U3xU4
           MMT(MMT_),
           JJ(JJ_),
           MMJ(MMJ_),
-          coeffs(coeffs_)
+          coeffs(coeffs_),
+          labels(labels_)
     {
       assert(single_shell_tensors_.size() > 0);
       assert(single_shell_tensors_.size() == coupled_irreps_.size() + 1);

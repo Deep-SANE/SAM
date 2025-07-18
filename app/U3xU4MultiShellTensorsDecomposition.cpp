@@ -22,6 +22,7 @@ int main(int argc, char* argv[])
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
   u4::WigU4SU2SU2_db wigU4SU2SU2db(cgcs, wigU3U2db, wigU4U3db);
 
+  // Example 1
   /*
   U3xU4::irrep Gamma1(2,1,0, 2,1,1,0), Gamma2(2,2,0, 1,1,1,0),
         Gamma3(3,0,0, 1,0,0,0), Omega1(4,3,0, 3,2,2,0), Omega2(7,3,0, 4,2,2,0);
@@ -33,12 +34,14 @@ int main(int argc, char* argv[])
   std::vector<U3xU4::Tadat> single_shell_tensors = {tadat1,tadat2,tadat3};
 
   std::vector<U3xU4::irrep> coupled_irreps = {Omega1,Omega2};
-
+  
+  HO::Table_nljmjmt labels(3);
   U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors,
-    coupled_irreps,1,1,1,4,1,4,0,0,0,0,{});
+    coupled_irreps,1,1,1,4,1,4,0,0,0,0,{},labels);
   */
 
-  /*
+  // Example 2
+  
   U3xU4::irrep Gamma1(0,0,0, 1,0,0,0), Gamma2(1,1,0, 1,1,1,0),
         Omega1(1,1,0, 2,1,1,0), Gamma3(2,2,0, 1,1,1,0), Omega2(3,3,0, 3,2,2,0),
         Gamma4(3,0,0, 1,0,0,0), Omega3(6,3,0, 4,2,2,0);
@@ -52,11 +55,14 @@ int main(int argc, char* argv[])
   {tadat1,tadat2,tadat3,tadat4};
 
   std::vector<U3xU4::irrep> coupled_irreps = {Omega1,Omega2,Omega3};
-
+  
+  HO::Table_nljmjmt labels(3);
   U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors,
-    coupled_irreps,1,1,1,4,1,4,0,0,0,0,{});
-  */
+    coupled_irreps,1,1,1,4,1,4,0,0,0,0,{}, labels);
+  
 
+  // Example 3
+  /*
   U3xU4::irrep Gamma1(0, 0, 0, 3, 1, 1, 0), Gamma2(1, 1, 0, 1, 1, 1, 0),
       Omega1(1, 1, 0, 3, 1, 0, 0);
   U3xU4::Tadat tadat1(0, 2, 1, {U3xU4::irrep(0, 0, 0, 2, 0, 0, 0)}, {}, Gamma1,
@@ -67,8 +73,10 @@ int main(int argc, char* argv[])
 
   std::vector<U3xU4::irrep> coupled_irreps = {Omega1};
 
+  HO::Table_nljmjmt labels(1);
   U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors, coupled_irreps,
-                                          1, 1, 1, 2, 1, 2, 0, 0, 0, 0, {});
+                                          1, 1, 1, 2, 1, 2, 0, 0, 0, 0, {}, labels);
+  */
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();

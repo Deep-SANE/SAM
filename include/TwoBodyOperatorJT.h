@@ -83,7 +83,7 @@ namespace JT
     // unpermuted combinations may be permuted to the same one. These two
     // methods only return permuted combinations together with their phases
     // and arrays for the purpose of inverting the permutations.
-    
+
 
     // Set coefficient for two-body multi-shell tensor.
     // It returns a flag, which indicate whether this tensor can be ignored.
@@ -97,7 +97,8 @@ namespace JT
 
     // expand into a sum of multi-shell two-body tensors
     std::vector<U3xU4::TwoBodyMultiShellTensor>
-    expand(int Nmax, int valenceShell, int maxShell, u34utils::SO3_CGC& cgcs,
+    expand(int Nmax, int valenceShell, int maxShell, 
+           HO::Table_nljmjmt& labels, u34utils::SO3_CGC& cgcs,
            u34utils::SO3_Racah& racah, u34utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db,
            u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;

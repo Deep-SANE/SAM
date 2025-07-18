@@ -34,7 +34,8 @@ int main(int argc, char* argv[])
   prod_ats.push_back(T2_0);
   prod_ats.push_back(T2);
   int rhomax = 1, etamax = 1;
-  U3xU4::Tadat_phys Tadat(2,0,3,prod_ads,prod_ats,T2,rhomax,etamax,2,1,1,1,3,3);
+  HO::Table_nljmjmt labels(2);
+  U3xU4::Tadat_phys Tadat(2,0,3,prod_ads,prod_ats,T2,rhomax,etamax,2,1,1,1,3,3,labels);
   */
 
   /* Example 2: n = 5
@@ -46,8 +47,9 @@ int main(int argc, char* argv[])
   U3xU4::irrep T1(7,3,0, 1,1,0,0);
   prod_ads.push_back(T1);
   int rhomax = 1, etamax = 1;
+  HO::Table_nljmjmt labels(5);
   U3xU4::Tadat_phys
-  Tadat(5,2,0,prod_ads,prod_ats,T1,rhomax,etamax,10,2,0,0,10,0);
+  Tadat(5,2,0,prod_ads,prod_ats,T1,rhomax,etamax,10,2,0,0,10,0,labels);
   */
 
   /* Example 3: n = 1
@@ -58,7 +60,8 @@ int main(int argc, char* argv[])
   /*
   U3xU4::irrep T(0,0,0, 0,0,0,0);
   int rhomax = 1, etamax = 1;
-  U3xU4::Tadat_phys Tadat(1,1,1,prod_ads,prod_ats,T,rhomax,etamax,0,0,0,0,0,0);
+  HO::Table_nljmjmt labels(1);
+  U3xU4::Tadat_phys Tadat(1,1,1,prod_ads,prod_ats,T,rhomax,etamax,0,0,0,0,0,0,labels);
   */
 
   /* Example 4: n = 2
@@ -73,8 +76,10 @@ int main(int argc, char* argv[])
   prod_ads.push_back(T1);
   prod_ats.push_back(T2);
   int rhomax = 1, etamax = 1;
+  HO::Table_nljmjmt labels(2);
   U3xU4::Tadat_phys Tadat(2, 3, 2, prod_ads, prod_ats, T, rhomax, etamax, 2, 1,
-                          1, 1, 1, 1);
+                          1, 1, 1, 1, labels);
+  
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
