@@ -305,11 +305,12 @@ namespace JT
                            mmjs_orig = inverse_permutation(mmjs, inverse[k]),
                            mmts_orig = inverse_permutation(mmts, inverse[k]);
 
+        // me needs computing with normal ordering
         me += phase[k] * sphericalME_AS(
           ns_orig[0], lls_orig[0], jjs_orig[0], mmjs_orig[0], mmts_orig[0],
           ns_orig[1], lls_orig[1], jjs_orig[1], mmjs_orig[1], mmts_orig[1],
-          ns_orig[2], lls_orig[2], jjs_orig[2], mmjs_orig[2], mmts_orig[2],
           ns_orig[3], lls_orig[3], jjs_orig[3], mmjs_orig[3], mmts_orig[3],
+          ns_orig[2], lls_orig[2], jjs_orig[2], mmjs_orig[2], mmts_orig[2],
           cgcs, racah);
       }
 
