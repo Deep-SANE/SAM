@@ -1,6 +1,8 @@
 #include <array>
+#include <cassert>
 #include <chrono>
 #include <cstdint>
+#include <iterator>
 #include <numeric>
 #include <ranges>
 #include <set>
@@ -23,8 +25,179 @@ namespace U4xSU3
   class ManyNucleonBasis
   {
   public:
+    ManyNucleonBasis(int A, int MMT, int Nmax, int JJ)
+        : A_(A), MMT_(MMT), Nmax_(Nmax), JJ_(JJ), n0hw_(Nmax % 2), dim_(0)
+    { }
+
+    void construct()
+    {
+      dim_ = 0;
+
+      generate_distributions();
+      generate_gammas();
+   // generate_omegas();
+    }
+
+    // (1) distributions:
+
+    auto n_distributions() const
+    {
+      assert(shells_.size() % D_ == 0);
+      return shells_.size() / D_;
+    }
+
+    auto distribution(size_t dist_id) const
+    {
+      return std::span(shells_.data() + D_ * dist_id, D_);
+    }
+
+    // (2) gammas:
+    struct GammaElement
+    {
+      u4::irrep u4;
+      uint16_t alpha; // U(N)->U(3) reduction multiplicity
+      su3::irrep su3;
+    };
+
+    // (3) omegas:
+    struct OmegaElement
+    {
+      uint16_t etamax; // U(4) coupling multiplicity
+      u4::irrep u4;
+      uint16_t rhomax; // SU(3) coupling multiplicity
+      su3::irrep su3;
+    };
+
+    // (4) irreps:
+    struct Irrep
+    {
+      uint32_t dist_id; 
+      uint32_t gamma_id;
+      uint32_t omega_id;
+      uint32_t offset;
+    };
+
+  private:
+    int A_; // number of nucleons; equal to (Z+N)
+    int MMT_; // proton-neutron "difference"; equal to (abs(Z-N))
+    int Nmax_;
+    int JJ_;
+
+    int n0hw_; // lowest considered HO shell; 0 for even Nmax, 1 for odd Nmax
+
+    size_t dim_;
+
+    // (1) distributions:
+
+    int n0max_; // highest occupied HO shell for 0hw
+
+    int nmax_; // highest occupied HO shell (for Nmaxhw); equal to
+               // (n0max_+Nmax_)
+
+    size_t D_; // number of shells in each distribution; equal to (nmax_+1)
+
+    std::vector<uint16_t> shells_; // occupancy of shells for distributions
+
+    // (1) distributions:
+
+    void generate_distributions()
+    {
+      // configuration of a single shell:
+      using ShellConfig = std::vector<uint16_t>;
+
+      // shell configurations for all subspaces:
+      std::vector<std::set<ShellConfig>> subspaces_configs(Nmax_ + 1);
+
+      // (1) generate the (unique) shell configuration for 0hw:
+
+      ShellConfig v0hw_config;
+
+      assert(A_ > 0);
+
+      int nParticlesLeft = A_;
+      int n = 0; // shell index
+
+      while (nParticlesLeft > 0)
+      {
+        // number of nucleons that can fit into nth HO shell:
+        int N = 2 * (n + 1) * (n + 2);
+
+        auto place = std::min(nParticlesLeft, N);
+        assert(place > 0);
+
+        v0hw_config.push_back(place);
+        nParticlesLeft -= place;
+        n++;
+      }
+
+      n--; // n: last occuppied shell for 0hw subspace
+      assert(n >= 0);
+
+      n0max_ = n;
+      nmax_ = n0max_ + Nmax_;
+      D_ = nmax_ + 1;
+
+      v0hw_config.resize(D_);
+
+      // there is only one 0hw shell configuration:
+      subspaces_configs[0].insert(std::move(v0hw_config));
+
+      // (2) generate shell configurations for subspaces 1hw, 2hw, ..., Nmaxhw:
+
+      for (size_t Nsubspace = 1; Nsubspace <= Nmax_; Nsubspace++)
+      {
+        auto& subspace_configs = subspaces_configs[Nsubspace];
+        const auto& seed_subspace = subspaces_configs[Nsubspace - 1];
+
+        for (const auto& seed_config : seed_subspace)
+        {
+          // try to raise 1 nucleon for each occupied shell:
+          for (size_t q = 0; q < nmax_; q++)
+          {
+            auto new_config(seed_config);
+
+            // number of nucleons that can fit into next HO shell:
+            auto N = 2 * (q + 2) * (q + 3);
+
+            // if it is possible to raise a nucleon:
+            if (new_config[q] && new_config[q + 1] + 1 <= N)
+            {
+              // raise a nucleon:
+              new_config[q] -= 1;
+              new_config[q + 1] += 1;
+
+              // add to subspace configurations:
+              subspace_configs.insert(std::move(new_config));
+            }
+          }
+        }
+      }
+
+      // (3) add the generated Nmax-relevant configurations to the basis:
+
+      shells_.clear();
+
+      for (size_t Nsubspace = n0hw_; Nsubspace <= Nmax_; Nsubspace += 2)
+        for (const auto& subspace_config : subspaces_configs[Nsubspace])
+          std::ranges::copy(subspace_config, std::back_inserter(shells_));
+    }
+
+    void generate_gammas()
+    {
+      for (size_t dist_id = 0; dist_id < n_distributions(); dist_id++)
+        generate_gammas_for_distribution(dist_id);
+    }
+
+    void generate_gammas_for_distribution(size_t dist_id)
+    {
+      assert(dist_id < n_distributions());
+
+      const auto dist = distribution(dist_id);
+
+    }
+
+#if 0
     /////////////   DISTRIBUTIONS  /////////////////
-    typedef std::vector<uint32_t> tSHELLSCONFIG;
 
     ////////////////////////// U4 /////////////////////////////
     struct MU4
@@ -45,13 +218,6 @@ namespace U4xSU3
     using MSU3_VEC = std::vector<MSU3>;
 
   private:
-    int A_;
-    int MMT_;
-    int Nmax_;
-    int JJ_;
-    int n0hw_;
-
-    std::size_t dim_;
 
     // distributions:
     std::vector<tSHELLSCONFIG> distributions_;
@@ -81,9 +247,6 @@ namespace U4xSU3
         irreps_;
 
   public:
-    ManyNucleonBasis(int A, int MMT, int Nmax, int JJ)
-        : A_(A), MMT_(MMT), Nmax_(Nmax), JJ_(JJ), n0hw_(Nmax % 2), dim_(0)
-    { }
 
     void construct()
     {
@@ -180,104 +343,6 @@ namespace U4xSU3
     auto dim() const { return dim_; }
 
   private:
-    /////////////   DISTRIBUTIONS  /////////////////
-    void generate_distributions()
-    {
-      // we generate 0hw, 1hw, 2hw, ... , Nmaxhw distribution of nucleons
-      std::vector<std::set<tSHELLSCONFIG>> ConfRepository(Nmax_ + 1);
-
-      tSHELLSCONFIG v0hwShellConfiguration;
-      // setOfShellConfigurations stores a set of unique distributions for a
-      // given Nhw subspace It is a set because the algorithm that is being used
-      // can produce several identical distributions
-      std::set<tSHELLSCONFIG> setOfShellConfigurations;
-
-      int iNParticlesLeft = A_;
-      unsigned nmax; // the last HO shell available
-      unsigned n = 0;
-
-      // This loop creates 0hw shell configuration
-      while (iNParticlesLeft > 0)
-      {
-        // number of nucleons that can fit into n-th HO shell
-        int N = 2 * (n + 1) * (n + 2);
-        if ((iNParticlesLeft - N) > 0)
-        {
-          v0hwShellConfiguration.push_back(N);
-          iNParticlesLeft -= N;
-          n++;
-        }
-        else
-        {
-          v0hwShellConfiguration.push_back(iNParticlesLeft);
-          iNParticlesLeft = 0;
-        }
-      }
-      // This is maximal HO shell that can contain maximally 1 particle
-      int last_shell = nmax = Nmax_ + n;
-
-      // We need to resize vShellConfiguration up to nmax+1 elements
-      v0hwShellConfiguration.resize(nmax + 1, 0);
-      // There is only one 0hw shell configuration
-      setOfShellConfigurations.insert(v0hwShellConfiguration);
-      ConfRepository[0] = setOfShellConfigurations;
-
-      // Iterate through N\hbar\Omega subspaces up to Nmax\hbar\Omega
-      // and for each subspace (Nsubspace) generate allowed
-      // shell configurations
-      for (size_t Nsubspace = 1; Nsubspace <= Nmax_; Nsubspace++)
-      {
-        // We will reuse setOfShellConfigurations data structure over and over
-        // again So we need to clean it first
-        setOfShellConfigurations.clear();
-
-        std::set<tSHELLSCONFIG>::const_iterator cit =
-            ConfRepository[Nsubspace - 1].begin();
-        for (; cit != ConfRepository[Nsubspace - 1].end(); cit++)
-        {
-          // vSeedConfiguration contains (Nsubspace-1) subspace distribution of
-          // fermions over the shells
-          tSHELLSCONFIG vSeedShellConfiguration(*cit);
-          for (size_t q = 0; q < nmax; q++)
-          {
-            // vNewShellConfiguration contains Nsubspace subspace distribution
-            // of fermions over the shells
-            tSHELLSCONFIG vNewShellConfiguration(vSeedShellConfiguration);
-            if (vNewShellConfiguration[q] &&
-                (vNewShellConfiguration[q + 1] + 1) <= (2 * (q + 2) * (q + 3)))
-            {
-              vNewShellConfiguration[q] -= 1;
-              vNewShellConfiguration[q + 1] += 1;
-              // STL set<> datastructure takes care of duplicities
-              // Thus we need not explicitly check whether
-              // vNewShellConfiguration has been already encountered and stored
-              setOfShellConfigurations.insert(vNewShellConfiguration);
-            }
-          }
-        }
-        // setOfShellConfigurations contains all (Nsubspace)hw shell
-        // configurations let's store it in ConfRepository[Nsubspace]
-        ConfRepository[Nsubspace] = setOfShellConfigurations;
-      }
-
-      nhw_dist_ids_.clear();
-      nhw_dist_ids_.push_back(0);
-
-      distributions_.clear();
-
-      // iterate through all shell configurations belonging to N = Nsubspace
-      // subspace Transfer data from ConfRepository into m_ShellConfigurations
-      for (size_t Nsubspace = 0; Nsubspace <= Nmax_; Nsubspace++)
-      {
-        std::set<tSHELLSCONFIG>::const_iterator citShellConfs =
-            ConfRepository[Nsubspace].begin();
-        for (; citShellConfs != ConfRepository[Nsubspace].end();
-             ++citShellConfs)
-          distributions_.push_back(*citShellConfs);
-
-        nhw_dist_ids_.push_back(distributions_.size());
-      }
-    }
 
     ////////////////////////// U4 /////////////////////////////
     void Couple(const MU4& a, const MU4& b, MU4_VEC& result)
@@ -507,11 +572,12 @@ namespace U4xSU3
     }
 
   private:
-
     int kmax(int lm, int mu, int L)
     {
-      return (std::max(0, (lm + mu + 2 - L) / 2) -
-              std::max(0, (lm + 1 - L) / 2) - std::max(0, (mu + 1 - L) / 2));
+      assert((lm + mu - L) >= 0);
+
+      return (lm + mu - L) / 2 - std::max(0, (lm + 1 - L) / 2) -
+             std::max(0, (mu + 1 - L) / 2) + 1;
     }
 
     void generate_U4_irreps(int A, int n, std::vector<u4::irrep>& u4_irreps)
@@ -731,5 +797,6 @@ namespace U4xSU3
 
       // dim_ += dim;
     }
+#endif
   };
 } // namespace U4xSU3

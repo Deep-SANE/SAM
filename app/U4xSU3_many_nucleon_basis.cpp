@@ -1,11 +1,13 @@
 #include <cstdint>
 #include <iostream>
 
-#include <sam_config.h>
+#include <qcx_print.h>
 #include <U4xSU3_many_nucleon_basis.h>
 
 int main()
 {
+  using qcx_utils::print;
+
   int Z, N, Nmax, MMT, JJ;
 
   std::cout << "Enter number of protons: ";
@@ -24,6 +26,11 @@ int main()
   U4xSU3::ManyNucleonBasis basis(A, MMT, Nmax, JJ);
   basis.construct();
 
+  print("Number of distributions: {}\n", basis.n_distributions());
+  for (int dist_id = 0; dist_id < basis.n_distributions(); dist_id++)
+    print("\t{}\n", basis.distribution(dist_id));
+
+  /*
   for (int nhw = n0hw; nhw <= Nmax; nhw += 2)
   {
     print("hw: {}\n", nhw);
@@ -105,4 +112,5 @@ int main()
   }
 
   print("\nBasis dimension: {}\n", basis.dim());
+  */
 }
