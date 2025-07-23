@@ -360,14 +360,14 @@ namespace U3xU4
     gen.set_shell(n);
     gen.reduceU4(x.u4, N);
     auto multi = gen.multiplicity(x.u3);
-    Eigen::MatrixXd expansion = u34utils::null_space_slepc(mat, multi);
+    Eigen::MatrixXd expansion = qcx_utils::null_space_slepc(mat, multi);
 #else
-    Eigen::MatrixXd expansion = u34utils::null_space(mat);
+    Eigen::MatrixXd expansion = qcx_utils::null_space(mat);
 #endif
 
     // check error
     // std::cout << "The matrix size is " << mat.size() << " with error "
-    //          << u34utils::nullspace_error(mat, expansion) << std::endl;
+    //          << qcx_utils::nullspace_error(mat, expansion) << std::endl;
 
     return std::make_pair(SDarr, expansion);
   }

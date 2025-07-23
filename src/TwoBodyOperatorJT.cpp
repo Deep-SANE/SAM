@@ -14,8 +14,8 @@ namespace JT
                                       int mmjb, int mmtb, int nc, int llc,
                                       int jjc, int mmjc, int mmtc, int nd,
                                       int lld, int jjd, int mmjd, int mmtd,
-                                      u34utils::SO3_CGC& cgcs,
-                                      u34utils::SO3_Racah& racah) const
+                                      qcx_utils::SO3_CGC& cgcs,
+                                      qcx_utils::SO3_Racah& racah) const
   {
     double x = 0.0;
     switch (type)
@@ -54,8 +54,8 @@ namespace JT
                                       int mmjb, int mmtb, int nc, int llc,
                                       int jjc, int mmjc, int mmtc, int nd,
                                       int lld, int jjd, int mmjd, int mmtd,
-                                      u34utils::SO3_CGC& cgcs,
-                                      u34utils::SO3_Racah& racah) const
+                                      qcx_utils::SO3_CGC& cgcs,
+                                      qcx_utils::SO3_Racah& racah) const
   {
     return (sphericalME(na,lla,jja,mmja,mmta, nb,llb,jjb,mmjb,mmtb,
                         nc,llc,jjc,mmjc,mmtc, nd,lld,jjd,mmjd,mmtd, 
@@ -255,8 +255,8 @@ namespace JT
       U3xU4::TwoBodyMultiShellTensor& tensor, 
       const std::vector<std::vector<int>>& inverse, 
       const std::vector<int>& phase,
-      u34utils::SO3_CGC& cgcs,
-      u34utils::SO3_Racah& racah, u34utils::SO3_Racah9& racah9,
+      qcx_utils::SO3_CGC& cgcs,
+      qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9,
       u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     /* Coefficients in the expansion of two-body JT-coupled operator.
@@ -339,8 +339,8 @@ namespace JT
 #define RESTRICT_WITH_NMAX
   std::vector<U3xU4::TwoBodyMultiShellTensor> TwoBodyOperator::expand(
       int Nmax, int valenceShell, int maxShell, HO::Table_nljmjmt& labels,
-      u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah& racah, 
-      u34utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db, 
+      qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah, 
+      qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db, 
       u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     std::vector<U3xU4::TwoBodyMultiShellTensor> tensors;

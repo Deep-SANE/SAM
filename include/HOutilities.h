@@ -82,7 +82,7 @@ namespace HO
 	// < na lla jja || b+ || nb llb jjb >
 	inline double bosonCreatorRME(int na, int lla, int jja, 
 						   int nb, int llb, int jjb,
-						   u34utils::SO3_Racah& racah)
+						   qcx_utils::SO3_Racah& racah)
 	{
 		if (na == nb + 1)
 		{
@@ -102,7 +102,7 @@ namespace HO
 	// < na lla jja || b- || nb llb jjb >
 	inline double bosonAnnihilatorRME(int na, int lla, int jja, 
 						   	   int nb, int llb, int jjb,
-						   	   u34utils::SO3_Racah& racah)
+						   	   qcx_utils::SO3_Racah& racah)
 	{
 		if (na == nb - 1)
 		{

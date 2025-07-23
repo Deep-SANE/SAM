@@ -302,7 +302,7 @@ namespace U3xU4
 
     // Expand in terms of uncoupled products of ad's
     std::pair<std::vector<double>, std::vector<U3xU4::ads_gelfand>>
-    expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
+    expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
            u4::WigU4U3_db& wigU4U3db) const;
   };
 
@@ -359,7 +359,7 @@ namespace U3xU4
     std::pair<std::vector<Eigen::RowVectorXd>, // each element has size ==
                                                // kappamax
               std::vector<U3xU4::ads_phys>>
-    expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+    expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db,
            u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
   };
@@ -419,7 +419,7 @@ namespace U3xU4
     // Expand in terms of uncoupled products of a's
     // (not at's because a phase is added)
     std::pair<std::vector<double>, std::vector<U3xU4::ats_gelfand>>
-    expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
+    expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
            u4::WigU4U3_db& wigU4U3db) const;
   };
 
@@ -476,7 +476,7 @@ namespace U3xU4
     std::pair<std::vector<Eigen::RowVectorXd>, // each element has size ==
                                                // kappamax
               std::vector<U3xU4::ats_phys>>
-    expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+    expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db,
            u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
   };
@@ -565,7 +565,7 @@ namespace U3xU4
     std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
                std::vector<U3xU4::ads_gelfand>, // ad's
                std::vector<U3xU4::ats_gelfand>> // a's
-    expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
+    expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
            u4::WigU4U3_db& wigU4U3db) const;
   };
 
@@ -651,7 +651,7 @@ namespace U3xU4
     std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
                std::vector<U3xU4::ads_phys>,    // ad's
                std::vector<U3xU4::ats_phys>>    // a's
-    expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+    expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db,
            u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
   };
@@ -765,7 +765,7 @@ namespace U3xU4
     std::vector<Eigen::MatrixXd> RME(std::size_t& ai_max, const U3xU4::irrep& i,
                                      std::size_t& af_max, const U3xU4::irrep& f,
                                      std::size_t& rhomax, std::size_t& etamax,
-                                     u34utils::SO3_CGC& cgcs,
+                                     qcx_utils::SO3_CGC& cgcs,
                                      u3::WigU3U2_db& wigU3U2db,
                                      u4::WigU4U3_db& wigU4U3db);
   };

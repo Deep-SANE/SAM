@@ -71,13 +71,13 @@ namespace JT
         int SS0, int na, int nb, const std::vector<u3::physicalvector>& pv3as,
         const std::vector<u3::physicalvector>& pv3bs,
         const std::vector<u4::physicalvector>& pv4as,
-        const std::vector<u4::physicalvector>& pv4bs, u34utils::SO3_CGC& cgcs,
-        u34utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
+        const std::vector<u4::physicalvector>& pv4bs, qcx_utils::SO3_CGC& cgcs,
+        qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
         u4::WigU4SU2SU2_db& wigU4SU2SU2db);
 
     // expand into a sum of multi-shell one-body tensors
     std::vector<U3xU4::OneBodyMultiShellTensor>
-    expand(int maxShell, u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+    expand(int maxShell, qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db);
   };
 

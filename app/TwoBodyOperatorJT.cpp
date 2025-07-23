@@ -13,9 +13,9 @@ int main(int argc, char* argv[])
   SlepcInitialize(&argc, &argv, NULL, NULL);
 #endif
 
-  u34utils::SO3_CGC cgcs;
-  u34utils::SO3_Racah racah;
-  u34utils::SO3_Racah9 racah9;
+  qcx_utils::SO3_CGC cgcs;
+  qcx_utils::SO3_Racah racah;
+  qcx_utils::SO3_Racah9 racah9;
   u3::WigU3U2_db wigU3U2db(cgcs);
   u3::WigU3SO3_db wigU3SO3db(cgcs, wigU3U2db);
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);

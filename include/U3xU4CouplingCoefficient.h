@@ -27,8 +27,8 @@ namespace U3xU4
                         int MMT1, int JJ1, int MMJ1, const U3xU4::irrep& b,
                         int LL2, int SS2, int TT2, int MMT2, int JJ2, int MMJ2,
                         const U3xU4::irrep& c, int LL3, int SS3, int TT3,
-                        int MMT3, int JJ3, int MMJ3, u34utils::SO3_CGC& cgcs,
-                        u34utils::SO3_Racah9& racah9,
+                        int MMT3, int JJ3, int MMJ3, qcx_utils::SO3_CGC& cgcs,
+                        qcx_utils::SO3_Racah9& racah9,
                         u3::WigU3SO3_db& wigU3SO3db,
                         u4::WigU4SU2SU2_db& wigU4SU2SU2db)
     {

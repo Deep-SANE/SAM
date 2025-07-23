@@ -42,7 +42,7 @@ namespace U3xU4
   // expand coupled product of creation tensors (ad's)
   // in terms of creation operators (no phase needed)
   std::pair<std::vector<double>, std::vector<U3xU4::ads_gelfand>>
-  Tad_gelfand::expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
+  Tad_gelfand::expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
                       u4::WigU4U3_db& wigU4U3db) const
   {
     /* Reminder
@@ -251,7 +251,7 @@ namespace U3xU4
   // Expand in terms of uncoupled products of ad's
   std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
             std::vector<U3xU4::ads_phys>>
-  Tad_phys::expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+  Tad_phys::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
                    u3::WigU3SO3_db& wigU3SO3db,
                    u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
@@ -456,7 +456,7 @@ namespace U3xU4
   // expand coupled product of annihilation tensors (at's)
   // in terms of annihilation operators (a's) via a phase
   std::pair<std::vector<double>, std::vector<U3xU4::ats_gelfand>>
-  Tat_gelfand::expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
+  Tat_gelfand::expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
                       u4::WigU4U3_db& wigU4U3db) const
   {
     /* Reminder
@@ -692,7 +692,7 @@ namespace U3xU4
   // expand in terms of uncoupled products of at's
   std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
             std::vector<U3xU4::ats_phys>>
-  Tat_phys::expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+  Tat_phys::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
                    u3::WigU3SO3_db& wigU3SO3db,
                    u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
@@ -908,7 +908,7 @@ namespace U3xU4
   std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
              std::vector<U3xU4::ads_gelfand>, // ad's
              std::vector<U3xU4::ats_gelfand>> // a's
-  Tadat_gelfand::expand(u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
+  Tadat_gelfand::expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
                         u4::WigU4U3_db& wigU4U3db) const
   {
     std::vector<Eigen::RowVectorXd> coeffs;
@@ -1097,7 +1097,7 @@ namespace U3xU4
   std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
              std::vector<U3xU4::ads_phys>,    // ad's
              std::vector<U3xU4::ats_phys>>    // a's
-  Tadat_phys::expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+  Tadat_phys::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
                      u3::WigU3SO3_db& wigU3SO3db,
                      u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {

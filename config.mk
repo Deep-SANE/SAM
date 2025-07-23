@@ -26,8 +26,8 @@ ifdef U4LIB_DIR
 CXXFLAGS += -I$(U4LIB_DIR)/include
 endif
 
-ifdef U34UTILS_DIR
-CXXFLAGS += -I$(U34UTILS_DIR)/include
+ifdef QCX_UTILS_DIR
+CXXFLAGS += -I$(QCX_UTILS_DIR)/include
 endif
 
 ifdef UNTOU3_DIR

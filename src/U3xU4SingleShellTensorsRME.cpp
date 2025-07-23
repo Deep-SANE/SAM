@@ -9,7 +9,7 @@ namespace U3xU4
   std::vector<Eigen::MatrixXd>
   Tadat::RME(std::size_t& ai_max, const U3xU4::irrep& i, std::size_t& af_max,
              const U3xU4::irrep& f, std::size_t& rhomax, std::size_t& etamax,
-             u34utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
+             qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
              u4::WigU4U3_db& wigU4U3db)
   {
     int A_i = i.particles(), N_quanta_i = i.quanta(), // initial irreps

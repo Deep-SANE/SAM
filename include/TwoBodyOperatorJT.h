@@ -55,14 +55,14 @@ namespace JT
     double sphericalME(int na, int lla, int jja, int mmja, int mmta, int nb,
                        int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                        int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
-                       int mmjd, int mmtd, u34utils::SO3_CGC& cgcs,
-                       u34utils::SO3_Racah& racah) const;
+                       int mmjd, int mmtd, qcx_utils::SO3_CGC& cgcs,
+                       qcx_utils::SO3_Racah& racah) const;
     // Antisymmetrized matrix element
     double sphericalME_AS(int na, int lla, int jja, int mmja, int mmta, int nb,
                        int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                        int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
-                       int mmjd, int mmtd, u34utils::SO3_CGC& cgcs,
-                       u34utils::SO3_Racah& racah) const;
+                       int mmjd, int mmtd, qcx_utils::SO3_CGC& cgcs,
+                       qcx_utils::SO3_Racah& racah) const;
 
     // Generate a list of all {na, nb, nc, nd} combinations such that
     // 0 <= na, nb, nc, nd <= maxShell
@@ -91,15 +91,15 @@ namespace JT
       U3xU4::TwoBodyMultiShellTensor& tensor, 
       const std::vector<std::vector<int>>& inverse, 
       const std::vector<int>& phase,
-      u34utils::SO3_CGC& cgcs,
-      u34utils::SO3_Racah& racah, u34utils::SO3_Racah9& racah9,
+      qcx_utils::SO3_CGC& cgcs,
+      qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9,
       u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
 
     // expand into a sum of multi-shell two-body tensors
     std::vector<U3xU4::TwoBodyMultiShellTensor>
     expand(int Nmax, int valenceShell, int maxShell, 
-           HO::Table_nljmjmt& labels, u34utils::SO3_CGC& cgcs,
-           u34utils::SO3_Racah& racah, u34utils::SO3_Racah9& racah9,
+           HO::Table_nljmjmt& labels, qcx_utils::SO3_CGC& cgcs,
+           qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db,
            u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
   private:

@@ -199,7 +199,7 @@ namespace U3xU4
     // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
     std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
               std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-    expand(u34utils::SO3_CGC& cgcs, u34utils::SO3_Racah9& racah9,
+    expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db,
            u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
   };
