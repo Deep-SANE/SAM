@@ -1,8 +1,9 @@
 #include <array>
 #include <cassert>
-#include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <iterator>
+#include <limits>
 #include <numeric>
 #include <ranges>
 #include <set>
@@ -19,6 +20,8 @@
 #include <U4irrep.h>
 
 #include <UNtoU3.h>
+
+#include <qcx_ND.h>
 
 namespace U4xSU3
 {
@@ -52,6 +55,7 @@ namespace U4xSU3
     }
 
     // (2) gammas:
+
     struct GammaElement
     {
       u4::irrep u4;
@@ -59,16 +63,24 @@ namespace U4xSU3
       su3::irrep su3;
     };
 
+    auto n_gammas() const { return gammas_.size(); }
+
     // (3) omegas:
-    struct OmegaElement
+
+    struct OmegaElementU4
     {
       uint16_t etamax; // U(4) coupling multiplicity
       u4::irrep u4;
+    };
+
+    struct OmegaElementSU3
+    {
       uint16_t rhomax; // SU(3) coupling multiplicity
       su3::irrep su3;
     };
 
     // (4) irreps:
+
     struct Irrep
     {
       uint32_t dist_id; 
@@ -76,6 +88,9 @@ namespace U4xSU3
       uint32_t omega_id;
       uint32_t offset;
     };
+
+    inline static const uint32_t INVALID_OMEGA_ID =
+        std::numeric_limits<uint32_t>::max();
 
   private:
     int A_; // number of nucleons; equal to (Z+N)
@@ -97,6 +112,21 @@ namespace U4xSU3
     size_t D_; // number of shells in each distribution; equal to (nmax_+1)
 
     std::vector<uint16_t> shells_; // occupancy of shells for distributions
+
+    // (2) gammas:
+
+    std::vector<GammaElement> gamma_elements_;
+    std::vector<std::pair<size_t, size_t>> gammas_;
+
+    // (3) omegas:
+
+    std::vector<OmegaElementU4> omega_elements_u4_;
+    std::vector<OmegaElementSU3> omega_elements_su3_;
+    std::vector<std::pair<size_t, size_t>> omegas_;
+
+    // (4) irreps:
+
+    std::vector<Irrep> irreps_;
 
     // (1) distributions:
 
@@ -182,6 +212,10 @@ namespace U4xSU3
           std::ranges::copy(subspace_config, std::back_inserter(shells_));
     }
 
+    // (2) gammas:
+
+
+
     void generate_gammas()
     {
       for (size_t dist_id = 0; dist_id < n_distributions(); dist_id++)
@@ -194,7 +228,242 @@ namespace U4xSU3
 
       const auto dist = distribution(dist_id);
 
+      // (1) generate gamma elements for all non-vacant shells:
+
+      // gamma elements for non-vacant shells:
+      std::vector<std::vector<GammaElement>> shells_elements;
+
+      for (int n = 0; n < dist.size(); n++)
+      {
+        int A = dist[n];
+
+        if (A == 0)
+          continue;
+
+        std::vector<GammaElement> shell_elements;
+        generate_single_shell_gamma_elements(n, A, shell_elements);
+        shells_elements.push_back(std::move(shell_elements));
+      }
+
+      // (2) gammas = Cartesian product of single-shell gamma elements:
+
+      qcx_utils::NDSpan<GammaElement> nds;
+
+      for (const auto& shell_elements : shells_elements)
+        nds.add_dimension(shell_elements);
+
+      auto n_combinations = nds.cardinality();
+      auto n_active_shells = shells_elements.size();
+
+      assert(n_active_shells > 0);
+
+      std::vector<GammaElement> gamma(n_active_shells);
+
+      // add gammas to basis:
+      for (unsigned index = 0; index < n_combinations; index++)
+      {
+        nds.extract_multi_element(index, gamma);
+
+        // add gamma to basis:
+
+        auto gamma_id = gammas_.size();
+
+        auto begin = gamma_elements_.size();
+        auto end = begin + gamma.size();
+        gammas_.emplace_back(begin, end);
+
+        std::ranges::copy(gamma, std::back_inserter(gamma_elements_));
+
+        // a single gamma element case:
+        if (n_active_shells == 1)
+        {
+          const auto& ge = gamma[0];
+
+          auto dim = ge.alpha * compute_dim(ge.u4, ge.su3);
+
+          if (dim > 0)
+          {
+            // add irrep to basis:
+            irreps_.emplace_back(dist_id, gamma_id, INVALID_OMEGA_ID,
+                                 INVALID_OMEGA_ID);
+
+            dim_ += dim;
+          }
+        }
+        else
+        {
+          // generate omegas for gamma:
+          generate_omegas_for_gamma(dist_id, gamma_id);
+        }
+      }
     }
+
+    void generate_single_shell_gamma_elements(
+        int n, int A, std::vector<GammaElement>& gamma_elements)
+    {
+      std::vector<u4::irrep> u4_irreps;
+      generate_U4_irreps(n, A, u4_irreps);
+
+      untou3::UNtoU3<4> gen;
+      gen.set_shell(n);
+      int N = (n + 1) * (n + 2) / 2;
+
+      gamma_elements.clear();
+
+      for (auto u4 : u4_irreps)
+      {
+        gen.reduceU4(u4, N);
+        auto res = gen.irreps();
+
+        for (const auto& [u3, alpha] : res)
+          gamma_elements.emplace_back(u4, alpha, u3);
+      }
+    }
+
+    void generate_U4_irreps(int n, int A, std::vector<u4::irrep>& u4_irreps)
+    {
+      int nsps = (n + 1) * (n + 2) / 2;
+
+   // if (A > 4 * nsps) return;
+      assert(A <= 4 * nsps);
+
+      for (int n14 = std::min(A, nsps); n14 >= 0; --n14)
+      {
+        for (int n24 = n14; n24 >= 0; --n24)
+        {
+          if (n14 + n24 > A)
+            continue;
+
+          for (int n34 = n24; n34 >= 0; --n34)
+          {
+            if (n14 + n24 + n34 > A)
+              continue;
+
+            int n44 = A - (n14 + n24 + n34);
+
+            if (n44 <= n34 && n44 >= 0)
+              u4_irreps.emplace_back(n14, n24, n34, n44);
+          }
+        }
+      }
+    }
+
+    int compute_dim(const u4::irrep& u4, const su3::irrep& su3)
+    {
+      int dim = 0;
+
+      auto u4_basis = u4::physicalBasis(u4);
+
+      for (auto const& labels : u4_basis)
+      {
+        if (labels.TT >= MMT_)
+        {
+          int zeta = labels.zeta;
+          int SS = labels.SS;
+
+          dim += zeta * compute_dim(su3, SS);
+        }
+      }
+
+      return dim;
+    }
+
+    int compute_dim(const su3::irrep& su3, int SS)
+    {
+      int dim = 0;
+
+      for (int L = 0; L <= su3.lambda() + su3.mu(); L++)
+      {
+        int k0max = su3::kmax(su3, L);
+
+        if (k0max)
+        {
+          for (size_t jj = std::abs(2 * L - SS); jj <= (2 * L + SS); jj += 2)
+            if ((jj == JJ_) || (JJ_ == -1))
+              dim += k0max;
+        }
+      }
+
+      return dim;
+    }
+
+    void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id)
+    {
+/*
+      std::vector<MU4_VEC> omega_mu4;
+      gamma2omega(gamma_u4, omega_mu4);
+
+      std::vector<MSU3_VEC> omega_msu3;
+      gamma2omega(gamma_su3, omega_msu3);
+
+      uint32_t mult_gamma_u4 = 1;
+      for (size_t i = 0; i < gamma_u4.size(); ++i)
+        mult_gamma_u4 *= gamma_u4[i].mult;
+      assert(mult_gamma_u4 == 1);
+
+      uint32_t mult_gamma_su3 = 1;
+      for (size_t i = 0; i < gamma_su3.size(); ++i)
+        mult_gamma_su3 *= gamma_su3[i].mult;
+
+      uint32_t mult_gamma = mult_gamma_su3 * mult_gamma_u4;
+
+      assert(gamma_id < gamma_omegas_.size());
+
+      auto& [omega_id_begin, n_omegas] = gamma_omegas_[gamma_id];
+      omega_id_begin = omegas_.size();
+      n_omegas = 0;
+
+      for (const auto& mu4_vec : omega_mu4)
+      {
+        uint32_t mult_u4 = 1;
+        for (size_t i = 0; i < mu4_vec.size(); ++i)
+          mult_u4 *= mu4_vec[i].mult;
+
+        for (const auto& msu3_vec : omega_msu3)
+        {
+          assert(mu4_vec.size() == msu3_vec.size());
+
+          uint32_t mult_su3 = 1;
+          for (size_t i = 0; i < msu3_vec.size(); ++i)
+            mult_su3 *= msu3_vec[i].mult;
+          uint32_t mult = mult_gamma * mult_u4 * mult_su3;
+
+          MU4 mu4 = mu4_vec.back();
+          MSU3 msu3 = msu3_vec.back();
+       // u4::irrep u4 = mu4.u4;
+       // su3::irerp su3 = msu3.su3;
+       // int lm = msu3.lm;
+       // int mu = msu3.mu;
+          uint32_t dim_irrep = computeDim(msu3.su3, mu4.u4);
+
+          auto dim_omega = mult * dim_irrep;
+          dim += dim_omega;
+
+          if (dim_omega > 0)
+          {
+            irreps_.emplace_back(nhw, dist_id, gamma_id, omegas_.size(), dim_);
+
+            omegas_.emplace_back(omegas_u4_.size(), mu4_vec.size(), mult,
+                                 mult * dim_irrep);
+
+            for (std::size_t i = 0; i < mu4_vec.size(); i++)
+            {
+              omegas_u4_.push_back(mu4_vec[i]);
+              omegas_su3_.push_back(msu3_vec[i]);
+            }
+
+            n_omegas++;
+
+            dim_ += dim_omega;
+          }
+        }
+      }
+
+      // dim_ += dim;
+*/
+    }
+
+
 
 #if 0
     /////////////   DISTRIBUTIONS  /////////////////
@@ -371,108 +640,6 @@ namespace U4xSU3
       }
     }
 
-    void generate_gammas_for_dist(std::size_t dist_id)
-    {
-      // uint64_t dim = 0;
-
-      assert(dist_id < distributions_.size());
-      const auto& distribution = distributions_[dist_id];
-
-      std::vector<std::vector<std::pair<MU4, MSU3>>> vvU4SU3;
-      int n = 0; // HO shell
-      for (int n = 0; n < distribution.size(); n++)
-      {
-        int A = distribution[n];
-        if (A == 0)
-          continue;
-        std::vector<std::pair<MU4, MSU3>> allowedU4SU3irreps;
-        generateSU3U4(n, A, allowedU4SU3irreps);
-        vvU4SU3.push_back(allowedU4SU3irreps);
-      }
-
-      // Now we generate all possible combinations of coupling out of
-      // vvU4SU3 irreps
-      size_t NIrrepsSets = vvU4SU3.size();
-      std::vector<unsigned> vElemsPerChange(
-          NIrrepsSets, 1); // Fill with 1 cause vElemsPerChange[0] = 1;
-      std::vector<size_t> vNSizes(NIrrepsSets);
-      // uNAllowedCombinations = number of all possible coupling combinations
-      // uNAllowedCombinations = vvSU3xSU2Irreps[0].size()* ...
-      // *vvSU3xSU2Irreps[NIrrepsSets].size()
-      unsigned uNAllowedCombinations = 1;
-
-      for (size_t i = 0; i < NIrrepsSets; i++)
-      {
-        vNSizes[i] = vvU4SU3[i].size();
-        uNAllowedCombinations *= vNSizes[i];
-      }
-
-      for (size_t i = 1; i < NIrrepsSets; i++)
-      {
-        // if i == 0 => vElemsPerChange[0]=1 since constructor
-        vElemsPerChange[i] = vElemsPerChange[i - 1] * vNSizes[i - 1];
-      }
-
-      assert(dist_id < dist_gammas_.size());
-      assert(gammas_u4_.size() == gammas_su3_.size());
-
-      auto& pair = dist_gammas_[dist_id];
-      std::get<0>(pair) = gammas_.size();
-      std::get<1>(pair) = uNAllowedCombinations;
-
-      for (unsigned index = 0; index < uNAllowedCombinations; index++)
-      {
-        // in each step create a set of SU3xSU2 irreps to couple
-        std::vector<MU4> gammas_u4;
-        std::vector<MSU3> gammas_su3;
-        for (size_t i = 0; i < NIrrepsSets; i++)
-        {
-          size_t iElement = (index / vElemsPerChange[i]) % vNSizes[i];
-          gammas_u4.push_back(vvU4SU3[i][iElement].first);
-          gammas_su3.push_back(vvU4SU3[i][iElement].second);
-        }
-
-        /*
-        for (size_t i = 0; i < gammas_u4.size(); ++i)
-        {
-          MSU3 msu3 = gammas_su3[i];
-          MU4 mu4 = gammas_u4[i];
-          std::cout << "\tgamma[" << i << "]:";
-          std::cout << mu4.mult << "[" << mu4.u4.n14() << " " << mu4.u4.n24()
-                    << " " << mu4.u4.n34() << " " << mu4.u4.n44() << "] ";
-          std::cout << msu3.mult << "(" << msu3.lm << " " << msu3.mu << ")"
-                    << std::endl;
-        }
-        */
-
-        assert(gammas_u4.size() == gammas_su3.size());
-        assert(gammas_u4.size() > 0);
-
-        gammas_.emplace_back(gammas_u4_.size(), gammas_u4.size());
-
-        gammas_u4_.insert(gammas_u4_.end(), gammas_u4.begin(), gammas_u4.end());
-        gammas_su3_.insert(gammas_su3_.end(), gammas_su3.begin(),
-                           gammas_su3.end());
-
-        /*
-        if (gammas_u4.size() > 1)
-        {
-          dim += dimGamma(gammas_u4, gammas_su3, MMT, JJ);
-        }
-        else
-        {
-          MSU3 msu3 = gammas_su3[0];
-          MU4 mu4 = gammas_u4[0];
-          assert(mu4.mult == 1);
-          uint32_t mult = msu3.mult;
-          dim += mult * computeDim(msu3.lm, msu3.mu, mu4.u4, MMT, JJ);
-        }
-        std::cout << std::endl;
-        */
-      }
-
-      // dim_ += dim;
-    }
 
     void generate_omegas()
     {
@@ -533,43 +700,6 @@ namespace U4xSU3
         generate_omegas_for_gamma(nhw, dist_id, gamma_id, gamma_u4, gamma_su3);
     }
 
- // int computeDim(int lm, int mu, int SS)
-    int computeDim(const su3::irrep& u3, int SS)
-    {
-      auto lm = u3.lambda();
-      auto mu = u3.mu();
-
-      int dim = 0;
-
-      for (int l = 0; l <= lm + mu; ++l)
-      {
-        int k0max = kmax(lm, mu, l);
-        if (k0max)
-        {
-          for (size_t jj = abs(2 * l - SS); jj <= (2 * l + SS); jj += 2)
-            if ((jj == JJ_) || (JJ_ == -1))
-              dim += k0max;
-        }
-      }
-      return dim;
-    }
-
- // int computeDim(int lm, int mu, const u4::irrep& u4)
-    int computeDim(const su3::irrep& su3, const u4::irrep& u4)
-    {
-      int dim = 0;
-      auto u4_basis = u4::physicalBasis(u4);
-      for (auto const& labels : u4_basis)
-      {
-        if (labels.TT >= MMT_)
-        {
-          int mult = labels.zeta;
-          int SS = labels.SS;
-          dim += mult * computeDim(su3, SS);
-        }
-      }
-      return dim;
-    }
 
   private:
     int kmax(int lm, int mu, int L)
@@ -580,50 +710,7 @@ namespace U4xSU3
              std::max(0, (mu + 1 - L) / 2) + 1;
     }
 
-    void generate_U4_irreps(int A, int n, std::vector<u4::irrep>& u4_irreps)
-    {
-      int nsps = (n + 1) * (n + 2) / 2;
-      if (A > 4 * nsps)
-        return;
-      for (int n14 = std::min(A, nsps); n14 >= 0; --n14)
-      {
-        for (int n24 = n14; n24 >= 0; --n24)
-        {
-          if (n14 + n24 > A)
-            continue;
-          for (int n34 = n24; n34 >= 0; --n34)
-          {
-            if (n14 + n24 + n34 > A)
-              continue;
-            int n44 = A - (n14 + n24 + n34);
-            if (n44 <= n34 && n44 >= 0)
-              u4_irreps.push_back(u4::irrep(n14, n24, n34, n44));
-          }
-        }
-      }
-    }
 
-    void generateSU3U4(int n, int A,
-                       std::vector<std::pair<MU4, MSU3>>& allowedSU3U4irreps)
-    {
-      untou3::UNtoU3<4> gen;
-      gen.set_shell(n);
-      int N = (n + 1) * (n + 2) / 2;
-
-      std::vector<u4::irrep> u4_irreps;
-      generate_U4_irreps(A, n, u4_irreps);
-      for (auto u4 : u4_irreps)
-      {
-        gen.reduceU4(u4, N);
-        auto res = gen.irreps();
-        for (const auto& [u3, mult] : res)
-        {
-       // su3::irrep su3(u3.lam(), u3.mu());
-          allowedSU3U4irreps.push_back(
-              std::make_pair(MU4(1, u4), MSU3(mult, u3)));
-        }
-      }
-    }
 
  // void couple(int lm1, int mu1, int lm2, int mu2, MSU3_VEC& ir3)
     void Couple(const MSU3& a, const MSU3& b, MSU3_VEC& result)
@@ -702,101 +789,6 @@ namespace U4xSU3
       }
     }
 
-    void generate_omegas_for_gamma(int nhw, std::size_t dist_id,
-                                   std::size_t gamma_id, auto gamma_u4,
-                                   auto gamma_su3)
-    {
-      uint64_t dim = 0;
-
-      std::vector<MU4_VEC> omega_mu4;
-      gamma2omega(gamma_u4, omega_mu4);
-
-      std::vector<MSU3_VEC> omega_msu3;
-      gamma2omega(gamma_su3, omega_msu3);
-
-      uint32_t mult_gamma_u4 = 1;
-      for (size_t i = 0; i < gamma_u4.size(); ++i)
-        mult_gamma_u4 *= gamma_u4[i].mult;
-      assert(mult_gamma_u4 == 1);
-
-      uint32_t mult_gamma_su3 = 1;
-      for (size_t i = 0; i < gamma_su3.size(); ++i)
-        mult_gamma_su3 *= gamma_su3[i].mult;
-
-      uint32_t mult_gamma = mult_gamma_su3 * mult_gamma_u4;
-
-      assert(gamma_id < gamma_omegas_.size());
-
-      auto& [omega_id_begin, n_omegas] = gamma_omegas_[gamma_id];
-      omega_id_begin = omegas_.size();
-      n_omegas = 0;
-
-      for (const auto& mu4_vec : omega_mu4)
-      {
-        uint32_t mult_u4 = 1;
-        for (size_t i = 0; i < mu4_vec.size(); ++i)
-          mult_u4 *= mu4_vec[i].mult;
-
-        for (const auto& msu3_vec : omega_msu3)
-        {
-          assert(mu4_vec.size() == msu3_vec.size());
-
-          uint32_t mult_su3 = 1;
-          for (size_t i = 0; i < msu3_vec.size(); ++i)
-            mult_su3 *= msu3_vec[i].mult;
-          uint32_t mult = mult_gamma * mult_u4 * mult_su3;
-
-          /*
-          std::cout << "\t\t";
-          for (size_t i = 0; i < mu4_vec.size(); i++)
-          {
-            MSU3 msu3 = msu3_vec[i];
-            MU4 mu4 = mu4_vec[i];
-            std::cout << mu4.mult << "[" << mu4.u4.n14() << " " << mu4.u4.n24()
-                      << " " << mu4.u4.n34() << " " << mu4.u4.n44() << "] ";
-            std::cout << msu3.mult << "(" << msu3.lm << " " << msu3.mu
-                      << ")   ";
-          }
-          */
-
-          MU4 mu4 = mu4_vec.back();
-          MSU3 msu3 = msu3_vec.back();
-       // u4::irrep u4 = mu4.u4;
-       // su3::irerp su3 = msu3.su3;
-       // int lm = msu3.lm;
-       // int mu = msu3.mu;
-          uint32_t dim_irrep = computeDim(msu3.su3, mu4.u4);
-
-          auto dim_omega = mult * dim_irrep;
-          dim += dim_omega;
-
-          /*
-          std::cout << " mult:" << mult << " dim:" << mult * dim_irrep
-                    << std::endl;
-          */
-
-          if (dim_omega > 0)
-          {
-            irreps_.emplace_back(nhw, dist_id, gamma_id, omegas_.size(), dim_);
-
-            omegas_.emplace_back(omegas_u4_.size(), mu4_vec.size(), mult,
-                                 mult * dim_irrep);
-
-            for (std::size_t i = 0; i < mu4_vec.size(); i++)
-            {
-              omegas_u4_.push_back(mu4_vec[i]);
-              omegas_su3_.push_back(msu3_vec[i]);
-            }
-
-            n_omegas++;
-
-            dim_ += dim_omega;
-          }
-        }
-      }
-
-      // dim_ += dim;
-    }
 #endif
   };
 } // namespace U4xSU3

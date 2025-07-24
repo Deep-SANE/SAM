@@ -26,9 +26,11 @@ int main()
   U4xSU3::ManyNucleonBasis basis(A, MMT, Nmax, JJ);
   basis.construct();
 
-  print("Number of distributions: {}\n", basis.n_distributions());
+  print("\nNumber of distributions: {}\n", basis.n_distributions());
   for (int dist_id = 0; dist_id < basis.n_distributions(); dist_id++)
     print("\t{}\n", basis.distribution(dist_id));
+
+  print("\nNumber of gammas: {}\n", basis.n_gammas());
 
   /*
   for (int nhw = n0hw; nhw <= Nmax; nhw += 2)
