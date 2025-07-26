@@ -33,8 +33,15 @@ int main()
     print("Irrep ID {:5} : ", irrep_id);
     print("dist = {}", dist);
     print(" ; gamma = {}", gamma);
-    print(" ; omega U(4) = {}", omega_u4);
-    print(" ; omega SU(3) = {}", omega_su3);
+
+ // print(" ; omega U(4) = {}", omega_u4);
+ // print(" ; omega SU(3) = {}", omega_su3);
+
+    print(" ; omega = [");
+    for (int i = 0; i < omega_u4.size(); i++)
+      print("{}{}, ", omega_u4[i], omega_su3[i]);
+    print("]");
+
     print(" ; offset = {}\n", offset);
   }
 
