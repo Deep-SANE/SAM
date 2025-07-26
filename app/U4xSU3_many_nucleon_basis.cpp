@@ -32,10 +32,10 @@ int main()
 
     print("Irrep ID {:5} : ", irrep_id);
     print("dist = {}", dist);
-    print("; gamma = {}", gamma);
-    print("; omega U(4) = {}", omega_u4);
-    print("; omega SU(3) = {}", omega_su3);
-    print("; offset = {}\n", offset);
+    print(" ; gamma = {}", gamma);
+    print(" ; omega U(4) = {}", omega_u4);
+    print(" ; omega SU(3) = {}", omega_su3);
+    print(" ; offset = {}\n", offset);
   }
 
   print("\nBasis dimension: {}\n", basis.dim());
