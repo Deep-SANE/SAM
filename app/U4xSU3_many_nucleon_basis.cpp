@@ -30,8 +30,8 @@ int main()
   {
     auto [dist, gamma, omega_u4, omega_su3, offset] = basis.irrep(irrep_id);
 
-    print("Irrep ID {:5}: ", irrep_id);
-    print("; dist = {}", dist);
+    print("Irrep ID {:5} : ", irrep_id);
+    print("dist = {}", dist);
     print("; gamma = {}", gamma);
     print("; omega U(4) = {}", omega_u4);
     print("; omega SU(3) = {}", omega_su3);
