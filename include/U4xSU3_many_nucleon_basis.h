@@ -44,6 +44,15 @@ namespace U4xSU3
     {
       dim_ = 0;
 
+      shells_.clear();
+      gamma_elements_.clear();
+      gammas_.clear();
+      omega_elements_u4_.clear();
+      omegas_u4_.clear();
+      omega_elements_su3_.clear();
+      omegas_su3_.clear();
+      irreps_.clear();
+
       generate_distributions();
       generate_gammas();
     }
@@ -317,8 +326,6 @@ namespace U4xSU3
       }
 
       // (3) add the generated Nmax-relevant configurations to the basis:
-
-      shells_.clear();
 
       for (size_t Nsubspace = n0hw_; Nsubspace <= Nmax_; Nsubspace += 2)
         for (const auto& subspace_config : subspaces_configs[Nsubspace])
