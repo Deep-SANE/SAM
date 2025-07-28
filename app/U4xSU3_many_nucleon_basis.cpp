@@ -26,9 +26,13 @@ int main()
   U4xSU3::ManyNucleonBasis basis(A, MMT, Nmax, JJ);
   basis.construct();
 
+  std::vector<U4xSU3::ManyNucleonBasis::OmegaElement> omega;
+
   for (size_t irrep_id = 0; irrep_id < basis.n_irreps(); irrep_id++)
   {
     auto [dist, gamma, omega_u4, omega_su3, offset] = basis.irrep(irrep_id);
+
+    U4xSU3::ManyNucleonBasis::combine_omega_u4su3(omega_u4, omega_su3, omega);
 
     print("Irrep ID {:5} : ", irrep_id);
     print("dist = {}", dist);
@@ -36,11 +40,7 @@ int main()
 
  // print(" ; omega U(4) = {}", omega_u4);
  // print(" ; omega SU(3) = {}", omega_su3);
-
-    print(" ; omega = [");
-    for (int i = 0; i < omega_u4.size(); i++)
-      print("{}{}, ", omega_u4[i], omega_su3[i]);
-    print("]");
+    print(" ; omega = {}", omega);
 
     print(" ; offset = {}\n", offset);
   }

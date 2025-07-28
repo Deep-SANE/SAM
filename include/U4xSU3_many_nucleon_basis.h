@@ -130,6 +130,24 @@ namespace U4xSU3
                        omega_elements_su3_.data() + end_index);
     }
 
+    struct OmegaElement
+    {
+      OmegaElementU4 mu4;
+      OmegaElementSU3 msu3;
+    };
+
+    static void combine_omega_u4su3(std::span<const OmegaElementU4> omega_u4,
+                                    std::span<const OmegaElementSU3> omega_su3,
+                                    std::vector<OmegaElement>& result)
+    {
+      assert(omega_u4.size() == omega_su3.size());
+
+      result.clear();
+
+      for (size_t i = 0; i < omega_u4.size(); i++)
+        result.emplace_back(omega_u4[i], omega_su3[i]);
+    }
+
     // (4) irreps:
 
     struct Irrep
@@ -643,6 +661,25 @@ public:
   {
     return format_to(ctx.out(), "{}({},{})", oe.rhomax, oe.su3.lambda(),
                      oe.su3.mu());
+  }
+};
+
+// formatter for OmegaElement:
+
+template <>
+class fmt::formatter<U4xSU3::ManyNucleonBasis::OmegaElement>
+{
+public:
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename Context>
+  constexpr auto format(const U4xSU3::ManyNucleonBasis::OmegaElement& oe,
+                        Context& ctx) const
+  {
+    return format_to(ctx.out(), "{}[{},{},{},{}]{}({},{})", oe.mu4.etamax,
+                     oe.mu4.u4.n14(), oe.mu4.u4.n24(), oe.mu4.u4.n34(),
+                     oe.mu4.u4.n44(), oe.msu3.rhomax, oe.msu3.su3.lambda(),
+                     oe.msu3.su3.mu());
   }
 };
 
