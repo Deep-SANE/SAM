@@ -191,6 +191,8 @@ namespace U4xSU3
       auto dist = distribution(dist_id);
       auto gamma = this->gamma(gamma_id);
 
+      assert(gamma.size() > 0);
+
       if (gamma.size() == 1)
       {
         assert(omega_u4_id == INVALID_OMEGA_ID);
@@ -203,6 +205,9 @@ namespace U4xSU3
       {
         auto omega_u4 = this->omega_u4(omega_u4_id);
         auto omega_su3 = this->omega_su3(omega_su3_id);
+
+        assert(omega_u4.size() == gamma.size() - 1);
+        assert(omega_su3.size() == gamma.size() - 1);
 
         return std::tuple(dist, gamma, omega_u4, omega_su3, offset);
       }
