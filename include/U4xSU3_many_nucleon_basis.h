@@ -165,7 +165,7 @@ namespace U4xSU3
       uint32_t gamma_id;
       uint32_t omega_u4_id;
       uint32_t omega_su3_id;
-      uint32_t offset;
+      uint64_t offset;
     };
 
     inline static const uint32_t INVALID_OMEGA_ID =
