@@ -79,41 +79,67 @@ namespace HO
     	}
 	};
 
-	// < na lla jja || b+ || nb llb jjb >
-	inline double bosonCreatorRME(int na, int lla, int jja, 
-						   int nb, int llb, int jjb,
-						   qcx_utils::SO3_Racah& racah)
+	// < na lla || b+ || nb llb >
+	inline double bosonCreatorRME(int na, int lla, int nb, int llb)
 	{
 		if (na == nb + 1)
-		{
-			double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0; 
-			double factor = phase * racah.compute(llb,1,2,jja,jjb,lla) / std::sqrt(lla + 1.0);
+		{ 
+			double factor = 1.0 / std::sqrt(lla + 1.0);
 			if (lla == llb + 2)
 				return factor * std::sqrt((llb / 2.0 + 1.0) * (nb + llb / 2.0 + 3.0));
 			else if (lla == llb - 2)
 				return -1.0 * factor * std::sqrt((llb / 2.0) * (nb - llb / 2.0 + 2.0));
 			else
-				return 0;
+				return 0.0;
+		}
+		else
+			return 0.0;
+	}
+
+	// < na lla jja || b+ || nb llb jjb >
+	inline double bosonCreatorRME(int na, int lla, int jja, 
+						   		  int nb, int llb, int jjb,
+						   		  qcx_utils::SO3_Racah9& racah9)
+	{
+		if (na == nb + 1)
+		{
+			//double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0; 
+			//double factor = phase * racah.compute(llb,1,2,jja,jjb,lla) / std::sqrt(lla + 1.0);
+			double factor = racah9.compute(llb,2,lla, 1,0,1, jjb,2,jja);
+			return factor * bosonCreatorRME(na,lla,nb,llb);
 		}
 		else
 			return 0;
 	}
 
-	// < na lla jja || b- || nb llb jjb >
-	inline double bosonAnnihilatorRME(int na, int lla, int jja, 
-						   	   int nb, int llb, int jjb,
-						   	   qcx_utils::SO3_Racah& racah)
+	// < na lla || b- || nb llb >
+	inline double bosonAnnihilatorRME(int na, int lla, int nb, int llb)
 	{
 		if (na == nb - 1)
 		{
-			double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0; 
-			double factor = phase * racah.compute(llb,1,2,jja,jjb,lla) / std::sqrt(lla + 1.0);
+			double factor = 1.0 / std::sqrt(lla + 1.0);
 			if (lla == llb + 2)
 				return factor * std::sqrt((llb / 2.0 + 1.0) * (nb - llb / 2.0));
 			else if (lla == llb - 2)
 				return -1.0 * factor * std::sqrt((llb / 2.0) * (nb + llb / 2.0 + 1.0));
 			else
-				return 0;
+				return 0.0;
+		}
+		else
+			return 0.0;
+	}
+
+	// < na lla jja || b- || nb llb jjb >
+	inline double bosonAnnihilatorRME(int na, int lla, int jja, 
+						   	   int nb, int llb, int jjb,
+						   	   qcx_utils::SO3_Racah9& racah9)
+	{
+		if (na == nb - 1)
+		{
+			//double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0; 
+			//double factor = phase * racah.compute(llb,1,2,jja,jjb,lla) / std::sqrt(lla + 1.0);
+			double factor = racah9.compute(llb,2,lla, 1,0,1, jjb,2,jja);
+			return factor * bosonAnnihilatorRME(na,lla,nb,llb);
 		}
 		else
 			return 0;

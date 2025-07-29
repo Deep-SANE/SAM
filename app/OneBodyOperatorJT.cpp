@@ -14,6 +14,7 @@ int main(int argc, char* argv[])
 #endif
 
   qcx_utils::SO3_CGC cgcs;
+  qcx_utils::SO3_Racah racah;
   qcx_utils::SO3_Racah9 racah9;
   u3::WigU3U2_db wigU3U2db(cgcs);
   u3::WigU3SO3_db wigU3SO3db(cgcs, wigU3U2db);
@@ -21,14 +22,14 @@ int main(int argc, char* argv[])
   u4::WigU4SU2SU2_db wigU4SU2SU2db(cgcs, wigU3U2db, wigU4U3db);
 
   // Example 1: number operator
-
-  JT::OneBodyOperator N(0, 0, 0, 0, 1);
+  
+  JT::OneBodyOperator N("NumberOp");
   int maxShell = 10;
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto tensors = N.expand(maxShell, cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+  auto tensors = N.expand(maxShell, cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -36,17 +37,17 @@ int main(int argc, char* argv[])
   N.is();
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
-
-  // Example 2: one-body part of the L^2 operator
+  
+  // Example 2: one-body part of the L.L operator
   /*
-  JT::OneBodyOperator oneL2(0, 0, 0, 0, 2);
+  JT::OneBodyOperator oneL2("L.L");
   int maxShell = 6;
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
   auto tensors =
-      oneL2.expand(maxShell, cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+      oneL2.expand(maxShell, cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();

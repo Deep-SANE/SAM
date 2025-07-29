@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include <so3Coeffs/SO3_CGC.h>
@@ -25,59 +27,170 @@ namespace JT
   */
   class OneBodyOperator
   {
+  private:
+    int8_t JJ, MMJ, // twice angular momentum and projection
+           TT, MMT, // twice isospin and projection
+           type;    // the type of this operator, see the constructor
+
+    bool parity;    // parity, true = +1, false = -1
+
+    bool USE_ONEBODY_SPHERICAL_RME = true;
+
   public:
-    int JJ, MMJ, // twice angular momentum and projection
-        TT, MMT, // twice isospin and projection
-        type;    // the type of this operator, see method is()
-
     // Constructor
-    OneBodyOperator(int JJ_, int MMJ_, int TT_, int MMT_, int type_)
-        : JJ(JJ_), MMJ(MMJ_), TT(TT_), MMT(MMT_), type(type_)
-    { }
-
-    // Check the type of this operator
-    void is() const
-    {
-      switch (type)
+    OneBodyOperator(const std::string& name)
+    { 
+      if (name == "NumberOp") 
       {
-      case 1:
-        std::cout << "Number operator N" << std::endl;
-        break;
-      case 2:
-        std::cout << "One-body part of L^2" << std::endl;
-        break;
-      case 3:
-        std::cout << "One-body part of L.S" << std::endl;
-        break;
-      case 4:
-        std::cout << "One-body part of CoM number operator" << std::endl;
-        break;
-      default:
-        throw std::invalid_argument("This operator has not been implemented");
+        // typical we don't use this operator
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 1;
+        parity = true;
       }
+      else if (name == "L.L")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 2;
+        parity = true;
+      }
+      else if (name == "L.S")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 3;
+        parity = true;
+      }
+      else if (name == "CoMNumberOp")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 4;
+        parity = true;
+      }
+      else if (name == "Kinetic")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 5;
+        parity = true;
+      }
+      else if (name == "R.R")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 6;
+        parity = true;
+      }
+      else if (name == "E2")
+      {
+        JJ = 4;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 7;
+        parity = true;
+        USE_ONEBODY_SPHERICAL_RME = false;
+      }
+      else if (name == "M1")
+      {
+        JJ = 2;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 8;
+        parity = true;
+        USE_ONEBODY_SPHERICAL_RME = false;
+      }
+      else if (name == "FermiPlus")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 2;
+        MMT = 2;
+        type = 9;
+        parity = true;
+        USE_ONEBODY_SPHERICAL_RME = false;
+      }
+      else if (name == "FermiMinus")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 2;
+        MMT = -2;
+        type = 10;
+        parity = true;
+        USE_ONEBODY_SPHERICAL_RME = false;
+      }
+      else if (name == "GamowTellerPlus")
+      {
+        JJ = 2;
+        MMJ = 0;
+        TT = 2;
+        MMT = 2;
+        type = 11;
+        parity = true;
+      }
+      else if (name == "GamowTellerMinus")
+      {
+        JJ = 2;
+        MMJ = 0;
+        TT = 2;
+        MMT = -2;
+        type = 12;
+        parity = true;
+      }
+      else
+        throw std::invalid_argument("This operator has not been implemented");
     }
+
+    void is() const;
+    void GetJJ() const { std::cout << "2J=" << JJ << ", 2MJ=" << MMJ << std::endl; }
+    void GetTT() const { std::cout << "2T=" << TT << ", 2MT=" << MMT << std::endl; }
+    void GetParity() const { std::cout << "P=" << ((parity == true) ? 1 : -1) << std::endl; }
 
     // ME: < na lla jja mmja mmta | O | nb llb jjb mmjb mmtb >
     double sphericalME(int na, int lla, int jja, int mmja, int mmta, int nb,
-                       int llb, int jjb, int mmjb, int mmtb);
+                       int llb, int jjb, int mmjb, int mmtb, qcx_utils::SO3_CGC& cgcs,
+                       qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9);
 
     // RME:             < na lla jja || O || nb llb jjb >
     // = ME / ( < jb mjb ; J MJ | ja mja > * < 1/2 mtb ; T MT | 1/2 mta > )
-    double sphericalRME(int na, int lla, int jja, int nb, int llb, int jjb);
+    double sphericalRME(int na, int lla, int jja, int nb, int llb, int jjb,
+                        qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah, 
+                        qcx_utils::SO3_Racah9& racah9);
 
     // compute the coefficients in the sum
     std::pair<bool, std::vector<double>> getTensorStrength(
         int lam0, int mu0, int P10, int P20, int P30, int kappa0, int LL0,
-        int SS0, int na, int nb, const std::vector<u3::physicalvector>& pv3as,
-        const std::vector<u3::physicalvector>& pv3bs,
-        const std::vector<u4::physicalvector>& pv4as,
-        const std::vector<u4::physicalvector>& pv4bs, qcx_utils::SO3_CGC& cgcs,
-        qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
+        int SS0, int na, int nb, 
+        //const std::vector<u3::physicalvector>& pv3as,
+        //const std::vector<u3::physicalvector>& pv3bs,
+        //const std::vector<u4::physicalvector>& pv4as,
+        //const std::vector<u4::physicalvector>& pv4bs, 
+        qcx_utils::SO3_CGC& cgcs,
+        qcx_utils::SO3_Racah& racah,
+        qcx_utils::SO3_Racah9& racah9, 
+        u3::WigU3SO3_db& wigU3SO3db,
         u4::WigU4SU2SU2_db& wigU4SU2SU2db);
 
     // expand into a sum of multi-shell one-body tensors
     std::vector<U3xU4::OneBodyMultiShellTensor>
-    expand(int maxShell, qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
+    expand(int maxShell, qcx_utils::SO3_CGC& cgcs, 
+           qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db);
   };
 
