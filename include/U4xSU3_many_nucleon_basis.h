@@ -59,6 +59,8 @@ namespace U4xSU3
 
     // (1) distributions:
 
+    using DistributionElement = uint16_t;
+
     auto n_distributions() const
     {
       assert(shells_.size() % D_ == 0);
@@ -161,10 +163,10 @@ namespace U4xSU3
 
     struct Irrep
     {
-      uint32_t dist_id; 
-      uint32_t gamma_id;
-      uint32_t omega_u4_id;
-      uint32_t omega_su3_id;
+      std::span<const DistributionElement> dist;
+      std::span<const GammaElement> gamma;
+      std::span<const OmegaElementU4> omega_u4;
+      std::span<const OmegaElementSU3> omega_su3;
       uint64_t offset;
     };
 
@@ -181,7 +183,7 @@ namespace U4xSU3
     }
     */
 
-    auto irrep(size_t irrep_id) const
+    Irrep irrep(size_t irrep_id) const
     {
       assert(irrep_id < irreps_.size());
 
@@ -198,8 +200,8 @@ namespace U4xSU3
         assert(omega_u4_id == INVALID_OMEGA_ID);
         assert(omega_su3_id == INVALID_OMEGA_ID);
 
-        return std::tuple(dist, gamma, std::span<const OmegaElementU4>(),
-                          std::span<const OmegaElementSU3>(), offset);
+        return {dist, gamma, std::span<const OmegaElementU4>(),
+                std::span<const OmegaElementSU3>(), offset};
       }
       else
       {
@@ -209,7 +211,7 @@ namespace U4xSU3
         assert(omega_u4.size() == gamma.size() - 1);
         assert(omega_su3.size() == gamma.size() - 1);
 
-        return std::tuple(dist, gamma, omega_u4, omega_su3, offset);
+        return {dist, gamma, omega_u4, omega_su3, offset};
       }
     }
 
@@ -236,7 +238,8 @@ namespace U4xSU3
 
     size_t D_; // number of shells in each distribution; equal to (nmax_+1)
 
-    std::vector<uint16_t> shells_; // occupancy of shells for distributions
+    std::vector<DistributionElement>
+        shells_; // occupancy of shells for distributions
 
     // (2) gammas:
 
@@ -253,14 +256,23 @@ namespace U4xSU3
 
     // (4) irreps:
 
-    std::vector<Irrep> irreps_;
+    struct InternalIrrep
+    {
+      uint32_t dist_id; 
+      uint32_t gamma_id;
+      uint32_t omega_u4_id;
+      uint32_t omega_su3_id;
+      uint64_t offset;
+    };
+
+    std::vector<InternalIrrep> irreps_;
 
     // (1) distributions:
 
     void generate_distributions()
     {
       // configuration of a single shell:
-      using ShellConfig = std::vector<uint16_t>;
+      using ShellConfig = std::vector<DistributionElement>;
 
       // shell configurations for all subspaces:
       std::vector<std::set<ShellConfig>> subspaces_configs(Nmax_ + 1);
@@ -620,6 +632,86 @@ namespace U4xSU3
       }
     }
   };
+
+  /*
+  // structure for irrep used outside of the basis class:
+  struct Irrep
+  {
+    std::vector<ManyNucleonBasis::DistributionElement> dist;
+    std::vector<ManyNucleonBasis::GammaElement> gamma;
+    std::vector<ManyNucleonBasis::OmegaElementU4> omega_u4;
+    std::vector<ManyNucleonBasis::OmegaElementSU3> omega_su3;
+  };
+
+  void unify_irreps(const ManyNucleonBasis::Irrep& iir1,
+                    const ManyNucleonBasis::Irrep& iir2, Irrep& oir1,
+                    Irrep& oir2)
+  {
+    const auto& [idist1, igamma1, iomega1_u4, iomega1_su3, ioffset1] = iir1;
+    const auto& [idist2, igamma2, iomega2_u4, iomega2_su3, ioffset2] = iir2;
+
+    auto& [odist1, ogamma1, oomega1_u4, oomega1_su3] = oir1;
+    auto& [odist2, ogamma2, oomega2_u4, oomega2_su3] = oir2;
+
+    odist1.clear();
+    ogamma1.clear();
+    oomega1_u4.clear();
+    oomega1_su3.clear();
+
+    odist2.clear();
+    ogamma2.clear();
+    oomega2_u4.clear();
+    oomega2_su3.clear();
+
+    // (1) unify distribution sizes:
+
+    std::copy(idist1.begin(), idist1.end(), std::back_inserter(odist1));
+    std::copy(idist2.begin(), idist2.end(), std::back_inserter(odist2));
+
+    auto D = std::max(odist1.size(), odist2.size());
+
+    assert(D > 0);
+
+    odist1.resize(D);
+    odist2.resize(D);
+
+    // (2) unify gammas and omegas:
+
+    static const u4::irrep u4_vacuum(0, 0, 0, 0);
+    static const su3::irrep su3_vacuum(0, 0);
+    static const GammaElement gamma_vacuum(u4_vacuum, 1, su3_vacuum);
+    static const OmegaElementU4 omega_u4_vacuum(1, u4_vacuum);
+    static const OmegaElementSU3 omega_su3_vacuum(1, su3_vacuum);
+
+    size_t i_gamma_1 = 0;
+    size_t i_gamma_2 = 0;
+
+    for (size_t k = 0; k < D; k++)
+    {
+      if ((odist1[k] == 0) && (odist2[k] == 0))
+        continue;
+
+      if (odist1[k] != 0)
+      {
+        ogamma1.push_back(igamma1[i_gamma_1]);
+
+        if (i_gamma_1 > 0)
+        {
+          oomega1_u4.push_back(iomega1_u4[i_gamma_1 - 1]);
+          oomega1_su3.push_back(iomega1_su3[i_gamma_1 - 1]);
+        }
+
+        i_gamma_1++;
+      }
+      else 
+      {
+        ogamma1.push_back(gamma_vacuum);
+
+      }
+
+    }
+  }
+  */
 } // namespace U4xSU3
 
 #ifdef HAVE_FMT
