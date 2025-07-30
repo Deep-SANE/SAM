@@ -259,6 +259,7 @@ namespace U3xU4
     std::vector<U3xU4::ads_phys> tensorsArr;
 
     std::size_t num = prod_characters.size() + 1;
+    int ll_max = 2 * n, ll_min = 2 * (n % 2);
 
     // one ad
     if (num == 1)
@@ -274,21 +275,16 @@ namespace U3xU4
     // two ad's
     else if (num == 2)
     {
-      std::vector<u3::physicalvector> pvs = u3::physicalBasis(u3::irrep(n, 0));
       int lam = prod_characters.back().u3.lam(),
           mu = prod_characters.back().u3.mu(),
           P1 = prod_characters.back().u4.P1(),
           P2 = prod_characters.back().u4.P2(),
           P3 = prod_characters.back().u4.P3();
 
-      for (int pva = 0; pva < pvs.size(); pva++)
+      for (int lla = ll_max; lla >= ll_min; lla -= 4)
       {
-        int lla = 2 * pvs[pva].L;
-
-        for (int pvb = 0; pvb < pvs.size(); pvb++)
+        for (int llb = ll_max; llb >= ll_min; llb -= 4)
         {
-          int llb = 2 * pvs[pvb].L;
-
           if (std::abs(lla - llb) > LL || (lla + llb) < LL)
             continue;
 
@@ -348,9 +344,8 @@ namespace U3xU4
     // three ad's
     else if (num == 3)
     {
-      std::vector<u3::physicalvector> pv3s = u3::physicalBasis(u3::irrep(n, 0)),
-                                      pv3s0 = u3::physicalBasis(
-                                          prod_characters[0].u3);
+      std::vector<u3::physicalvector> pv3s0 = 
+          u3::physicalBasis(prod_characters[0].u3);
       std::vector<u4::physicalvector> pv4s0 =
           u4::physicalBasis(prod_characters[0].u4);
 
@@ -363,10 +358,8 @@ namespace U3xU4
           P10 = prod_characters[0].u4.P1(), P20 = prod_characters[0].u4.P2(),
           P30 = prod_characters[0].u4.P3();
 
-      for (int pvc = 0; pvc < pv3s.size(); pvc++)
+      for (int llc = ll_max; llc >= ll_min; llc -= 4)
       {
-        int llc = 2 * pv3s[pvc].L;
-
         for (int pv30 = 0; pv30 < pv3s0.size(); pv30++)
         {
           int LL0 = 2 * pv3s0[pv30].L;
@@ -700,6 +693,7 @@ namespace U3xU4
     std::vector<U3xU4::ats_phys> tensorsArr;
 
     std::size_t num = prod_characters.size() + 1;
+    int ll_max = 2 * n, ll_min = 2 * (n % 2);
 
     // one at
     if (num == 1)
@@ -715,21 +709,16 @@ namespace U3xU4
     // two at's
     else if (num == 2)
     {
-      std::vector<u3::physicalvector> pvs = u3::physicalBasis(u3::irrep(0, n));
       int lam = prod_characters.back().u3.lam(),
           mu = prod_characters.back().u3.mu(),
           P1 = prod_characters.back().u4.P1(),
           P2 = prod_characters.back().u4.P2(),
           P3 = prod_characters.back().u4.P3();
 
-      for (int pva = 0; pva < pvs.size(); pva++)
+      for (int lla = ll_max; lla >= ll_min; lla -= 4)
       {
-        int lla = 2 * pvs[pva].L;
-
-        for (int pvb = 0; pvb < pvs.size(); pvb++)
+        for (int llb = ll_max; llb >= ll_min; llb -= 4)
         {
-          int llb = 2 * pvs[pvb].L;
-
           if (std::abs(lla - llb) > LL || (lla + llb) < LL)
             continue;
 
@@ -796,9 +785,8 @@ namespace U3xU4
     // three at's
     else if (num == 3)
     {
-      std::vector<u3::physicalvector> pv3s = u3::physicalBasis(u3::irrep(0, n)),
-                                      pv3s0 = u3::physicalBasis(
-                                          prod_characters[0].u3);
+      std::vector<u3::physicalvector> pv3s0 = 
+          u3::physicalBasis(prod_characters[0].u3);
       std::vector<u4::physicalvector> pv4s0 =
           u4::physicalBasis(prod_characters[0].u4);
 
@@ -811,10 +799,8 @@ namespace U3xU4
           P10 = prod_characters[0].u4.P1(), P20 = prod_characters[0].u4.P2(),
           P30 = prod_characters[0].u4.P3();
 
-      for (int pvc = 0; pvc < pv3s.size(); pvc++)
+      for (int llc = ll_max; llc >= ll_min; llc -= 4)
       {
-        int llc = 2 * pv3s[pvc].L;
-
         for (int pv30 = 0; pv30 < pv3s0.size(); pv30++)
         {
           int LL0 = 2 * pv3s0[pv30].L;
