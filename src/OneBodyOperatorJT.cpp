@@ -25,7 +25,7 @@ namespace JT
       std::cout << "One-body part of L.S" << std::endl;
       break;      
     case 4:
-      std::cout << "One-body part of the CoM number operator" << std::endl;
+      std::cout << "One-body part of the CoM number operator without 1/A" << std::endl;
       break;
     case 5:
       std::cout << "One-body part of the relative kinetic energy without hw(A-1)/A" << std::endl;
@@ -62,7 +62,7 @@ namespace JT
                                       int mmjb, int mmtb,
                                       qcx_utils::SO3_CGC& cgcs, 
                                       qcx_utils::SO3_Racah& racah,
-                                      qcx_utils::SO3_Racah9& racah9)
+                                      qcx_utils::SO3_Racah9& racah9) const
   {
     double x = 0.0;
     switch (type)
@@ -252,7 +252,7 @@ namespace JT
                                        int llb, int jjb,
                                        qcx_utils::SO3_CGC& cgcs,
                                        qcx_utils::SO3_Racah& racah, 
-                                       qcx_utils::SO3_Racah9& racah9)
+                                       qcx_utils::SO3_Racah9& racah9) const
   {
     double x = 0.0;
     switch (type)
@@ -378,7 +378,7 @@ namespace JT
       int SS0, int na, int nb, 
       qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
       qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
-      u4::WigU4SU2SU2_db& wigU4SU2SU2db)
+      u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     std::vector<double> x(kappa0, 0.0);
     double sum = 0.0;
@@ -537,7 +537,7 @@ namespace JT
   std::vector<U3xU4::OneBodyMultiShellTensor> OneBodyOperator::expand(
       int maxShell, qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
       qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db, 
-      u4::WigU4SU2SU2_db& wigU4SU2SU2db)
+      u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     std::vector<U3xU4::OneBodyMultiShellTensor> tensors;
     
