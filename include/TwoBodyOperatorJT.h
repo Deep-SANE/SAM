@@ -1,7 +1,9 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include <so3Coeffs/SO3_CGC.h>
@@ -21,34 +23,68 @@ namespace JT
 {
   class TwoBodyOperator
   {
+  private:
+    int8_t JJ, MMJ, // twice angular momentum and projection
+           TT, MMT, // twice isospin and projection
+           type;    // the type of this operator, see method is()
+
+    bool parity;    // parity, true = +1, false = -1
+
   public:
-    int JJ, MMJ, // twice angular momentum and projection
-        TT, MMT, // twice isospin and projection
-        type;    // the type of this operator, see method is()
-
     // Constructor
-    TwoBodyOperator(int JJ_, int MMJ_, int TT_, int MMT_, int type_)
-        : JJ(JJ_), MMJ(MMJ_), TT(TT_), MMT(MMT_), type(type_)
-    { }
-
-    // Check the type of this operator
-    void is() const
-    {
-      switch (type)
+    TwoBodyOperator(const std::string& name)
+    { 
+      if (name == "L.L")
       {
-      case 1:
-        std::cout << "Two-body part of L^2" << std::endl;
-        break;
-      case 2:
-        std::cout << "Two-body part of L.S" << std::endl;
-        break;
-      case 3:
-        std::cout << "Two-body part of CoM number operator" << std::endl;
-        break;
-      default:
-        throw std::invalid_argument("This operator has not been implemented");
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 1;
+        parity = true;
+      }
+      else if (name == "L.S")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 2;
+        parity = true;
+      }
+      else if (name == "CoMNumberOp")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 3;
+        parity = true;
+      }
+      else if (name == "Kinetic")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 4;
+        parity = true;
+      }
+      else if (name == "R.R")
+      {
+        JJ = 0;
+        MMJ = 0;
+        TT = 0;
+        MMT = 0;
+        type = 5;
+        parity = true;
       }
     }
+
+    void is() const;
+    void GetJJ() const { std::cout << "2J=" << JJ << ", 2MJ=" << MMJ << std::endl; }
+    void GetTT() const { std::cout << "2T=" << TT << ", 2MT=" << MMT << std::endl; }
+    void GetParity() const { std::cout << "P=" << ((parity == true) ? 1 : -1) << std::endl; }
 
     // ME: / na lla jja mmja mmta | O | nc llc jjc mmjc mmtc \
     // 	   \ nb llb jjb mmjb mmtb |	  | nd lld jjb mmjd mmtd /
@@ -56,13 +92,13 @@ namespace JT
                        int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                        int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
                        int mmjd, int mmtd, qcx_utils::SO3_CGC& cgcs,
-                       qcx_utils::SO3_Racah& racah) const;
+                       qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9) const;
     // Antisymmetrized matrix element
     double sphericalME_AS(int na, int lla, int jja, int mmja, int mmta, int nb,
                        int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                        int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
                        int mmjd, int mmtd, qcx_utils::SO3_CGC& cgcs,
-                       qcx_utils::SO3_Racah& racah) const;
+                       qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9) const;
 
     // Generate a list of all {na, nb, nc, nd} combinations such that
     // 0 <= na, nb, nc, nd <= maxShell
@@ -85,9 +121,9 @@ namespace JT
     // and arrays for the purpose of inverting the permutations.
 
 
-    // Set coefficient for two-body multi-shell tensor.
+    // Set coefficients for two-body multi-shell tensor.
     // It returns a flag, which indicate whether this tensor can be ignored.
-    bool setCoefficient(
+    bool setTensorStrength(
       U3xU4::TwoBodyMultiShellTensor& tensor, 
       const std::vector<std::vector<int>>& inverse, 
       const std::vector<int>& phase,
@@ -102,8 +138,8 @@ namespace JT
            qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db,
            u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+  
   private:
-
     // Perform permutation of tensor in increasing shell.
     // For tensors of the same shell, ad's are in the front of at's.
     // Exchange of 2 tensors always incurs a phase of -1.0.
