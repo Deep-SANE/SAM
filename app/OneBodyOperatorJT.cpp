@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
   u4::WigU4SU2SU2_db wigU4SU2SU2db(cgcs, wigU3U2db, wigU4U3db);
 
   // Example 1: number operator
-  
+  /*
   JT::OneBodyOperator N("NumberOp");
   int maxShell = 10;
 
@@ -37,24 +37,45 @@ int main(int argc, char* argv[])
   N.is();
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
-  
+  */
+
   // Example 2: one-body part of the L.L operator
   /*
-  JT::OneBodyOperator oneL2("L.L");
+  JT::OneBodyOperator LL("L.L");
   int maxShell = 6;
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
   auto tensors =
-      oneL2.expand(maxShell, cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+      LL.expand(maxShell, cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  oneL2.is();
-  for (auto tensor : tensors) std::cout << tensor << std::endl;
+  LL.is();
+  for (auto tensor : tensors) 
+    std::cout << tensor << std::endl;
   */
+
+  // Example 3: one-body part of the relative kinetic energy
+  
+  JT::OneBodyOperator KE("Kinetic");
+  int maxShell = 8;
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  auto tensors =
+      KE.expand(maxShell, cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  KE.is();
+  for (auto tensor : tensors) 
+    std::cout << tensor << std::endl;
+  
 
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;
