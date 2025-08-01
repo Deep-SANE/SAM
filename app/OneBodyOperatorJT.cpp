@@ -53,15 +53,15 @@ int main(int argc, char* argv[])
   auto t1 = std::chrono::high_resolution_clock::now();
 
   LL.is();
-  for (auto tensor : tensors) 
+  for (auto tensor : tensors)
     std::cout << tensor << std::endl;
   */
 
   // Example 3: one-body part of the relative kinetic energy
-  
+
   int hw = -1, maxShell = 8;
-  JT::OneBodyOperator KE("Kinetic",hw,maxShell);
-  
+  JT::OneBodyOperator KE("Kinetic", hw, maxShell);
+
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
@@ -71,9 +71,8 @@ int main(int argc, char* argv[])
   auto t1 = std::chrono::high_resolution_clock::now();
 
   KE.is();
-  for (auto tensor : tensors) 
+  for (auto tensor : tensors)
     std::cout << tensor << std::endl;
-  
 
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;

@@ -69,7 +69,8 @@ int main(int argc, char* argv[])
     // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  JT::TwoBodyOperator NN("N2LO_opt_bare", labels, hw, Nmax, valenceShell, maxShell);
+  JT::TwoBodyOperator NN("N2LO_opt_bare", labels, hw, Nmax, valenceShell,
+  maxShell);
 
   auto tensors = NN.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
 
@@ -85,10 +86,11 @@ int main(int argc, char* argv[])
   int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
-    // Start time measurement
+  // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  JT::TwoBodyOperator NN("N3LO_EMN500_bare", labels, hw, Nmax, valenceShell, maxShell);
+  JT::TwoBodyOperator NN("N3LO_EMN500_bare", labels, hw, Nmax, valenceShell,
+                         maxShell);
 
   auto tensors = NN.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
 
@@ -98,7 +100,6 @@ int main(int argc, char* argv[])
   NN.is();
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
-
 
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
 

@@ -445,11 +445,13 @@ namespace HO
   double TBME_scalar::getME(uint16_t a, uint16_t b, uint16_t c, uint16_t d,
                             uint16_t J) const
   {
-  	if (a == b && J % 2 == 1) return 0.0;
-  	if (c == d && J % 2 == 1) return 0.0;
+    if (a == b && J % 2 == 1)
+      return 0.0;
+    if (c == d && J % 2 == 1)
+      return 0.0;
 
     const auto &oa = orbit_map.getOrbit(a), ob = orbit_map.getOrbit(b),
-                oc = orbit_map.getOrbit(c), od = orbit_map.getOrbit(d);
+               oc = orbit_map.getOrbit(c), od = orbit_map.getOrbit(d);
 
     int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, ec = 2 * oc.n + oc.l,
         ed = 2 * od.n + od.l;
@@ -472,29 +474,36 @@ namespace HO
     if (cd_Nhw > Nmax)
       throw std::out_of_range("ket channel beyond Nmax");
 
-    auto it = me_map.find({a, b, c, d, J}); 
-    if (it != me_map.end()) return it->second;
-    it = me_map.find({c, d, a, b, J}); 
-    if (it != me_map.end()) return it->second; // if not Hermitian, *= -1 
+    auto it = me_map.find({a, b, c, d, J});
+    if (it != me_map.end())
+      return it->second;
+    it = me_map.find({c, d, a, b, J});
+    if (it != me_map.end())
+      return it->second; // if not Hermitian, *= -1
 
     double phase_ab = (((oa.jj + ob.jj) / 2 - J) % 2 == 0) ? -1.0 : 1.0;
-  	it = me_map.find({b, a, c, d, J});
-    if (it != me_map.end()) return phase_ab * (it->second);
+    it = me_map.find({b, a, c, d, J});
+    if (it != me_map.end())
+      return phase_ab * (it->second);
     it = me_map.find({c, d, b, a, J});
-    if (it != me_map.end()) return phase_ab * (it->second);
+    if (it != me_map.end())
+      return phase_ab * (it->second);
 
     double phase_cd = (((oc.jj + od.jj) / 2 - J) % 2 == 0) ? -1.0 : 1.0;
     it = me_map.find({a, b, d, c, J});
-    if (it != me_map.end()) return phase_cd * (it->second);
+    if (it != me_map.end())
+      return phase_cd * (it->second);
     it = me_map.find({d, c, a, b, J});
-    if (it != me_map.end()) return phase_cd * (it->second);
-
+    if (it != me_map.end())
+      return phase_cd * (it->second);
 
     it = me_map.find({b, a, d, c, J});
-    if (it != me_map.end()) return phase_ab * phase_cd * (it->second);
+    if (it != me_map.end())
+      return phase_ab * phase_cd * (it->second);
     it = me_map.find({d, c, b, a, J});
-    if (it != me_map.end()) return phase_ab * phase_cd * (it->second);
-    
+    if (it != me_map.end())
+      return phase_ab * phase_cd * (it->second);
+
     return 0.0;
   }
 

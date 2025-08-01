@@ -220,7 +220,7 @@ namespace U4xSU3
     auto dim() const { return dim_; }
 
   private:
-    int A_; // number of nucleons; equal to (Z+N)
+    int A_;   // number of nucleons; equal to (Z+N)
     int MMT_; // proton-neutron "difference"; equal to (abs(Z-N))
     int Nmax_;
     int JJ_;
@@ -258,7 +258,7 @@ namespace U4xSU3
 
     struct InternalIrrep
     {
-      uint32_t dist_id; 
+      uint32_t dist_id;
       uint32_t gamma_id;
       uint32_t omega_u4_id;
       uint32_t omega_su3_id;
@@ -459,7 +459,7 @@ namespace U4xSU3
     {
       int nsps = (n + 1) * (n + 2) / 2;
 
-   // if (A > 4 * nsps) return;
+      // if (A > 4 * nsps) return;
       assert(A <= 4 * nsps);
 
       for (int n14 = std::min(A, nsps); n14 >= 0; --n14)
@@ -555,7 +555,7 @@ namespace U4xSU3
         auto end = begin + omega_size;
 
         omegas_u4_.emplace_back(begin, end);
-        
+
         std::ranges::copy(omega_u4, std::back_inserter(omega_elements_u4_));
       }
 
@@ -585,7 +585,7 @@ namespace U4xSU3
         auto end = begin + omega_size;
 
         omegas_su3_.emplace_back(begin, end);
-        
+
         std::ranges::copy(omega_su3, std::back_inserter(omega_elements_su3_));
       }
 
@@ -703,7 +703,7 @@ namespace U4xSU3
 
         i_gamma_1++;
       }
-      else 
+      else
       {
         ogamma1.push_back(gamma_vacuum);
 

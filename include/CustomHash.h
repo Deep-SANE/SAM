@@ -4,20 +4,23 @@
 #include <functional>
 #include <tuple>
 
-namespace detail {
+namespace detail
+{
   template <typename T>
   inline void hash_combine(std::size_t& seed, const T& value)
   {
     std::hash<T> hasher;
     seed ^= hasher(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
   }
-}
+} // namespace detail
 
-namespace std {
+namespace std
+{
   template <>
   struct hash<std::tuple<int16_t, int16_t, int16_t, int16_t, int16_t>>
   {
-    size_t operator()(const std::tuple<int16_t, int16_t, int16_t, int16_t, int16_t>& key) const noexcept
+    size_t operator()(const std::tuple<int16_t, int16_t, int16_t, int16_t,
+                                       int16_t>& key) const noexcept
     {
       size_t seed = 0;
       detail::hash_combine(seed, std::get<0>(key));
@@ -32,7 +35,8 @@ namespace std {
   template <>
   struct hash<std::tuple<uint16_t, uint16_t, uint16_t, uint16_t, uint16_t>>
   {
-    size_t operator()(const std::tuple<uint16_t, uint16_t, uint16_t, uint16_t, uint16_t>& key) const noexcept
+    size_t operator()(const std::tuple<uint16_t, uint16_t, uint16_t, uint16_t,
+                                       uint16_t>& key) const noexcept
     {
       size_t seed = 0;
       detail::hash_combine(seed, std::get<0>(key));
@@ -47,7 +51,8 @@ namespace std {
   template <>
   struct hash<std::tuple<uint, uint, uint, uint, uint>>
   {
-    size_t operator()(const std::tuple<uint, uint, uint, uint, uint>& key) const noexcept
+    size_t operator()(
+        const std::tuple<uint, uint, uint, uint, uint>& key) const noexcept
     {
       size_t seed = 0;
       detail::hash_combine(seed, std::get<0>(key));
@@ -58,4 +63,4 @@ namespace std {
       return seed;
     }
   };
-}
+} // namespace std

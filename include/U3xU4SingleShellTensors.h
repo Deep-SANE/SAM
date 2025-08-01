@@ -17,8 +17,8 @@
 #include <U4SU2SU2xU4SU2SU2.h>
 #include <U4U3xU4U3.h>
 
-#include <U3xU4Irrep.h>
 #include <HOutilities.h>
+#include <U3xU4Irrep.h>
 
 namespace U3xU4
 {
@@ -79,35 +79,32 @@ namespace U3xU4
   */
   class ad_phys
   {
-  private: 
+  private:
     // A lookup table for the labels and location in the table
     HO::Table_nljmjmt& labels;
     int index;
 
-  public:    
+  public:
     // Constructor
-    ad_phys(int16_t n_,                 // shell number
-            int16_t ll_,                // twice orbital angular momentum
-            int16_t jj_, int16_t mmj_,  // twice total angular momentum
-            int16_t mmt_,               // twice isospin projection
+    ad_phys(int16_t n_,                // shell number
+            int16_t ll_,               // twice orbital angular momentum
+            int16_t jj_, int16_t mmj_, // twice total angular momentum
+            int16_t mmt_,              // twice isospin projection
             HO::Table_nljmjmt& labels_)
         : labels(labels_)
-    { 
+    {
       index = labels.getIndex(n_, ll_, jj_, mmj_, mmt_);
     }
 
     // Get labels
-    auto getLabels() const
-    {
-      return labels.getLabels(index);
-    }
+    auto getLabels() const { return labels.getLabels(index); }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s, const ad_phys& x)
     {
       auto [n, ll, jj, mmj, mmt] = x.getLabels();
-      return s << "ad(" << n << "," << ll << "," << jj << "," << mmj
-               << "," << mmt << ")";
+      return s << "ad(" << n << "," << ll << "," << jj << "," << mmj << ","
+               << mmt << ")";
     }
   };
   using ads_phys = std::vector<U3xU4::ad_phys>;
@@ -212,21 +209,18 @@ namespace U3xU4
 
   public:
     // Constructor
-    at_phys(int16_t n_,                 // shell number
-            int16_t ll_,                // twice orbital angular momentum
-            int16_t jj_, int16_t mmj_,  // twice total angular momentum
-            int16_t mmt_,               // twice isospin projection
+    at_phys(int16_t n_,                // shell number
+            int16_t ll_,               // twice orbital angular momentum
+            int16_t jj_, int16_t mmj_, // twice total angular momentum
+            int16_t mmt_,              // twice isospin projection
             HO::Table_nljmjmt& labels_)
         : labels(labels_)
-    { 
-      index = labels.getIndex(n_,ll_,jj_,mmj_,mmt_);
+    {
+      index = labels.getIndex(n_, ll_, jj_, mmj_, mmt_);
     }
 
     // Get labels
-    auto getLabels() const
-    {
-      return labels.getLabels(index);
-    }
+    auto getLabels() const { return labels.getLabels(index); }
 
     // Turn it to a by conjugating, this method returns a phase
     // and change mmj to -mmj, mmt to -mmt
@@ -238,7 +232,7 @@ namespace U3xU4
       mmj *= -1;
       mmt *= -1;
       tensor = false;
-      index = labels.getIndex(n,ll,jj,mmj,mmt);
+      index = labels.getIndex(n, ll, jj, mmj, mmt);
       return (phi % 2 == 0) ? 1.0 : -1.0;
     }
 
@@ -250,11 +244,11 @@ namespace U3xU4
     {
       auto [n, ll, jj, mmj, mmt] = x.getLabels();
       if (x.tensor)
-        return s << "at(" << n << "," << ll << "," << jj << "," << mmj
-                 << "," << mmt << ")";
+        return s << "at(" << n << "," << ll << "," << jj << "," << mmj << ","
+                 << mmt << ")";
       else
-        return s << "a(" << n << "," << ll << "," << jj << "," << mmj
-                 << "," << mmt << ")";
+        return s << "a(" << n << "," << ll << "," << jj << "," << mmj << ","
+                 << mmt << ")";
     }
   };
   using ats_phys = std::vector<U3xU4::at_phys>;
@@ -313,7 +307,7 @@ namespace U3xU4
   class Tad_phys
   {
   private:
-    // A lookup table for the labels 
+    // A lookup table for the labels
     HO::Table_nljmjmt& labels;
 
   public:
@@ -430,7 +424,7 @@ namespace U3xU4
   class Tat_phys
   {
   private:
-    // A lookup table for the labels 
+    // A lookup table for the labels
     HO::Table_nljmjmt& labels;
 
   public:
@@ -576,7 +570,7 @@ namespace U3xU4
   class Tadat_phys
   {
   private:
-    // A lookup table for the labels 
+    // A lookup table for the labels
     HO::Table_nljmjmt& labels;
 
   public:

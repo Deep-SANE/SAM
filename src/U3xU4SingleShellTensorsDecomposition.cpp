@@ -344,7 +344,7 @@ namespace U3xU4
     // three ad's
     else if (num == 3)
     {
-      std::vector<u3::physicalvector> pv3s0 = 
+      std::vector<u3::physicalvector> pv3s0 =
           u3::physicalBasis(prod_characters[0].u3);
       std::vector<u4::physicalvector> pv4s0 =
           u4::physicalBasis(prod_characters[0].u4);
@@ -785,7 +785,7 @@ namespace U3xU4
     // three at's
     else if (num == 3)
     {
-      std::vector<u3::physicalvector> pv3s0 = 
+      std::vector<u3::physicalvector> pv3s0 =
           u3::physicalBasis(prod_characters[0].u3);
       std::vector<u4::physicalvector> pv4s0 =
           u4::physicalBasis(prod_characters[0].u4);
@@ -1194,7 +1194,7 @@ namespace U3xU4
                       int MMT2 = MMT - MMT1;
                       if (std::abs(MMT2) > TT2)
                         continue;
-                      
+
                       double cgcT = cgcs.compute(TT1, TT2, TT, MMT1, MMT2, MMT);
 
                       U3xU4::Tad_phys Tad(n, prod_ads, LL1, SS1, TT1, MMT1, JJ1,

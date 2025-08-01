@@ -38,8 +38,8 @@ int main()
     print("dist = {}", dist);
     print(" ; gamma = {}", gamma);
 
- // print(" ; omega U(4) = {}", omega_u4);
- // print(" ; omega SU(3) = {}", omega_su3);
+    // print(" ; omega U(4) = {}", omega_u4);
+    // print(" ; omega SU(3) = {}", omega_su3);
     print(" ; omega = {}", omega);
 
     print(" ; offset = {}\n", offset);

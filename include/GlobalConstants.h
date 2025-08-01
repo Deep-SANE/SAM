@@ -5,4 +5,4 @@
 
 constexpr double SQRT2 = std::numbers::sqrt2;
 constexpr double SQRT3 = std::numbers::sqrt3;
-constexpr double PI    = std::numbers::pi;
+constexpr double PI = std::numbers::pi;
