@@ -23,13 +23,13 @@ int main(int argc, char* argv[])
 
   // Example 1: number operator
   /*
-  JT::OneBodyOperator N("NumberOp");
-  int maxShell = 10;
+  int hw = -1, maxShell = 10;
+  JT::OneBodyOperator N("NumberOp",hw,maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto tensors = N.expand(maxShell, cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  auto tensors = N.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -41,14 +41,13 @@ int main(int argc, char* argv[])
 
   // Example 2: one-body part of the L.L operator
   /*
-  JT::OneBodyOperator LL("L.L");
-  int maxShell = 6;
+  int hw = -1, maxShell = 6;
+  JT::OneBodyOperator LL("L.L",hw,maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto tensors =
-      LL.expand(maxShell, cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  auto tensors = LL.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -60,14 +59,13 @@ int main(int argc, char* argv[])
 
   // Example 3: one-body part of the relative kinetic energy
   
-  JT::OneBodyOperator KE("Kinetic");
-  int maxShell = 8;
-
+  int hw = -1, maxShell = 8;
+  JT::OneBodyOperator KE("Kinetic",hw,maxShell);
+  
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto tensors =
-      KE.expand(maxShell, cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  auto tensors = KE.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();

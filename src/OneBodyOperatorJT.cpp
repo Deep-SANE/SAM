@@ -10,76 +10,150 @@
 
 namespace JT
 {
+  OneBodyOperator::OneBodyOperator(const std::string& name_, int8_t hw_,
+                                   int8_t maxShell_)
+  {
+    hw = (hw_ >= 0) ? hw_ : 20;
+    maxShell = (maxShell_ >= 0) ? maxShell_ : 14;
+
+    const std::unordered_set<std::string> known_scalar_ops = {
+        "NumberOp", "L.L", "L.S", "CoMNumberOp", "Kinetic", "R.R"};
+
+    if (known_scalar_ops.count(name_))
+    {
+      name = name_;
+      JJ = 0;
+      MMJ = 0;
+      TT = 0;
+      MMT = 0;
+      parity = true;
+    }
+    else if (name_ == "E2")
+    {
+      name = name_;
+      JJ = 4;
+      MMJ = 0;
+      TT = 0;
+      MMT = 0;
+      parity = true;
+      USE_ONEBODY_SPHERICAL_RME = false;
+    }
+    else if (name_ == "M1")
+    {
+      name = name_;
+      JJ = 2;
+      MMJ = 0;
+      TT = 0;
+      MMT = 0;
+      parity = true;
+      USE_ONEBODY_SPHERICAL_RME = false;
+    }
+    else if (name_ == "FermiPlus")
+    {
+      name = name_;
+      JJ = 0;
+      MMJ = 0;
+      TT = 2;
+      MMT = 2;
+      parity = true;
+      USE_ONEBODY_SPHERICAL_RME = false;
+    }
+    else if (name_ == "FermiMinus")
+    {
+      name = name_;
+      JJ = 0;
+      MMJ = 0;
+      TT = 2;
+      MMT = -2;
+      parity = true;
+      USE_ONEBODY_SPHERICAL_RME = false;
+    }
+    else if (name_ == "GamowTellerPlus")
+    {
+      name = name_;
+      JJ = 2;
+      MMJ = 0;
+      TT = 2;
+      MMT = 2;
+      parity = true;
+    }
+    else if (name_ == "GamowTellerMinus")
+    {
+      name = name_;
+      JJ = 2;
+      MMJ = 0;
+      TT = 2;
+      MMT = -2;
+      parity = true;
+    }
+    else
+      throw std::invalid_argument("This operator has not been implemented");
+  }
+
   // Check the type of this operator
   void OneBodyOperator::is() const
   {
-    switch (type)
-    {
-    case 1:
+    if (name == "NumberOp")
       std::cout << "Number operator N" << std::endl;
-      break;
-    case 2:
+    else if (name == "L.L")
       std::cout << "One-body part of L.L" << std::endl;
-      break;
-    case 3:
+    else if (name == "L.S")
       std::cout << "One-body part of L.S" << std::endl;
-      break;      
-    case 4:
-      std::cout << "One-body part of the CoM number operator without 1/A" << std::endl;
-      break;
-    case 5:
-      std::cout << "One-body part of the relative kinetic energy without hw(A-1)/A" << std::endl;
-      break;
-    case 6:
-      std::cout << "One-body part of the intrinsic mass radius squared without (A-1)/A" << std::endl;
-      break;
-    case 7:
-      std::cout << "E2 transition operator without (HO strength)^2" << std::endl;
-      break;
-    case 8:
+    else if (name == "CoMNumberOp")
+      std::cout << "One-body part of the CoM number operator without 1/A"
+                << std::endl;
+    else if (name == "Kinetic")
+      std::cout
+          << "One-body part of the relative kinetic energy without (A-1)/A"
+          << std::endl;
+    else if (name == "R.R")
+      std::cout << "One-body part of the intrinsic mass radius squared without "
+                   "(A-1)/A"
+                << std::endl;
+    else if (name == "E2")
+      std::cout << "E2 transition operator without (HO strength)^2"
+                << std::endl;
+    else if (name == "M1")
       std::cout << "M1 transition operator without sqrt(3/4pi)" << std::endl;
-      break;
-    case 9:
+    else if (name == "FermiPlus")
       std::cout << "Fermi for beta+" << std::endl;
-      break;  
-    case 10:
+    else if (name == "FermiMinus")
       std::cout << "Fermi for beta-" << std::endl;
-      break; 
-    case 11:
+    else if (name == "GamowTellerPlus")
       std::cout << "Gamow-Teller for beta+" << std::endl;
-      break;  
-    case 12:
+    else if (name == "GamowTellerMinus")
       std::cout << "Gamow-Teller for beta-" << std::endl;
-      break;  
-    default:
+    else
       throw std::invalid_argument("This operator has not been implemented");
-    }
   }
 
   // ME: < na lla jja mmja mmta | O | nb llb jjb mmjb mmtb >
   double OneBodyOperator::sphericalME(int na, int lla, int jja, int mmja,
                                       int mmta, int nb, int llb, int jjb,
                                       int mmjb, int mmtb,
-                                      qcx_utils::SO3_CGC& cgcs, 
+                                      qcx_utils::SO3_CGC& cgcs,
                                       qcx_utils::SO3_Racah& racah,
                                       qcx_utils::SO3_Racah9& racah9) const
   {
     double x = 0.0;
-    switch (type)
+
+    if (name == "NumberOp") // N operator
     {
-    case 1: // N operator
       if (na == nb && lla == llb && jja == jjb && mmja == mmjb && mmta == mmtb)
         x = nb;
-      break;
-    case 2: // One-body part of LL
+    }
+    else if (name == "L.L") // One-body part of LL
+    {
       if (na == nb && lla == llb && jja == jjb && mmja == mmjb && mmta == mmtb)
         x = llb * (llb + 2.0) / 4.0;
-      break;
-    case 3: // One-body-part of LS
+    }
+    else if (name == "L.S") // One-body-part of LS
+    {
       if (na == nb && lla == llb && jja == jjb && mmja == mmjb && mmta == mmtb)
         x = (jjb * (jjb + 2.0) - llb * (llb + 2.0) - 3.0) / 8.0;
-      break;
-    case 4: // One-body part of CoM number operator
+    }
+    else if (name == "CoMNumberOp") // One-body part of CoM number operator
+    {
       if (na == nb && jja == jjb && mmja == mmjb && mmta == mmtb)
       {
         int nc = nb - 1, llc_min = 2 * (nc % 2);
@@ -87,17 +161,19 @@ namespace JT
         {
           for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
           {
-            double phase = ((jjc - jjb)/2 % 2 == 0) ? 1.0 : -1.0,
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
 
-            x += phase * factor 
-              * HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9)
-              * HO::bosonAnnihilatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
+            x += phase * factor *
+                 HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                 HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
           }
         }
       }
-      break;
-    case 5: // One-body part of the relative kinetic energy without hw(A-1)/A
+    }
+    else if (name == "Kinetic") // One-body part of the relative kinetic energy
+                                // without (A-1)/A
+    {
       if (jja == jjb && mmja == mmjb && mmta == mmtb)
       {
         int nc = nb - 1, llc_min = 2 * (nc % 2);
@@ -105,16 +181,16 @@ namespace JT
         {
           for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
           {
-            double phase = ((jjc - jjb)/2 % 2 == 0) ? 1.0 : -1.0,
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
             if (na == nb)
-              x += phase * factor 
-                * HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonAnnihilatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
+              x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
             else if (na == nb - 2)
-              x -= phase * factor 
-                * HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonAnnihilatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
+              x -= phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
           }
         }
         nc = nb + 1, llc_min = 2 * (nc % 2);
@@ -122,22 +198,24 @@ namespace JT
         {
           for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
           {
-            double phase = ((jjc - jjb)/2 % 2 == 0) ? 1.0 : -1.0,
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
             if (na == nb)
-              x += phase * factor 
-                * HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonCreatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
+              x += phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
             else if (na == nb + 2)
-              x -= phase * factor 
-                * HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonCreatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
+              x -= phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
           }
         }
       }
-      x /= 4.0;
-      break;
-    case 6: // One-body part of the intrinsic mass radius squared without (A-1)/A
+      x = (hw * x / 4.0);
+    }
+    else if (name == "R.R") // One-body part of the intrinsic mass radius
+                            // squared without (A-1)/A
+    {
       if (jja == jjb && mmja == mmjb && mmta == mmtb)
       {
         int nc = nb - 1, llc_min = 2 * (nc % 2);
@@ -145,16 +223,16 @@ namespace JT
         {
           for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
           {
-            double phase = ((jjc - jjb)/2 % 2 == 0) ? 1.0 : -1.0,
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
             if (na == nb)
-              x += phase * factor 
-                * HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonAnnihilatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
+              x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
             else if (na == nb - 2)
-              x += phase * factor 
-                * HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonAnnihilatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
+              x += phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
           }
         }
         nc = nb + 1, llc_min = 2 * (nc % 2);
@@ -162,56 +240,54 @@ namespace JT
         {
           for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
           {
-            double phase = ((jjc - jjb)/2 % 2 == 0) ? 1.0 : -1.0,
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
             if (na == nb)
-              x += phase * factor 
-                * HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonCreatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
+              x += phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
             else if (na == nb + 2)
-              x += phase * factor 
-                * HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonCreatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
+              x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
           }
         }
       }
-      break;
-    case 7: // E2 transition operator without (HO strength)^2
+    }
+    else if (name == "E2") // E2 transition operator without (HO strength)^2
+    {
       if (mmta == mmtb && mmtb == -1)
       {
-        double phase = ((lla - llb + jjb - jja)/2 % 2 == 0) ? 1.0 : -1.0,
-               factor = cgcs.compute(jjb,4,jja,mmjb,0,mmja)
-                      * racah.compute(llb,1,4,jja,jjb,lla);
-        int nc = nb - 1, llc_min = 2 * (nc % 2 );
+        double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0,
+               factor = cgcs.compute(jjb, 4, jja, mmjb, 0, mmja) *
+                        racah.compute(llb, 1, 4, jja, jjb, lla);
+        int nc = nb - 1, llc_min = 2 * (nc % 2);
         for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
         {
-          double factor = racah.compute(llb,2,lla,2,llc,4);
+          double factor = racah.compute(llb, 2, lla, 2, llc, 4);
           if (na == nb)
-            x += factor 
-              * HO::bosonCreatorRME(na,lla,nc,llc)
-              * HO::bosonAnnihilatorRME(nc,llc,nb,llb);
+            x += factor * HO::bosonCreatorRME(na, lla, nc, llc) *
+                 HO::bosonAnnihilatorRME(nc, llc, nb, llb);
           else if (na == nb - 2)
-            x += factor 
-              * HO::bosonAnnihilatorRME(na,lla,nc,llc)
-              * HO::bosonAnnihilatorRME(nc,llc,nb,llb);
+            x += factor * HO::bosonAnnihilatorRME(na, lla, nc, llc) *
+                 HO::bosonAnnihilatorRME(nc, llc, nb, llb);
         }
         nc = nb + 1, llc_min = 2 * (nc % 2);
         for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
         {
-          double factor = racah.compute(llb,2,lla,2,llc,4);
+          double factor = racah.compute(llb, 2, lla, 2, llc, 4);
           if (na == nb)
-            x += factor 
-              * HO::bosonAnnihilatorRME(na,lla,nc,llc)
-              * HO::bosonCreatorRME(nc,llc,nb,llb);
+            x += factor * HO::bosonAnnihilatorRME(na, lla, nc, llc) *
+                 HO::bosonCreatorRME(nc, llc, nb, llb);
           else if (na == nb + 2)
-            x += factor 
-              * HO::bosonCreatorRME(na,lla,nc,llc)
-              * HO::bosonCreatorRME(nc,llc,nb,llb);
+            x += factor * HO::bosonCreatorRME(na, lla, nc, llc) *
+                 HO::bosonCreatorRME(nc, llc, nb, llb);
         }
       }
       x *= std::sqrt(1.5);
-      break;
-    case 8: // M1 transition operator without sqrt(3/4pi)
+    }
+    else if (name == "M1") // M1 transition operator without sqrt(3/4pi)
+    {
       if (na == nb && lla == llb && mmta == mmtb)
       {
         double gl, gs;
@@ -225,24 +301,28 @@ namespace JT
           gl = 1;
           gs = 5.5857;
         }
-        double phase = ((jjb - jja)/2 % 2 == 0) ? 1.0 : -1.0;
-        x = cgcs.compute(jjb,2,jja,mmjb,0,mmja) 
-          * (gl * phase * racah.compute(llb,1,2,jja,jjb,llb) 
-          * std::sqrt(llb * (llb + 2.0) / 4.0)
-          + gs * racah.compute(1,llb,2,jja,jjb,1) * std::sqrt(0.75));
+        double phase = ((jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0;
+        x = cgcs.compute(jjb, 2, jja, mmjb, 0, mmja) *
+            (gl * phase * racah.compute(llb, 1, 2, jja, jjb, llb) *
+                 std::sqrt(llb * (llb + 2.0) / 4.0) +
+             gs * racah.compute(1, llb, 2, jja, jjb, 1) * std::sqrt(0.75));
       }
-      break;
-    case 9: // Fermi for beta+
-      if (na == nb && lla == llb && jja == jjb && mmja == mmjb && mmta == mmtb + 2)
-        x = std::sqrt(0.75 - mmtb * (mmtb - 2.0) / 4.0);
-      break;
-    case 10: // Fermi for beta-
-      if (na == nb && lla == llb && jja == jjb && mmja == mmjb && mmta == mmtb - 2)
-        x = std::sqrt(0.75 - mmtb * (mmtb + 2.0) / 4.0);
-      break;
-    default:
-      throw std::invalid_argument("ME has not been implemented");
     }
+    else if (name == "FermiPlus") // Fermi for beta+
+    {
+      if (na == nb && lla == llb && jja == jjb && mmja == mmjb &&
+          mmta == mmtb + 2)
+        x = std::sqrt(0.75 - mmtb * (mmtb - 2.0) / 4.0);
+    }
+    else if (name == "FermiMinus") // Fermi for beta-
+    {
+      if (na == nb && lla == llb && jja == jjb && mmja == mmjb &&
+          mmta == mmtb - 2)
+        x = std::sqrt(0.75 - mmtb * (mmtb + 2.0) / 4.0);
+    }
+    else
+      throw std::invalid_argument("ME has not been implemented");
+
     return x;
   }
 
@@ -251,25 +331,28 @@ namespace JT
   double OneBodyOperator::sphericalRME(int na, int lla, int jja, int nb,
                                        int llb, int jjb,
                                        qcx_utils::SO3_CGC& cgcs,
-                                       qcx_utils::SO3_Racah& racah, 
+                                       qcx_utils::SO3_Racah& racah,
                                        qcx_utils::SO3_Racah9& racah9) const
   {
     double x = 0.0;
-    switch (type)
+
+    if (name == "NumberOp") // N operator
     {
-    case 1: // N operator
       if (na == nb && lla == llb && jja == jjb)
         x = nb;
-      break;
-    case 2: // One-body part of LL
+    }
+    else if (name == "L.L") // One-body part of LL
+    {
       if (na == nb && lla == llb && jja == jjb)
         x = llb * (llb + 2.0) / 4.0;
-      break;
-    case 3: // One-body-part of LS
+    }
+    else if (name == "L.S") // One-body-part of LS
+    {
       if (na == nb && lla == llb && jja == jjb)
         x = (jjb * (jjb + 2.0) - llb * (llb + 2.0) - 3.0) / 8.0;
-      break;
-    case 4: // One-body part of CoM number operator
+    }
+    else if (name == "CoMNumberOp") // One-body part of CoM number operator
+    {
       if (na == nb && jja == jjb)
       {
         int nc = nb - 1, llc_min = 2 * (nc % 2);
@@ -277,108 +360,111 @@ namespace JT
         {
           for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
           {
-            double phase = ((jjc - jjb)/2 % 2 == 0) ? 1.0 : -1.0,
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
 
-            x += phase * factor 
-              * HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9)
-              * HO::bosonAnnihilatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
+            x += phase * factor *
+                 HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                 HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
           }
         }
       }
-      break;
-    case 5: // One-body part of the relative kinetic energy without hw(A-1)/A
-      if (jja == jjb)
-      {
-        int nc = nb - 1, llc_min = 2 * (nc % 2);
-        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
-        {
-          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
-          {
-            double phase = ((jjc - jjb)/2 % 2 == 0) ? 1.0 : -1.0,
-                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
-            if (na == nb)
-              x += phase * factor 
-                * HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonAnnihilatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
-            else if (na == nb - 2)
-              x -= phase * factor 
-                * HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonAnnihilatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
-          }
-        }
-        nc = nb + 1, llc_min = 2 * (nc % 2);
-        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
-        {
-          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
-          {
-            double phase = ((jjc - jjb)/2 % 2 == 0) ? 1.0 : -1.0,
-                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
-            if (na == nb)
-              x += phase * factor 
-                * HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonCreatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
-            else if (na == nb + 2)
-              x -= phase * factor 
-                * HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonCreatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
-          }
-        }
-      }
-      x /= 4.0;
-      break;
-    case 6: // One-body part of the intrinsic mass radius squared without (A-1)/A
-      if (jja == jjb)
-      {
-        int nc = nb - 1, llc_min = 2 * (nc % 2);
-        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
-        {
-          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
-          {
-            double phase = ((jjc - jjb)/2 % 2 == 0) ? 1.0 : -1.0,
-                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
-            if (na == nb)
-              x += phase * factor 
-                * HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonAnnihilatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
-            else if (na == nb - 2)
-              x += phase * factor 
-                * HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonAnnihilatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
-          }
-        }
-        nc = nb + 1, llc_min = 2 * (nc % 2);
-        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
-        {
-          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
-          {
-            double phase = ((jjc - jjb)/2 % 2 == 0) ? 1.0 : -1.0,
-                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
-            if (na == nb)
-              x += phase * factor 
-                * HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonCreatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
-            else if (na == nb + 2)
-              x += phase * factor 
-                * HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9)
-                * HO::bosonCreatorRME(nc,llc,jjc,nb,llb,jjb,racah9);
-          }
-        }
-      }
-      break;
-    default:
-      throw std::invalid_argument("RME has not been implemented");
     }
+    else if (name == "Kinetic") // One-body part of the relative kinetic energy
+                                // without (A-1)/A
+    {
+      if (jja == jjb)
+      {
+        int nc = nb - 1, llc_min = 2 * (nc % 2);
+        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
+        {
+          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+          {
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+            if (na == nb)
+              x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
+            else if (na == nb - 2)
+              x -= phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
+          }
+        }
+        nc = nb + 1, llc_min = 2 * (nc % 2);
+        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
+        {
+          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+          {
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+            if (na == nb)
+              x += phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
+            else if (na == nb + 2)
+              x -= phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
+          }
+        }
+      }
+      x = (hw * x / 4.0);
+    }
+    else if (name == "R.R") // One-body part of the intrinsic mass radius
+                            // squared without (A-1)/A
+    {
+      if (jja == jjb)
+      {
+        int nc = nb - 1, llc_min = 2 * (nc % 2);
+        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
+        {
+          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+          {
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+            if (na == nb)
+              x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
+            else if (na == nb - 2)
+              x += phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
+          }
+        }
+        nc = nb + 1, llc_min = 2 * (nc % 2);
+        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
+        {
+          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+          {
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+            if (na == nb)
+              x += phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
+            else if (na == nb + 2)
+              x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, racah9);
+          }
+        }
+      }
+    }
+    else
+      throw std::invalid_argument("RME has not been implemented");
+
     return x;
   }
 
   // Using sphericalRME to avoid loops over projection mj and mt
   std::pair<bool, std::vector<double>> OneBodyOperator::getTensorStrength(
       int lam0, int mu0, int P10, int P20, int P30, int kappa0, int LL0,
-      int SS0, int na, int nb, 
-      qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
-      qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
-      u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+      int SS0, int na, int nb, qcx_utils::SO3_CGC& cgcs,
+      qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9,
+      u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     std::vector<double> x(kappa0, 0.0);
     double sum = 0.0;
@@ -404,8 +490,9 @@ namespace JT
 
             double rme;
             if (USE_ONEBODY_SPHERICAL_RME)
-            { 
-              rme = sphericalRME(na,lla,jja,nb,llb,jjb,cgcs,racah,racah9);
+            {
+              rme =
+                  sphericalRME(na, lla, jja, nb, llb, jjb, cgcs, racah, racah9);
               if (rme == 0.0)
                 continue;
             }
@@ -445,12 +532,12 @@ namespace JT
               if (na <= nb)
               {
                 double phase = ((nb + llb / 2 + 2) / 2 % 2 == 0) ? 1.0 : -1.0,
-                       factor =
-                         std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) / (TT + 1.0));
+                       factor = std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) /
+                                          (TT + 1.0));
                 for (int k = 0; k < kappa0; k++)
                 {
-                  double y =
-                    phase * U9j * Coeffs3(k, 0) * Coeffs4(0, 0) * rme * factor;
+                  double y = phase * U9j * Coeffs3(k, 0) * Coeffs4(0, 0) * rme *
+                             factor;
                   // std::cout << y << std::endl;
                   sum += y;
                   x[k] += y;
@@ -458,15 +545,16 @@ namespace JT
               }
               else // na > nb
               {
-                double phase = ((nb + llb / 2 + jja + jjb - JJ - TT) / 2 % 2 == 0)
-                                   ? 1.0
-                                   : -1.0,
-                       factor =
-                         std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) / (TT + 1.0));
+                double phase =
+                           ((nb + llb / 2 + jja + jjb - JJ - TT) / 2 % 2 == 0)
+                               ? 1.0
+                               : -1.0,
+                       factor = std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) /
+                                          (TT + 1.0));
                 for (int k = 0; k < kappa0; k++)
                 {
-                  double y =
-                    phase * U9j * Coeffs3(k, 0) * Coeffs4(0, 0) * rme * factor;
+                  double y = phase * U9j * Coeffs3(k, 0) * Coeffs4(0, 0) * rme *
+                             factor;
                   // std::cout << y << std::endl;
                   sum += y;
                   x[k] += y;
@@ -484,16 +572,16 @@ namespace JT
                 {
                   int mmtb = mmta - MMT; // selection rule of sphericalME
 
-                  double me = sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb,
-                                          mmjb, mmtb, cgcs, racah, racah9);
+                  double me = sphericalME(na, lla, jja, mmja, mmta, nb, llb,
+                                          jjb, mmjb, mmtb, cgcs, racah, racah9);
                   if (me == 0.0)
                     continue;
 
                   // phase = (-)^{(nb + lb + 1)/2 - jb + mjb + mtb}
                   double phase =
-                    ((nb + llb / 2 + 1 - jjb + mmjb + mmtb) / 2 % 2 == 0)
-                        ? 1.0
-                        : -1.0;
+                      ((nb + llb / 2 + 1 - jjb + mmjb + mmtb) / 2 % 2 == 0)
+                          ? 1.0
+                          : -1.0;
 
                   if (na <= nb)
                   {
@@ -517,7 +605,7 @@ namespace JT
                     for (int k = 0; k < kappa0; k++)
                     {
                       double y = phase * cgcJ * cgcT * U9j * Coeffs3(k, 0) *
-                               Coeffs4(0, 0) * me;
+                                 Coeffs4(0, 0) * me;
                       // std::cout << y << std::endl;
                       sum -= y;
                       x[k] -= y;
@@ -529,18 +617,19 @@ namespace JT
           }
         }
       }
-    } 
-    //std::cout << "Finish getTensorStrength\n";
+    }
+    // std::cout << "Finish getTensorStrength\n";
     return std::make_pair((std::fabs(sum) < 1e-8), x);
   }
 
-  std::vector<U3xU4::OneBodyMultiShellTensor> OneBodyOperator::expand(
-      int maxShell, qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
-      qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db, 
-      u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+  std::vector<U3xU4::OneBodyMultiShellTensor>
+  OneBodyOperator::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
+                          qcx_utils::SO3_Racah9& racah9,
+                          u3::WigU3SO3_db& wigU3SO3db,
+                          u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     std::vector<U3xU4::OneBodyMultiShellTensor> tensors;
-    
+
     // loop for ad
     for (int na = 0; na <= maxShell; na++)
     {
@@ -606,18 +695,17 @@ namespace JT
                 // MMJ0 == MMJ and MMT0 == MMT
 
                 // compute the expansion coefficients
-                auto [ignore, coeff] =
-                    getTensorStrength(lam0, mu0, P10, P20, P30, kappa0, LL0,
-                                      SS0, na, nb, //pv3as, pv3bs, pv4as, pv4bs,
-                                      cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
-                
+                auto [ignore, coeff] = getTensorStrength(
+                    lam0, mu0, P10, P20, P30, kappa0, LL0, SS0, na,
+                    nb, // pv3as, pv3bs, pv4as, pv4bs,
+                    cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
                 if (ignore == false)
                 {
                   if (na <= nb)
                   {
                     U3xU4::OneBodyMultiShellTensor tensor(
-                        U3xU4::irrep(u3a,u4a),
-                        U3xU4::irrep(u3b,u4b),
+                        U3xU4::irrep(u3a, u4a), U3xU4::irrep(u3b, u4b),
                         U3xU4::irrep(u3couple[i], u4couple[j]), kappa0, LL0,
                         SS0, TT, MMT, JJ, MMJ, coeff);
                     tensors.push_back(tensor);
@@ -625,13 +713,12 @@ namespace JT
                   else // na > nb
                   {
                     U3xU4::OneBodyMultiShellTensor tensor(
-                        U3xU4::irrep(u3b,u4b),
-                        U3xU4::irrep(u3a,u4a),
+                        U3xU4::irrep(u3b, u4b), U3xU4::irrep(u3a, u4a),
                         U3xU4::irrep(u3couple[i], u4couple[j]), kappa0, LL0,
                         SS0, TT, MMT, JJ, MMJ, coeff);
                     tensors.push_back(tensor);
                   }
-                } 
+                }
               }
             }
           }
