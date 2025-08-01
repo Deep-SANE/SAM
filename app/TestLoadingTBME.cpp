@@ -5,7 +5,9 @@
 
 int main()
 {
-	HO::TBME_scalar TBME("N3LO-bare");
+	int Nmax = 4, valenceShell = 1, maxShell = 5;
+
+	HO::TBME_scalar TBME("N3LO-bare", Nmax, valenceShell, maxShell);
 	std::cout << "Loaded " << TBME.countMEs() << " matrix elements" << std::endl;
 
 	std::cout << std::fixed << std::setprecision(10);

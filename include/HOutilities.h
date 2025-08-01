@@ -51,10 +51,10 @@ namespace HO
 
   struct Orbit
   {
-    int16_t n, // nodal quantum number (!!!not shell number e)
-        l,     // orbital angular momentum
-        jj,    // twice total angular momentum
-        mmt;   // twice isospin projection: +1 for neutron, -1 for proton
+    int16_t n,   // nodal quantum number (!!!not shell number e)
+            l,   // orbital angular momentum
+        	jj,  // twice total angular momentum
+        	mmt; // twice isospin projection: +1 for neutron, -1 for proton
 
     // Constructor
     Orbit() { }
@@ -105,11 +105,12 @@ namespace HO
 
     std::unordered_map<key_type, double> me_map;
     OrbitsMap orbit_map;
-    int num_me;
+    int num_me, Nmax, valenceShell, maxShell;
 
   public:
     // Constructor
-    TBME_scalar(const std::string& name);
+    TBME_scalar(const std::string& name, int Nmax_, 
+    			int valenceShell_, int maxShell_);
 
     // Read options during construction
     void read_from_binary(const std::string& filename);
@@ -121,5 +122,13 @@ namespace HO
     // Get ME from channels
     double getME(uint16_t a, uint16_t b, uint16_t c, uint16_t d,
                  uint16_t J) const;
+
+    // Get ME from quantum numbers
+    double getME(int na, int lla, int jja, int mmja,
+                 int mmta, int nb, int llb, int jjb,
+                 int mmjb, int mmtb, int nc, int llc,
+                 int jjc, int mmjc, int mmtc, int nd,
+                 int lld, int jjd, int mmjd, int mmtd,
+                 qcx_utils::SO3_CGC& cgcs) const;
   };
 } // namespace HO

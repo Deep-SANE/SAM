@@ -1,9 +1,11 @@
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 
+#include <GlobalConstants.h>
 #include <HOutilities.h>
 
 namespace HO
@@ -173,11 +175,19 @@ namespace HO
 
   //////////// Class TBME_scalar /////////////
 
-  TBME_scalar::TBME_scalar(const std::string& name)
+  TBME_scalar::TBME_scalar(const std::string& name, int Nmax_, 
+    					   int valenceShell_, int maxShell_)
   {
     if (name == "N3LO-bare")
     {
+      if (maxShell_ > 14) 
+      	throw std::out_of_range("We only have maxShell up to 14");
+      
       orbit_map = OrbitsMap(14);
+      Nmax = Nmax_;
+      valenceShell = valenceShell_;
+      maxShell = maxShell_;
+
 #ifdef READ_FROM_BINARY
       read_from_binary(
           "data/Ab-initio_Interactions/"
@@ -236,12 +246,33 @@ namespace HO
     me_map.reserve(num_me);
     for (int i = 0; i < num_me; ++i)
     {
-#ifdef CHECKING_2B_CHANNELS
       const auto& oa = orbit_map.getOrbit(ia[i]),
       	    	  ob = orbit_map.getOrbit(ib[i]),
       	    	  oc = orbit_map.getOrbit(ic[i]),
       	    	  od = orbit_map.getOrbit(id[i]);
 
+      int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l,  
+          ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+      if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
+      	continue;
+
+      int ab_Nhw = 0;
+      if (ea > valenceShell)
+        ab_Nhw += (ea - valenceShell);
+      if (eb > valenceShell)
+        ab_Nhw += (eb - valenceShell);
+      if (ab_Nhw > Nmax)
+        continue;
+
+      int cd_Nhw = 0;
+      if (ec > valenceShell)
+        cd_Nhw += (ec - valenceShell);
+      if (ed > valenceShell)
+        cd_Nhw += (ed - valenceShell);
+      if (cd_Nhw > Nmax)
+        continue;
+
+#ifdef CHECKING_2B_CHANNELS
       if (oa.mmt + ob.mmt != oc.mmt + od.mmt) violate_isospin++;
       if ((oa.l + ob.l + oc.l + od.l) % 2 != 0) violate_parity++;
       if ((oa.mmt == 1 && ob.mmt == -1) || 
@@ -332,12 +363,29 @@ namespace HO
 
     while (infile >> a >> b >> c >> d >> J >> v)
     {
-#ifdef CHECKING_2B_CHANNELS
       const auto& oa = orbit_map.getOrbit(a),
       	    	  ob = orbit_map.getOrbit(b),
       	    	  oc = orbit_map.getOrbit(c),
       	    	  od = orbit_map.getOrbit(d);
+      int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l;    	  
+      int ab_Nhw = 0;
+      if (ea > valenceShell)
+        ab_Nhw += (ea - valenceShell);
+      if (eb > valenceShell)
+        ab_Nhw += (eb - valenceShell);
+      if (ab_Nhw > Nmax)
+        continue;
 
+      int ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+      int cd_Nhw = 0;
+      if (ec > valenceShell)
+        cd_Nhw += (ec - valenceShell);
+      if (ed > valenceShell)
+        cd_Nhw += (ed - valenceShell);
+      if (cd_Nhw > Nmax)
+        continue;
+
+#ifdef CHECKING_2B_CHANNELS
       if (oa.mmt + ob.mmt != oc.mmt + od.mmt) violate_isospin++;
       if ((oa.l + ob.l + oc.l + od.l) % 2 != 0) violate_parity++;
       if ((oa.mmt == 1 && ob.mmt == -1) || 
@@ -372,6 +420,32 @@ namespace HO
   double TBME_scalar::getME(uint16_t a, uint16_t b, uint16_t c, uint16_t d,
                             uint16_t J) const
   {
+    const auto& oa = orbit_map.getOrbit(a),
+      	    	ob = orbit_map.getOrbit(b),
+      	    	oc = orbit_map.getOrbit(c),
+      	    	od = orbit_map.getOrbit(d);
+
+   	int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l,  
+        ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+    if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
+      throw std::out_of_range("ME beyond maxShell");
+
+    int ab_Nhw = 0;
+    if (ea > valenceShell)
+      ab_Nhw += (ea - valenceShell);
+    if (eb > valenceShell)
+      ab_Nhw += (eb - valenceShell);
+    if (ab_Nhw > Nmax)
+      throw std::out_of_range("bra channel beyond Nmax");
+
+    int cd_Nhw = 0;
+    if (ec > valenceShell)
+      cd_Nhw += (ec - valenceShell);
+    if (ed > valenceShell)
+      cd_Nhw += (ed - valenceShell);
+    if (cd_Nhw > Nmax)
+      throw std::out_of_range("ket channel beyond Nmax");
+
     auto it1 = me_map.find({a, b, c, d, J}),
     	 it2 = me_map.find({b, a, c, d, J}),
     	 it3 = me_map.find({a, b, d, c, J}),
@@ -381,25 +455,16 @@ namespace HO
       return it1->second;
     else if (it2 != me_map.end())
     {
-      const auto& oa = orbit_map.getOrbit(a),
-      	    	  ob = orbit_map.getOrbit(b);
       double phase = (((oa.jj + ob.jj)/2 - J) % 2 == 0) ? -1.0 : 1.0;
       return phase * (it2->second);
     }
     else if (it3 != me_map.end())
     {
-      const auto& oc = orbit_map.getOrbit(c),
-      	    	  od = orbit_map.getOrbit(d);
       double phase = (((oc.jj + od.jj)/2 - J) % 2 == 0) ? -1.0 : 1.0;
       return phase * (it3->second);
     }
     else if (it4 != me_map.end())
     {
-      const auto& oa = orbit_map.getOrbit(a),
-      	    	  ob = orbit_map.getOrbit(b),
-      	    	  oc = orbit_map.getOrbit(c),
-      	    	  od = orbit_map.getOrbit(d);
-
       double phase = (((oa.jj + ob.jj + oc.jj + od.jj)/2) % 2 == 0) ? -1.0 : 1.0;
       return phase * (it4->second);
     }
@@ -407,12 +472,56 @@ namespace HO
 	{
  	  try 
  	  {
- 	    return getME(c, d, a, b, J);
+ 	  	// If the operator is Hermitian (which is true for potentials)
+ 	    return getME(c, d, a, b, J); 
  	  }
    	  catch (const std::out_of_range&) 
    	  {
     	throw std::out_of_range("TBME not found in any permutation");
       }
 	}
+  }
+
+  // Get ME from quantum numbers
+  // Note that these e's are shell numbers, not nodal quantum numbers
+  // The reason we have e's here is that this function would be compatible
+  // with double TwoBodyOperator::sphericalME_AS(...)
+  double TBME_scalar::getME(int ea, int lla, int jja, int mmja, int mmta, 
+  			   				int eb, int llb, int jjb, int mmjb, int mmtb, 
+  			   				int ec, int llc, int jjc, int mmjc, int mmtc, 
+  			   				int ed, int lld, int jjd, int mmjd, int mmtd,
+               				qcx_utils::SO3_CGC& cgcs) const
+  {
+  	double x = 0.0;
+  	int MMJab = mmja + mmjb, MMJcd = mmjc + mmjd,
+  		MMTab = mmta + mmtb, MMTcd = mmtc + mmtd;
+  	if ((MMJab != MMJcd) || (MMTab != MMTcd))
+  	  return x;
+
+  	int JJ_min = std::max(abs(jja - jjb), abs(jjc - jjd)), 
+  		JJ_max = std::min(jja + jjb, jjc + jjd);
+
+  	if (JJ_min > JJ_max)
+  	  return x;
+
+  	int la = lla/2, lb = llb/2, lc = llc/2, ld = lld/2,
+  		na = (ea - la)/2, nb = (eb - lb)/2, nc = (ec - lc)/2, nd = (ed - ld)/2;
+
+  	auto a = orbit_map.getIndex(na,la,jja,mmta),
+  	  	 b = orbit_map.getIndex(nb,lb,jjb,mmtb),
+  	  	 c = orbit_map.getIndex(nc,lc,jjc,mmtc),
+  	  	 d = orbit_map.getIndex(nd,ld,jjd,mmtd);
+
+  	double norm_ab = (a == b) ? SQRT2 : 1.0,
+  		   norm_cd = (c == d) ? SQRT2 : 1.0;
+  	
+  	for (int JJ = JJ_min; JJ <= JJ_max; JJ += 2)
+  	{
+  	  x += cgcs.compute(jja, jjb, JJ, mmja, mmjb, MMJab)
+  	  	 * cgcs.compute(jjc, jjd, JJ, mmjc, mmjd, MMJab)
+  	  	 * getME(a, b, c, d, JJ/2);
+  	}
+
+  	return norm_ab * norm_cd * x;
   }
 } // namespace HO
