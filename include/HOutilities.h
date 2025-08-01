@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <map>
+#include <iostream>
 #include <string>
 #include <tuple>
 #include <unordered_map>
