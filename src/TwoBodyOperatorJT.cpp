@@ -7,45 +7,78 @@
 
 namespace JT
 {
+  TwoBodyOperator::TwoBodyOperator(const std::string& name_,
+                                   const HO::Table_nljmjmt& labels_, int8_t hw_,
+                                   int8_t Nmax_, int8_t valenceShell_,
+                                   int8_t maxShell_)
+      : labels(labels_)
+  {
+    hw = (hw_ >= 0) ? hw_ : 20;
+    Nmax = (Nmax_ >= 0) ? Nmax_ : 14;
+    valenceShell = (valenceShell_ > 0) ? valenceShell_ : 0;
+    maxShell = (maxShell_ >= 0) ? maxShell_ : 14;
+
+    const std::unordered_set<std::string> known_scalar_ops = {
+        "L.L", "L.S", "CoMNumberOp", "Kinetic", "R.R"};
+
+    const std::unordered_set<std::string> known_potentials = {
+        "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
+        "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare"};
+
+    if (known_scalar_ops.count(name_))
+    {
+      name = name_;
+      JJ = 0;
+      MMJ = 0;
+      TT = 0;
+      MMT = 0;
+      parity = true;
+    }
+    else if (known_potentials.count(name_))
+    {
+      name = name_;
+      TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
+      on_the_fly = false;
+    }
+    else
+      throw std::runtime_error(
+          "Name is incorrect or operator is not implemented");
+  }
+
   void TwoBodyOperator::is() const
   {
-    switch (type)
-    {
-    case 1:
+    if (name == "L.L")
       std::cout << "Two-body part of L.L" << std::endl;
-      break;
-    case 2:
+    else if (name == "L.S")
       std::cout << "Two-body part of L.S" << std::endl;
-      break;
-    case 3:
-      std::cout << "Two-body part of CoM number operator without 1/A" << std::endl;
-      break;
-    case 4:
-      std::cout << "Two-body part of the relative kinetic energy without hw/A" << std::endl;
-      break;
-    case 5:
-      std::cout << "Two-body part of the intrinsic mass radius squared without -1/A" << std::endl;
-      break;
-    default:
+    else if (name == "CoMNumberOp")
+      std::cout << "Two-body part of CoM number operator without 1/A"
+                << std::endl;
+    else if (name == "Kinetic")
+      std::cout << "Two-body part of the relative kinetic energy without 1/A"
+                << std::endl;
+    else if (name == "R.R")
+      std::cout
+          << "Two-body part of the intrinsic mass radius squared without -1/A"
+          << std::endl;
+    else if (on_the_fly == false)
+      TBME->is();
+    else
       throw std::invalid_argument("This operator has not been implemented");
-    }
   }
 
   // ME: / na lla jja mmja mmta | O | nc llc jjc mmjc mmtc \
   // 	   \ nb llb jjb mmjb mmtb |	  | nd lld jjb mmjd mmtd /
-  double TwoBodyOperator::sphericalME(int na, int lla, int jja, int mmja,
-                                      int mmta, int nb, int llb, int jjb,
-                                      int mmjb, int mmtb, int nc, int llc,
-                                      int jjc, int mmjc, int mmtc, int nd,
-                                      int lld, int jjd, int mmjd, int mmtd,
-                                      qcx_utils::SO3_CGC& cgcs,
-                                      qcx_utils::SO3_Racah& racah,
-                                      qcx_utils::SO3_Racah9& racah9) const
+  double TwoBodyOperator::sphericalME(
+      int na, int lla, int jja, int mmja, int mmta, int nb, int llb, int jjb,
+      int mmjb, int mmtb, int nc, int llc, int jjc, int mmjc, int mmtc, int nd,
+      int lld, int jjd, int mmjd, int mmtd, qcx_utils::SO3_CGC& cgcs,
+      qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9) const
   {
     double x = 0.0;
-    switch (type)
+
+    if (name == "L.L") // Two-body part of L.L
     {
-    case 1: // Two-body part of L.L
       if (na == nc && nb == nd && lla == llc && llb == lld && mmta == mmtc &&
           mmtb == mmtd)
       {
@@ -59,19 +92,21 @@ namespace JT
                  cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
         x = 2 * phase * factor * U1 * U2 * cgc;
       }
-      break;
-    case 2: // Two-body part of L.S
+    }
+    else if (name == "L.S") // Two-body part of L.S
+    {
       if (na == nc && nb == nd && lla == llc && llb == lld && mmta == mmtc &&
           mmtb == mmtd)
       {
         double U1 = racah.compute(llc, 1, 2, jja, jjc, llc),
-               U2 = racah.compute(1,lld,2,jjb,jjd,1),
+               U2 = racah.compute(1, lld, 2, jjb, jjd, 1),
                U3 = racah.compute(lld, 1, 2, jjb, jjd, lld),
-               U4 = racah.compute(1,llc,2,jja,jjc,1), 
-               phase12 = ((jja - jjc)/2 % 2 == 0) ? 1.0 : -1.0,
-               phase34 = ((jjb - jjd)/2 % 2 == 0) ? 1.0 : -1.0,
-               factor = (phase12 * std::sqrt(llc * (llc + 2.0) / 4.0) * U1 * U2 
-                      + phase34 * std::sqrt(lld * (lld + 2.0) / 4.0) * U3 * U4),
+               U4 = racah.compute(1, llc, 2, jja, jjc, 1),
+               phase12 = ((jja - jjc) / 2 % 2 == 0) ? 1.0 : -1.0,
+               phase34 = ((jjb - jjd) / 2 % 2 == 0) ? 1.0 : -1.0,
+               factor =
+                   (phase12 * std::sqrt(llc * (llc + 2.0) / 4.0) * U1 * U2 +
+                    phase34 * std::sqrt(lld * (lld + 2.0) / 4.0) * U3 * U4),
                cgc = 0.0;
         for (int mu = -1; mu <= 1; mu++)
           cgc += (mu == 0 ? 1.0 : -1.0) *
@@ -79,76 +114,87 @@ namespace JT
                  cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
         x = std::sqrt(0.75) * cgc * factor;
       }
-      break;
-    case 3: // Two-body part of CoM number operator without 1/A
-      if (mmta == mmtc && mmtb == mmtd)
-      {
-        double cgc = 0.0;
-        for (int mu = -1; mu <= 1; mu++)
-          cgc += (mu == 0 ? 1.0 : -1.0) *
-                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
-                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
-        x = cgc * (HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9) * 
-                   HO::bosonAnnihilatorRME(nb,llb,jjb,nd,lld,jjd,racah9) +
-                   HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9) *
-                   HO::bosonCreatorRME(nb,llb,jjb,nd,lld,jjd,racah9));
-      }
-      break;
-    case 4: // Two-body part of the relative kinetic energy without hw/A
-      if (mmta == mmtc && mmtb == mmtd)
-      {
-        double cgc = 0.0;
-        for (int mu = -1; mu <= 1; mu++)
-          cgc += (mu == 0 ? 1.0 : -1.0) *
-                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
-                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
-        x = cgc * (HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9) * 
-                  (HO::bosonCreatorRME(nb,llb,jjb,nd,lld,jjd,racah9) -
-                   HO::bosonAnnihilatorRME(nb,llb,jjb,nd,lld,jjd,racah9)) +
-                   HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9) *
-                  (HO::bosonAnnihilatorRME(nb,llb,jjb,nd,lld,jjd,racah9) -
-                   HO::bosonCreatorRME(nb,llb,jjb,nd,lld,jjd,racah9))) / 2.0;
-      }
-      break;
-    case 5: // Two-body part of the intrinsic mass radius squared without -1/A
-      if (mmta == mmtc && mmtb == mmtd)
-      {
-        double cgc = 0.0;
-        for (int mu = -1; mu <= 1; mu++)
-          cgc += (mu == 0 ? 1.0 : -1.0) *
-                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
-                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
-        x = 2.0 * cgc * (HO::bosonCreatorRME(na,lla,jja,nc,llc,jjc,racah9) * 
-                  (HO::bosonCreatorRME(nb,llb,jjb,nd,lld,jjd,racah9) +
-                   HO::bosonAnnihilatorRME(nb,llb,jjb,nd,lld,jjd,racah9)) +
-                   HO::bosonAnnihilatorRME(na,lla,jja,nc,llc,jjc,racah9) *
-                  (HO::bosonAnnihilatorRME(nb,llb,jjb,nd,lld,jjd,racah9) +
-                   HO::bosonCreatorRME(nb,llb,jjb,nd,lld,jjd,racah9)));
-      }
-      break;
-    default:
-      throw std::invalid_argument("This operator has not been implemented");
     }
+    else if (name ==
+             "CoMNumberOp") // Two-body part of CoM number operator without 1/A
+    {
+      if (mmta == mmtc && mmtb == mmtd)
+      {
+        double cgc = 0.0;
+        for (int mu = -1; mu <= 1; mu++)
+          cgc += (mu == 0 ? 1.0 : -1.0) *
+                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
+                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
+        x = cgc *
+            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                 HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9) +
+             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                 HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9));
+      }
+    }
+    else if (name == "Kinetic") // Two-body part of the relative kinetic energy
+                                // without 1/A
+    {
+      if (mmta == mmtc && mmtb == mmtd)
+      {
+        double cgc = 0.0;
+        for (int mu = -1; mu <= 1; mu++)
+          cgc += (mu == 0 ? 1.0 : -1.0) *
+                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
+                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
+        x = static_cast<double>(hw) * cgc *
+            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                 (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9) -
+                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9)) +
+             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                 (HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9) -
+                  HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9))) /
+            2.0;
+      }
+    }
+    else if (name == "R.R") // Two-body part of the intrinsic mass radius
+                            // squared without -1/A
+    {
+      if (mmta == mmtc && mmtb == mmtd)
+      {
+        double cgc = 0.0;
+        for (int mu = -1; mu <= 1; mu++)
+          cgc += (mu == 0 ? 1.0 : -1.0) *
+                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
+                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
+        x = 2.0 * cgc *
+            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                 (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9) +
+                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9)) +
+             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
+                 (HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9) +
+                  HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9)));
+      }
+    }
+    else
+      throw std::invalid_argument("This operator has not been implemented");
 
     return x;
   }
 
   // Antisymmetrized ME
-  double TwoBodyOperator::sphericalME_AS(int na, int lla, int jja, int mmja,
-                                      int mmta, int nb, int llb, int jjb,
-                                      int mmjb, int mmtb, int nc, int llc,
-                                      int jjc, int mmjc, int mmtc, int nd,
-                                      int lld, int jjd, int mmjd, int mmtd,
-                                      qcx_utils::SO3_CGC& cgcs,
-                                      qcx_utils::SO3_Racah& racah,
-                                      qcx_utils::SO3_Racah9& racah9) const
+  double TwoBodyOperator::sphericalME_AS(
+      int na, int lla, int jja, int mmja, int mmta, int nb, int llb, int jjb,
+      int mmjb, int mmtb, int nc, int llc, int jjc, int mmjc, int mmtc, int nd,
+      int lld, int jjd, int mmjd, int mmtd, qcx_utils::SO3_CGC& cgcs,
+      qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9) const
   {
-    return (sphericalME(na,lla,jja,mmja,mmta, nb,llb,jjb,mmjb,mmtb,
-                        nc,llc,jjc,mmjc,mmtc, nd,lld,jjd,mmjd,mmtd, 
-                        cgcs,racah,racah9) -
-            sphericalME(na,lla,jja,mmja,mmta, nb,llb,jjb,mmjb,mmtb,
-                        nd,lld,jjd,mmjd,mmtd, nc,llc,jjc,mmjc,mmtc,
-                        cgcs, racah,racah9))/4.0;
+    if (on_the_fly == true)
+      return (sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
+                          nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd,
+                          cgcs, racah, racah9) -
+              sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
+                          nd, lld, jjd, mmjd, mmtd, nc, llc, jjc, mmjc, mmtc,
+                          cgcs, racah, racah9)) /
+             4.0;
+    else
+      return TBME->getME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb, nc,
+                         llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd, cgcs);
   }
 
   // Generate a list of al {na+1, nb+1, -nc-1, -nd-1} combinations such that
@@ -173,7 +219,8 @@ namespace JT
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
             auto [sorted_ns, inverse, phase] = sort_shells(ns);
 
-            auto it = std::find(na_nb_nc_nds.begin(), na_nb_nc_nds.end(), sorted_ns);
+            auto it =
+                std::find(na_nb_nc_nds.begin(), na_nb_nc_nds.end(), sorted_ns);
             if (it != na_nb_nc_nds.end())
             {
               int index = std::distance(na_nb_nc_nds.begin(), it);
@@ -233,7 +280,8 @@ namespace JT
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
             auto [sorted_ns, inverse, phase] = sort_shells(ns);
 
-            auto it = std::find(na_nb_nc_nds.begin(), na_nb_nc_nds.end(), sorted_ns);
+            auto it =
+                std::find(na_nb_nc_nds.begin(), na_nb_nc_nds.end(), sorted_ns);
             if (it != na_nb_nc_nds.end())
             {
               int index = std::distance(na_nb_nc_nds.begin(), it);
@@ -338,10 +386,9 @@ namespace JT
   // Set coefficient for two-body multi-shell tensor.
   // It returns a flag, which indicate whether this tensor can be ignored.
   bool TwoBodyOperator::setTensorStrength(
-      U3xU4::TwoBodyMultiShellTensor& tensor, 
-      const std::vector<std::vector<int>>& inverse, 
-      const std::vector<int>& phase,
-      qcx_utils::SO3_CGC& cgcs,
+      U3xU4::TwoBodyMultiShellTensor& tensor,
+      const std::vector<std::vector<int>>& inverse,
+      const std::vector<int>& phase, qcx_utils::SO3_CGC& cgcs,
       qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9,
       u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
@@ -388,12 +435,13 @@ namespace JT
                            mmts_orig = inverse_permutation(mmts, inverse[k]);
 
         // me needs computing with normal ordering
-        me += phase[k] * sphericalME_AS(
-          ns_orig[0], lls_orig[0], jjs_orig[0], mmjs_orig[0], mmts_orig[0],
-          ns_orig[1], lls_orig[1], jjs_orig[1], mmjs_orig[1], mmts_orig[1],
-          ns_orig[3], lls_orig[3], jjs_orig[3], mmjs_orig[3], mmts_orig[3],
-          ns_orig[2], lls_orig[2], jjs_orig[2], mmjs_orig[2], mmts_orig[2],
-          cgcs, racah, racah9);
+        me += phase[k] *
+              sphericalME_AS(ns_orig[0], lls_orig[0], jjs_orig[0], mmjs_orig[0],
+                             mmts_orig[0], ns_orig[1], lls_orig[1], jjs_orig[1],
+                             mmjs_orig[1], mmts_orig[1], ns_orig[3],
+                             lls_orig[3], jjs_orig[3], mmjs_orig[3],
+                             mmts_orig[3], ns_orig[2], lls_orig[2], jjs_orig[2],
+                             mmjs_orig[2], mmts_orig[2], cgcs, racah, racah9);
       }
 
       if (std::fabs(me) < 1e-12)
@@ -406,7 +454,7 @@ namespace JT
     double norm = 0.0;
     for (int c = 0; c < coeffs_.size(); c++)
     {
-      //coeffs_[c] *= phase;
+      // coeffs_[c] *= phase;
       norm += std::fabs(coeffs_[c]);
     }
     bool ignore = (norm < 1e-10);
@@ -418,11 +466,11 @@ namespace JT
   }
 
 #define RESTRICT_WITH_NMAX
-  std::vector<U3xU4::TwoBodyMultiShellTensor> TwoBodyOperator::expand(
-      int Nmax, int valenceShell, int maxShell, HO::Table_nljmjmt& labels,
-      qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah, 
-      qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db, 
-      u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+  std::vector<U3xU4::TwoBodyMultiShellTensor>
+  TwoBodyOperator::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
+                          qcx_utils::SO3_Racah9& racah9,
+                          u3::WigU3SO3_db& wigU3SO3db,
+                          u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
   {
     std::vector<U3xU4::TwoBodyMultiShellTensor> tensors;
 
@@ -432,19 +480,19 @@ namespace JT
 #else
     auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell);
 #endif
-    
+
     for (int i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
-/*
-      for (auto sorted_n : all_na_nb_nc_nd[i]) 
-        std::cout << sorted_n << " ";
-      std::cout << "\n phases = ";
-      for (auto phase : all_phase[i])
-        std::cout << phase << " ";
-      std::cout << "\n";
-*/
+      /*
+            for (auto sorted_n : all_na_nb_nc_nd[i])
+              std::cout << sorted_n << " ";
+            std::cout << "\n phases = ";
+            for (auto phase : all_phase[i])
+              std::cout << phase << " ";
+            std::cout << "\n";
+      */
 
-      //auto groups_ns = group_same_shell(sorted_ns);
+      // auto groups_ns = group_same_shell(sorted_ns);
       auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
       std::vector<std::vector<U3xU4::Tadat>> Tadat_lists;
       for (auto group : groups_ns)
@@ -506,11 +554,11 @@ namespace JT
                   Tadat_choices[0].eta0max, kappa0, LL0, zeta0, SS0, TT, MMT,
                   JJ, MMJ, {}, labels);
               bool ignore =
-                  setTensorStrength(tensor, all_inverse[i], all_phase[i], cgcs, racah,
-                                 racah9, wigU3SO3db, wigU4SU2SU2db);
+                  setTensorStrength(tensor, all_inverse[i], all_phase[i], cgcs,
+                                    racah, racah9, wigU3SO3db, wigU4SU2SU2db);
               if (ignore == false)
               {
-                //std::cout << tensor << std::endl;
+                // std::cout << tensor << std::endl;
                 tensors.push_back(tensor);
               }
             }
@@ -521,17 +569,17 @@ namespace JT
                   Tadat_choices, coupled_irreps, Rhomax, Etamax, kappa0, LL0,
                   zeta0, SS0, TT, MMT, JJ, MMJ, {}, labels);
               bool ignore =
-                  setTensorStrength(tensor, all_inverse[i], all_phase[i], cgcs, racah,
-                                 racah9, wigU3SO3db, wigU4SU2SU2db);
+                  setTensorStrength(tensor, all_inverse[i], all_phase[i], cgcs,
+                                    racah, racah9, wigU3SO3db, wigU4SU2SU2db);
               if (ignore == false)
               {
-                //std::cout << tensor << std::endl;
+                // std::cout << tensor << std::endl;
                 tensors.push_back(tensor);
               }
             }
           }
         }
-      } 
+      }
     }
 
     return tensors;

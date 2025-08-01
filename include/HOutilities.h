@@ -5,6 +5,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <CustomHash.h>
@@ -26,6 +27,7 @@ namespace HO
 
   public:
     // Constructor
+    Table_nljmjmt() : dim(0) { }
     Table_nljmjmt(int maxShell);
 
     // Get index from quantum numbers
@@ -51,10 +53,10 @@ namespace HO
 
   struct Orbit
   {
-    int16_t n,   // nodal quantum number (!!!not shell number e)
-            l,   // orbital angular momentum
-        	jj,  // twice total angular momentum
-        	mmt; // twice isospin projection: +1 for neutron, -1 for proton
+    int16_t n, // nodal quantum number (!!!not shell number e)
+        l,     // orbital angular momentum
+        jj,    // twice total angular momentum
+        mmt;   // twice isospin projection: +1 for neutron, -1 for proton
 
     // Constructor
     Orbit() { }
@@ -69,14 +71,14 @@ namespace HO
   {
   public:
     uint16_t emax, // e is the shell number
-    		 num_orbits;
+        num_orbits;
 
     // All orbits
     std::vector<Orbit> orbits;
     std::map<Orbit, int> index_map;
 
     // Constructor
-    OrbitsMap() : emax(0) {}
+    OrbitsMap() : emax(0), num_orbits(0), orbits(), index_map() { }
     OrbitsMap(uint16_t emax_);
 
     // Get index of the orbit
@@ -92,8 +94,10 @@ namespace HO
   // NuHamil. Since formatted ascii files take much longer time to read, the
   // default option is to read from binary files (specifically .myg.bin);
   // comment out the line below to read from text files (.myg). The drawback is
-  // that binary files are dependent on computer architecture, so they must be
-  // generated and read back from the same computer.
+  // that binary files are dependent on computer architecture, so they might
+  // need generating and read back from the same computer. However, it might be
+  // true that NuHamil has handled these binary files in such a way that they
+  // can be moved across platforms.
 #define READ_FROM_BINARY
   class TBME_scalar
   {
@@ -105,16 +109,30 @@ namespace HO
 
     std::unordered_map<key_type, double> me_map;
     OrbitsMap orbit_map;
-    int num_me, Nmax, valenceShell, maxShell;
+    int num_me;
+
+    std::string name;
+    int8_t hw, Nmax, valenceShell, maxShell;
 
   public:
     // Constructor
-    TBME_scalar(const std::string& name, int Nmax_, 
-    			int valenceShell_, int maxShell_);
+    TBME_scalar(); // Default constructor
+    TBME_scalar(const std::string& name_, int8_t hw_, int8_t Nmax_,
+                int8_t valenceShell_, int8_t maxShell_);
 
     // Read options during construction
     void read_from_binary(const std::string& filename);
     void read_from_file(const std::string& filename);
+
+    // Print out name
+    void is() const
+    {
+      std::cout << "Two-body Hamiltonian with " << name
+                << " hw=" << static_cast<int>(hw)
+                << " valenceShell=" << static_cast<int>(valenceShell)
+                << " Nmax=" << static_cast<int>(Nmax)
+                << " maxShell=" << static_cast<int>(maxShell) << std::endl;
+    }
 
     // Total number of matrix elements
     int countMEs() const { return num_me; }
@@ -124,11 +142,9 @@ namespace HO
                  uint16_t J) const;
 
     // Get ME from quantum numbers
-    double getME(int na, int lla, int jja, int mmja,
-                 int mmta, int nb, int llb, int jjb,
-                 int mmjb, int mmtb, int nc, int llc,
-                 int jjc, int mmjc, int mmtc, int nd,
-                 int lld, int jjd, int mmjd, int mmtd,
-                 qcx_utils::SO3_CGC& cgcs) const;
+    double getME(int ea, int lla, int jja, int mmja, int mmta, int eb, int llb,
+                 int jjb, int mmjb, int mmtb, int ec, int llc, int jjc,
+                 int mmjc, int mmtc, int ed, int lld, int jjd, int mmjd,
+                 int mmtd, qcx_utils::SO3_CGC& cgcs) const;
   };
 } // namespace HO

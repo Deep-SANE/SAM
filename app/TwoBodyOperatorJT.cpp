@@ -23,15 +23,15 @@ int main(int argc, char* argv[])
 
   // Example 1: Two-body part of LL
   /*
-  JT::TwoBodyOperator LL("L.L");
-  int valenceShell = 1, Nmax = 2, maxShell = 3;
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto tensors = LL.expand(Nmax, valenceShell, maxShell, labels, 
-                cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  JT::TwoBodyOperator LL("L.L", labels, hw, Nmax, valenceShell, maxShell);
+
+  auto tensors = LL.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -42,21 +42,60 @@ int main(int argc, char* argv[])
   */
 
   // Example 2: Two-body part of relative kinetic energy
-
-  JT::TwoBodyOperator KE("Kinetic");
-  int valenceShell = 1, Nmax = 2, maxShell = 3;
+  /*
+  int hw = 20, valenceShell = 1, Nmax = 2, maxShell = 3;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto tensors = KE.expand(Nmax, valenceShell, maxShell, labels, 
-                cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  JT::TwoBodyOperator KE("Kinetic",labels,hw,Nmax,valenceShell,maxShell);
+
+  auto tensors = KE.expand(cgcs,racah,racah9,wigU3SO3db,wigU4SU2SU2db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
   KE.is();
+  for (auto tensor : tensors)
+    std::cout << tensor << std::endl;
+  */
+
+  // Example 3: Two-body Hamiltonian (bare) with N2LO_opt
+  /*
+  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  HO::Table_nljmjmt labels(maxShell);
+
+    // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  JT::TwoBodyOperator NN("N2LO_opt_bare", labels, hw, Nmax, valenceShell, maxShell);
+
+  auto tensors = NN.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  NN.is();
+  for (auto tensor : tensors)
+    std::cout << tensor << std::endl;
+  */
+
+  // Example 4: Two-body Hamiltonian (bare) with N3LO_EMN500
+  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  HO::Table_nljmjmt labels(maxShell);
+
+    // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  JT::TwoBodyOperator NN("N3LO_EMN500_bare", labels, hw, Nmax, valenceShell, maxShell);
+
+  auto tensors = NN.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  NN.is();
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
 
