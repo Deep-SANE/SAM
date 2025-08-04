@@ -12,6 +12,7 @@
 #include <set>
 #include <span>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include <U3basis.h>
@@ -652,7 +653,7 @@ namespace U4xSU3
       for (size_t i = 0; i < omega_u4.size(); i++)
         omega_.emplace_back(omega_u4[i], omega_su3[i]);
 
-      return std::span(omega_);
+      return std::span(std::as_const(omega_));
     }
   };
 
