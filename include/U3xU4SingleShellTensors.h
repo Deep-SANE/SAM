@@ -81,7 +81,7 @@ namespace U3xU4
   {
   private:
     // A lookup table for the labels and location in the table
-    HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels;
     int index;
 
   public:
@@ -90,7 +90,7 @@ namespace U3xU4
             int16_t ll_,               // twice orbital angular momentum
             int16_t jj_, int16_t mmj_, // twice total angular momentum
             int16_t mmt_,              // twice isospin projection
-            HO::Table_nljmjmt& labels_)
+            const HO::Table_nljmjmt& labels_)
         : labels(labels_)
     {
       index = labels.getIndex(n_, ll_, jj_, mmj_, mmt_);
@@ -204,7 +204,7 @@ namespace U3xU4
     bool tensor = true;
 
     // A lookup table for the labels and location in the table
-    HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels;
     int index;
 
   public:
@@ -213,7 +213,7 @@ namespace U3xU4
             int16_t ll_,               // twice orbital angular momentum
             int16_t jj_, int16_t mmj_, // twice total angular momentum
             int16_t mmt_,              // twice isospin projection
-            HO::Table_nljmjmt& labels_)
+            const HO::Table_nljmjmt& labels_)
         : labels(labels_)
     {
       index = labels.getIndex(n_, ll_, jj_, mmj_, mmt_);
@@ -308,7 +308,7 @@ namespace U3xU4
   {
   private:
     // A lookup table for the labels
-    HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels;
 
   public:
     // tensor character of ad [n,0,0] x [1,0,0,0]
@@ -326,7 +326,7 @@ namespace U3xU4
     // Constructor
     Tad_phys(int16_t n_, const std::vector<U3xU4::irrep>& prod, int16_t LL_,
              int16_t SS_, int16_t TT_, int16_t MMT_, int16_t JJ_, int16_t MMJ_,
-             HO::Table_nljmjmt& labels_)
+             const HO::Table_nljmjmt& labels_)
         : n(n_),
           prod_characters(prod),
           LL(LL_),
@@ -425,7 +425,7 @@ namespace U3xU4
   {
   private:
     // A lookup table for the labels
-    HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels;
 
   public:
     // tensor character of at [n,n,0] x [1,1,1,0]
@@ -443,7 +443,7 @@ namespace U3xU4
     // Constructor
     Tat_phys(int16_t n_, const std::vector<U3xU4::irrep>& prod, int16_t LL_,
              int16_t SS_, int16_t TT_, int16_t MMT_, int16_t JJ_, int16_t MMJ_,
-             HO::Table_nljmjmt& labels_)
+             const HO::Table_nljmjmt& labels_)
         : n(n_),
           prod_characters(prod),
           LL(LL_),
@@ -571,7 +571,7 @@ namespace U3xU4
   {
   private:
     // A lookup table for the labels
-    HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels;
 
   public:
     // tensor character of ad [n,0,0] x [1,0,0,0]
@@ -607,7 +607,7 @@ namespace U3xU4
                const std::vector<U3xU4::irrep>& prod_ats_,
                const U3xU4::irrep& t, uint8_t Rhomax, uint8_t Etamax,
                int16_t LL_, int16_t SS_, int16_t TT_, int16_t MMT_, int16_t JJ_,
-               int16_t MMJ_, HO::Table_nljmjmt& labels_)
+               int16_t MMJ_, const HO::Table_nljmjmt& labels_)
         : n(n_),
           ads(ads_),
           ats(ats_),
