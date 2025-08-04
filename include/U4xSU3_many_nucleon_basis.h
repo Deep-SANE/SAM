@@ -83,6 +83,8 @@ namespace U4xSU3
       u4::irrep u4;
       uint16_t alphamax; // U(N)->U(3) reduction multiplicity
       su3::irrep su3;
+
+      bool vacuum() const { return u4.zero() && su3.zero(); }
     };
 
     // auto n_gammas() const { return gammas_.size(); }
@@ -106,12 +108,16 @@ namespace U4xSU3
     {
       uint16_t etamax; // U(4) coupling multiplicity
       u4::irrep u4;
+
+      bool vacuum() const { return u4.zero(); }
     };
 
     struct OmegaElementSU3
     {
       uint16_t rhomax; // SU(3) coupling multiplicity
       su3::irrep su3;
+
+      bool vacuum() const { return su3.zero(); }
     };
 
     auto omega_u4(size_t omega_u4_id) const
@@ -146,6 +152,14 @@ namespace U4xSU3
     {
       OmegaElementU4 mu4;
       OmegaElementSU3 msu3;
+
+      OmegaElement(const OmegaElementU4& mu4, const OmegaElementSU3& msu3)
+          : mu4(mu4), msu3(msu3)
+      { }
+
+      OmegaElement(const GammaElement& ge) : mu4{1, ge.u4}, msu3{1, ge.su3} { }
+
+      bool vacuum() const { return mu4.vacuum() && msu3.vacuum(); }
     };
 
     /*
@@ -657,7 +671,6 @@ namespace U4xSU3
     }
   };
 
-  /*
   // structure for irrep used outside of the basis class:
   struct Irrep
   {
@@ -665,77 +678,120 @@ namespace U4xSU3
     std::vector<ManyNucleonBasis::GammaElement> gamma;
     std::vector<ManyNucleonBasis::OmegaElementU4> omega_u4;
     std::vector<ManyNucleonBasis::OmegaElementSU3> omega_su3;
+
+    void clear()
+    {
+      dist.clear();
+      gamma.clear();
+      omega_u4.clear();
+      omega_su3.clear();
+    }
   };
 
-  void unify_irreps(const ManyNucleonBasis::Irrep& iir1,
-                    const ManyNucleonBasis::Irrep& iir2, Irrep& oir1,
-                    Irrep& oir2)
+  // class for unifying 2 irreps wrt to their active shells:
+  class IrrepUnifier
   {
-    const auto& [idist1, igamma1, iomega1_u4, iomega1_su3, ioffset1] = iir1;
-    const auto& [idist2, igamma2, iomega2_u4, iomega2_su3, ioffset2] = iir2;
+    Irrep o1_, o2_;
+    OmegaCombiner oc1_, oc2_;
+    std::vector<ManyNucleonBasis::OmegaElement> oomega1_, oomega2_;
 
-    auto& [odist1, ogamma1, oomega1_u4, oomega1_su3] = oir1;
-    auto& [odist2, ogamma2, oomega2_u4, oomega2_su3] = oir2;
-
-    odist1.clear();
-    ogamma1.clear();
-    oomega1_u4.clear();
-    oomega1_su3.clear();
-
-    odist2.clear();
-    ogamma2.clear();
-    oomega2_u4.clear();
-    oomega2_su3.clear();
-
-    // (1) unify distribution sizes:
-
-    std::copy(idist1.begin(), idist1.end(), std::back_inserter(odist1));
-    std::copy(idist2.begin(), idist2.end(), std::back_inserter(odist2));
-
-    auto D = std::max(odist1.size(), odist2.size());
-
-    assert(D > 0);
-
-    odist1.resize(D);
-    odist2.resize(D);
-
-    // (2) unify gammas and omegas:
-
-    static const u4::irrep u4_vacuum(0, 0, 0, 0);
-    static const su3::irrep su3_vacuum(0, 0);
-    static const GammaElement gamma_vacuum(u4_vacuum, 1, su3_vacuum);
-    static const OmegaElementU4 omega_u4_vacuum(1, u4_vacuum);
-    static const OmegaElementSU3 omega_su3_vacuum(1, su3_vacuum);
-
-    size_t i_gamma_1 = 0;
-    size_t i_gamma_2 = 0;
-
-    for (size_t k = 0; k < D; k++)
+  public:
+    auto combine(const auto& i1, const auto& i2)
     {
-      if ((odist1[k] == 0) && (odist2[k] == 0))
-        continue;
+      // (1) setup:
 
-      if (odist1[k] != 0)
+      const auto& idist1 = i1.dist;
+      const auto& igamma1 = i1.gamma;
+      auto iomega1 = oc1_.combine(i1.omega_u4(), i1.omega_su3());
+
+      const auto& idist2 = i2.dist;
+      const auto& igamma2 = i2.gamma;
+      auto iomega2 = oc2_.combine(i2.omega_u4(), i2.omega_su3());
+
+      o1_.clear();
+      oomega1_.clear();
+      auto& odist1 = o1_.dist;
+      auto& ogamma1 = o1_.gamma;
+      auto& oomega1 = oomega1_;
+
+      o2_.clear();
+      oomega2_.clear();
+      auto& odist2 = o2_.dist;
+      auto& ogamma2 = o2_.gamma;
+      auto& oomega2 = oomega2_;
+
+      size_t g1 = 0; // igamma1 element index
+      size_t g2 = 0; // igamma2 element index
+
+      static const u4::irrep u4_vacuum(0, 0, 0, 0);
+      static const su3::irrep su3_vacuum(0, 0);
+      static const ManyNucleonBasis::GammaElement ge_vacuum(u4_vacuum, 1,
+                                                            su3_vacuum);
+      static const ManyNucleonBasis::OmegaElement oe_vacuum({1, u4_vacuum},
+                                                            {1, su3_vacuum});
+
+      // (2) unify distribution sizes:
+
+      std::copy(idist1.begin(), idist1.end(), std::back_inserter(odist1));
+      std::copy(idist2.begin(), idist2.end(), std::back_inserter(odist2));
+
+      auto D = std::max(odist1.size(), odist2.size());
+
+      assert(D > 0);
+
+      odist1.resize(D);
+      odist2.resize(D);
+
+      // (3) unify gammas and omegas:
+
+      for (size_t d = 0; d < D; d++)
       {
-        ogamma1.push_back(igamma1[i_gamma_1]);
+        // nothing to do if both shells are empty:
+        if ((odist1[d] == 0) && (odist2[d] == 0))
+          continue;
 
-        if (i_gamma_1 > 0)
+        // add element to gamma1:
+        ogamma1.push_back(odist1[d] == 0 ? ge_vacuum : igamma1[g1++]);
+
+        // add element to omega1:
+        if (ogamma1.size() > 1)
         {
-          oomega1_u4.push_back(iomega1_u4[i_gamma_1 - 1]);
-          oomega1_su3.push_back(iomega1_su3[i_gamma_1 - 1]);
+          if (oomega1.empty())
+          {
+            // couple last 2 gamma elements:
+            if (ogamma1[0].vacuum() && ogamma1[1].vacuum())
+              oomega1.push_back(oe_vacuum);
+            else if (ogamma1[0].vacuum())
+              oomega1.push_back(ogamma1[1]);
+            else if (ogamma1[1].vacuum())
+              oomega1.push_back(ogamma1[0]);
+            else
+              oomega1.push_back(iomega1[0]);
+          }
+          else
+          {
+            // couple last gamma element with last omega element:
+            if (ogamma1.back().vacuum() && oomega1.back().vacuum())
+              oomega1.push_back(oe_vacuum);
+            else if (ogamma1.back().vacuum())
+              oomega1.push_back(oomega1.back());
+            else if (oomega1.back().vacuum())
+              oomega1.push_back(ogamma1.back());
+            else
+              oomega1.push_back(iomega1[g1 - 2]);
+          }
         }
 
-        i_gamma_1++;
-      }
-      else
-      {
-        ogamma1.push_back(gamma_vacuum);
-
+        // add element to gamma2:
       }
 
+      // (4) split resulting omegas to U(4) and SU(3) parts:
+
+      // (5) return result:
+
+      return std::tie(std::as_const(o1_), std::as_const(o2_));
     }
-  }
-  */
+  };
 } // namespace U4xSU3
 
 #ifdef HAVE_FMT
