@@ -147,6 +147,7 @@ namespace U4xSU3
       OmegaElementSU3 msu3;
     };
 
+    /*
     static void combine_omega_u4su3(std::span<const OmegaElementU4> omega_u4,
                                     std::span<const OmegaElementSU3> omega_su3,
                                     std::vector<OmegaElement>& result)
@@ -158,6 +159,7 @@ namespace U4xSU3
       for (size_t i = 0; i < omega_u4.size(); i++)
         result.emplace_back(omega_u4[i], omega_su3[i]);
     }
+    */
 
     // (4) irreps:
 
@@ -630,6 +632,27 @@ namespace U4xSU3
           }
         }
       }
+    }
+  };
+
+  // class for combining U(4) and SU(3) omega parts:
+  class OmegaCombiner
+  {
+    // storage for resulting combined omega elements:
+    std::vector<ManyNucleonBasis::OmegaElement> omega_;
+
+  public:
+    auto combine(std::span<const ManyNucleonBasis::OmegaElementU4> omega_u4,
+                 std::span<const ManyNucleonBasis::OmegaElementSU3> omega_su3)
+    {
+      assert(omega_u4.size() == omega_su3.size());
+
+      omega_.clear();
+
+      for (size_t i = 0; i < omega_u4.size(); i++)
+        omega_.emplace_back(omega_u4[i], omega_su3[i]);
+
+      return std::span(omega_);
     }
   };
 
