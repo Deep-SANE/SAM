@@ -207,7 +207,7 @@ namespace HO
     if (known_potentials.count(name_))
     {
       name = name_;
-
+#ifdef HAVE_NUHAMIL
       const char* nuhamil_root = std::getenv("NUHAMIL_ROOT");    
       if (!nuhamil_root)
         throw std::runtime_error(
@@ -216,6 +216,11 @@ namespace HO
       std::string filename = std::string(nuhamil_root) + 
           "/exe/TwBME-HO_NN-only_" + name + "_hw" +
           std::to_string(static_cast<int>(hw)) + "_emax14_e2max28.myg";
+#else
+      std::string filename =
+          "data/Ab-initio_Interactions/TwBME-HO_NN-only_" + name + "_hw" +
+          std::to_string(static_cast<int>(hw)) + "_emax14_e2max28.myg.";
+#endif     
 
 #ifdef READ_FROM_BINARY
       filename += ".bin";
