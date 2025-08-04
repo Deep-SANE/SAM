@@ -454,11 +454,15 @@ namespace JT
     double norm = 0.0;
     for (int c = 0; c < coeffs_.size(); c++)
     {
-      // coeffs_[c] *= phase;
+      if (std::fabs(coeffs_[c]) < 1e-10)
+      {
+        coeffs_[c] = 0.0;
+        continue;
+      }
       norm += std::fabs(coeffs_[c]);
     }
-    bool ignore = (norm < 1e-10);
 
+    bool ignore = (norm < 1e-10);
     if (ignore == false)
       tensor.coeffs = coeffs_;
 
