@@ -207,11 +207,18 @@ namespace HO
     if (known_potentials.count(name_))
     {
       name = name_;
-      std::string filename =
-          "data/Ab-initio_Interactions/TwBME-HO_NN-only_" + name + "_hw" +
-          std::to_string(static_cast<int>(hw)) + "_emax14_e2max28.myg.";
+
+      const char* nuhamil_root = std::getenv("NUHAMIL_ROOT");    
+      if (!nuhamil_root)
+        throw std::runtime_error(
+          "Environment variable NUHAMIL_ROOT is not set");
+
+      std::string filename = std::string(nuhamil_root) + 
+          "/exe/TwBME-HO_NN-only_" + name + "_hw" +
+          std::to_string(static_cast<int>(hw)) + "_emax14_e2max28.myg";
+
 #ifdef READ_FROM_BINARY
-      filename += "bin";
+      filename += ".bin";
       read_from_binary(filename);
 #else
       read_from_file(filename);
