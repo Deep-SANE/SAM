@@ -25,6 +25,9 @@
 
 #include <UNtoU3.h>
 
+#include <U4xSU3Irrep.h>
+
+#include <qcx_convert.h>
 #include <qcx_ND.h>
 #include <qcx_tree_generator.h>
 
@@ -57,10 +60,13 @@ namespace U4xSU3
       generate_distributions();
       generate_gammas();
     }
-
+    
     // (1) distributions:
 
     using DistributionElement = uint16_t;
+
+  private:
+    // the following definitions need to be here:
 
     auto n_distributions() const
     {
@@ -76,18 +82,29 @@ namespace U4xSU3
       return std::span(shells_.data() + D_ * dist_id, D_);
     }
 
+  public:
+
     // (2) gammas:
 
-    struct GammaElement
+    class GammaElement : public U4xSU3::irrep
     {
-      u4::irrep u4;
-      uint16_t alphamax; // U(N)->U(3) reduction multiplicity
-      su3::irrep su3;
+      uint16_t alphamax_; // U(N)->U(3) reduction multiplicity
 
-      bool vacuum() const { return u4.zero() && su3.zero(); }
+    public:
+      GammaElement() : alphamax_(1) { }
+
+      GammaElement(const u4::irrep& u4, int alphamax, const su3::irrep& su3)
+          : U4xSU3::irrep(u4, su3), alphamax_(qcx_utils::itou16(alphamax))
+      { }
+
+      void alphamax(int am) { alphamax_ = qcx_utils::itou16(am); }
+      int alphamax() const { return alphamax_; }
     };
 
-    // auto n_gammas() const { return gammas_.size(); }
+  private:
+    // the following definitions need to be here:
+
+    auto n_gammas() const { return gammas_.size(); }
 
     auto gamma(size_t gamma_id) const
     {
@@ -102,22 +119,53 @@ namespace U4xSU3
                        gamma_elements_.data() + end_index);
     }
 
+  public:
+
     // (3) omegas:
 
-    struct OmegaElementU4
+  private:
+    // the following definitions need to be here:
+    
+    class OmegaElementU4
     {
-      uint16_t etamax; // U(4) coupling multiplicity
-      u4::irrep u4;
+      uint16_t etamax_; // U(4) coupling multiplicity
+      u4::irrep u4_;
 
-      bool vacuum() const { return u4.zero(); }
+    public:
+      OmegaElementU4() : etamax_(1) { }
+
+      OmegaElementU4(int etamax, const u4::irrep& u4)
+          : etamax_(qcx_utils::itou16(etamax)), u4_(u4)
+      { }
+
+      void etamax(int em) { etamax_ = qcx_utils::itou16(em); }
+      int etamax() const { return etamax_; }
+
+      void u4(const u4::irrep& u4) { u4_ = u4; }
+      const u4::irrep& u4() const { return u4_; }
+
+      // bool vacuum() const { return u4_.zero(); }
     };
 
-    struct OmegaElementSU3
+    class OmegaElementSU3
     {
-      uint16_t rhomax; // SU(3) coupling multiplicity
-      su3::irrep su3;
+      uint16_t rhomax_; // SU(3) coupling multiplicity
+      su3::irrep su3_;
 
-      bool vacuum() const { return su3.zero(); }
+    public:
+      OmegaElementSU3() : rhomax_(1) { }
+
+      OmegaElementSU3(int rhomax, const su3::irrep& su3)
+          : rhomax_(qcx_utils::itou16(rhomax)), su3_(su3)
+      { }
+
+      void rhomax(int rm) { rhomax_ = qcx_utils::itou16(rm); }
+      int rhomax() const { return rhomax_; }
+
+      void su3(const su3::irrep& su3) { su3_ = su3; }
+      const su3::irrep& su3() const { return su3_; }
+
+      // bool vacuum() const { return su3_.zero(); }
     };
 
     auto omega_u4(size_t omega_u4_id) const
@@ -148,89 +196,122 @@ namespace U4xSU3
                        omega_elements_su3_.data() + end_index);
     }
 
-    struct OmegaElement
+  public:
+    class OmegaElement : public U4xSU3::irrep
     {
-      OmegaElementU4 mu4;
-      OmegaElementSU3 msu3;
+      uint16_t etamax_; // U(4) coupling multiplicity
+      uint16_t rhomax_; // SU(3) coupling multiplicity
 
-      OmegaElement(const OmegaElementU4& mu4, const OmegaElementSU3& msu3)
-          : mu4(mu4), msu3(msu3)
+    public:
+      OmegaElement(int etamax, const u4::irrep& u4, int rhomax,
+                   const u3::irrep& su3)
+          : U4xSU3::irrep(u4, su3),
+            etamax_(qcx_utils::itou16(etamax)),
+            rhomax_(qcx_utils::itou16(rhomax))
       { }
 
-      OmegaElement(const GammaElement& ge) : mu4{1, ge.u4}, msu3{1, ge.su3} { }
+      OmegaElement(const OmegaElementU4& oe_u4, const OmegaElementSU3& oe_su3)
+          : U4xSU3::irrep(oe_u4.u4(), oe_su3.su3()),
+            etamax_(oe_u4.etamax()),
+            rhomax_(oe_su3.rhomax())
+      { }
 
-      bool vacuum() const { return mu4.vacuum() && msu3.vacuum(); }
+      OmegaElement(const GammaElement& ge)
+          : U4xSU3::irrep(ge), etamax_(1), rhomax_(1)
+      { }
+
+      void etamax(int em) { etamax_ = qcx_utils::itou16(em); }
+      void rhomax(int rm) { rhomax_ = qcx_utils::itou16(rm); }
+
+      int etamax() const { return etamax_; }
+      int rhomax() const { return rhomax_; }
     };
 
-    /*
-    static void combine_omega_u4su3(std::span<const OmegaElementU4> omega_u4,
-                                    std::span<const OmegaElementSU3> omega_su3,
-                                    std::vector<OmegaElement>& result)
+  private:
+    // the following definition need to be here:
+
+    // class for combining U(4) and SU(3) omega parts:
+    class OmegaCombiner
     {
-      assert(omega_u4.size() == omega_su3.size());
+      // storage for resulting combined omega elements:
+      std::vector<OmegaElement> omega_;
 
-      result.clear();
+    public:
+      auto combine(std::span<const OmegaElementU4> omega_u4,
+                   std::span<const OmegaElementSU3> omega_su3)
+      {
+        assert(omega_u4.size() == omega_su3.size());
 
-      for (size_t i = 0; i < omega_u4.size(); i++)
-        result.emplace_back(omega_u4[i], omega_su3[i]);
-    }
-    */
+        omega_.clear();
+
+        for (size_t i = 0; i < omega_u4.size(); i++)
+          omega_.emplace_back(omega_u4[i], omega_su3[i]);
+
+        return std::span(std::as_const(omega_));
+      }
+    };
+
+  public:
 
     // (4) irreps:
+
+    auto n_irreps() const { return irreps_.size(); }
 
     struct Irrep
     {
       std::span<const DistributionElement> dist;
       std::span<const GammaElement> gamma;
-      std::span<const OmegaElementU4> omega_u4;
-      std::span<const OmegaElementSU3> omega_su3;
+      std::span<const OmegaElement> omega;
       uint64_t offset;
     };
 
-    inline static const uint32_t INVALID_OMEGA_ID =
-        std::numeric_limits<uint32_t>::max();
-
-    auto n_irreps() const { return irreps_.size(); }
-
-    /*
-    const auto& irrep(size_t irrep_id) const
+    class IrrepDB
     {
-      assert(irrep_id < irreps_.size());
-      return irreps_[irrep_id];
-    }
-    */
+      const ManyNucleonBasis& basis_;
+      OmegaCombiner oc_;
 
-    Irrep irrep(size_t irrep_id) const
-    {
-      assert(irrep_id < irreps_.size());
+    public:
+      IrrepDB(const ManyNucleonBasis& basis) : basis_(basis) { }
 
-      auto [dist_id, gamma_id, omega_u4_id, omega_su3_id, offset] =
-          irreps_[irrep_id];
+      auto size() const { return basis_.n_irreps(); }
 
-      auto dist = distribution(dist_id);
-      auto gamma = this->gamma(gamma_id);
-
-      assert(gamma.size() > 0);
-
-      if (gamma.size() == 1)
+      Irrep operator[](size_t irrep_id) 
       {
-        assert(omega_u4_id == INVALID_OMEGA_ID);
-        assert(omega_su3_id == INVALID_OMEGA_ID);
+        assert(irrep_id < basis_.irreps_.size());
 
-        return {dist, gamma, std::span<const OmegaElementU4>(),
-                std::span<const OmegaElementSU3>(), offset};
+        auto [dist_id, gamma_id, omega_u4_id, omega_su3_id, offset] =
+            basis_.irreps_[irrep_id];
+
+        auto dist = basis_.distribution(dist_id);
+        auto gamma = basis_.gamma(gamma_id);
+
+        assert(gamma.size() > 0);
+
+        if (gamma.size() == 1)
+        {
+          assert(omega_u4_id == INVALID_OMEGA_ID);
+          assert(omega_su3_id == INVALID_OMEGA_ID);
+
+          return {dist, gamma, std::span<const OmegaElement>(), offset};
+        }
+        else
+        {
+          auto omega_u4 = basis_.omega_u4(omega_u4_id);
+          auto omega_su3 = basis_.omega_su3(omega_su3_id);
+
+          assert(omega_u4.size() == gamma.size() - 1);
+          assert(omega_su3.size() == gamma.size() - 1);
+
+          auto omega = oc_.combine(omega_u4, omega_su3);
+
+          return {dist, gamma, omega, offset};
+        }
       }
-      else
-      {
-        auto omega_u4 = this->omega_u4(omega_u4_id);
-        auto omega_su3 = this->omega_su3(omega_su3_id);
 
-        assert(omega_u4.size() == gamma.size() - 1);
-        assert(omega_su3.size() == gamma.size() - 1);
+   // friend class IrrepDB;
+    };
 
-        return {dist, gamma, omega_u4, omega_su3, offset};
-      }
-    }
+    auto irreps() const { return IrrepDB(*this); }
 
     // (5) others:
 
@@ -264,12 +345,15 @@ namespace U4xSU3
     std::vector<std::pair<size_t, size_t>> gammas_;
 
     // (3) omegas:
-
+    
     std::vector<OmegaElementU4> omega_elements_u4_;
     std::vector<std::pair<size_t, size_t>> omegas_u4_;
 
     std::vector<OmegaElementSU3> omega_elements_su3_;
     std::vector<std::pair<size_t, size_t>> omegas_su3_;
+
+    inline static const uint32_t INVALID_OMEGA_ID =
+        std::numeric_limits<uint32_t>::max();
 
     // (4) irreps:
 
@@ -367,7 +451,7 @@ namespace U4xSU3
     }
 
     // (2) gammas:
-
+    
     void generate_gammas()
     {
       for (size_t dist_id = 0; dist_id < n_distributions(); dist_id++)
@@ -431,7 +515,7 @@ namespace U4xSU3
         {
           const auto& ge = gamma[0];
 
-          auto dim_gamma = ge.alphamax * compute_dim(ge.u4, ge.su3);
+          auto dim_gamma = ge.alphamax() * compute_dim(ge.u4(), ge.su3());
 
           if (dim_gamma > 0)
           {
@@ -539,6 +623,8 @@ namespace U4xSU3
       return dim;
     }
 
+    // (3) omegas:
+
     void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id)
     {
       auto gamma = this->gamma(gamma_id);
@@ -552,7 +638,7 @@ namespace U4xSU3
 
       auto couple_u4 = [](const auto& first, const auto& second, auto& stack)
       {
-        auto [u4s, mults] = u4::decomposition(first.u4, second.u4);
+        auto [u4s, mults] = u4::decomposition(first.u4(), second.u4());
 
         for (size_t i = 0; i < u4s.size(); i++)
           stack.emplace(mults[i], u4s[i]);
@@ -582,7 +668,7 @@ namespace U4xSU3
 
       auto couple_su3 = [](const auto& first, const auto& second, auto& stack)
       {
-        auto [su3s, mults] = su3::decomposition(first.su3, second.su3);
+        auto [su3s, mults] = su3::decomposition(first.su3(), second.su3());
 
         for (size_t i = 0; i < su3s.size(); i++)
           stack.emplace(mults[i], su3s[i]);
@@ -611,7 +697,7 @@ namespace U4xSU3
       // total gamma multiplicity:
       uint32_t mult_gamma = 1;
       for (const auto& ge : gamma)
-        mult_gamma *= ge.alphamax;
+        mult_gamma *= ge.alphamax();
 
       for (size_t i = 0; i < omegas_u4.size(); i++)
       {
@@ -621,7 +707,7 @@ namespace U4xSU3
 
         uint32_t mult_u4 = 1;
         for (const auto& oe_u4 : omega_u4)
-          mult_u4 *= oe_u4.etamax;
+          mult_u4 *= oe_u4.etamax();
 
         for (size_t j = 0; j < omegas_su3.size(); j++)
         {
@@ -631,10 +717,10 @@ namespace U4xSU3
 
           uint32_t mult_su3 = 1;
           for (const auto& oe_su3 : omega_su3)
-            mult_su3 *= oe_su3.rhomax;
+            mult_su3 *= oe_su3.rhomax();
 
           auto mult = mult_gamma * mult_u4 * mult_su3;
-          auto dim_irrep = compute_dim(last_oe_u4.u4, last_oe_su3.su3);
+          auto dim_irrep = compute_dim(last_oe_u4.u4(), last_oe_su3.su3());
           auto dim_omega = mult * dim_irrep;
 
           if (dim_omega > 0)
@@ -650,27 +736,7 @@ namespace U4xSU3
     }
   };
 
-  // class for combining U(4) and SU(3) omega parts:
-  class OmegaCombiner
-  {
-    // storage for resulting combined omega elements:
-    std::vector<ManyNucleonBasis::OmegaElement> omega_;
-
-  public:
-    auto combine(std::span<const ManyNucleonBasis::OmegaElementU4> omega_u4,
-                 std::span<const ManyNucleonBasis::OmegaElementSU3> omega_su3)
-    {
-      assert(omega_u4.size() == omega_su3.size());
-
-      omega_.clear();
-
-      for (size_t i = 0; i < omega_u4.size(); i++)
-        omega_.emplace_back(omega_u4[i], omega_su3[i]);
-
-      return std::span(std::as_const(omega_));
-    }
-  };
-
+  /*
   // structure for irrep used outside of the basis class:
   struct Irrep
   {
@@ -792,6 +858,7 @@ namespace U4xSU3
       return std::tie(std::as_const(o1_), std::as_const(o2_));
     }
   };
+  */
 } // namespace U4xSU3
 
 #ifdef HAVE_FMT
@@ -808,9 +875,9 @@ public:
   constexpr auto format(const U4xSU3::ManyNucleonBasis::GammaElement& ge,
                         Context& ctx) const
   {
-    return format_to(ctx.out(), "[{},{},{},{}]{}({},{})", ge.u4.n14(),
-                     ge.u4.n24(), ge.u4.n34(), ge.u4.n44(), ge.alphamax,
-                     ge.su3.lambda(), ge.su3.mu());
+    return format_to(ctx.out(), "[{},{},{},{}]{}({},{})", ge.u4().n14(),
+                     ge.u4().n24(), ge.u4().n34(), ge.u4().n44(), ge.alphamax(),
+                     ge.su3().lambda(), ge.su3().mu());
   }
 };
 
@@ -826,8 +893,8 @@ public:
   constexpr auto format(const U4xSU3::ManyNucleonBasis::OmegaElementU4& oe,
                         Context& ctx) const
   {
-    return format_to(ctx.out(), "{}[{},{},{},{}]", oe.etamax, oe.u4.n14(),
-                     oe.u4.n24(), oe.u4.n34(), oe.u4.n44());
+    return format_to(ctx.out(), "{}[{},{},{},{}]", oe.etamax(), oe.u4().n14(),
+                     oe.u4().n24(), oe.u4().n34(), oe.u4().n44());
   }
 };
 
@@ -843,8 +910,8 @@ public:
   constexpr auto format(const U4xSU3::ManyNucleonBasis::OmegaElementSU3& oe,
                         Context& ctx) const
   {
-    return format_to(ctx.out(), "{}({},{})", oe.rhomax, oe.su3.lambda(),
-                     oe.su3.mu());
+    return format_to(ctx.out(), "{}({},{})", oe.rhomax(), oe.su3().lambda(),
+                     oe.su3().mu());
   }
 };
 
@@ -860,10 +927,9 @@ public:
   constexpr auto format(const U4xSU3::ManyNucleonBasis::OmegaElement& oe,
                         Context& ctx) const
   {
-    return format_to(ctx.out(), "{}[{},{},{},{}]{}({},{})", oe.mu4.etamax,
-                     oe.mu4.u4.n14(), oe.mu4.u4.n24(), oe.mu4.u4.n34(),
-                     oe.mu4.u4.n44(), oe.msu3.rhomax, oe.msu3.su3.lambda(),
-                     oe.msu3.su3.mu());
+    return format_to(ctx.out(), "{}[{},{},{},{}]{}({},{})", oe.etamax(),
+                     oe.u4().n14(), oe.u4().n24(), oe.u4().n34(), oe.u4().n44(),
+                     oe.rhomax(), oe.su3().lambda(), oe.su3().mu());
   }
 };
 
