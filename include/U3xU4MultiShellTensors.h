@@ -1,7 +1,7 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
-#include <ostream>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -70,15 +70,7 @@ namespace U3xU4
 
     // Print
     friend std::ostream& operator<<(std::ostream& s,
-                                    const OneBodyMultiShellTensor& x)
-    {
-      s << "[ T" << x.a << " x T" << x.b << " ]" << x.t << "kappaMax"
-        << x.kappamax << "LL" << x.LL << "SS" << x.SS << "TT" << x.TT << "MMT"
-        << x.MMT << "JJ" << x.JJ << "MMJ" << x.MMJ;
-      for (auto coeff : x.coeffs)
-        s << "\t" << coeff;
-      return s;
-    }
+                                    const OneBodyMultiShellTensor& x);
 
     // RME ... TBD
   };
@@ -144,6 +136,10 @@ namespace U3xU4
     std::vector<double> coeffs;
 
     // Constructor
+    TwoBodyMultiShellTensor(const HO::Table_nljmjmt& labels_)
+        : labels(labels_), rhomax(0), etamax(0), kappamax(0), LL(0),
+          zetamax(0), SS(0), TT(0), MMT(0), JJ(0), MMJ(0)
+    {}
     TwoBodyMultiShellTensor(
         const std::vector<U3xU4::Tadat>& single_shell_tensors_,
         const std::vector<U3xU4::irrep>& coupled_irreps_, int rho_, int eta_,
@@ -177,21 +173,13 @@ namespace U3xU4
 
     // Print
     friend std::ostream& operator<<(std::ostream& s,
-                                    const TwoBodyMultiShellTensor& x)
-    {
-      s << x.single_shell_tensors[0];
-      if (x.coupled_irreps.size() > 0)
-        for (int i = 0; i < x.coupled_irreps.size(); i++)
-          s << " x " << x.single_shell_tensors[i + 1] << " ] "
-            << x.coupled_irreps[i];
+                                    const TwoBodyMultiShellTensor& x);
 
-      s << "rhoMax" << x.rhomax << "etaMax" << x.etamax << "kappaMax"
-        << x.kappamax << "LL" << x.LL << "zetaMax" << x.zetamax << "SS" << x.SS
-        << "TT" << x.TT << "MMT" << x.MMT << "JJ" << x.JJ << "MMJ" << x.MMJ;
-      for (auto coeff : x.coeffs)
-        s << "\t" << coeff;
-      return s;
-    }
+    // Write to binary file
+    void writeBinary(std::ostream& s) const;
+
+    // Read from binary file
+    void readBinary(std::istream& s);
 
     // Expand into uncoupled products of creation operators (ad)
     // and annihilation operators (a)

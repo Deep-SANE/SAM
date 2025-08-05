@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <filesystem>
+#include <fstream>
 #include <tuple>
 
 #include <TwoBodyOperatorJT.h>
@@ -37,7 +39,12 @@ namespace JT
     else if (known_potentials.count(name_))
     {
       name = name_;
-      TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
+      JJ = 0;
+      MMJ = 0;
+      TT = 0;
+      MMT = 0;
+      parity = true;
+      //TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
       on_the_fly = false;
     }
     else
@@ -474,8 +481,11 @@ namespace JT
   TwoBodyOperator::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
                           qcx_utils::SO3_Racah9& racah9,
                           u3::WigU3SO3_db& wigU3SO3db,
-                          u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+                          u4::WigU4SU2SU2_db& wigU4SU2SU2db)
   {
+    if (on_the_fly == false)
+      TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
+
     std::vector<U3xU4::TwoBodyMultiShellTensor> tensors;
 
 #ifdef RESTRICT_WITH_NMAX
@@ -551,6 +561,22 @@ namespace JT
               continue;
 
             // no coupled irrep, it collapses into a single-shell tensor
+            // otherwise, it remains a multi-shell tensor
+            U3xU4::TwoBodyMultiShellTensor tensor(
+              Tadat_choices, coupled_irreps, 
+              coupled_irreps.empty() ? Tadat_choices[0].rho0max : Rhomax,
+              coupled_irreps.empty() ? Tadat_choices[0].eta0max : Etamax, 
+              kappa0, LL0, zeta0, SS0, TT, MMT, JJ, MMJ, {}, labels);
+
+            bool ignore =
+                setTensorStrength(tensor, all_inverse[i], all_phase[i], cgcs,
+                                    racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+            if (ignore == false)
+            {
+              // std::cout << tensor << std::endl;
+              tensors.push_back(tensor);
+            }
+/*            
             if (coupled_irreps.empty())
             {
               U3xU4::TwoBodyMultiShellTensor tensor(
@@ -566,7 +592,6 @@ namespace JT
                 tensors.push_back(tensor);
               }
             }
-            // otherwise, it remains a multi-shell tensor
             else
             {
               U3xU4::TwoBodyMultiShellTensor tensor(
@@ -581,6 +606,7 @@ namespace JT
                 tensors.push_back(tensor);
               }
             }
+*/
           }
         }
       }
@@ -588,4 +614,128 @@ namespace JT
 
     return tensors;
   }
+
+  // Write to binary file
+  void TwoBodyOperator::writeBinary(qcx_utils::SO3_CGC& cgcs, 
+    qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9, 
+    u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db)
+  {
+    auto tensors = expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+    const char* sam_dir = std::getenv("SAM_DIR");
+    if (!sam_dir)
+      throw std::runtime_error("Environment variable SAM_DIR not set");
+
+    std::string base_dir = std::string(sam_dir) + "/data/TwoBodyTensorExpansion";
+    std::filesystem::create_directories(base_dir);
+
+    std::string filename = base_dir + "/" + name + "_hw" 
+                         + std::to_string(static_cast<int>(hw));
+    std::ofstream s(filename,std::ios::binary);
+    if (!s)
+      throw std::runtime_error("Failed to open file for writing: " + filename);
+
+    // Write metadata
+    // Angular momentum and isospin
+    s.write(reinterpret_cast<const char*>(&JJ), sizeof(int8_t));
+    s.write(reinterpret_cast<const char*>(&MMJ), sizeof(int8_t));
+    s.write(reinterpret_cast<const char*>(&TT), sizeof(int8_t));
+    s.write(reinterpret_cast<const char*>(&MMT), sizeof(int8_t));
+
+    // Parity
+    s.write(reinterpret_cast<const char*>(&parity), sizeof(bool));
+
+    // Configuration parameters
+    s.write(reinterpret_cast<const char*>(&hw), sizeof(int8_t));
+    s.write(reinterpret_cast<const char*>(&Nmax), sizeof(int8_t));
+    s.write(reinterpret_cast<const char*>(&valenceShell), sizeof(int8_t));
+    s.write(reinterpret_cast<const char*>(&maxShell), sizeof(int8_t));
+
+    // Number of tensors
+    size_t num_tensors = tensors.size();
+    s.write(reinterpret_cast<const char*>(&num_tensors), sizeof(num_tensors));
+
+    for (auto tensor : tensors)
+      tensor.writeBinary(s);
+  }
+
+  // Read from binary file
+  std::vector<U3xU4::TwoBodyMultiShellTensor> TwoBodyOperator::readBinary()
+  {
+    const char* sam_dir = std::getenv("SAM_DIR");
+    if (!sam_dir)
+      throw std::runtime_error("Environment variable SAM_DIR not set");
+
+    std::string base_dir = std::string(sam_dir) + "/data/TwoBodyTensorExpansion";
+    std::filesystem::create_directories(base_dir);
+
+    std::string filename = base_dir + "/" + name + "_hw" 
+                         + std::to_string(static_cast<int>(hw));
+
+    std::ifstream s(filename, std::ios::binary);
+    if (!s)
+      throw std::runtime_error("Failed to open file for reading: " + filename);
+
+    // Angular momentum and isospin
+    int8_t JJ_, MMJ_, TT_, MMT_;
+    s.read(reinterpret_cast<char*>(&JJ_), sizeof(int8_t));
+    s.read(reinterpret_cast<char*>(&MMJ_), sizeof(int8_t));
+    if (JJ_ != JJ || MMJ_ != MMJ)
+      throw std::runtime_error("Angular momentum incorrect");
+    s.read(reinterpret_cast<char*>(&TT_), sizeof(int8_t));
+    s.read(reinterpret_cast<char*>(&MMT_), sizeof(int8_t));
+    if (TT_ != TT || MMT_ != MMT)
+      throw std::runtime_error("Isospin incorrect");
+
+    // Parity
+    bool parity_;
+    s.read(reinterpret_cast<char*>(&parity_), sizeof(bool));
+    if (parity_ != parity)
+      throw std::runtime_error("Parity incorrect");
+
+    // Configuration parameters
+    int8_t hw_, Nmax_, valenceShell_, maxShell_;
+    s.read(reinterpret_cast<char*>(&hw_), sizeof(int8_t));
+    if (hw_ != hw)
+      throw std::runtime_error("hw incorrect");
+    s.read(reinterpret_cast<char*>(&Nmax_), sizeof(int8_t));
+    if (Nmax_ < Nmax)
+      throw std::runtime_error("File doesn't reach your Nmax");
+    s.read(reinterpret_cast<char*>(&valenceShell_), sizeof(int8_t));
+    if (valenceShell_ > 0)
+      throw std::runtime_error("File doesn't start from the s-shell");
+    s.read(reinterpret_cast<char*>(&maxShell_), sizeof(int8_t));
+    if (maxShell_ < maxShell)
+      throw std::runtime_error("File doesn't reach your model space");
+
+    // Read number of tensors
+    size_t num_tensors;
+    s.read(reinterpret_cast<char*>(&num_tensors), sizeof(num_tensors));
+
+    std::vector<U3xU4::TwoBodyMultiShellTensor> tensors;
+    tensors.clear();
+    tensors.reserve(num_tensors);
+
+    for (size_t i = 0; i < num_tensors; ++i)
+    { 
+      U3xU4::TwoBodyMultiShellTensor tensor(labels);
+      tensor.readBinary(s);
+
+      if (tensor.single_shell_tensors.back().n > maxShell)
+        continue;
+
+      int ab_Nhw = 0, cd_Nhw = 0;
+      for (const auto& Tadat : tensor.single_shell_tensors)
+      {
+        ab_Nhw += ((Tadat.n - valenceShell) * Tadat.ads);
+        cd_Nhw += ((Tadat.n - valenceShell) * Tadat.ats);
+      }
+      if (ab_Nhw > Nmax || cd_Nhw > Nmax)
+        continue;
+
+      tensors.push_back(tensor);
+    }
+    return tensors;
+  }
+
 } // namespace JT

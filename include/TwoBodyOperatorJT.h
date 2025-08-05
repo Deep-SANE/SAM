@@ -33,11 +33,11 @@ namespace JT
 
     std::string name;
     int8_t hw, Nmax, valenceShell, maxShell;
-
-    std::optional<HO::TBME_scalar> TBME;
-    const HO::Table_nljmjmt& labels;
-
     bool on_the_fly = true;
+
+    std::optional<HO::TBME_scalar> TBME; // only read input file during
+                                         // expand() or writeBinary()
+    const HO::Table_nljmjmt& labels;
 
   public:
     // Constructor
@@ -106,11 +106,19 @@ namespace JT
                            u3::WigU3SO3_db& wigU3SO3db,
                            u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
 
-    // expand into a sum of multi-shell two-body tensors
+    // Expand into a sum of multi-shell two-body tensors
     std::vector<U3xU4::TwoBodyMultiShellTensor>
     expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
            qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
-           u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+           u4::WigU4SU2SU2_db& wigU4SU2SU2db);
+
+    // Write to binary file
+    void writeBinary(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
+      qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
+      u4::WigU4SU2SU2_db& wigU4SU2SU2db);
+
+    // Read from binary file
+    std::vector<U3xU4::TwoBodyMultiShellTensor> readBinary();
 
   private:
     // Perform permutation of tensor in increasing shell.

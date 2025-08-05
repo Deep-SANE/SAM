@@ -21,6 +21,21 @@ int main(int argc, char* argv[])
   u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
   u4::WigU4SU2SU2_db wigU4SU2SU2db(cgcs, wigU3U2db, wigU4U3db);
 
+  ///////// GENERAL COMMENTS ///////////
+  // Expanding any two-body JT-coupled operator in terms of 
+  // two-body U3xU4 multi-shell tensors can be done via three methods:
+  // 1) expand(...databases...): calculate the expansion on-the-fly and
+  //    then print out on terminal.
+  // 2) writeBinary(...databases...): the expansion from 1) will be 
+  //    stored in a binary file in SAM/data/TwoBodyTensorExpansion. 
+  //    Since this method aims at reusability, one must set valanceShell 
+  //    to 0, and it is recommended to set maxShell = Nmax.
+  // 3) readBinary(): read back the expansion from binary file generated
+  //    in 2). Note that it only reads back relevant tensors allowed by
+  //    valanceShell, Nmax, and maxShell. This should take only a fraction
+  //    of a second.
+  //////////////////////////////////////
+
   // Example 1: Two-body part of LL
   /*
   int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
@@ -31,8 +46,15 @@ int main(int argc, char* argv[])
 
   JT::TwoBodyOperator LL("L.L", labels, hw, Nmax, valenceShell, maxShell);
 
-  auto tensors = LL.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  // expand now
+  // auto tensors = LL.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
 
+  // write to binary, valenceShell must be 0 for future reuse
+  LL.writeBinary(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+  // read from binary
+  auto tensors = LL.readBinary();
+  
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -51,7 +73,14 @@ int main(int argc, char* argv[])
 
   JT::TwoBodyOperator KE("Kinetic",labels,hw,Nmax,valenceShell,maxShell);
 
-  auto tensors = KE.expand(cgcs,racah,racah9,wigU3SO3db,wigU4SU2SU2db);
+  // expand now
+  // auto tensors = KE.expand(cgcs,racah,racah9,wigU3SO3db,wigU4SU2SU2db);
+
+  // write to binary, valenceShell must be 0 for future reuse
+  KE.writeBinary(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+  // read from binary
+  auto tensors = KE.readBinary();
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -66,13 +95,20 @@ int main(int argc, char* argv[])
   int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
-    // Start time measurement
+  // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
   JT::TwoBodyOperator NN("N2LO_opt_bare", labels, hw, Nmax, valenceShell,
   maxShell);
 
-  auto tensors = NN.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  // expand now
+  // auto tensors = NN.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+  // write to binary, valenceShell must be 0 for future reuse
+  // NN.writeBinary(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+  // read from binary
+  auto tensors = NN.readBinary();
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -83,6 +119,7 @@ int main(int argc, char* argv[])
   */
 
   // Example 4: Two-body Hamiltonian (bare) with N3LO_EMN500
+  
   int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
@@ -92,7 +129,14 @@ int main(int argc, char* argv[])
   JT::TwoBodyOperator NN("N3LO_EMN500_bare", labels, hw, Nmax, valenceShell,
                          maxShell);
 
-  auto tensors = NN.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  // expand now
+  // auto tensors = NN.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+  // write to binary, valenceShell must be 0 for future reuse
+   NN.writeBinary(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+
+  // read from binary
+  auto tensors = NN.readBinary();
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -100,6 +144,7 @@ int main(int argc, char* argv[])
   NN.is();
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
+  
 
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
 

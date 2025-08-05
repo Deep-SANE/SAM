@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <ostream>
 #include <tuple>
 #include <utility>
 #include <variant>
@@ -59,14 +58,7 @@ namespace U3xU4
     }
 
     // Print
-    /* void print() const
-    {
-      std::cout << "[" << sps3[c] << "] x [" << sps4[r] << "]";
-    } */
-    friend std::ostream& operator<<(std::ostream& s, const ad_gelfand& x)
-    {
-      return s << "ad[" << x.sps3[x.c] << "][" << x.sps4[x.r] << "]";
-    }
+    friend std::ostream& operator<<(std::ostream& s, const ad_gelfand& x);
   };
   using ads_gelfand = std::vector<U3xU4::ad_gelfand>;
 
@@ -100,12 +92,7 @@ namespace U3xU4
     auto getLabels() const { return labels.getLabels(index); }
 
     // Print
-    friend std::ostream& operator<<(std::ostream& s, const ad_phys& x)
-    {
-      auto [n, ll, jj, mmj, mmt] = x.getLabels();
-      return s << "ad(" << n << "," << ll << "," << jj << "," << mmj << ","
-               << mmt << ")";
-    }
+    friend std::ostream& operator<<(std::ostream& s, const ad_phys& x);
   };
   using ads_phys = std::vector<U3xU4::ad_phys>;
 
@@ -168,21 +155,7 @@ namespace U3xU4
 
     // Print, note that if this is called after turnToAnnihilation()
     // sps3 and sps4 must the the conjugate Gelfand arrays
-    /* void print() const
-    {
-      if (tensor == true)
-        std::cout << "[" << sps3_conj[c] << "] x [" << sps4_conj[r] << "]";
-      else
-        std::cout << "[" << sps3[c] << "] x [" << sps4[r] << "]";
-    } */
-    friend std::ostream& operator<<(std::ostream& s, const at_gelfand& x)
-    {
-      if (x.tensor == true)
-        return s << "at[" << x.sps3_conj[x.c] << "][" << x.sps4_conj[x.r]
-                 << "]";
-      else
-        return s << "a[" << x.sps3[x.c] << "][" << x.sps4[x.r] << "]";
-    }
+    friend std::ostream& operator<<(std::ostream& s, const at_gelfand& x);
   };
   using ats_gelfand = std::vector<U3xU4::at_gelfand>;
 
@@ -240,16 +213,7 @@ namespace U3xU4
     bool isTensor() const { return tensor; }
 
     // Print
-    friend std::ostream& operator<<(std::ostream& s, const at_phys& x)
-    {
-      auto [n, ll, jj, mmj, mmt] = x.getLabels();
-      if (x.tensor)
-        return s << "at(" << n << "," << ll << "," << jj << "," << mmj << ","
-                 << mmt << ")";
-      else
-        return s << "a(" << n << "," << ll << "," << jj << "," << mmj << ","
-                 << mmt << ")";
-    }
+    friend std::ostream& operator<<(std::ostream& s, const at_phys& x);
   };
   using ats_phys = std::vector<U3xU4::at_phys>;
 
@@ -685,6 +649,7 @@ namespace U3xU4
     uint8_t rho0max, eta0max;
 
     // Constructor
+    Tadat() : n(0), ads(0), ats(0), rho0max(0), eta0max(0) {}
     Tadat(int16_t n_, uint8_t ads_, uint8_t ats_,
           const std::vector<U3xU4::irrep>& prod_ads_,
           const std::vector<U3xU4::irrep>& prod_ats_, const U3xU4::irrep& t,
@@ -708,28 +673,14 @@ namespace U3xU4
     // Get shell number
     int16_t shell() const { return n; }
 
-    // Print out
-    friend std::ostream& operator<<(std::ostream& s, const Tadat& x)
-    {
-      s << "[ (n=" << x.n << ") ";
-      if (x.ads > 0)
-      {
-        s << static_cast<int>(x.ads) << "ads ";
-        for (auto ad : x.prod_ads)
-          s << ad << " ";
-        if (x.ats > 0)
-          s << "x ";
-      }
-      if (x.ats > 0)
-      {
-        s << static_cast<int>(x.ats) << "ats ";
-        for (auto at : x.prod_ats)
-          s << at << " ";
-      }
-      s << "] rho0max" << static_cast<int>(x.rho0max) << " eta0max"
-        << static_cast<int>(x.eta0max) << x.T;
-      return s;
-    }
+    // Print
+    friend std::ostream& operator<<(std::ostream& s, const Tadat& x);
+
+    // Write to binary file
+    void writeBinary(std::ostream& s) const;
+
+    // Read from binary file
+    void readBinary(std::istream& s);
 
     /* Compute RMEs of single-shell U(3)xU(4) tensors
                               rho_0 U(3)_0
