@@ -19,11 +19,7 @@ int main()
   std::cout << "Enter JJ: ";
   std::cin >> JJ;
 
-  int A = Z + N;
-  MMT = abs(Z - N);
-  int n0hw = Nmax % 2;
-
-  U4xSU3::ManyNucleonBasis basis(A, MMT, Nmax, JJ);
+  U4xSU3::ManyNucleonBasis basis(Z, N, Nmax, JJ);
   basis.construct();
 
   auto irreps = basis.irreps();

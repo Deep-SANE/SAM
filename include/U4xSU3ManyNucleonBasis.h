@@ -40,8 +40,13 @@ namespace U4xSU3
   class ManyNucleonBasis
   {
   public:
-    ManyNucleonBasis(int A, int MMT, int Nmax, int JJ)
-        : A_(A), MMT_(MMT), Nmax_(Nmax), JJ_(JJ), n0hw_(Nmax % 2), dim_(0)
+    ManyNucleonBasis(int Z, int N, int Nmax, int JJ)
+        : A_(Z + N),
+          MMT_(std::abs(Z - N)),
+          Nmax_(Nmax),
+          JJ_(JJ),
+          n0hw_(Nmax % 2),
+          dim_(0)
     { }
 
     void construct()
