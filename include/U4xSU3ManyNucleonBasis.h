@@ -128,7 +128,7 @@ namespace U4xSU3
 
     // (3) omegas:
 
-  private:
+  public:
     // the following definitions need to be here:
     
     class OmegaElementU4
