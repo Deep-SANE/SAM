@@ -219,7 +219,7 @@ namespace HO
 #else
       std::string filename =
           "data/Ab-initio_Interactions/TwBME-HO_NN-only_" + name + "_hw" +
-          std::to_string(static_cast<int>(hw)) + "_emax14_e2max28.myg.";
+          std::to_string(static_cast<int>(hw)) + "_emax14_e2max28.myg";
 #endif     
 
 #ifdef READ_FROM_BINARY
