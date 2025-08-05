@@ -208,6 +208,8 @@ namespace U4xSU3
       uint16_t rhomax_; // SU(3) coupling multiplicity
 
     public:
+      OmegaElement() : etamax_(1), rhomax_(1) { }
+
       OmegaElement(int etamax, const u4::irrep& u4, int rhomax,
                    const u3::irrep& su3)
           : U4xSU3::irrep(u4, su3),
@@ -766,23 +768,11 @@ namespace U4xSU3
     {
       // (1) setup:
 
-      const auto& idist1 = i1.dist;
-      const auto& igamma1 = i1.gamma;
-      const auto& iomega1 = i1.omega;
+      auto& o1 = o1_;
+      auto& o2 = o2_;
 
-      const auto& idist2 = i2.dist;
-      const auto& igamma2 = i2.gamma;
-      const auto& iomega2 = i2.omega;
-
-      o1_.clear();
-      auto& odist1 = o1_.dist;
-      auto& ogamma1 = o1_.gamma;
-      auto& oomega1 = o1_.omega;
-
-      o2_.clear();
-      auto& odist2 = o2_.dist;
-      auto& ogamma2 = o2_.gamma;
-      auto& oomega2 = o2_.omega;
+      o1.clear();
+      o2.clear();
 
       size_t g1 = 0; // igamma1 element index
       size_t g2 = 0; // igamma2 element index
@@ -793,62 +783,64 @@ namespace U4xSU3
       static const ManyNucleonBasis::OmegaElement oe_vacuum;
       assert(oe_vacuum.vacuum());
 
+      // vacuum-aware coupling:
+      auto couple = [](const auto& first, const auto& second,
+                       const auto& iomega,
+                       size_t g) -> ManyNucleonBasis::OmegaElement
+      {
+        if (first.vacuum() && second.vacuum())
+          return oe_vacuum;
+        else if (first.vacuum())
+          return second;
+        else if (second.vacuum())
+          return first;
+        else
+          return iomega[g - 2];
+      };
+
       // (2) unify distribution sizes:
 
-      std::copy(idist1.begin(), idist1.end(), std::back_inserter(odist1));
-      std::copy(idist2.begin(), idist2.end(), std::back_inserter(odist2));
+      std::copy(i1.dist.begin(), i1.dist.end(), std::back_inserter(o1.dist));
+      std::copy(i2.dist.begin(), i2.dist.end(), std::back_inserter(o2.dist));
 
-      auto D = std::max(odist1.size(), odist2.size());
+      auto D = std::max(o1.dist.size(), o2.dist.size());
 
       assert(D > 0);
 
-      odist1.resize(D);
-      odist2.resize(D);
+      o1.dist.resize(D);
+      o2.dist.resize(D);
 
       // (3) unify gammas and omegas:
 
       for (size_t d = 0; d < D; d++)
       {
         // nothing to do if both shells are empty:
-        if ((odist1[d] == 0) && (odist2[d] == 0))
+        if ((o1.dist[d] == 0) && (o2.dist[d] == 0))
           continue;
 
-        // vacuum-aware coupling:
-        const auto& couple = [](const auto& first, const auto& second,
-                                const auto& iomega,
-                                size_t g) -> ManyNucleonBasis::OmegaElement
-        {
-          if (first.vacuum() && second.vacuum())
-            return oe_vacuum;
-          else if (first.vacuum())
-            return second;
-          else if (second.vacuum())
-            return first;
-          else 
-            return iomega[g - 2];
-        };
-
         // add element to gamma1:
-        ogamma1.push_back(odist1[d] == 0 ? ge_vacuum : igamma1[g1++]);
+        o1.gamma.push_back(o1.dist[d] == 0 ? ge_vacuum : i1.gamma[g1++]);
 
         // add element to omega1:
-        if (ogamma1.size() == 2)
+        if (o1.gamma.size() == 2)
           // couple first 2 gamma elements:
-          couple(ogamma1[0], ogamma1[1], iomega1, g1);
-        else
+          o1.omega.push_back(couple(o1.gamma[0], o1.gamma[1], i1.omega, g1));
+        else if (o1.gamma.size() > 2)
           // couple last gamma element with last omega element:
-          couple(ogamma1.back(), oomega1.back(), iomega1, g1);
+          o1.omega.push_back(
+              couple(o1.gamma.back(), o1.omega.back(), i1.omega, g1));
 
         // add element to gamma2:
-        ogamma2.push_back(odist2[d] == 0 ? ge_vacuum : igamma2[g2++]);
+        o2.gamma.push_back(o2.dist[d] == 0 ? ge_vacuum : i2.gamma[g2++]);
         
         // add element to omega2:
-        if (ogamma2.size() == 2)
+        if (o2.gamma.size() == 2)
           // couple first 2 gamma elements:
-          couple(ogamma2[0], ogamma2[1], iomega2, g2);
-        else
+          o2.omega.push_back(couple(o2.gamma[0], o2.gamma[1], i2.omega, g2));
+        else if (o2.gamma.size() > 2)
           // couple last gamma element with last omega element:
-          couple(ogamma2.back(), oomega2.back(), iomega2, g2);
+          o2.omega.push_back(
+              couple(o2.gamma.back(), o2.omega.back(), i2.omega, g2));
       }
 
       // (4) return result:
