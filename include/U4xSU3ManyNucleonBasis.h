@@ -128,7 +128,7 @@ namespace U4xSU3
 
     // (3) omegas:
 
-  public:
+  private:
     // the following definitions need to be here:
     
     class OmegaElementU4
@@ -870,6 +870,7 @@ public:
   }
 };
 
+/*
 // formatter for OmegaElementU4:
 
 template <>
@@ -903,6 +904,7 @@ public:
                      oe.su3().mu());
   }
 };
+*/
 
 // formatter for OmegaElement:
 
