@@ -45,6 +45,10 @@ CXXFLAGS += -I$(FMT_ROOT)/include
 endif
 endif
 
+ifdef HAVE_NUHAMIL
+CXXFLAGS += -DHAVE_NUHAMIL
+endif
+
 ifdef EIGEN_DIR
 CXXFLAGS += -I$(EIGEN_DIR)
 endif 
