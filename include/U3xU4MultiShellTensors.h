@@ -14,6 +14,7 @@
 #include <U3xU4CouplingCoefficient.h>
 #include <U3xU4Irrep.h>
 #include <U3xU4SingleShellTensors.h>
+#include <U4xSU3ManyNucleonBasis.h>
 
 #include <U3SO3xU3SO3.h>
 #include <U3U2xU3U2.h>
@@ -66,13 +67,18 @@ namespace U3xU4
     { }
 
     // Get specific coefficient
-    double coeff(int k) { return coeffs[k]; }
+    double coeff(int k) const { return coeffs[k]; }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s,
                                     const OneBodyMultiShellTensor& x);
 
-    // RME ... TBD
+    /* RME: independent of the tensor components
+        < bra ||| [Ta x Tb](n13 n23 n33) (n14 n24 n34 n44) ||| ket >_rho,eta
+    */
+    std::vector<double> RME(const U4xSU3::Irrep& bra, 
+                            const U4xSU3::Irrep& ket) const;
+
   };
 
   /* Class for holding two-body multi-shell tensors
