@@ -1,3 +1,8 @@
+// This is the original program written by Tomas that lists all the basis
+// distributions, gammas, and omegas, and prints its total dimension. It now
+// servers only for verification purposes, and can be safely removed in the
+// future.
+
 #include <array>
 #include <chrono>
 #include <iostream>
