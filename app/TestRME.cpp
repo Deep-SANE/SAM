@@ -1,5 +1,8 @@
 #include <Databases.h>
+#include <qcx_print.h>
 #include <TwoBodyOperatorJT.h>
+
+using qcx_utils::print;
 
 int main(int argc, char* argv[])
 {
@@ -18,6 +21,8 @@ int main(int argc, char* argv[])
 
   auto tensors = NN.expand(dbs.cgcs, dbs.racah, dbs.racah9, dbs.wigU3SO3db,
                            dbs.wigU4SU2SU2db);
+
+  print("Number of tesors: {}\n", tensors.size());
 
 #ifdef SAM_USE_SLEPC
   SlepcFinalize();
