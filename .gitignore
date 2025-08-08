@@ -30,7 +30,7 @@ bin/
 
 # all data files:
 
-data/
+# data/
 
 # GDB history file:
 
