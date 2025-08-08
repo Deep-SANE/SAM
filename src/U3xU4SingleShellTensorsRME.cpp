@@ -6,7 +6,7 @@
 
 namespace U3xU4
 {
-  std::vector<Eigen::MatrixXd>
+  std::vector<double>
   Tadat::RME(std::size_t& ai_max, const U3xU4::irrep& i, std::size_t& af_max,
              const U3xU4::irrep& f, std::size_t& rhomax, std::size_t& etamax,
              qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
@@ -15,11 +15,11 @@ namespace U3xU4
     int A_i = i.particles(), N_quanta_i = i.quanta(), // initial irreps
         A_f = f.particles(), N_quanta_f = f.quanta(); // final irreps
 
-    if ((A_i - ats + ads) != A_f)
-      throw std::invalid_argument("number of particles is not conserved");
+    if ((A_i - ats + ads) != A_f) // number of particles is not conserved
+      return {};
 
-    if (A_i == 0 && A_f == 0)
-      throw std::invalid_argument("vacuum on both side");
+    if (A_i == 0 && A_f == 0) // vacuum on both side
+      return {};
 
     if (A_f == 0)
       n = N_quanta_i / A_i;
@@ -28,9 +28,15 @@ namespace U3xU4
     else
     {
       n = N_quanta_i / A_i;
-      if (n != N_quanta_f / A_f)
-        throw std::invalid_argument("ket and bra are not in the same shell");
+      if (n != N_quanta_f / A_f) // ket and bra are not in the same shell
+        return {};
     }
+
+    // Get outer multiplicities due to Wigner-Eckart theorem
+    rhomax = u3::Rho(i.u3, T.u3, f.u3);
+    etamax = u4::Eta(i.u4, T.u4, f.u4);
+    if (rhomax == 0 || etamax == 0) // i x t does not produce f
+      return {};
 
     // Building single-particle states
     u3::irrep x(n, 0, 0), x_conj(n, n, 0);
@@ -62,6 +68,9 @@ namespace U3xU4
       std::filesystem::path path_i = U3xU4::get_HWS_file(A_i, n, i, sps3, sps4);
       std::tie(SDarr_i, coeffs_i) = U3xU4::read_HWS_data(path_i);
     }
+    // Check pre-calculated multiplicity is correct
+    if (ai_max > 0 && ai_max != coeffs_i[0].cols())
+      throw std::runtime_error("max(alpha_i) disagree with nullity");
     ai_max = coeffs_i[0].cols();
     // std::cout << "coeffs_i:" << std::endl;
     // for (int i = 0; i < coeffs_i.size(); i++)
@@ -88,19 +97,13 @@ namespace U3xU4
       std::filesystem::path path_f = U3xU4::get_HWS_file(A_f, n, f, sps3, sps4);
       std::tie(SDarr_f, coeffs_f) = U3xU4::read_HWS_data(path_f);
     }
+    // Check pre-calculated multiplicity is correct
+    if (af_max > 0 && af_max != coeffs_f[0].cols())
+      throw std::runtime_error("max(alpha_f) disagree with nullity");
     af_max = coeffs_f[0].cols();
     // std::cout << "coeffs_f:" << std::endl;
     // for (int i = 0; i < coeffs_f.size(); i++)
     //     std::cout << coeffs_f[i] << std::endl;
-
-    // Get outer multiplicities due to Wigner-Eckart theorem
-    rhomax = u3::Rho(i.u3, T.u3, f.u3);
-    etamax = u4::Eta(i.u4, T.u4, f.u4);
-
-    if (rhomax == 0)
-      throw std::invalid_argument("i3 x t3 does not produce f3");
-    if (etamax == 0)
-      throw std::invalid_argument("i4 x t4 does not produce f4");
 
     // Array of matricies containing full matrix elements:
     // index = alpha_i * max(alpha_f) + alpha_f
@@ -223,29 +226,20 @@ namespace U3xU4
 
         auto [coeffs, adArr, aArr] = Tadat.expand(cgcs, wigU3U2db, wigU4U3db);
         /*
-                                        for (std::size_t t = 0; t <
-           coeffs.size(); t++)
-                                        {
-                                        std::cout << coeffs[t] << "\t";
+        for (std::size_t t = 0; t < coeffs.size(); t++)
+        {
+          std::cout << coeffs[t] << "\t";
 
-                                        if (!adArr.empty())
-                                        for (std::size_t j = 0; j <
-           adArr[t].size(); j++)
-                                        {
-                                                adArr[t][j].print();
-                                                std::cout << "\t";
-                                        }
+          if (!adArr.empty())
+            for (std::size_t j = 0; j < adArr[t].size(); j++)
+              std::cout << adArr[t][j] << "\t";
 
-                                        if (!aArr.empty())
-                                        for (std::size_t j = 0; j <
-           aArr[t].size(); j++)
-                                        {
-                                                aArr[t][j].print();
-                                                std::cout << "\t";
-                                        }
+          if (!aArr.empty())
+            for (std::size_t j = 0; j < aArr[t].size(); j++)
+              std::cout << aArr[t][j] << "\t";
 
-                                        std::cout << std::endl;
-                                        }
+          std::cout << std::endl;
+        }
         */
 
         // Compute full matrix elements
@@ -323,12 +317,21 @@ namespace U3xU4
     {
       // std::cout << "FME = " << FMEs[i] << std::endl;
       RMEs[i] = factorize.solve(FMEs[i]);
-      for (int r = 0; r < RMEs[i].rows(); r++)
-        for (int c = 0; c < RMEs[i].cols(); c++)
-          if (std::fabs(RMEs[i](r, c)) < 1e-10)
-            RMEs[i](r, c) = 0.0;
     }
 
-    return RMEs;
+    std::vector<double> rmes;
+    for (std::size_t ai = 0; ai < ai_max; ai++)
+      for (std::size_t af = 0; af < af_max; af++)
+        for (int rho0 = 0; rho0 < rho0max; rho0++)
+          for (int eta0 = 0; eta0 < eta0max; eta0++)
+            for (int rho = 0; rho < rhomax; rho++)
+              for (int eta = 0; eta < etamax; eta++)
+              {
+                double rme = RMEs[ai * af_max + af](rho * etamax + eta,
+                                                    rho0 * eta0max + eta0);
+                rmes.push_back((std::fabs(rme) < 1e-10) ? 0.0 : rme);
+              }
+
+    return rmes;
   }
 } // namespace U3xU4

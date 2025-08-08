@@ -5,6 +5,8 @@
 #include <U3xU4Irrep.h>
 #include <U3xU4SingleShellTensors.h>
 
+#include <qcx_ND.h>
+
 #ifdef SAM_USE_SLEPC
 #include <slepcsys.h>
 #endif
@@ -99,37 +101,34 @@ int main(int argc, char* argv[])
 
   U3xU4::Tadat Tadxat(n, ads, ats, prod_ads, prod_ats, T, rho0max, eta0max);
 
-  std::size_t alpha_i, alpha_f, rhomax, etamax;
+  std::size_t ai_max, af_max, rhomax, etamax;
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  std::vector<Eigen::MatrixXd> RMEs = Tadxat.RME(
-      alpha_i, i, alpha_f, f, rhomax, etamax, cgcs, wigU3U2db, wigU4U3db);
+  auto RMEs = Tadxat.RME(
+      ai_max, i, af_max, f, rhomax, etamax, cgcs, wigU3U2db, wigU4U3db);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  std::cout << "< " << alpha_f << f << " ||| " << Tadxat << " ||| " << alpha_i
+  std::cout << "< " << af_max << f << " ||| " << Tadxat << " ||| " << ai_max
             << i << " >" << rhomax << "," << etamax << std::endl;
 
-  for (std::size_t ai = 0; ai < alpha_i; ai++)
-    for (std::size_t af = 0; af < alpha_f; af++)
-    {
-      std::cout << "ai = " << ai + 1 << ", af = " << af + 1 << std::endl;
+  std::cout << "ai\taf\trho0\teta0\trho\teta" << std::endl;
 
-      std::cout << "rho\teta\trho0\teta0" << std::endl;
+  qcx_utils::NDIndex multis;
+  multis.add_dimension({ai_max, af_max, rho0max, eta0max, rhomax, etamax});
 
-      for (int rho = 0; rho < rhomax; rho++)
-        for (int eta = 0; eta < etamax; eta++)
-          for (int rho0 = 0; rho0 < rho0max; rho0++)
-            for (int eta0 = 0; eta0 < eta0max; eta0++)
-              std::cout << rho + 1 << "\t" << eta + 1 << "\t" << rho0 + 1
-                        << "\t" << eta0 + 1 << "\t"
-                        << RMEs[ai * alpha_f + af](rho * etamax + eta,
-                                                   rho0 * eta0max + eta0)
-                        << std::endl;
-    }
+  std::vector<size_t> multi(6);
+  for (std::size_t i = 0; i < RMEs.size(); i++)
+  {
+    multis.to_multi(i, multi);
+    std::cout << multi[0] + 1 << "\t" << multi[1] + 1 << "\t"
+              << multi[2] + 1 << "\t" << multi[3] + 1 << "\t"
+              << multi[4] + 1 << "\t" << multi[5] + 1 << "\t"
+              << RMEs[i] << std::endl;
+  }
 
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;

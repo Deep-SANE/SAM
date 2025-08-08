@@ -30,7 +30,7 @@ namespace U4xSU3
     }
 
     // converting to U3xU4::irrep
-    U3xU4::irrep toU3xU4(int shell_number)
+    U3xU4::irrep toU3xU4(int shell_number) const
     {
       auto A = u4_.quanta(), N = shell_number * A;
       int n33x3 = N - su3_.n13() - su3_.n23();

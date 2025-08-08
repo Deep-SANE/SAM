@@ -707,12 +707,12 @@ namespace U3xU4
       af_max: outer multiplicity of f3
       rhomax, etamax: multiplicities of RMEs
     */
-    std::vector<Eigen::MatrixXd> RME(std::size_t& ai_max, const U3xU4::irrep& i,
-                                     std::size_t& af_max, const U3xU4::irrep& f,
-                                     std::size_t& rhomax, std::size_t& etamax,
-                                     qcx_utils::SO3_CGC& cgcs,
-                                     u3::WigU3U2_db& wigU3U2db,
-                                     u4::WigU4U3_db& wigU4U3db);
+    std::vector<double> RME(std::size_t& ai_max, const U3xU4::irrep& i,
+                            std::size_t& af_max, const U3xU4::irrep& f,
+                            std::size_t& rhomax, std::size_t& etamax,
+                            qcx_utils::SO3_CGC& cgcs,
+                            u3::WigU3U2_db& wigU3U2db,
+                            u4::WigU4U3_db& wigU4U3db);
   };
 
   // Find all single-shell tensors composed of
