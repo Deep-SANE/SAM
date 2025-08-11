@@ -683,28 +683,25 @@ namespace U3xU4
     void readBinary(std::istream& s);
 
     /* Compute RMEs of single-shell U(3)xU(4) tensors
-                              rho_0 U(3)_0
-    < a_f U(3)_f U(4)_f ||| Tadat         ||| a_i U(3)_i U(4)_i >_{rho,eta}
-                              eta_0 U(4)_0
-      where rho_0 and eta_0 are from the structure of the tensor itself,
+                              rho0 U(3)_0
+    < af U(3)_f U(4)_f ||| Tadat         ||| ai U(3)_i U(4)_i >_{rho,eta}
+                              eta0 U(4)_0
+      where rho0 and eta0 are from the structure of the tensor itself,
       whereas U(3)_i x U(3)_0 --> U(3)_f with mutliplicity rho
               U(4)_i x U(4)_0 --> U(4)_f with multiplicity eta
 
-      These RMEs are stored in an array of matrices, the index of the matrix is
-                  alpha_i * max(alpha_f) + alpha_f
-      For each matrix:
-                  row = rho * max(eta) + eta
-                  column = rho_0 * max(eta_0) + eta_0
-
+      These RMEs are stored in an array, the index can be determined by
+      index = ((((ai * af_max + af) * rho0max + rho0) * eta0max + eta0) 
+                                          * rhomax + rho) * etamax + eta;
       Inputs:
-      i3, i4: initial irreps
-      f3, f4: final irreps
-      cgcs, wigU3U2db, wigU4U3db: databases for coupling coefficients
+      i: initial irreps
+      f: final irreps
+      cgcdb, wigU3U2db, wigU4U3db: databases for coupling coefficients
 
       Outputs:
-      RMEs stored in an array of matrices
-      ai_max: outer multiplicity of i3
-      af_max: outer multiplicity of f3
+      RMEs stored in an array 
+      ai_max: outer multiplicity of i
+      af_max: outer multiplicity of f
       rhomax, etamax: multiplicities of RMEs
     */
     std::vector<double> RME(std::size_t& ai_max, const U3xU4::irrep& i,
