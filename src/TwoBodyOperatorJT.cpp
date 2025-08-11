@@ -525,8 +525,8 @@ namespace JT
         int Rhomax, Etamax;
         for (const auto& [irrep, rhomax, etamax] : coupling_info_list)
         {
-          assert(rhomax == 1);
-          assert(etamax == 1);
+          if (coupling_info_list.size() > 1) 
+            assert(rhomax == 1 && etamax == 1);
           coupled_irreps.push_back(irrep);
           Rhomax = rhomax;
           Etamax = etamax;
