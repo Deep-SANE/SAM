@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
   std::cout << "ai\taf\trho0\teta0\trho\teta" << std::endl;
 
   qcx_utils::NDIndex multis;
-  multis.add_dimension({ai_max, af_max, rho0max, eta0max, rhomax, etamax});
+  multis.add_dimensions(ai_max, af_max, rho0max, eta0max, rhomax, etamax);
 
   std::vector<size_t> multi(6);
   for (std::size_t i = 0; i < RMEs.size(); i++)

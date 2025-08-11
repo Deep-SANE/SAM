@@ -144,16 +144,16 @@ namespace U3xU4
     for (auto Gamma : bra.gamma)
       multis.add_dimension(Gamma.alphamax());
     for (auto Omega : bra.omega)
-      multis.add_dimension({qcx_utils::itou16(Omega.rhomax()), 
-      						qcx_utils::itou16(Omega.etamax())});
+      multis.add_dimensions(qcx_utils::itou16(Omega.rhomax()),
+                            qcx_utils::itou16(Omega.etamax()));
 
     for (auto Gamma : ket.gamma)
       multis.add_dimension(Gamma.alphamax());
     for (auto Omega : ket.omega)
-      multis.add_dimension({qcx_utils::itou16(Omega.rhomax()), 
-      						qcx_utils::itou16(Omega.etamax())});
+      multis.add_dimensions(qcx_utils::itou16(Omega.rhomax()),
+                            qcx_utils::itou16(Omega.etamax()));
 
-    multis.add_dimension({rhomax, etamax});
+    multis.add_dimensions(rhomax, etamax);
 
     auto total_RME = multis.cardinality();
     std::vector<double> RME(total_RME, 0.0);
