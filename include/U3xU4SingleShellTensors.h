@@ -712,7 +712,7 @@ namespace U3xU4
                             std::size_t& rhomax, std::size_t& etamax,
                             qcx_utils::SO3_CGC& cgcs,
                             u3::WigU3U2_db& wigU3U2db,
-                            u4::WigU4U3_db& wigU4U3db);
+                            u4::WigU4U3_db& wigU4U3db) const;
   };
 
   // Find all single-shell tensors composed of
