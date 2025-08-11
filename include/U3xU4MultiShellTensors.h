@@ -18,8 +18,10 @@
 
 #include <U3SO3xU3SO3.h>
 #include <U3U2xU3U2.h>
+#include <U3_U9Coeffs.h>
 #include <U4SU2SU2xU4SU2SU2.h>
 #include <U4U3xU4U3.h>
+#include <U4_U9Coeffs.h>
 
 namespace U3xU4
 {
@@ -76,8 +78,12 @@ namespace U3xU4
     /* RME: independent of the tensor components
         < bra ||| [Ta x Tb](n13 n23 n33) (n14 n24 n34 n44) ||| ket >_rho,eta
     */
-    std::vector<double> RME(const U4xSU3::Irrep& bra, 
-                            const U4xSU3::Irrep& ket) const;
+    std::vector<double> RME(const U4xSU3::ManyNucleonBasis::Irrep& bra, 
+                            const U4xSU3::ManyNucleonBasis::Irrep& ket,
+                            qcx_utils::SO3_CGC& cgcs,
+                            u3::WigU3U2_db& wigU3U2db, 
+                            u4::WigU4U3_db& wigU4U3db,
+                            u3::U3U9_db& U3U9db, u4::U4U9_db& U4U9db) const;
 
   };
 

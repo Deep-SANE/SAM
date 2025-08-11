@@ -40,6 +40,12 @@ namespace U4xSU3
       return U3xU4::irrep(u3_, u4_);
     }
 
+    U3xU4::irrep toU3xU4() const
+    {
+      u3::irrep u3_(su3_.n13(), su3_.n23(), 0);
+      return U3xU4::irrep(u3_, u4_);
+    }
+
     bool vacuum() const { return u4_.zero() && su3_.zero(); }
   };
 } // namespace U4xSU3
