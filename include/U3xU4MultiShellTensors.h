@@ -2,26 +2,29 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <tuple>
 #include <utility>
 #include <variant>
 #include <vector>
 
 #include <Eigen/Dense>
 
-#include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
+//#include <so3Coeffs/SO3_CGC.h>
+//#include <so3Coeffs/SO3_Racah.h>
 
 #include <U3xU4CouplingCoefficient.h>
 #include <U3xU4Irrep.h>
 #include <U3xU4SingleShellTensors.h>
 #include <U4xSU3ManyNucleonBasis.h>
-
+/*
 #include <U3SO3xU3SO3.h>
 #include <U3U2xU3U2.h>
 #include <U3_U9Coeffs.h>
 #include <U4SU2SU2xU4SU2SU2.h>
 #include <U4U3xU4U3.h>
 #include <U4_U9Coeffs.h>
+*/
+#include <Databases.h>
 
 namespace U3xU4
 {
@@ -74,17 +77,6 @@ namespace U3xU4
     // Print
     friend std::ostream& operator<<(std::ostream& s,
                                     const OneBodyMultiShellTensor& x);
-
-    /* RME: independent of the tensor components
-        < bra ||| [Ta x Tb](n13 n23 n33) (n14 n24 n34 n44) ||| ket >_rho,eta
-    */
-    std::vector<double> RME(const U4xSU3::ManyNucleonBasis::Irrep& bra, 
-                            const U4xSU3::ManyNucleonBasis::Irrep& ket,
-                            qcx_utils::SO3_CGC& cgcs,
-                            u3::WigU3U2_db& wigU3U2db, 
-                            u4::WigU4U3_db& wigU4U3db,
-                            u3::U3U9_db& U3U9db, u4::U4U9_db& U4U9db) const;
-
   };
 
   /* Class for holding two-body multi-shell tensors
@@ -203,6 +195,35 @@ namespace U3xU4
     expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
            u3::WigU3SO3_db& wigU3SO3db,
            u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+  };
+
+  /* Class for holding a general U3xU4 multi-shell tensor.
+     It has an array of single-shell tensors U3xU4::Tadat
+     and an array of the coupled irreps with their multiplicities.
+     No tensor components are specified. This class primarily serves
+     to compute multi-shell RMEs.
+  */
+  class MultiShellTensor
+  {
+  public:
+    // List of single-shell tensors, each corresponds to Gamma in the document.
+    std::vector<U3xU4::Tadat> single_shell_tensors;
+
+    // The coupled (irrep, rhomax, etamax)'s, each corresponds to Omega in the document.
+    // This list has one less element than the single_shell_tensors list.
+    std::vector<std::tuple<U3xU4::irrep, int, int>> coupled_irreps;
+
+    // Constructor
+    MultiShellTensor(const std::vector<U3xU4::Tadat>& single_shell_tensors_,
+      const std::vector<std::tuple<U3xU4::irrep, int, int>>& coupled_irreps_)
+      : single_shell_tensors(single_shell_tensors_),
+        coupled_irreps(coupled_irreps_)
+    {}
+
+    // This method assumes that everything is already unified, i.e., bra and ket
+    // irreps are unified, and identities have been filled in already.
+    std::vector<double> RME(const U4xSU3::Irrep& bra, const U4xSU3::Irrep& ket, 
+                            sam::Databases& dbs) const;
   };
 
   // A function to couple single-shell tensors into multi-shell tensors

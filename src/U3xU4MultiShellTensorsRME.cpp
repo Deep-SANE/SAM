@@ -10,187 +10,146 @@
 
 namespace U3xU4
 {
-  /* RME: independent of the tensor components
-  < bra ||| [Ta x Tb](n13 n23 n33) (n14 n24 n34 n44) ||| ket >_rho,eta
-  */
-  std::vector<double> OneBodyMultiShellTensor::RME(
-      const U4xSU3::ManyNucleonBasis::Irrep& bra,
-      const U4xSU3::ManyNucleonBasis::Irrep& ket, qcx_utils::SO3_CGC& cgcs,
-      u3::WigU3U2_db& wigU3U2db, u4::WigU4U3_db& wigU4U3db,
-      u3::U3U9_db& U3U9db, u4::U4U9_db& U4U9db) const
+  std::vector<double> MultiShellTensor::RME(const U4xSU3::Irrep& bra, 
+  	const U4xSU3::Irrep& ket, sam::Databases& dbs) const
   {
-  	auto na = a.u3.n13(), nb = b.u3.n13();
+    // everything must already be unified
+    assert(bra.gamma.size() == ket.gamma.size());
+    assert(single_shell_tensors.size() == ket.gamma.size());
+    assert(bra.omega.size() == ket.omega.size());
+    assert(coupled_irreps.size() = bra.omega.size());
 
-    U4xSU3::IrrepUnifier iu;
-    const auto& [ubra, uket] = iu.unify(bra, ket);
-    // ubra and uket have the same size
-
-    // If there is no OmegaElement, i.e., one GammaElement, after unifying,
-    // both bra and ket GammaElements must be in the same shell.
+    // If there is no OmegaElement, i.e., only one GammaElement, 
+    // both bra and ket GammaElement's are be in the same shell.
+    // There must also be only one single-shell tensor U3xU4::Tadat.
     // Hence this becomes single-shell RME problem.
-    if (ubra.omega.empty())
+    if (bra.omega.empty())
     {
-      // everything must be in the same shell
-      if (na == nb && na == bra.active_shells[0])
-      {
-        assert(bra.active_shells[0] == ket.active_shells[0]);
+      const U3xU4::Tadat& tadat = single_shell_tensors[0];
 
-        U3xU4::Tadat tadat(na, 1, 1, {}, {}, t, 1, 1);
+        U3xU4::irrep i = ket.gamma[0].toU3xU4(tadat.n),
+                     f = bra.gamma[0].toU3xU4(tadat.n);
 
-        U3xU4::irrep i = uket.gamma[0].toU3xU4(na),
-                     f = ubra.gamma[0].toU3xU4(na);
+        std::size_t rhomax, etamax, ai_max = ket.gamma[0].alphamax(),
+                                    af_max = bra.gamma[0].alphamax();
 
-        std::size_t rhomax, etamax, ai_max = uket.gamma[0].alphamax(),
-                                    af_max = ubra.gamma[0].alphamax();
-
-        return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, cgcs, wigU3U2db,
-                         wigU4U3db);
-      }
-      else
-        return {};
+        return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, 
+        				 dbs.cgcdb, dbs.wigU3U2db, dbs.wigU4U3db);
     }
 
-    uint16_t rhomax = qcx_utils::itou16(su3::Rho(
-        uket.omega.back().su3(), su3::irrep(t.u3), ubra.omega.back().su3()));
-
-    uint16_t etamax = qcx_utils::itou16(
-        u4::Eta(uket.omega.back().u4(), t.u4, ubra.omega.back().u4()));
-
-    if (rhomax == 0 || etamax == 0)
-      return {};    
-
-  	// [a+(same shell) x a-(same shell)] 
-    if (na == nb) 
-      if (ubra.dist[na] == 0 || uket.dist[na] == 0 ||  
-      	  ubra.dist[na] != uket.dist[na])
-        return {};
-
-    // [a+(lower shell) x a- (higher shell)]
-    if (a.u3.n23() < b.u3.n23()) 
-      if (ubra.dist[na] != uket.dist[na] + 1 ||
-      	  ubra.dist[nb] != uket.dist[nb] - 1)
-      	return {};
-
-    // [a-(lower shell) x a+ (higher shell)]
-    if (a.u3.n23() > b.u3.n23()) 
-      if (ubra.dist[na] != uket.dist[na] - 1 ||
-      	  ubra.dist[nb] != uket.dist[nb] + 1)
-      	return {};
-
-    // other shells must have the same number of particles
-    for (size_t n = 0; n < uket.dist.size() && n != na && n != nb; n++)
-      if (ubra.dist[n] != uket.dist[n])
-      	return {};
-
-    // Once all these selection rules have been passed, 
-    // we can calculate multi-shell RMEs.
-
-    // If there is only one OmegaElement, i.e., two GammaElement's
-    if (ubra.omega.size() == 1)
+    // If there is only one OmegaElement
+    else if (bra.omega.size() == 1)
     {
-      if (na < nb)
-      {
-      	U3xU4::Tadat ta(na, (a.u3.n23() == 0) ? 1 : 0, 
-      					(a.u3.n23() > 0) ? 1 : 0, {}, {}, a, 1, 1),
-      				 tb(nb, (b.u3.n23() == 0) ? 1 : 0, 
-      					(b.u3.n23() > 0) ? 1 : 0, {}, {}, b, 1, 1);
+      const U3xU4::Tadat& tadat0 = single_shell_tensors[0],
+      					  tadat1 = single_shell_tensors[1];
+      const auto& [Omega, Rhomax, Etamax] = coupled_irreps[0];
 
-      	U3xU4::irrep ket_a = uket.gamma[0].toU3xU4(na),
-      				 ket_b = uket.gamma[1].toU3xU4(nb),
-      				 ket_omega = uket.omega[0].toU3xU4(),
-      				 bra_a = ubra.gamma[0].toU3xU4(na),
-      				 bra_b = ubra.gamma[1].toU3xU4(nb),
-      				 bra_omega = ubra.omega[0].toU3xU4();
+      U3xU4::irrep ket0 = ket.gamma[0].toU3xU4(tadat0.n),
+      			   ket1 = ket.gamma[1].toU3xU4(tadat1.n),
+      			   ket_omega = ket.omega[0].toU3xU4(),
+      			   bra0 = bra.gamma[0].toU3xU4(tadat0.n),
+      			   bra1 = bra.gamma[1].toU3xU4(tadat1.n),
+      			   bra_omega = bra.omega[0].toU3xU4();
 
-      	std::size_t ket_a_alphamax = uket.gamma[0].alphamax(),
-      				ket_b_alphamax = uket.gamma[1].alphamax(),
-                    bra_a_alphamax = ubra.gamma[0].alphamax(),
-      				bra_b_alphamax = ubra.gamma[1].alphamax(), multi = 1;
+      std::size_t ket0_alphamax = ket.gamma[0].alphamax(),
+      			  ket1_alphamax = ket.gamma[1].alphamax(),
+      			  ket_rhomax = ket.omega[0].rhomax(),
+      			  ket_etamax = ket.omega[0].etamax(),
+                  bra0_alphamax = bra.gamma[0].alphamax(),
+      			  bra1_alphamax = bra.gamma[1].alphamax(), 
+      			  bra_rhomax = bra.omega[0].rhomax(),
+      			  bra_etamax = bra.omega[0].etamax(),
+      			  rhomax = u3::Rho(ket_omega.u3, Omega.u3, bra_omega.u3),
+      			  etamax = u4::Eta(ket_omega.u4, Omega.u4, bra_omega.u4),
+      			  rhomax0, etamax0, rhomax1, etamax1;
 
-      	auto rme_a = ta.RME(ket_a_alphamax, ket_a, bra_a_alphamax, bra_a,
-      						multi, multi, cgcs, wigU3U2db, wigU4U3db),
-      		 rme_b = tb.RME(ket_b_alphamax, ket_b, bra_b_alphamax, bra_b,
-      						multi, multi, cgcs, wigU3U2db, wigU4U3db);
+      auto rme0 = tadat0.RME(ket0_alphamax, ket0, bra0_alphamax, bra0,
+      			rhomax0, etamax0, dbs.cgcdb, dbs.wigU3U2db, dbs.wigU4U3db),
+    	   rme1 = tadat1.RME(ket1_alphamax, ket1, bra1_alphamax, bra1,
+      			rhomax1, etamax1, dbs.cgcdb, dbs.wigU3U2db, dbs.wigU4U3db);
 
-      	auto [allowU3U9, U3U9coeff] = U3U9db.get(
-      		ket_a.u3.n13(), ket_a.u3.n23(), ket_a.u3.n33(),
-      		a.u3.n13(), a.u3.n23(), a.u3.n33(),
-      		ket_b.u3.n13(), ket_b.u3.n23(), ket_b.u3.n33(),
-      		b.u3.n13(), b.u3.n23(), b.u3.n33(),
-      		bra_a.u3.n13(), bra_a.u3.n23(), bra_a.u3.n33(),
-      		bra_b.u3.n13(), bra_b.u3.n23(), bra_b.u3.n33(),
+      auto [allowU3U9, U3U9coeff] = dbs.u3u9db.get(
+      		ket0.u3.n13(), ket0.u3.n23(), ket0.u3.n33(),
+      		tadat0.T.u3.n13(), tadat0.T.u3.n23(), tadat0.T.u3.n33(),
+      		ket1.u3.n13(), ket1.u3.n23(), ket1.u3.n33(),
+      		tadat1.T.u3.n13(), tadat1.T.u3.n23(), tadat1.T.u3.n33(),
+      		bra0.u3.n13(), bra0.u3.n23(), bra0.u3.n33(),
+      		bra1.u3.n13(), bra1.u3.n23(), bra1.u3.n33(),
       		ket_omega.u3.n13(), ket_omega.u3.n23(), ket_omega.u3.n33(),
-      		t.u3.n13(), t.u3.n23(), t.u3.n33(),
+      		Omega.u3.n13(), Omega.u3.n23(), Omega.u3.n33(),
       		bra_omega.u3.n13(), bra_omega.u3.n23(), bra_omega.u3.n33());
+      if (allowU3U9 == false)
+      	return {};
 
-      	auto [allowU4U9, U4U9coeff] = U4U9db.get(
-      		ket_a.u4.n14(), ket_a.u4.n24(), ket_a.u4.n34(), ket_a.u4.n44(),
-      		a.u4.n14(), a.u4.n24(), a.u4.n34(), a.u4.n44(),
-      		ket_b.u4.n14(), ket_b.u4.n24(), ket_b.u4.n34(), ket_b.u4.n44(),
-      		b.u4.n14(), b.u4.n24(), b.u4.n34(), b.u4.n44(),
-      		bra_a.u4.n14(), bra_a.u4.n24(), bra_a.u4.n34(), bra_a.u4.n44(),
-      		bra_b.u4.n14(), bra_b.u4.n24(), bra_b.u4.n34(), bra_b.u4.n44(),
+      auto [allowU4U9, U4U9coeff] = dbs.u4u9db.get(
+      		ket0.u4.n14(), ket0.u4.n24(), ket0.u4.n34(), ket0.u4.n44(),
+      		tadat0.T.u4.n14(), tadat0.T.u4.n24(), tadat0.T.u4.n34(), tadat0.T.u4.n44(),
+      		ket1.u4.n14(), ket1.u4.n24(), ket1.u4.n34(), ket1.u4.n44(),
+      		tadat1.T.u4.n14(), tadat1.T.u4.n24(), tadat1.T.u4.n34(), tadat1.T.u4.n44(),
+      		bra0.u4.n14(), bra0.u4.n24(), bra0.u4.n34(), bra0.u4.n44(),
+      		bra1.u4.n14(), bra1.u4.n24(), bra1.u4.n34(), bra1.u4.n44(),
       		ket_omega.u4.n14(), ket_omega.u4.n24(), ket_omega.u4.n34(), ket_omega.u4.n44(),
-      		t.u4.n14(), t.u4.n24(), t.u4.n34(), t.u4.n44(),
+      		Omega.u4.n14(), Omega.u4.n24(), Omega.u4.n34(), Omega.u4.n44(),
       		bra_omega.u4.n14(), bra_omega.u4.n24(), bra_omega.u4.n34(), bra_omega.u4.n44());
+      if (allowU4U9 == false)
+      	return {};
 
-      	
+      qcx_utils::NDIndex multis, multis0, multis1, multisU3, multisU4;
+
+      multis.add_dimensions(ket0_alphamax, ket1_alphamax, ket_rhomax, ket_etamax,
+      						bra0_alphamax, bra1_alphamax, bra_rhomax, bra_etamax,
+      						tadat0.rho0max, tadat0.eta0max, tadat1.rho0max, tadat1.eta0max,
+      						Rhomax, Etamax, rhomax, etamax);
+
+      // These are for getting the single-shell RMEs
+      multis0.add_dimensions(ket0_alphamax, bra0_alphamax, 
+      		tadat0.rho0max, tadat0.eta0max, rhomax0, etamax0);
+      multis1.add_dimensions(ket1_alphamax, bra1_alphamax, 
+      		tadat1.rho0max, tadat1.eta0max, rhomax1, etamax1);
+
+      // These are for getting the recoupling coefficients
+      multisU3.add_dimensions(ket_rhomax, Rhomax, bra_rhomax,
+      						  rhomax0, rhomax1, rhomax);
+      multisU4.add_dimensions(ket_etamax, Etamax, bra_etamax,
+      						  etamax0, etamax1, etamax);
+
+      auto total_rmes = multis.cardinality();
+      std::vector<double> rmes(total_rmes, 0.0);
+      std::vector<size_t> multi(16), multi0(6), multi1(6), multiU3(6), multiU4(6);
+
+      double phase = 1.0; // to be implemented later
+
+      for (size_t i = 0; i < total_rmes; i++)
+      {
+      	multis.to_multi(i, multi);
+
+      	size_t ket0_alpha = multi[0], ket1_alpha = multi[1], 
+      		   ket_rho = multi[2], ket_eta = multi[3],
+      		   bra0_alpha = multi[4], bra1_alpha = multi[5], 
+      		   bra_rho = multi[6], bra_eta = multi[7],
+      		   rho0_0 = multi[8], eta0_0 = multi[9], 
+      		   rho0_1 = multi[10], eta0_1 = multi[11],
+      		   Rho = multi[12], Eta = multi[13], 
+      		   rho = multi[14], eta = multi[15];
+
+      	for (size_t rho0 = 0; rho0 < rhomax0; rho0++)
+      	  for (size_t eta0 = 0; eta0 < etamax0; eta0++)
+      	  	for (size_t rho1 = 0; rho1 < rhomax1; rho1++)
+      	  	  for (size_t eta1 = 0; eta1 < etamax1; eta1++)
+      	  	  {
+      	  	  	multiU3 = {ket_rho, Rho, bra_rho, rho0, rho1, rho};
+      	  	  	multiU4 = {ket_eta, Eta, bra_eta, eta0, eta1, eta};
+      	  	  	multi0 = {ket0_alpha, bra0_alpha, rho0_0, eta0_0, rho0, eta0};
+      	  	  	multi1 = {ket1_alpha, bra1_alpha, rho0_1, eta0_1, rho1, eta1};
+
+      	  	  	rmes[i] += phase 
+      	  	  			* U3U9coeff[multisU3.to_linear(multiU3)]
+      	  	  			* U4U9coeff[multisU4.to_linear(multiU4)]
+      	  	  			* rme0[multis0.to_linear(multi0)]
+      	  	  			* rme1[multis1.to_linear(multi1)];
+      	  	  }
       }
+      return rmes;
     }
-
-    // multi-dimensional data for mapping multiplicities to RME
-    qcx_utils::NDIndex multis;
-
-    for (auto Gamma : bra.gamma)
-      multis.add_dimension(Gamma.alphamax());
-    for (auto Omega : bra.omega)
-      multis.add_dimensions(qcx_utils::itou16(Omega.rhomax()),
-                            qcx_utils::itou16(Omega.etamax()));
-
-    for (auto Gamma : ket.gamma)
-      multis.add_dimension(Gamma.alphamax());
-    for (auto Omega : ket.omega)
-      multis.add_dimensions(qcx_utils::itou16(Omega.rhomax()),
-                            qcx_utils::itou16(Omega.etamax()));
-
-    multis.add_dimensions(rhomax, etamax);
-
-    auto total_RME = multis.cardinality();
-    std::vector<double> RME(total_RME, 0.0);
-
-    auto num_multi = multis.n_dimensions();
-    std::vector<uint16_t> multi(num_multi);
-
-    // Case: single-shell tensor between multi-shell irreps
-    if (na == nb)
-    {
-    	uint16_t idx = 0; // to be changed
-
-    	U3xU4::Tadat tadat(na, 1, 1, {}, {}, t, 1, 1);
-
-        U3xU4::irrep gamma_idx_ket = uket.gamma[idx].toU3xU4(na),
-                     gamma_idx_bra = ubra.gamma[idx].toU3xU4(na);
-
-        std::size_t rho_idx_max, eta_idx_max, 
-        			amax_idx_ket = uket.gamma[idx].alphamax(),
-                    amax_idx_bra = ubra.gamma[idx].alphamax();
-
-        auto rme = tadat.RME(amax_idx_ket, gamma_idx_ket, 
-        					 amax_idx_bra, gamma_idx_bra, 
-        					 rho_idx_max, eta_idx_max, 
-        					 cgcs, wigU3U2db, wigU4U3db);
-
-        // Going through the identities prior to our tensor
-        for (size_t i = 0; i < idx; i++)
-        {
-          for (size_t j = 0; j < total_RME; j++)
-          {
-          	multis.to_multi(j, multi);
-
-          }
-        }
-    }
-
-    return RME;
   }
 } // namespace U3xU4
