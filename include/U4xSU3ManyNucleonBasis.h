@@ -771,19 +771,13 @@ namespace U4xSU3
         throw std::runtime_error("Gamma for given shell does not exist!");
 
       size_t gamma_idx = 0;
-      for (size_t d = 0; d < dist.size(); d++)
-      {
-        if (d == n)
-        {
-          assert(gamma_idx < gamma.size());
-          return gamma_idx;
-        }
-
+      for (size_t d = 0; d < n; d++)
         if (dist[d] > 0)
           gamma_idx++;
-      }
 
-      assert(false); // execution should never reach this point
+      assert(gamma_idx < gamma.size());
+
+      return gamma_idx;
     }
 
     void clear()
