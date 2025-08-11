@@ -36,10 +36,10 @@ int main()
   auto bra_irrep = bra_irreps[bra_irrep_id];
   auto ket_irrep = ket_irreps[ket_irrep_id];
 
-  print("Bra irrep: dist = {}; gamma = {}; omega = {}\n", bra_irrep.dist,
-        bra_irrep.gamma, bra_irrep.omega);
-  print("Ket irrep: dist = {}; gamma = {}; omega = {}\n", ket_irrep.dist,
-        ket_irrep.gamma, ket_irrep.omega);
+  print("Bra irrep: dist = {}; gamma = {}; omega = {}\n", 
+        bra_irrep.dist, bra_irrep.gamma, bra_irrep.omega);
+  print("Ket irrep: dist = {}; gamma = {}; omega = {}\n", 
+        ket_irrep.dist, ket_irrep.gamma, ket_irrep.omega);
 
   U4xSU3::IrrepUnifier iu;
   const auto& [bra_uirrep, ket_uirrep] = iu.unify(bra_irrep, ket_irrep);
