@@ -1,6 +1,8 @@
 #include <cassert>
 #include <stdexcept>
 
+#include <UNtoU3.h>
+
 #include <U3xU4HWSgenerator.h>
 #include <U3xU4SingleShellTensors.h>
 
@@ -18,19 +20,56 @@ namespace U3xU4
     if ((A_i - ats + ads) != A_f) // number of particles is not conserved
       return {};
 
-    if (A_i == 0 && A_f == 0) // vacuum on both side
-      return {};
-
-    if (A_f == 0)
-      n = N_quanta_i / A_i;
-    else if (A_i == 0)
-      n = N_quanta_f / A_f;
-    else
+    // If this is an identity tensor
+    if (ads == 0 && ats == 0)
     {
-      n = N_quanta_i / A_i;
-      if (n != N_quanta_f / A_f) // ket and bra are not in the same shell
+      assert(prod_ads.empty());
+      assert(prod_ats.empty());
+      assert(T == U3xU4::irrep(0,0,0, 0,0,0,0));
+      assert(rho0max == 1);
+      assert(eta0max == 1);
+
+      if (i == f)
+      {
+        rhomax = 1;
+        etamax = 1;
+
+        // If ai_max or af_max  has not been calculated
+        int N = (n + 1) * (n + 2) / 2;
+        untou3::UNtoU3<4> gen;
+        gen.set_shell(n);
+        if (ai_max <= 0)
+        {
+          gen.reduceU4(i.u4, N);
+          ai_max = gen.multiplicity(i.u3);
+        }
+        if (af_max <= 0)
+        {
+          gen.reduceU4(f.u4, N);
+          af_max = gen.multiplicity(f.u3);
+        }
+
+        // Now calculate RMEs
+        std::vector<double> rmes;
+        for (std::size_t ai = 0; ai < ai_max; ai++)
+          for (std::size_t af = 0; af < af_max; af++)
+            rmes.push_back((ai == af) ? 1.0 : 0.0);
+
+        return rmes;
+      }
+      else
         return {};
     }
+
+    // Vacuum on both side can only be connected by an identity
+    if (A_i == 0 && A_f == 0) 
+      return {};
+
+    if (A_i > 0 && n != N_quanta_i / A_i)
+      return {};
+
+    if (A_f > 0 && n != N_quanta_f / A_f)
+      return {};
 
     // Get outer multiplicities due to Wigner-Eckart theorem
     rhomax = u3::Rho(i.u3, T.u3, f.u3);

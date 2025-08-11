@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
                 (1,1,0,0)           (1,1,0,0) (0,0,0,0)
                 ||| alpha_f (14,2,0) (1,1,1,1) >
   */
-
+  /*
   std::size_t n = 4, ads = 2, ats = 2;
   U3xU4::irrep i(14, 2, 0, 1, 1, 1, 1), f(14, 2, 0, 1, 1, 1, 1),
       T1(6, 2, 0, 1, 1, 0, 0), T2(6, 4, 0, 1, 1, 0, 0), T(4, 2, 0, 0, 0, 0, 0);
@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
 
   std::size_t rho0max = u3::Rho(T1.u3, T2.u3, T.u3),
               eta0max = u4::Eta(T1.u4, T2.u4, T.u4);
+  */
 
   /* Example 3:
                               (n,0,0)
@@ -69,7 +70,7 @@ int main(int argc, char* argv[])
 
   */
   /*
-  std::size_t ads = 1, ats = 0, n = 4;
+  std::size_t n = 4, ads = 1, ats = 0;
   U3xU4::irrep i(0,0,0, 0,0,0,0), T(n,0,0, 1,0,0,0), f(n,0,0, 1,0,0,0);
   std::size_t rho0max = 1, eta0max = 1;
   */
@@ -81,7 +82,7 @@ int main(int argc, char* argv[])
 
   */
   /*
-  std::size_t ads = 0, ats = 1, n = 4;
+  std::size_t n = 4, ads = 0, ats = 1;
   U3xU4::irrep i(n,0,0, 1,0,0,0), T(n,n,0, 1,1,1,0), f(0,0,0, 0,0,0,0);
   std::size_t rho0max = 1, eta0max = 1;
   */
@@ -97,11 +98,22 @@ int main(int argc, char* argv[])
   std::size_t rho0max = 1, eta0max = 1;
   */
 
+  /* Example 6:          
+    < alpha_i (5,3,2) (3,1,1,0) ||| I ||| alpha_f (5,3,2) (3,1,1,0) >
+  */
+  
+  std::size_t n = 2, ads = 0, ats = 0;
+  U3xU4::irrep i(5,3,2, 3,1,1,0), f(5,3,2, 3,1,1,0),
+               T(0,0,0, 0,0,0,0);
+  std::size_t rho0max = 1, eta0max = 1;
+  
+
   ////////////////////////////////////
 
   U3xU4::Tadat Tadxat(n, ads, ats, prod_ads, prod_ats, T, rho0max, eta0max);
 
-  std::size_t ai_max, af_max, rhomax, etamax;
+  // These will be calculated inside RME() method
+  std::size_t ai_max = 0, af_max = 0, rhomax = 0, etamax = 0;
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
