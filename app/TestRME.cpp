@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
   JT::TwoBodyOperator NN("N3LO_EMN500_bare", labels, hw, Nmax, valenceShell,
                          maxShell);
 
-  auto tensors = NN.expand(dbs.cgcs, dbs.racah, dbs.racah9, dbs.wigU3SO3db,
+  auto tensors = NN.expand(dbs.cgcdb, dbs.racahdb, dbs.racah9db, dbs.wigU3SO3db,
                            dbs.wigU4SU2SU2db);
 
   print("Number of tesors: {}\n", tensors.size());
