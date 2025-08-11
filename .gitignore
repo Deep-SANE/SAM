@@ -20,10 +20,6 @@
 
 .DS_Store
 
-# system-local configuration file in root directory:
-
-config.local.mk
-
 # all built executable binary files:
 
 bin/
