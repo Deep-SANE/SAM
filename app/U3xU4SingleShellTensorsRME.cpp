@@ -104,6 +104,7 @@ int main(int argc, char* argv[])
   
   std::size_t n = 2, ads = 0, ats = 0;
   U3xU4::irrep i(5,3,2, 3,1,1,0), f(5,3,2, 3,1,1,0),
+               //i(0,0,0, 0,0,0,0), f(0,0,0, 0,0,0,0),
                T(0,0,0, 0,0,0,0);
   std::size_t rho0max = 1, eta0max = 1;
   
