@@ -26,11 +26,10 @@ int main()
 
   for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
   {
-    auto [dist, gamma, omega, offset, active_shells] = irreps[irrep_id];
+    auto [dist, gamma, omega, offset] = irreps[irrep_id];
 
     print("Irrep ID {:5} : ", irrep_id);
     print("dist = {}", dist);
-    print(" ; active shells = {}", active_shells);
     print(" ; gamma = {}", gamma);
     print(" ; omega = {}", omega);
     print(" ; offset = {}\n", offset);

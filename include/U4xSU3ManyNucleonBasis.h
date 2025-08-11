@@ -11,6 +11,7 @@
 #include <ranges>
 #include <set>
 #include <span>
+#include <stdexcept>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -270,14 +271,14 @@ namespace U4xSU3
       std::span<const GammaElement> gamma;
       std::span<const OmegaElement> omega;
       uint64_t offset;
-      std::span<const uint16_t> active_shells; 
+      // std::span<const uint16_t> active_shells; 
     };
 
     class IrrepDB
     {
       const ManyNucleonBasis& basis_;
       OmegaCombiner oc_;
-      std::vector<uint16_t> active_shells;
+      // std::vector<uint16_t> active_shells;
 
     public:
       IrrepDB(const ManyNucleonBasis& basis) : basis_(basis) { }
@@ -297,20 +298,21 @@ namespace U4xSU3
         assert(gamma.size() > 0);
 
         // transform dist to active shells:
+        /*
         active_shells.clear();
         for (size_t d = 0; d < dist.size(); d++)
           if (dist[d] != 0)
             active_shells.push_back(d);
 
         assert(gamma.size() == active_shells.size());
+        */
 
         if (gamma.size() == 1)
         {
           assert(omega_u4_id == INVALID_OMEGA_ID);
           assert(omega_su3_id == INVALID_OMEGA_ID);
 
-          return {dist, gamma, std::span<const OmegaElement>(), offset,
-                  active_shells};
+          return {dist, gamma, std::span<const OmegaElement>(), offset};
         }
         else
         {
@@ -322,7 +324,7 @@ namespace U4xSU3
 
           auto omega = oc_.combine(omega_u4, omega_su3);
 
-          return {dist, gamma, omega, offset, active_shells};
+          return {dist, gamma, omega, offset};
         }
       }
 
@@ -760,6 +762,27 @@ namespace U4xSU3
     std::vector<ManyNucleonBasis::DistributionElement> dist;
     std::vector<ManyNucleonBasis::GammaElement> gamma;
     std::vector<ManyNucleonBasis::OmegaElement> omega;
+
+    const auto& shell_gamma(size_t n) const
+    {
+      assert(n < dist.size());
+
+      if (dist[n] == 0)
+        throw std::runtime_error("Gamma for given shell does not exist!");
+
+      size_t gamma_idx = 0;
+      for (size_t d = 0; d < dist.size(); d++)
+      {
+        if (d == n)
+        {
+          assert(gamma_idx < gamma.size());
+          return gamma[gamma_idx];
+        }
+
+        if (dist[d] > 0)
+          gamma_idx++;
+      }
+    }
 
     void clear()
     {
