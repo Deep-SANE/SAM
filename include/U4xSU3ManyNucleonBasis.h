@@ -782,6 +782,8 @@ namespace U4xSU3
         if (dist[d] > 0)
           gamma_idx++;
       }
+
+      assert(false); // execution should never reach this point
     }
 
     void clear()
