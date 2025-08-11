@@ -763,7 +763,7 @@ namespace U4xSU3
     std::vector<ManyNucleonBasis::GammaElement> gamma;
     std::vector<ManyNucleonBasis::OmegaElement> omega;
 
-    const auto& shell_gamma(size_t n) const
+    auto shell_gamma(size_t n) const
     {
       assert(n < dist.size());
 
@@ -776,7 +776,7 @@ namespace U4xSU3
         if (d == n)
         {
           assert(gamma_idx < gamma.size());
-          return gamma[gamma_idx];
+          return gamma_idx;
         }
 
         if (dist[d] > 0)
