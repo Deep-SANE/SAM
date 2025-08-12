@@ -17,7 +17,7 @@ namespace U3xU4
     assert(bra.gamma.size() == ket.gamma.size());
     assert(single_shell_tensors.size() == ket.gamma.size());
     assert(bra.omega.size() == ket.omega.size());
-    assert(coupled_irreps.size() = bra.omega.size());
+    assert(coupled_irreps.size() == bra.omega.size());
 
     // If there is no OmegaElement, i.e., only one GammaElement, 
     // both bra and ket GammaElement's are be in the same shell.
@@ -151,5 +151,5 @@ namespace U3xU4
       }
       return rmes;
     }
-  }
+  
 } // namespace U3xU4
