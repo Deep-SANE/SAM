@@ -1,16 +1,16 @@
 #ifndef SAM_DATABASIS_H
 #define SAM_DATABASIS_H
 
-#include <so3Coeffs/SO3_Racah.h>
 #include <so3Coeffs/SO3_CGC.h>
+#include <so3Coeffs/SO3_Racah.h>
 
+#include <U3_U9Coeffs.h>
 #include <U3SO3xU3SO3.h>
 #include <U3U2xU3U2.h>
-#include <U3_U9Coeffs.h>
 
+#include <U4_U9Coeffs.h>
 #include <U4SU2SU2xU4SU2SU2.h>
 #include <U4U3xU4U3.h>
-#include <U4_U9Coeffs.h>
 
 namespace sam
 {
