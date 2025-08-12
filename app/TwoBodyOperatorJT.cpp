@@ -42,10 +42,10 @@ int main(int argc, char* argv[])
   JT::TwoBodyOperator LL("L.L", labels, hw, Nmax, valenceShell, maxShell);
 
   // expand now
-  // auto tensors = LL.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  // auto tensors = LL.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  LL.writeBinary(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  LL.writeBinary(dbs);
 
   // read from binary
   auto tensors = LL.readBinary();
@@ -69,10 +69,10 @@ int main(int argc, char* argv[])
   JT::TwoBodyOperator KE("Kinetic",labels,hw,Nmax,valenceShell,maxShell);
 
   // expand now
-  // auto tensors = KE.expand(cgcs,racah,racah9,wigU3SO3db,wigU4SU2SU2db);
+  // auto tensors = KE.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  KE.writeBinary(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  KE.writeBinary(dbs);
 
   // read from binary
   auto tensors = KE.readBinary();
@@ -97,10 +97,10 @@ int main(int argc, char* argv[])
   maxShell);
 
   // expand now
-  // auto tensors = NN.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  // auto tensors = NN.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  // NN.writeBinary(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  // NN.writeBinary(dbs);
 
   // read from binary
   auto tensors = NN.readBinary();
@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
   // auto tensors = NN.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-   NN.writeBinary(dbs);
+  NN.writeBinary(dbs);
 
   // read from binary
   auto tensors = NN.readBinary();
