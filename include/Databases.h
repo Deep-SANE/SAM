@@ -16,9 +16,9 @@ namespace sam
 {
   struct Databases
   {
-    qcx_utils::SO3_CGC cgcdb;
-    qcx_utils::SO3_Racah racahdb;
-    qcx_utils::SO3_Racah9 racah9db;
+    qcx_utils::SO3_CGC cgcs;
+    qcx_utils::SO3_Racah racah;
+    qcx_utils::SO3_Racah9 racah9;
 
     u3::WigU3U2_db wigU3U2db;
     u3::WigU3SO3_db wigU3SO3db;
@@ -29,12 +29,12 @@ namespace sam
     u4::U4U9_db u4u9db;
 
     Databases()
-        : wigU3U2db(cgcdb),
-          wigU3SO3db(cgcdb, wigU3U2db),
-          u3u9db(cgcdb, racahdb, wigU3U2db),
-          wigU4U3db(cgcdb, wigU3U2db),
-          wigU4SU2SU2db(cgcdb, wigU3U2db, wigU4U3db),
-          u4u9db(cgcdb, racahdb, wigU3U2db, wigU4U3db)
+        : wigU3U2db(cgcs),
+          wigU3SO3db(cgcs, wigU3U2db),
+          u3u9db(cgcs, racah, wigU3U2db),
+          wigU4U3db(cgcs, wigU3U2db),
+          wigU4SU2SU2db(cgcs, wigU3U2db, wigU4U3db),
+          u4u9db(cgcs, racah, wigU3U2db, wigU4U3db)
     { }
 
     Databases(const Databases&) = delete;

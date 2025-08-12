@@ -18,6 +18,7 @@
 #include <U4SU2SU2xU4SU2SU2.h>
 #include <U4U3xU4U3.h>
 
+#include <Databases.h>
 #include <HOutilities.h>
 #include <U3xU4MultiShellTensors.h>
 
@@ -100,22 +101,14 @@ namespace JT
     bool setTensorStrength(U3xU4::TwoBodyMultiShellTensor& tensor,
                            const std::vector<std::vector<int>>& inverse,
                            const std::vector<int>& phase,
-                           qcx_utils::SO3_CGC& cgcs,
-                           qcx_utils::SO3_Racah& racah,
-                           qcx_utils::SO3_Racah9& racah9,
-                           u3::WigU3SO3_db& wigU3SO3db,
-                           u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+                           sam::Databases& dbs) const;
 
     // Expand into a sum of multi-shell two-body tensors
     std::vector<U3xU4::TwoBodyMultiShellTensor>
-    expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
-           qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
-           u4::WigU4SU2SU2_db& wigU4SU2SU2db);
+    expand(sam::Databases& dbs);
 
     // Write to binary file
-    void writeBinary(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
-      qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
-      u4::WigU4SU2SU2_db& wigU4SU2SU2db);
+    void writeBinary(sam::Databases& db);
 
     // Read from binary file
     std::vector<U3xU4::TwoBodyMultiShellTensor> readBinary();

@@ -33,8 +33,8 @@ namespace U3xU4
         std::size_t rhomax, etamax, ai_max = ket.gamma[0].alphamax(),
                                     af_max = bra.gamma[0].alphamax();
 
-        return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, 
-        				 dbs.cgcdb, dbs.wigU3U2db, dbs.wigU4U3db);
+        return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs.cgcs,
+                         dbs.wigU3U2db, dbs.wigU4U3db);
     }
 
     // If there is only one OmegaElement
@@ -63,10 +63,10 @@ namespace U3xU4
       			  etamax = u4::Eta(ket_omega.u4, Omega.u4, bra_omega.u4),
       			  rhomax0, etamax0, rhomax1, etamax1;
 
-      auto rme0 = tadat0.RME(ket0_alphamax, ket0, bra0_alphamax, bra0,
-      			rhomax0, etamax0, dbs.cgcdb, dbs.wigU3U2db, dbs.wigU4U3db),
-    	   rme1 = tadat1.RME(ket1_alphamax, ket1, bra1_alphamax, bra1,
-      			rhomax1, etamax1, dbs.cgcdb, dbs.wigU3U2db, dbs.wigU4U3db);
+      auto rme0 = tadat0.RME(ket0_alphamax, ket0, bra0_alphamax, bra0, rhomax0,
+                             etamax0, dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db),
+           rme1 = tadat1.RME(ket1_alphamax, ket1, bra1_alphamax, bra1, rhomax1,
+                             etamax1, dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db);
 
       auto [allowU3U9, U3U9coeff] = dbs.u3u9db.get(
       		ket0.u3.n13(), ket0.u3.n23(), ket0.u3.n33(),

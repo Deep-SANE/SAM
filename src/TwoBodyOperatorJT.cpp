@@ -5,6 +5,7 @@
 #include <fstream>
 #include <tuple>
 
+#include <Databases.h>
 #include <TwoBodyOperatorJT.h>
 
 namespace JT
@@ -395,10 +396,14 @@ namespace JT
   bool TwoBodyOperator::setTensorStrength(
       U3xU4::TwoBodyMultiShellTensor& tensor,
       const std::vector<std::vector<int>>& inverse,
-      const std::vector<int>& phase, qcx_utils::SO3_CGC& cgcs,
-      qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9,
-      u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+      const std::vector<int>& phase, sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& racah = dbs.racah;
+    auto& racah9 = dbs.racah9;
+    auto& wigU3SO3db = dbs.wigU3SO3db;
+    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+
     /* Coefficients in the expansion of two-body JT-coupled operator.
        The size of this array is equal to rhomax * etamax * kappamax * zetamax.
        To access the elements:
@@ -478,11 +483,14 @@ namespace JT
 
 #define RESTRICT_WITH_NMAX
   std::vector<U3xU4::TwoBodyMultiShellTensor>
-  TwoBodyOperator::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
-                          qcx_utils::SO3_Racah9& racah9,
-                          u3::WigU3SO3_db& wigU3SO3db,
-                          u4::WigU4SU2SU2_db& wigU4SU2SU2db)
+  TwoBodyOperator::expand(sam::Databases& dbs)
   {
+    auto& cgcs = dbs.cgcs;
+    auto& racah = dbs.racah;
+    auto& racah9 = dbs.racah9;
+    auto& wigU3SO3db = dbs.wigU3SO3db;
+    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+
     if (on_the_fly == false)
       TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
 
@@ -569,8 +577,7 @@ namespace JT
               kappa0, LL0, zeta0, SS0, TT, MMT, JJ, MMJ, {}, labels);
 
             bool ignore =
-                setTensorStrength(tensor, all_inverse[i], all_phase[i], cgcs,
-                                    racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+                setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
             if (ignore == false)
             {
               // std::cout << tensor << std::endl;
@@ -584,8 +591,7 @@ namespace JT
                   Tadat_choices[0].eta0max, kappa0, LL0, zeta0, SS0, TT, MMT,
                   JJ, MMJ, {}, labels);
               bool ignore =
-                  setTensorStrength(tensor, all_inverse[i], all_phase[i], cgcs,
-                                    racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+                  setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
               if (ignore == false)
               {
                 // std::cout << tensor << std::endl;
@@ -598,8 +604,7 @@ namespace JT
                   Tadat_choices, coupled_irreps, Rhomax, Etamax, kappa0, LL0,
                   zeta0, SS0, TT, MMT, JJ, MMJ, {}, labels);
               bool ignore =
-                  setTensorStrength(tensor, all_inverse[i], all_phase[i], cgcs,
-                                    racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+                  setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
               if (ignore == false)
               {
                 // std::cout << tensor << std::endl;
@@ -616,14 +621,12 @@ namespace JT
   }
 
   // Write to binary file
-  void TwoBodyOperator::writeBinary(qcx_utils::SO3_CGC& cgcs, 
-    qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9, 
-    u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db)
+  void TwoBodyOperator::writeBinary(sam::Databases& db)
   {
     if (valenceShell > 0)
       throw std::runtime_error("Set valenceShell to 0 for reusability");
 
-    auto tensors = expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+    auto tensors = expand(db);
 
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
