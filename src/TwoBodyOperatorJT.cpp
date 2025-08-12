@@ -529,16 +529,39 @@ namespace JT
 
       for (const auto& [Tadat_choices, coupling_info_list] : all_results)
       {
+        
+        if (Tadat_choices.size() > 1)
+        {
+          for (const auto& tadat : Tadat_choices)
+          {
+            // std::cout << tadat << "\t";
+
+            // Assert that if there are more than 1 single-shell tensor,
+            // they must be all free of multiplicity.
+            assert(tadat.rho0max == 1 && tadat.eta0max == 1);
+          }
+          //std::cout << std::endl;
+        }
+
         std::vector<U3xU4::irrep> coupled_irreps;
         int Rhomax, Etamax;
-        for (const auto& [irrep, rhomax, etamax] : coupling_info_list)
+        for (auto coupling_info = coupling_info_list.begin(); 
+             coupling_info != coupling_info_list.end(); coupling_info++)
         {
-          if (coupling_info_list.size() > 1) 
+          const auto& [irrep, rhomax, etamax] = *coupling_info;
+
+          // std::cout << irrep << "," << rhomax << "," << etamax << "\t";
+
+          // Assert that the intershell coupling is free of multiplicity,
+          // except for the last one.
+          if (std::next(coupling_info) != coupling_info_list.end()) 
             assert(rhomax == 1 && etamax == 1);
+          
           coupled_irreps.push_back(irrep);
           Rhomax = rhomax;
           Etamax = etamax;
         }
+        // std::cout << std::endl;
 
         // decompose into L
         std::vector<u3::physicalvector> pv3s;

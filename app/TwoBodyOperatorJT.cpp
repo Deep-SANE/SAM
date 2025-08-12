@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
   // auto tensors = NN.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  // NN.writeBinary(dbs);
+  NN.writeBinary(dbs);
 
   // read from binary
   auto tensors = NN.readBinary();
@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
   // auto tensors = NN.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  NN.writeBinary(dbs);
+  // NN.writeBinary(dbs);
 
   // read from binary
   auto tensors = NN.readBinary();

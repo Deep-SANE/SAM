@@ -97,13 +97,21 @@ namespace U3xU4
     ad's are always on the left of at's.
 
     Note on the multiplicities:
-    - Since we are dealing with a multi-shell two-body tensor, it's not
-    necessary to keep track of the multiplicities of single-shell tensors
-    with less than 4 tensors (ad's and at's) inside. These tensors never
-    resume multiplicities larger than 1.
-    - When a single-shell tensor has four tensors inside, 2 ad's and 2 at's,
-    it is also a two-body multi-shell tensor and the multiplicities of the
-    two are the sanme.
+    1. Couling with either ad or at is always free of multiplicities.
+    2. Case 1: There is only one single-shell tensor of form [[ad x ad] x [at x at]],
+               there is a multiplicity (rho,eta) for the final coupling. There is no
+               intershell coupling irrep.
+    3. For all other cases, single-shell tensors are free of multiplicity because
+       none of them can reach two ad's and two at's.
+    4. Case 2: two single-shell tensors (free of multiplicity), there is only one 
+               intershell coupling, which may have multiplicity.
+    5. Case 3: three single-shell tensors, there are three cases:
+               1 tensor x 1 tensor x 2 tensors => multiplicity for the last intershell
+                                                  coupling
+               1 tensor x 2 tensors x 1 tensor => free of multiplicity
+               2 tensors x 1 tensor x 1 tensor => free of multiplicity
+    6. Case 4: four single-shell tensors, there is only one case:
+               1 tensor x 1 tensor x 1 tensor x 1 tensor => free of multiplicity
   */
   class TwoBodyMultiShellTensor
   {
