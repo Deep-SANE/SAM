@@ -151,5 +151,5 @@ namespace U3xU4
       }
       return rmes;
     }
-  
+  }
 } // namespace U3xU4
