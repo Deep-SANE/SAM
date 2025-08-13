@@ -763,6 +763,13 @@ namespace U4xSU3
     std::vector<ManyNucleonBasis::GammaElement> gamma;
     std::vector<ManyNucleonBasis::OmegaElement> omega;
 
+    Irrep() = default;
+    Irrep(const std::vector<ManyNucleonBasis::DistributionElement>& dist_,
+          const std::vector<ManyNucleonBasis::GammaElement>& gamma_,
+          const std::vector<ManyNucleonBasis::OmegaElement>& omega_)
+      : dist(dist_), gamma(gamma_), omega(omega_)
+    {}
+
     auto shell_gamma(size_t n) const
     {
       assert(n < dist.size());
