@@ -841,7 +841,7 @@ namespace U4xSU3
         }
         else if (second.vacuum())
         {
-          // dtto:
+          // ditto:
           ManyNucleonBasis::OmegaElement copy = first;
           copy.rhomax(1);
           copy.etamax(1);
