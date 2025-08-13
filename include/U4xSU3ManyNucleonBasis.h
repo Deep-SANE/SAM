@@ -832,9 +832,21 @@ namespace U4xSU3
         if (first.vacuum() && second.vacuum())
           return oe_vacuum;
         else if (first.vacuum())
-          return second;
+        {
+          // couplig with vacuum results in rhomax = etamax = 1:
+          ManyNucleonBasis::OmegaElement copy = second;
+          copy.rhomax(1);
+          copy.etamax(1);
+          return copy;
+        }
         else if (second.vacuum())
-          return first;
+        {
+          // dtto:
+          ManyNucleonBasis::OmegaElement copy = first;
+          copy.rhomax(1);
+          copy.etamax(1);
+          return copy;
+        }
         else
           return iomega[g - 2];
       };
