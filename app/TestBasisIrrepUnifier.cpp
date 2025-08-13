@@ -44,8 +44,13 @@ int main()
   U4xSU3::IrrepUnifier iu;
   const auto& [bra_uirrep, ket_uirrep] = iu.unify(bra_irrep, ket_irrep);
 
-  print("Bra unified irrep: dist = {}; gamma = {}; omega = {}\n",
-        bra_uirrep.dist, bra_uirrep.gamma, bra_uirrep.omega);
-  print("Ket unified irrep: dist = {}; gamma = {}; omega = {}\n",
-        ket_uirrep.dist, ket_uirrep.gamma, ket_uirrep.omega);
+  print("Bra unified irrep: dist = {}; gamma = {}; omega = {}; gamma shells = "
+        "{}\n",
+        bra_uirrep.dist, bra_uirrep.gamma, bra_uirrep.omega,
+        bra_uirrep.gamma_shells);
+
+  print("Ket unified irrep: dist = {}; gamma = {}; omega = {}; gamma shells = "
+        "{}\n",
+        ket_uirrep.dist, ket_uirrep.gamma, ket_uirrep.omega,
+        ket_uirrep.gamma_shells);
 }

@@ -762,8 +762,10 @@ namespace U4xSU3
     std::vector<ManyNucleonBasis::DistributionElement> dist;
     std::vector<ManyNucleonBasis::GammaElement> gamma;
     std::vector<ManyNucleonBasis::OmegaElement> omega;
+    std::vector<uint16_t> gamma_shells;
 
     Irrep() = default;
+
     Irrep(const std::vector<ManyNucleonBasis::DistributionElement>& dist_,
           const std::vector<ManyNucleonBasis::GammaElement>& gamma_,
           const std::vector<ManyNucleonBasis::OmegaElement>& omega_)
@@ -857,6 +859,7 @@ namespace U4xSU3
 
         // add element to gamma1:
         o1.gamma.push_back(o1.dist[d] == 0 ? ge_vacuum : i1.gamma[g1++]);
+        o1.gamma_shells.push_back(d);
 
         // add element to omega1:
         if (o1.gamma.size() == 2)
@@ -869,6 +872,7 @@ namespace U4xSU3
 
         // add element to gamma2:
         o2.gamma.push_back(o2.dist[d] == 0 ? ge_vacuum : i2.gamma[g2++]);
+        o2.gamma_shells.push_back(d);
         
         // add element to omega2:
         if (o2.gamma.size() == 2)
