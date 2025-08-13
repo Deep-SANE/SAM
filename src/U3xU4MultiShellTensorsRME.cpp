@@ -72,10 +72,13 @@ namespace U3xU4
 
       // RMEs of the individual tensors			  
       auto rmes0 = tadat0.RME(ket0_alphamax, ket0, bra0_alphamax, bra0, rhomax0,
-                             etamax0, dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db),
-           rmes1 = tadat1.RME(ket1_alphamax, ket1, bra1_alphamax, bra1, rhomax1,
+                             etamax0, dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db);
+      if (rmes0.empty()) 
+        return {};
+
+      auto rmes1 = tadat1.RME(ket1_alphamax, ket1, bra1_alphamax, bra1, rhomax1,
                              etamax1, dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db);
-      if (rmes0.empty() || rmes1.empty())
+      if (rmes1.empty())
       	return{};
 
       // 9-U(3) recoupling coefficients
@@ -137,6 +140,7 @@ namespace U3xU4
       std::vector<double> rmes(total_rmes, 0.0);
       std::vector<size_t> multi(16), multi0(6), multi1(6), multiU3(6), multiU4(6);
 
+      // Please double check this phase with lsu3shell
       int phi, N0 = tadat0.ads + tadat0.ats, N1 = tadat1.ads + tadat1.ats,
       	  n0_ket = ket0.particles(), n1_ket = ket1.particles(),
       	  n0_bra = bra0.particles(), n1_bra = bra1.particles();
@@ -187,11 +191,13 @@ namespace U3xU4
       	  	  	multi1 = {ket1_alpha, bra1_alpha, rho0_1, eta0_1, rho1, eta1};
       	  	  	auto rme1 = rmes1[multis1.to_linear(multi1)];
 
-      	  	  	rmes[i] += phase * u3u9 * u4u9 * rme0 * rme1;
+      	  	  	rmes[i] += u3u9 * u4u9 * rme0 * rme1;
       	  	  }
       	  	}
       	  }
       	}
+
+        rmes[i] *= phase;
       }
       return rmes;
     }
@@ -215,7 +221,7 @@ namespace U3xU4
 
       // extract the rest of the ket
       auto new_ket_dist = ket.dist; 
-      // new_ket_dist won't be used but should be popped properly
+      // new_ket_dist won't be used but should be popped properly for safety
       auto new_ket_gamma = ket.gamma;
       new_ket_gamma.pop_back();
       auto new_ket_omega = ket.omega;
@@ -263,12 +269,15 @@ namespace U3xU4
       	rhomax_last, etamax_last;
 
       // RMEs of the individual tensors			  
-      auto rmes_new = new_tensor.RME(new_ket, new_bra, dbs),
-           rmes_last = tadat_last.RME(ket_alphamax_last, ket_gamma_last, 
+      auto rmes_new = new_tensor.RME(new_ket, new_bra, dbs);
+      if (rmes_new.empty())
+        return {};
+
+      auto rmes_last = tadat_last.RME(ket_alphamax_last, ket_gamma_last, 
            						 	  bra_alphamax_last, bra_gamma_last, 
            						      rhomax_last, etamax_last, 
            						      dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db);
-      if (rmes_new.empty() || rmes_last.empty())
+      if (rmes_last.empty())
       	return {};
 
       // 9-U(3) recoupling coefficients
@@ -306,7 +315,41 @@ namespace U3xU4
        					 multisU3, 	  // for the 9-U(3) recoupling coefficient
        					 multisU4;    // for the 9-U(4) recoupling coefficient
 
+      // add multis from ket
+      for (const auto& gamma : ket.gamma) 
+        multis.add_dimension(gamma.alphamax());
+      for (const auto& omega : ket.omega) 
+        multis.add_dimensions(omega.rhomax(), omega.etamax());
+      // add multis from bra
+      for (const auto& gamma : bra.gamma) 
+        multis.add_dimension(gamma.alphamax());
+      for (const auto& omega : bra.omega) 
+        multis.add_dimensions(omega.rhomax(), omega.etamax());
+      // add multis from tensor
+      for (const auto& tensor : single_shell_tensors) 
+        multis.add_dimensions(tensor.rho0max, tensor.eta0max);
+      for (const auto& [irr, rmax, emax] : coupled_irreps)
+        multis.add_dimensions(rmax, emax);
+      // add multis from Wigner-Eckart theorem
+      multis.add_dimensions(rhomax, etamax);
 
+      // add multis_new from new_ket
+      for (const auto& gamma : new_ket.gamma) 
+        multis_new.add_dimension(gamma.alphamax());
+      for (const auto& omega : new_ket.omega) 
+        multis_new.add_dimensions(omega.rhomax(), omega.etamax());
+      // add multis_new from new_bra
+      for (const auto& gamma : new_bra.gamma) 
+        multis_new.add_dimension(gamma.alphamax());
+      for (const auto& omega : new_bra.omega) 
+        multis_new.add_dimensions(omega.rhomax(), omega.etamax());
+      // add multis_new from new_tensor
+      for (const auto& tensor : new_tensor.single_shell_tensors) 
+        multis_new.add_dimensions(tensor.rho0max, tensor.eta0max);
+      for (const auto& [irr, rmax, emax] : new_tensor.coupled_irreps)
+        multis_new.add_dimensions(rmax, emax);
+      // add multis_new from Wigner-Eckart theorem
+      multis_new.add_dimensions(rhomax_new, etamax_new);
 
       multis_last.add_dimensions(ket_alphamax_last, bra_alphamax_last,
         tadat_last.rho0max, tadat_last.eta0max, rhomax_last, etamax_last);
@@ -317,9 +360,138 @@ namespace U3xU4
       multisU4.add_dimensions(ket_etamax_last, Etamax_last, bra_etamax_last,
                               etamax_new, etamax_last, etamax);
 
-      std::vector<double> rmes;
+      auto total_rmes = multis.cardinality();
+      std::vector<double> rmes(total_rmes, 0.0);
+      std::vector<size_t> multi(multis.n_dimensions()), 
+        multi_new(multis_new.n_dimensions()), multi_last(6), multiU3(6), multiU4(6);
 
+      // Please double check this phase with lsu3shell
+      int phi, N_new = 0, N_last = tadat_last.ads + tadat_last.ats,
+          n_new_ket = 0, n_last_ket = ket_gamma_last.particles(),
+          n_new_bra = 0, n_last_bra = bra_gamma_last.particles();
 
+      for (const auto& gamma : new_ket.gamma) 
+        n_new_ket += gamma.u4().quanta();
+      for (const auto& gamma : new_bra.gamma) 
+        n_new_bra += gamma.u4().quanta();
+      for (const auto& tensor : new_tensor.single_shell_tensors)
+        N_new += tensor.ads + tensor.ats;
+
+#ifdef FRONT_CREATE
+      phi = n_new_ket * N_last + n_last_bra * (N_new + n_new_ket + n_new_bra);
+#endif
+#ifdef REAR_CREATE
+      phi = n_last_bra * N_new + n_new_ket * (N_last + n_last_ket + n_last_bra);
+#endif
+
+      double phase = (phi % 2 == 0) ? 1.0 : -1.0;
+
+      for (size_t i = 0; i < total_rmes; i++)
+      {
+        multis.to_multi(i, multi);
+
+        size_t j = 0, k = 0;
+        for (const auto& gamma : new_ket.gamma)
+        {
+          multi_new[k] = multi[j];
+          k++;
+          j++;
+        }
+        multi_last[0] = multi[j];
+        j++;
+        for (const auto& omega : new_ket.omega)
+        {
+          multi_new[k] = multi[j];
+          multi_new[k + 1] = multi[j + 1];
+          k += 2;
+          j += 2;
+        }
+        multiU3[0] = multi[j];
+        j++;
+        multiU4[0] = multi[j];
+        j++;
+
+        for (const auto& gamma : new_bra.gamma)
+        {
+          multi_new[k] = multi[j];
+          k++;
+          j++;
+        }
+        multi_last[1] = multi[j];
+        j++;
+        for (const auto& omega : new_bra.omega)
+        {
+          multi_new[k] = multi[j];
+          multi_new[k + 1] = multi[j + 1];
+          k += 2;
+          j += 2;
+        }
+        multiU3[2] = multi[j];
+        j++;
+        multiU4[2] = multi[j];
+        j++;
+
+        for (const auto& tensor : new_tensor.single_shell_tensors)
+        {
+          multi_new[k] = multi[j];
+          multi_new[k + 1] = multi[j + 1];
+          k += 2;
+          j += 2;
+        }
+        multi_last[2] = multi[j];
+        j++;
+        multi_last[3] = multi[j];
+        j++;
+
+        for (const auto& [irr, rmax, emax] : new_tensor.coupled_irreps)
+        {
+          multi_new[k] = multi[j];
+          multi_new[k + 1] = multi[j + 1];
+          k += 2;
+          j += 2;
+        }
+        multiU3[1] = multi[j];
+        j++;
+        multiU4[1] = multi[j];
+        j++;
+
+        multiU3[5] = multi[j];
+        j++;
+        multiU4[5] = multi[j];
+        j++;
+
+        for (size_t rho_new = 0; rho_new < rhomax_new; rho_new++)
+        {
+          for (size_t rho_last = 0; rho_last < rhomax_last; rho_last++)
+          {
+            multiU3[3] = rho_new;
+            multiU3[4] = rho_last;
+            auto u3u9 = U3U9coeff[multisU3.to_linear(multiU3)];
+
+            for (size_t eta_new = 0; eta_new < etamax_new; eta_new++)
+            {
+              for (size_t eta_last = 0; eta_last < etamax_last; eta_last++)
+              {
+                multiU4[3] = eta_new;
+                multiU4[4] = eta_last;
+                auto u4u9 = U4U9coeff[multisU4.to_linear(multiU4)];
+
+                multi_new[k] = rho_new;
+                multi_new[k + 1] = eta_new;
+                auto rme_new = rmes_new[multis_new.to_linear(multi_new)];
+
+                multi_last[4] = rho_last;
+                multi_last[5] = eta_last;
+                auto rme_last = rmes_last[multis_last.to_linear(multi_last)];
+
+                rmes[i] += u3u9 * u4u9 * rme_new * rme_last;
+              }
+            }
+          }
+        }
+
+        rmes[i] *= phase;
+      }
 
       return rmes;
     }
