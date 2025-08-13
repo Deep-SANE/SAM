@@ -764,6 +764,9 @@ namespace U4xSU3
     std::vector<ManyNucleonBasis::OmegaElement> omega;
     std::vector<uint16_t> gamma_shells;
 
+    inline static const size_t INVALID_INDEX =
+        std::numeric_limits<size_t>::max();
+
     Irrep() = default;
 
     Irrep(const std::vector<ManyNucleonBasis::DistributionElement>& dist_,
@@ -772,21 +775,20 @@ namespace U4xSU3
       : dist(dist_), gamma(gamma_), omega(omega_)
     {}
 
-    auto shell_gamma(size_t n) const
+    size_t gamma_shell(size_t gamma_idx) const
     {
-      assert(n < dist.size());
-
-      if (dist[n] == 0)
-        throw std::runtime_error("Gamma for given shell does not exist!");
-
-      size_t gamma_idx = 0;
-      for (size_t d = 0; d < n; d++)
-        if (dist[d] > 0)
-          gamma_idx++;
-
       assert(gamma_idx < gamma.size());
 
-      return gamma_idx;
+      return gamma_shells[gamma_idx];
+    }
+
+    size_t shell_gamma(size_t shell_idx) const
+    {
+      assert(shell_idx < dist.size());
+
+      auto iter = std::ranges::find(gamma_shells, shell_idx);
+
+      return (iter == gamma_shells.end() ? INVALID_INDEX : *iter);
     }
 
     void clear()
