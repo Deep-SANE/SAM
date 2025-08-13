@@ -10,8 +10,8 @@
 
 namespace U3xU4
 {
-  std::vector<double> MultiShellTensor::RME(const U4xSU3::Irrep& bra, 
-  	const U4xSU3::Irrep& ket, sam::Databases& dbs) const
+  std::vector<double> MultiShellTensor::RME(const U4xSU3::Irrep& ket, 
+  	const U4xSU3::Irrep& bra, sam::Databases& dbs) const
   {
     // everything must already be unified
     assert(bra.gamma.size() == ket.gamma.size());
@@ -75,6 +75,8 @@ namespace U3xU4
                              etamax0, dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db),
            rmes1 = tadat1.RME(ket1_alphamax, ket1, bra1_alphamax, bra1, rhomax1,
                              etamax1, dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db);
+      if (rmes0.empty() || rmes1.empty())
+      	return{};
 
       // 9-U(3) recoupling coefficients
       auto [allowU3U9, U3U9coeff] = dbs.u3u9db.get(
@@ -197,7 +199,127 @@ namespace U3xU4
     // If there are more than one OmegaElement, there is a recursive cycle
     else
     {
+      // extract the last single-shell tensor
+      const U3xU4::Tadat& tadat_last = single_shell_tensors.back();
+      // extract the last intershell coupling of the total tensor
+      const auto& [Omega_last, Rhomax_last, Etamax_last] = coupled_irreps.back();
+
+      // extract the rest of the tensor
+      auto new_single_shell_tensors = single_shell_tensors;
+      new_single_shell_tensors.pop_back();
+      auto new_coupled_irreps = coupled_irreps;
+      new_coupled_irreps.pop_back();
+      const auto& [Omega_semilast, Rhomax_semilast, Etamax_semilast] = new_coupled_irreps.back();
+      U3xU4::MultiShellTensor new_tensor(
+      	new_single_shell_tensors, new_coupled_irreps);
+
+      // extract the rest of the ket
+      auto new_ket_dist = ket.dist; 
+      // new_ket_dist won't be used but should be popped properly
+      auto new_ket_gamma = ket.gamma;
+      new_ket_gamma.pop_back();
+      auto new_ket_omega = ket.omega;
+      new_ket_omega.pop_back();
+      U4xSU3::Irrep new_ket(new_ket_dist, new_ket_gamma, new_ket_omega);
+
+      // extract the rest of the bra
+      auto new_bra_dist = bra.dist; 
+      // new_bra_dist won't be used but should be popped properly
+      auto new_bra_gamma = bra.gamma;
+      new_bra_gamma.pop_back();
+      auto new_bra_omega = bra.omega;
+      new_bra_omega.pop_back();
+      U4xSU3::Irrep new_bra(new_bra_dist, new_bra_gamma, new_bra_omega);
+
+      U3xU4::irrep 
+      	// last irreps in ket
+      	ket_gamma_last = ket.gamma.back().toU3xU4(tadat_last.n), 
+      	ket_omega_last = ket.omega.back().toU3xU4(),
+      	ket_omega_semilast = ket.omega[ket.omega.size() - 2].toU3xU4(),
+      	// last irreps in bra
+      	bra_gamma_last = bra.gamma.back().toU3xU4(tadat_last.n), 
+      	bra_omega_last = bra.omega.back().toU3xU4(),
+      	bra_omega_semilast = bra.omega[bra.omega.size() - 2].toU3xU4();
+
+      std::size_t 
+      	// last multis in ket
+      	ket_alphamax_last = ket.gamma.back().alphamax(), 
+      	ket_rhomax_last = ket.omega.back().rhomax(),
+      	ket_etamax_last = ket.omega.back().etamax(),
+      	ket_rhomax_semilast = ket.omega[ket.omega.size() - 2].rhomax(),
+      	ket_etamax_semilast = ket.omega[ket.omega.size() - 2].etamax(),
+      	// last multis in bra
+        bra_alphamax_last = bra.gamma.back().alphamax(), 
+      	bra_rhomax_last = bra.omega.back().rhomax(),
+      	bra_etamax_last = bra.omega.back().etamax(),
+      	bra_rhomax_semilast = bra.omega[bra.omega.size() - 2].rhomax(),
+      	bra_etamax_semilast = bra.omega[bra.omega.size() - 2].etamax(),
+      	// multi for Wigner-Eckart theorem for the total tensor
+      	rhomax = u3::Rho(ket_omega_last.u3, Omega_last.u3, bra_omega_last.u3),  
+      	etamax = u4::Eta(ket_omega_last.u4, Omega_last.u4, bra_omega_last.u4),
+      	// multi for Wigner-Eckart theorem for the new tensor
+      	rhomax_new, etamax_new, 
+      	// multi for Wigner-Eckart theorem for the last tensor
+      	rhomax_last, etamax_last;
+
+      // RMEs of the individual tensors			  
+      auto rmes_new = new_tensor.RME(new_ket, new_bra, dbs),
+           rmes_last = tadat_last.RME(ket_alphamax_last, ket_gamma_last, 
+           						 	  bra_alphamax_last, bra_gamma_last, 
+           						      rhomax_last, etamax_last, 
+           						      dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db);
+      if (rmes_new.empty() || rmes_last.empty())
+      	return {};
+
+      // 9-U(3) recoupling coefficients
+      auto [allowU3U9, U3U9coeff] = dbs.u3u9db.get(
+      		ket_omega_semilast.u3.n13(), ket_omega_semilast.u3.n23(), ket_omega_semilast.u3.n33(),
+      		Omega_semilast.u3.n13(), Omega_semilast.u3.n23(), Omega_semilast.u3.n33(),
+      		ket_gamma_last.u3.n13(), ket_gamma_last.u3.n23(), ket_gamma_last.u3.n33(),
+      		tadat_last.T.u3.n13(), tadat_last.T.u3.n23(), tadat_last.T.u3.n33(),
+      		bra_omega_semilast.u3.n13(), bra_omega_semilast.u3.n23(), bra_omega_semilast.u3.n33(),
+      		bra_gamma_last.u3.n13(), bra_gamma_last.u3.n23(), bra_gamma_last.u3.n33(),
+      		ket_omega_last.u3.n13(), ket_omega_last.u3.n23(), ket_omega_last.u3.n33(),
+      		Omega_last.u3.n13(), Omega_last.u3.n23(), Omega_last.u3.n33(),
+      		bra_omega_last.u3.n13(), bra_omega_last.u3.n23(), bra_omega_last.u3.n33());
+      if (allowU3U9 == false)
+      	return {};
+
+      // 9-U(4) recoupling coefficients
+      auto [allowU4U9, U4U9coeff] = dbs.u4u9db.get(
+      		ket_omega_semilast.u4.n14(), ket_omega_semilast.u4.n24(), ket_omega_semilast.u4.n34(), ket_omega_semilast.u4.n44(),
+      		Omega_semilast.u4.n14(), Omega_semilast.u4.n24(), Omega_semilast.u4.n34(), Omega_semilast.u4.n44(),
+      		ket_gamma_last.u4.n14(), ket_gamma_last.u4.n24(), ket_gamma_last.u4.n34(), ket_gamma_last.u4.n44(),
+      		tadat_last.T.u4.n14(), tadat_last.T.u4.n24(), tadat_last.T.u4.n34(), tadat_last.T.u4.n44(),
+      		bra_omega_semilast.u4.n14(), bra_omega_semilast.u4.n24(), bra_omega_semilast.u4.n34(), bra_omega_semilast.u4.n44(),
+      		bra_gamma_last.u4.n14(), bra_gamma_last.u4.n24(), bra_gamma_last.u4.n34(), bra_gamma_last.u4.n44(),
+      		ket_omega_last.u4.n14(), ket_omega_last.u4.n24(), ket_omega_last.u4.n34(), ket_omega_last.u4.n44(),
+      		Omega_last.u4.n14(), Omega_last.u4.n24(), Omega_last.u4.n34(), Omega_last.u4.n44(),
+      		bra_omega_last.u4.n14(), bra_omega_last.u4.n24(), bra_omega_last.u4.n34(), bra_omega_last.u4.n44());
+      if (allowU4U9 == false)
+      	return {};
+
+      // multi-dimensional indices
+      qcx_utils::NDIndex multis,   	  // for the RMEs of the total tensor
+       					 multis_new,  // for the RMEs of the new tensor
+       					 multis_last, // for the RMEs of the last tensor
+       					 multisU3, 	  // for the 9-U(3) recoupling coefficient
+       					 multisU4;    // for the 9-U(4) recoupling coefficient
+
+
+
+      multis_last.add_dimensions(ket_alphamax_last, bra_alphamax_last,
+        tadat_last.rho0max, tadat_last.eta0max, rhomax_last, etamax_last);
+
+      multisU3.add_dimensions(ket_rhomax_last, Rhomax_last, bra_rhomax_last,
+                              rhomax_new, rhomax_last, rhomax);
+
+      multisU4.add_dimensions(ket_etamax_last, Etamax_last, bra_etamax_last,
+                              etamax_new, etamax_last, etamax);
+
       std::vector<double> rmes;
+
+
 
       return rmes;
     }

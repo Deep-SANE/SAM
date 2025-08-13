@@ -230,7 +230,7 @@ namespace U3xU4
 
     // This method assumes that everything is already unified, i.e., bra and ket
     // irreps are unified, and identities have been filled in already.
-    std::vector<double> RME(const U4xSU3::Irrep& bra, const U4xSU3::Irrep& ket, 
+    std::vector<double> RME(const U4xSU3::Irrep& ket, const U4xSU3::Irrep& bra, 
                             sam::Databases& dbs) const;
   };
 
