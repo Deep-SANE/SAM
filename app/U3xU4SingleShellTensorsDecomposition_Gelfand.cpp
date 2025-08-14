@@ -5,6 +5,7 @@
 #include <U3basis.h>
 #include <U4basis.h>
 
+#include <Databases.h>
 #include <U3xU4SingleShellTensors.h>
 
 #ifdef SAM_USE_SLEPC
@@ -17,9 +18,7 @@ int main(int argc, char* argv[])
   SlepcInitialize(&argc, &argv, NULL, NULL);
 #endif
 
-  qcx_utils::SO3_CGC cgcs;
-  u3::WigU3U2_db wigU3U2db(cgcs);
-  u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
+  sam::Databases dbs;
 
   std::vector<U3xU4::irrep> prod_ads, prod_ats;
 
@@ -90,7 +89,7 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [coeffs, adArr, aArr] = Tadat_Gelfand.expand(cgcs, wigU3U2db, wigU4U3db);
+  auto [coeffs, adArr, aArr] = Tadat_Gelfand.expand(dbs);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();

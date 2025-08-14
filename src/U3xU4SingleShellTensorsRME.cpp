@@ -3,17 +3,21 @@
 
 #include <UNtoU3.h>
 
+#include <Databases.h>
 #include <U3xU4HWSgenerator.h>
 #include <U3xU4SingleShellTensors.h>
 
 namespace U3xU4
 {
-  std::vector<double>
-  Tadat::RME(std::size_t& ai_max, const U3xU4::irrep& i, std::size_t& af_max,
-             const U3xU4::irrep& f, std::size_t& rhomax, std::size_t& etamax,
-             qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-             u4::WigU4U3_db& wigU4U3db) const
+  std::vector<double> Tadat::RME(std::size_t& ai_max, const U3xU4::irrep& i,
+                                 std::size_t& af_max, const U3xU4::irrep& f,
+                                 std::size_t& rhomax, std::size_t& etamax,
+                                 sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& wigU3U2db = dbs.wigU3U2db;
+    auto& wigU4U3db = dbs.wigU4U3db;
+
     int A_i = i.particles(), N_quanta_i = i.quanta(), // initial irreps
         A_f = f.particles(), N_quanta_f = f.quanta(); // final irreps
 
@@ -263,7 +267,7 @@ namespace U3xU4
                                    ats, prod_ads, prod_ats, T, rho0max, eta0max,
                                    gt3, gt4);
 
-        auto [coeffs, adArr, aArr] = Tadat.expand(cgcs, wigU3U2db, wigU4U3db);
+        auto [coeffs, adArr, aArr] = Tadat.expand(dbs);
         /*
         for (std::size_t t = 0; t < coeffs.size(); t++)
         {

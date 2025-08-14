@@ -2,21 +2,8 @@
 
 #include <array>
 #include <cstdint>
-#include <optional>
-#include <stdexcept>
 #include <string>
 #include <utility>
-
-#include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
-
-#include <U3basis.h>
-#include <U3SO3xU3SO3.h>
-#include <U3U2xU3U2.h>
-
-#include <U4basis.h>
-#include <U4SU2SU2xU4SU2SU2.h>
-#include <U4U3xU4U3.h>
 
 #include <Databases.h>
 #include <HOutilities.h>
@@ -65,16 +52,12 @@ namespace JT
     double sphericalME(int na, int lla, int jja, int mmja, int mmta, int nb,
                        int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                        int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
-                       int mmjd, int mmtd, qcx_utils::SO3_CGC& cgcs,
-                       qcx_utils::SO3_Racah& racah,
-                       qcx_utils::SO3_Racah9& racah9) const;
+                       int mmjd, int mmtd, sam::Databases& dbs) const;
     // Antisymmetrized matrix element
     double sphericalME_AS(int na, int lla, int jja, int mmja, int mmta, int nb,
                           int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                           int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
-                          int mmjd, int mmtd, qcx_utils::SO3_CGC& cgcs,
-                          qcx_utils::SO3_Racah& racah,
-                          qcx_utils::SO3_Racah9& racah9) const;
+                          int mmjd, int mmtd, sam::Databases& dbs) const;
 
     // Generate a list of all {na, nb, nc, nd} combinations such that
     // 0 <= na, nb, nc, nd <= maxShell
@@ -104,8 +87,7 @@ namespace JT
                            sam::Databases& dbs) const;
 
     // Expand into a sum of multi-shell two-body tensors
-    std::vector<U3xU4::TwoBodyMultiShellTensor>
-    expand(sam::Databases& dbs);
+    std::vector<U3xU4::TwoBodyMultiShellTensor> expand(sam::Databases& dbs);
 
     // Write to binary file
     void writeBinary(sam::Databases& db);

@@ -34,8 +34,7 @@ namespace U3xU4
         			ai_max = ket.gamma[0].alphamax(), // multi for the ket
                     af_max = bra.gamma[0].alphamax(); // multi for the bra
 
-        return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs.cgcs,
-                         dbs.wigU3U2db, dbs.wigU4U3db);
+        return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs);
     }
 
     // If there is only one OmegaElement
@@ -70,14 +69,14 @@ namespace U3xU4
       			  // multi for Wigner-Eckart theorem for the second tensor
       			  rhomax1, etamax1;
 
-      // RMEs of the individual tensors			  
+      // RMEs of the individual tensors
       auto rmes0 = tadat0.RME(ket0_alphamax, ket0, bra0_alphamax, bra0, rhomax0,
-                             etamax0, dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db);
+                              etamax0, dbs);
       if (rmes0.empty()) 
         return {};
 
       auto rmes1 = tadat1.RME(ket1_alphamax, ket1, bra1_alphamax, bra1, rhomax1,
-                             etamax1, dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db);
+                             etamax1, dbs);
       if (rmes1.empty())
       	return{};
 
@@ -273,10 +272,9 @@ namespace U3xU4
       if (rmes_new.empty())
         return {};
 
-      auto rmes_last = tadat_last.RME(ket_alphamax_last, ket_gamma_last, 
-           						 	  bra_alphamax_last, bra_gamma_last, 
-           						      rhomax_last, etamax_last, 
-           						      dbs.cgcs, dbs.wigU3U2db, dbs.wigU4U3db);
+      auto rmes_last =
+          tadat_last.RME(ket_alphamax_last, ket_gamma_last, bra_alphamax_last,
+                         bra_gamma_last, rhomax_last, etamax_last, dbs);
       if (rmes_last.empty())
       	return {};
 

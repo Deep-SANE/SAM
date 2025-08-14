@@ -1,5 +1,6 @@
 #include <cassert>
 
+#include <Databases.h>
 #include <U3xU4MultiShellTensors.h>
 #include <U3xU4SingleShellTensors.h>
 
@@ -14,11 +15,13 @@ namespace U3xU4
   // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
   std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
             std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-  TwoBodyMultiShellTensor::expand(qcx_utils::SO3_CGC& cgcs,
-                                  qcx_utils::SO3_Racah9& racah9,
-                                  u3::WigU3SO3_db& wigU3SO3db,
-                                  u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+  TwoBodyMultiShellTensor::expand(sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& racah9 = dbs.racah9;
+    auto& wigU3SO3db = dbs.wigU3SO3db;
+    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+
     std::vector<Eigen::RowVectorXd> coeffsArr;
     std::vector<U3xU4::ads_ats_phys> opsArr;
     // recall: ads_ats_phys =
@@ -32,8 +35,7 @@ namespace U3xU4
           tadat.n, tadat.ads, tadat.ats, tadat.prod_ads, tadat.prod_ats,
           tadat.T, rhomax, etamax, LL, SS, TT, MMT, JJ, MMJ, labels);
 
-      auto [coeffs, ads, ats] =
-          tadat_phys.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+      auto [coeffs, ads, ats] = tadat_phys.expand(dbs);
 
       for (int i = 0; i < coeffs.size(); i++)
       {
@@ -134,16 +136,14 @@ namespace U3xU4
                           tadat1.prod_ats, tadat1.T, tadat1.rho0max,
                           tadat1.eta0max, LL1, SS1, TT1, MMT1, JJ1, MMJ1,
                           labels);
-                      auto [coeffsArr1, adsArr1, asArr1] = tadat_phys1.expand(
-                          cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                      auto [coeffsArr1, adsArr1, asArr1] = tadat_phys1.expand(dbs);
 
                       U3xU4::Tadat_phys tadat_phys2(
                           tadat2.n, tadat2.ads, tadat2.ats, tadat2.prod_ads,
                           tadat2.prod_ats, tadat2.T, tadat2.rho0max,
                           tadat2.eta0max, LL2, SS2, TT2, MMT2, JJ2, MMJ2,
                           labels);
-                      auto [coeffsArr2, adsArr2, asArr2] = tadat_phys2.expand(
-                          cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                      auto [coeffsArr2, adsArr2, asArr2] = tadat_phys2.expand(dbs);
 
                       for (int i = 0; i < coeffsArr1.size(); i++)
                       {
@@ -312,15 +312,14 @@ namespace U3xU4
                           labels);
 
                       auto [coeffsArr1, opsArr1] =
-                          new_multi_shell_tensor.expand(
-                              cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                          new_multi_shell_tensor.expand(dbs);
 
                       U3xU4::Tadat_phys tadat_phys(
                           tadat.n, tadat.ads, tadat.ats, tadat.prod_ads,
                           tadat.prod_ats, tadat.T, tadat.rho0max, tadat.eta0max,
                           LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels);
-                      auto [coeffsArr2, adsArr2, asArr2] = tadat_phys.expand(
-                          cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                      auto [coeffsArr2, adsArr2, asArr2] =
+                          tadat_phys.expand(dbs);
 
                       for (int i = 0; i < coeffsArr1.size(); i++)
                       {

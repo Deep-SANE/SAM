@@ -1,20 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include <stdexcept>
 #include <string>
 #include <utility>
 
-#include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
-
-#include <U3SO3xU3SO3.h>
-#include <U3U2xU3U2.h>
-
-#include <U4SU2SU2xU4SU2SU2.h>
-#include <U4U3xU4U3.h>
-
-#include <U3xU4Irrep.h>
 #include <U3xU4MultiShellTensors.h>
 
 namespace JT

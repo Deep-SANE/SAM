@@ -2,6 +2,7 @@
 #include <iostream>
 #include <utility>
 
+#include <Databases.h>
 #include <U3xU4Irrep.h>
 #include <U3xU4SingleShellTensors.h>
 
@@ -15,12 +16,7 @@ int main(int argc, char* argv[])
   SlepcInitialize(&argc, &argv, NULL, NULL);
 #endif
 
-  qcx_utils::SO3_CGC cgcs;
-  qcx_utils::SO3_Racah9 racah9;
-  u3::WigU3U2_db wigU3U2db(cgcs);
-  u3::WigU3SO3_db wigU3SO3db(cgcs, wigU3U2db);
-  u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
-  u4::WigU4SU2SU2_db wigU4SU2SU2db(cgcs, wigU3U2db, wigU4U3db);
+  sam::Databases dbs;
 
   std::vector<U3xU4::irrep> prod_ads, prod_ats;
 
@@ -85,8 +81,7 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [coeffsArr, adsArr, atsArr] =
-      Tadat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+  auto [coeffsArr, adsArr, atsArr] = Tadat.expand(dbs);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();

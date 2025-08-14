@@ -8,14 +8,7 @@
 
 #include <Eigen/Dense>
 
-#include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
-
-#include <U3SO3xU3SO3.h>
-#include <U3U2xU3U2.h>
-#include <U4SU2SU2xU4SU2SU2.h>
-#include <U4U3xU4U3.h>
-
+#include <Databases.h>
 #include <HOutilities.h>
 #include <U3xU4Irrep.h>
 
@@ -260,8 +253,7 @@ namespace U3xU4
 
     // Expand in terms of uncoupled products of ad's
     std::pair<std::vector<double>, std::vector<U3xU4::ads_gelfand>>
-    expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-           u4::WigU4U3_db& wigU4U3db) const;
+    expand(sam::Databases& dbs) const;
   };
 
   /* Class for holding coupled products of ad's, it can have up to 3 ad's
@@ -317,9 +309,7 @@ namespace U3xU4
     std::pair<std::vector<Eigen::RowVectorXd>, // each element has size ==
                                                // kappamax
               std::vector<U3xU4::ads_phys>>
-    expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
-           u3::WigU3SO3_db& wigU3SO3db,
-           u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+    expand(sam::Databases& dbs) const;
   };
 
   /////////////// PRODUCT OF ANNIHILATION OPERATORS/TENSORS ///////////////
@@ -377,8 +367,7 @@ namespace U3xU4
     // Expand in terms of uncoupled products of a's
     // (not at's because a phase is added)
     std::pair<std::vector<double>, std::vector<U3xU4::ats_gelfand>>
-    expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-           u4::WigU4U3_db& wigU4U3db) const;
+    expand(sam::Databases& dbs) const;
   };
 
   /* Class for holding coupled products of at's, it can have up to 3 at's
@@ -434,9 +423,7 @@ namespace U3xU4
     std::pair<std::vector<Eigen::RowVectorXd>, // each element has size ==
                                                // kappamax
               std::vector<U3xU4::ats_phys>>
-    expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
-           u3::WigU3SO3_db& wigU3SO3db,
-           u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+    expand(sam::Databases& dbs) const;
   };
 
   ////// PRODUCT OF CREATION AND ANNIHILATION OPERATORS/TENSORS ///////
@@ -523,8 +510,7 @@ namespace U3xU4
     std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
                std::vector<U3xU4::ads_gelfand>, // ad's
                std::vector<U3xU4::ats_gelfand>> // a's
-    expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-           u4::WigU4U3_db& wigU4U3db) const;
+    expand(sam::Databases& dbs) const;
   };
 
   /* Class for holding single-shell tensors, which are coupled products
@@ -609,9 +595,7 @@ namespace U3xU4
     std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
                std::vector<U3xU4::ads_phys>,    // ad's
                std::vector<U3xU4::ats_phys>>    // a's
-    expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
-           u3::WigU3SO3_db& wigU3SO3db,
-           u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+    expand(sam::Databases& dbs) const;
   };
   using Tadats_phys = std::vector<U3xU4::Tadat_phys>;
   using ads_ats_phys =
@@ -707,9 +691,7 @@ namespace U3xU4
     std::vector<double> RME(std::size_t& ai_max, const U3xU4::irrep& i,
                             std::size_t& af_max, const U3xU4::irrep& f,
                             std::size_t& rhomax, std::size_t& etamax,
-                            qcx_utils::SO3_CGC& cgcs,
-                            u3::WigU3U2_db& wigU3U2db,
-                            u4::WigU4U3_db& wigU4U3db) const;
+                            sam::Databases& dbs) const;
   };
 
   // Find all single-shell tensors composed of

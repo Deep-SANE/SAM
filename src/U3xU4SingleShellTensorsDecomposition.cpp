@@ -1,6 +1,7 @@
 #include <cassert>
 #include <stdexcept>
 
+#include <Databases.h>
 #include <U3xU4SingleShellTensors.h>
 
 namespace U3xU4
@@ -42,9 +43,12 @@ namespace U3xU4
   // expand coupled product of creation tensors (ad's)
   // in terms of creation operators (no phase needed)
   std::pair<std::vector<double>, std::vector<U3xU4::ads_gelfand>>
-  Tad_gelfand::expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-                      u4::WigU4U3_db& wigU4U3db) const
+  Tad_gelfand::expand(sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& wigU3U2db = dbs.wigU3U2db;
+    auto& wigU4U3db = dbs.wigU4U3db;
+
     /* Reminder
     sps3: Gelfand array for [n,0,0]
     sps4: Gelfand array for [1,0,0,0]
@@ -232,7 +236,7 @@ namespace U3xU4
           U3xU4::Tad_gelfand Tad(n, sps3, sps4, prod_0, g3Arr0[g3_0],
                                  g4Arr0[g4_0]);
 
-          auto [coeffs_0, tensors_0] = Tad.expand(cgcs, wigU3U2db, wigU4U3db);
+          auto [coeffs_0, tensors_0] = Tad.expand(dbs);
 
           for (std::size_t k = 0; k < coeffs_0.size(); k++)
           {
@@ -251,10 +255,13 @@ namespace U3xU4
   // Expand in terms of uncoupled products of ad's
   std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
             std::vector<U3xU4::ads_phys>>
-  Tad_phys::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
-                   u3::WigU3SO3_db& wigU3SO3db,
-                   u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+  Tad_phys::expand(sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& racah9 = dbs.racah9;
+    auto& wigU3SO3db = dbs.wigU3SO3db;
+    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+
     std::vector<Eigen::RowVectorXd> coeffsArr;
     std::vector<U3xU4::ads_phys> tensorsArr;
 
@@ -410,8 +417,7 @@ namespace U3xU4
                     U3xU4::Tad_phys Tad0(n, prod_ads0, LL0, SS0, TT0, MMT0, JJ0,
                                          MMJ0, labels);
 
-                    auto [coeffsArr0, adArr0] =
-                        Tad0.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                    auto [coeffsArr0, adArr0] = Tad0.expand(dbs);
 
                     for (int i = 0; i < coeffsArr0.size(); i++)
                     {
@@ -449,9 +455,12 @@ namespace U3xU4
   // expand coupled product of annihilation tensors (at's)
   // in terms of annihilation operators (a's) via a phase
   std::pair<std::vector<double>, std::vector<U3xU4::ats_gelfand>>
-  Tat_gelfand::expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-                      u4::WigU4U3_db& wigU4U3db) const
+  Tat_gelfand::expand(sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& wigU3U2db = dbs.wigU3U2db;
+    auto& wigU4U3db = dbs.wigU4U3db;
+
     /* Reminder
     sps3: Gelfand array for [n,0,0]
     sps3_conj: Gelfand array for [n,n,0]
@@ -666,7 +675,7 @@ namespace U3xU4
           U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj, prod_0,
                                  g3Arr0[g3_0], g4Arr0[g4_0]);
 
-          auto [coeffs_0, tensors_0] = Tat.expand(cgcs, wigU3U2db, wigU4U3db);
+          auto [coeffs_0, tensors_0] = Tat.expand(dbs);
 
           for (std::size_t k = 0; k < coeffs_0.size(); k++)
           {
@@ -685,10 +694,13 @@ namespace U3xU4
   // expand in terms of uncoupled products of at's
   std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
             std::vector<U3xU4::ats_phys>>
-  Tat_phys::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
-                   u3::WigU3SO3_db& wigU3SO3db,
-                   u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+  Tat_phys::expand(sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& racah9 = dbs.racah9;
+    auto& wigU3SO3db = dbs.wigU3SO3db;
+    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+
     std::vector<Eigen::RowVectorXd> coeffsArr;
     std::vector<U3xU4::ats_phys> tensorsArr;
 
@@ -851,8 +863,7 @@ namespace U3xU4
                     U3xU4::Tat_phys Tat0(n, prod_ats0, LL0, SS0, TT0, MMT0, JJ0,
                                          MMJ0, labels);
 
-                    auto [coeffsArr0, aArr0] =
-                        Tat0.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                    auto [coeffsArr0, aArr0] = Tat0.expand(dbs);
 
                     for (int i = 0; i < coeffsArr0.size(); i++)
                     {
@@ -894,9 +905,12 @@ namespace U3xU4
   std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
              std::vector<U3xU4::ads_gelfand>, // ad's
              std::vector<U3xU4::ats_gelfand>> // a's
-  Tadat_gelfand::expand(qcx_utils::SO3_CGC& cgcs, u3::WigU3U2_db& wigU3U2db,
-                        u4::WigU4U3_db& wigU4U3db) const
+  Tadat_gelfand::expand(sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& wigU3U2db = dbs.wigU3U2db;
+    auto& wigU4U3db = dbs.wigU4U3db;
+
     std::vector<Eigen::RowVectorXd> coeffs;
     std::vector<U3xU4::ads_gelfand> adsArr;
     std::vector<U3xU4::ats_gelfand> atsArr;
@@ -914,7 +928,7 @@ namespace U3xU4
     {
       U3xU4::Tad_gelfand Tad(n, sps3, sps4, prod_ads, g3, g4);
 
-      auto [coeffs_, adsArr_] = Tad.expand(cgcs, wigU3U2db, wigU4U3db);
+      auto [coeffs_, adsArr_] = Tad.expand(dbs);
 
       for (std::size_t i = 0; i < coeffs_.size(); i++)
       {
@@ -931,7 +945,7 @@ namespace U3xU4
       U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj, prod_ats, g3,
                              g4);
 
-      auto [coeffs_, atsArr_] = Tat.expand(cgcs, wigU3U2db, wigU4U3db);
+      auto [coeffs_, atsArr_] = Tat.expand(dbs);
 
       for (std::size_t i = 0; i < coeffs_.size(); i++)
       {
@@ -1045,12 +1059,12 @@ namespace U3xU4
           // uncouple Tad
           U3xU4::Tad_gelfand Tad(n, sps3, sps4, prod_ads, g3Arr1[g3_1],
                                  g4Arr1[g4_1]);
-          auto [coeffs_ads, adsArr_] = Tad.expand(cgcs, wigU3U2db, wigU4U3db);
+          auto [coeffs_ads, adsArr_] = Tad.expand(dbs);
 
           // uncouple Tat
           U3xU4::Tat_gelfand Tat(n, sps3, sps3_conj, sps4, sps4_conj, prod_ats,
                                  g3Arr2[g3_2], g4Arr2[g4_2]);
-          auto [coeffs_ats, atsArr_] = Tat.expand(cgcs, wigU3U2db, wigU4U3db);
+          auto [coeffs_ats, atsArr_] = Tat.expand(dbs);
 
           for (std::size_t k = 0; k < coeffs_ads.size(); k++)
           {
@@ -1083,10 +1097,13 @@ namespace U3xU4
   std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
              std::vector<U3xU4::ads_phys>,    // ad's
              std::vector<U3xU4::ats_phys>>    // a's
-  Tadat_phys::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah9& racah9,
-                     u3::WigU3SO3_db& wigU3SO3db,
-                     u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+  Tadat_phys::expand(sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& racah9 = dbs.racah9;
+    auto& wigU3SO3db = dbs.wigU3SO3db;
+    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+
     std::vector<Eigen::RowVectorXd> coeffs;
     std::vector<U3xU4::ads_phys> adsArr;
     std::vector<U3xU4::ats_phys> atsArr;
@@ -1095,16 +1112,14 @@ namespace U3xU4
     if (ats == 0)
     {
       U3xU4::Tad_phys Tad(n, prod_ads, LL, SS, TT, MMT, JJ, MMJ, labels);
-      std::tie(coeffs, adsArr) =
-          Tad.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+      std::tie(coeffs, adsArr) = Tad.expand(dbs);
     }
 
     // only ats
     else if (ads == 0)
     {
       U3xU4::Tat_phys Tat(n, prod_ats, LL, SS, TT, MMT, JJ, MMJ, labels);
-      std::tie(coeffs, atsArr) =
-          Tat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+      std::tie(coeffs, atsArr) = Tat.expand(dbs);
     }
 
     else
@@ -1199,13 +1214,11 @@ namespace U3xU4
 
                       U3xU4::Tad_phys Tad(n, prod_ads, LL1, SS1, TT1, MMT1, JJ1,
                                           MMJ1, labels);
-                      auto [coeffs1, adArr] =
-                          Tad.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                      auto [coeffs1, adArr] = Tad.expand(dbs);
 
                       U3xU4::Tat_phys Tat(n, prod_ats, LL2, SS2, TT2, MMT2, JJ2,
                                           MMJ2, labels);
-                      auto [coeffs2, atArr] =
-                          Tat.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+                      auto [coeffs2, atArr] = Tat.expand(dbs);
 
                       for (int i = 0; i < coeffs1.size(); i++)
                       {

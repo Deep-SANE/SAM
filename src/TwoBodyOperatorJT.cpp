@@ -77,12 +77,17 @@ namespace JT
 
   // ME: / na lla jja mmja mmta | O | nc llc jjc mmjc mmtc \
   // 	   \ nb llb jjb mmjb mmtb |	  | nd lld jjb mmjd mmtd /
-  double TwoBodyOperator::sphericalME(
-      int na, int lla, int jja, int mmja, int mmta, int nb, int llb, int jjb,
-      int mmjb, int mmtb, int nc, int llc, int jjc, int mmjc, int mmtc, int nd,
-      int lld, int jjd, int mmjd, int mmtd, qcx_utils::SO3_CGC& cgcs,
-      qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9) const
+  double TwoBodyOperator::sphericalME(int na, int lla, int jja, int mmja,
+                                      int mmta, int nb, int llb, int jjb,
+                                      int mmjb, int mmtb, int nc, int llc,
+                                      int jjc, int mmjc, int mmtc, int nd,
+                                      int lld, int jjd, int mmjd, int mmtd,
+                                      sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& racah = dbs.racah;
+    auto& racah9 = dbs.racah9;
+
     double x = 0.0;
 
     if (name == "L.L") // Two-body part of L.L
@@ -186,19 +191,22 @@ namespace JT
   }
 
   // Antisymmetrized ME
-  double TwoBodyOperator::sphericalME_AS(
-      int na, int lla, int jja, int mmja, int mmta, int nb, int llb, int jjb,
-      int mmjb, int mmtb, int nc, int llc, int jjc, int mmjc, int mmtc, int nd,
-      int lld, int jjd, int mmjd, int mmtd, qcx_utils::SO3_CGC& cgcs,
-      qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9) const
+  double TwoBodyOperator::sphericalME_AS(int na, int lla, int jja, int mmja,
+                                         int mmta, int nb, int llb, int jjb,
+                                         int mmjb, int mmtb, int nc, int llc,
+                                         int jjc, int mmjc, int mmtc, int nd,
+                                         int lld, int jjd, int mmjd, int mmtd,
+                                         sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+
     if (on_the_fly == true)
       return (sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
                           nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd,
-                          cgcs, racah, racah9) -
+                          dbs) -
               sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
                           nd, lld, jjd, mmjd, mmtd, nc, llc, jjc, mmjc, mmtc,
-                          cgcs, racah, racah9)) /
+                          dbs)) /
              4.0;
     else
       return TBME->getME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb, nc,
@@ -398,11 +406,13 @@ namespace JT
       const std::vector<std::vector<int>>& inverse,
       const std::vector<int>& phase, sam::Databases& dbs) const
   {
+    /*
     auto& cgcs = dbs.cgcs;
     auto& racah = dbs.racah;
     auto& racah9 = dbs.racah9;
     auto& wigU3SO3db = dbs.wigU3SO3db;
     auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+    */
 
     /* Coefficients in the expansion of two-body JT-coupled operator.
        The size of this array is equal to rhomax * etamax * kappamax * zetamax.
@@ -417,8 +427,7 @@ namespace JT
     std::vector<double> coeffs_(
         tensor.rhomax * tensor.etamax * tensor.kappamax * tensor.zetamax, 0.0);
 
-    auto [coeffsArr, opsArr] =
-        tensor.expand(cgcs, racah9, wigU3SO3db, wigU4SU2SU2db);
+    auto [coeffsArr, opsArr] = tensor.expand(dbs);
 
     for (int i = 0; i < coeffsArr.size(); i++)
     {
@@ -447,13 +456,13 @@ namespace JT
                            mmts_orig = inverse_permutation(mmts, inverse[k]);
 
         // me needs computing with normal ordering
-        me += phase[k] *
-              sphericalME_AS(ns_orig[0], lls_orig[0], jjs_orig[0], mmjs_orig[0],
-                             mmts_orig[0], ns_orig[1], lls_orig[1], jjs_orig[1],
-                             mmjs_orig[1], mmts_orig[1], ns_orig[3],
-                             lls_orig[3], jjs_orig[3], mmjs_orig[3],
-                             mmts_orig[3], ns_orig[2], lls_orig[2], jjs_orig[2],
-                             mmjs_orig[2], mmts_orig[2], cgcs, racah, racah9);
+        me += phase[k] * sphericalME_AS(ns_orig[0], lls_orig[0], jjs_orig[0],
+                                        mmjs_orig[0], mmts_orig[0], ns_orig[1],
+                                        lls_orig[1], jjs_orig[1], mmjs_orig[1],
+                                        mmts_orig[1], ns_orig[3], lls_orig[3],
+                                        jjs_orig[3], mmjs_orig[3], mmts_orig[3],
+                                        ns_orig[2], lls_orig[2], jjs_orig[2],
+                                        mmjs_orig[2], mmts_orig[2], dbs);
       }
 
       if (std::fabs(me) < 1e-12)
@@ -485,11 +494,13 @@ namespace JT
   std::vector<U3xU4::TwoBodyMultiShellTensor>
   TwoBodyOperator::expand(sam::Databases& dbs)
   {
+    /*
     auto& cgcs = dbs.cgcs;
     auto& racah = dbs.racah;
     auto& racah9 = dbs.racah9;
     auto& wigU3SO3db = dbs.wigU3SO3db;
     auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+    */
 
     if (on_the_fly == false)
       TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
@@ -644,12 +655,12 @@ namespace JT
   }
 
   // Write to binary file
-  void TwoBodyOperator::writeBinary(sam::Databases& db)
+  void TwoBodyOperator::writeBinary(sam::Databases& dbs)
   {
     if (valenceShell > 0)
       throw std::runtime_error("Set valenceShell to 0 for reusability");
 
-    auto tensors = expand(db);
+    auto tensors = expand(dbs);
 
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
