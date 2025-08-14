@@ -59,27 +59,22 @@ namespace JT
     // ME: < na lla jja mmja mmta | O | nb llb jjb mmjb mmtb >
     double sphericalME(int na, int lla, int jja, int mmja, int mmta, int nb,
                        int llb, int jjb, int mmjb, int mmtb,
-                       qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
-                       qcx_utils::SO3_Racah9& racah9) const;
+                       sam::Databases& dbs) const;
 
     // RME:             < na lla jja || O || nb llb jjb >
     // = ME / ( < jb mjb ; J MJ | ja mja > * < 1/2 mtb ; T MT | 1/2 mta > )
     double sphericalRME(int na, int lla, int jja, int nb, int llb, int jjb,
-                        qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
-                        qcx_utils::SO3_Racah9& racah9) const;
+                        sam::Databases& dbs) const;
 
     // compute the coefficients in the sum
     std::pair<bool, std::vector<double>> getTensorStrength(
         int lam0, int mu0, int P10, int P20, int P30, int kappa0, int LL0,
-        int SS0, int na, int nb, qcx_utils::SO3_CGC& cgcs,
-        qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9,
-        u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+        int SS0, int na, int nb,
+        sam::Databases& dbs) const;
 
     // expand into a sum of multi-shell one-body tensors
     std::vector<U3xU4::OneBodyMultiShellTensor>
-    expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
-           qcx_utils::SO3_Racah9& racah9, u3::WigU3SO3_db& wigU3SO3db,
-           u4::WigU4SU2SU2_db& wigU4SU2SU2db) const;
+    expand(sam::Databases& dbs) const;
   };
 
 } // namespace JT

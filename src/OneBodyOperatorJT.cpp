@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cmath>
 
+#include <Databases.h>
 #include <HOutilities.h>
 #include <OneBodyOperatorJT.h>
 
@@ -131,10 +132,12 @@ namespace JT
   double OneBodyOperator::sphericalME(int na, int lla, int jja, int mmja,
                                       int mmta, int nb, int llb, int jjb,
                                       int mmjb, int mmtb,
-                                      qcx_utils::SO3_CGC& cgcs,
-                                      qcx_utils::SO3_Racah& racah,
-                                      qcx_utils::SO3_Racah9& racah9) const
+                                      sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& racah = dbs.racah;
+    auto& racah9 = dbs.racah9;
+
     double x = 0.0;
 
     if (name == "NumberOp") // N operator
@@ -330,10 +333,10 @@ namespace JT
   // = ME / ( < jb mjb ; J MJ | ja mja > * < 1/2 mtb ; T MT | 1/2 mta > )
   double OneBodyOperator::sphericalRME(int na, int lla, int jja, int nb,
                                        int llb, int jjb,
-                                       qcx_utils::SO3_CGC& cgcs,
-                                       qcx_utils::SO3_Racah& racah,
-                                       qcx_utils::SO3_Racah9& racah9) const
+                                       sam::Databases& dbs) const
   {
+    auto& racah9 = dbs.racah9;
+ 
     double x = 0.0;
 
     if (name == "NumberOp") // N operator
@@ -460,12 +463,16 @@ namespace JT
   }
 
   // Using sphericalRME to avoid loops over projection mj and mt
-  std::pair<bool, std::vector<double>> OneBodyOperator::getTensorStrength(
-      int lam0, int mu0, int P10, int P20, int P30, int kappa0, int LL0,
-      int SS0, int na, int nb, qcx_utils::SO3_CGC& cgcs,
-      qcx_utils::SO3_Racah& racah, qcx_utils::SO3_Racah9& racah9,
-      u3::WigU3SO3_db& wigU3SO3db, u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+  std::pair<bool, std::vector<double>>
+  OneBodyOperator::getTensorStrength(int lam0, int mu0, int P10, int P20,
+                                     int P30, int kappa0, int LL0, int SS0,
+                                     int na, int nb, sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+    auto& racah9 = dbs.racah9;
+    auto& wigU3SO3db = dbs.wigU3SO3db;
+    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+
     std::vector<double> x(kappa0, 0.0);
     double sum = 0.0;
     // loop over la
@@ -492,7 +499,7 @@ namespace JT
             if (USE_ONEBODY_SPHERICAL_RME)
             {
               rme =
-                  sphericalRME(na, lla, jja, nb, llb, jjb, cgcs, racah, racah9);
+                  sphericalRME(na, lla, jja, nb, llb, jjb, dbs);
               if (rme == 0.0)
                 continue;
             }
@@ -573,7 +580,7 @@ namespace JT
                   int mmtb = mmta - MMT; // selection rule of sphericalME
 
                   double me = sphericalME(na, lla, jja, mmja, mmta, nb, llb,
-                                          jjb, mmjb, mmtb, cgcs, racah, racah9);
+                                          jjb, mmjb, mmtb, dbs);
                   if (me == 0.0)
                     continue;
 
@@ -623,11 +630,10 @@ namespace JT
   }
 
   std::vector<U3xU4::OneBodyMultiShellTensor>
-  OneBodyOperator::expand(qcx_utils::SO3_CGC& cgcs, qcx_utils::SO3_Racah& racah,
-                          qcx_utils::SO3_Racah9& racah9,
-                          u3::WigU3SO3_db& wigU3SO3db,
-                          u4::WigU4SU2SU2_db& wigU4SU2SU2db) const
+  OneBodyOperator::expand(sam::Databases& dbs) const
   {
+    auto& cgcs = dbs.cgcs;
+
     std::vector<U3xU4::OneBodyMultiShellTensor> tensors;
 
     // loop for ad
@@ -698,7 +704,7 @@ namespace JT
                 auto [ignore, coeff] = getTensorStrength(
                     lam0, mu0, P10, P20, P30, kappa0, LL0, SS0, na,
                     nb, // pv3as, pv3bs, pv4as, pv4bs,
-                    cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+                    dbs);
 
                 if (ignore == false)
                 {

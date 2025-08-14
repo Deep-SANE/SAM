@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 
+#include <Databases.h>
 #include <OneBodyOperatorJT.h>
 
 #ifdef SAM_USE_SLEPC
@@ -13,13 +14,7 @@ int main(int argc, char* argv[])
   SlepcInitialize(&argc, &argv, NULL, NULL);
 #endif
 
-  qcx_utils::SO3_CGC cgcs;
-  qcx_utils::SO3_Racah racah;
-  qcx_utils::SO3_Racah9 racah9;
-  u3::WigU3U2_db wigU3U2db(cgcs);
-  u3::WigU3SO3_db wigU3SO3db(cgcs, wigU3U2db);
-  u4::WigU4U3_db wigU4U3db(cgcs, wigU3U2db);
-  u4::WigU4SU2SU2_db wigU4SU2SU2db(cgcs, wigU3U2db, wigU4U3db);
+  sam::Databases dbs;
 
   // Example 1: number operator
   /*
@@ -65,7 +60,7 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto tensors = KE.expand(cgcs, racah, racah9, wigU3SO3db, wigU4SU2SU2db);
+  auto tensors = KE.expand(dbs);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
