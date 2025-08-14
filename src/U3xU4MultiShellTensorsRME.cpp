@@ -31,7 +31,7 @@ namespace U3xU4
                      f = bra.gamma[0].toU3xU4(tadat.n);
 
         std::size_t rhomax, etamax, // multi for Wigner-Eckart theorem
-        			ai_max = ket.gamma[0].alphamax(), // multi for the ket
+        			      ai_max = ket.gamma[0].alphamax(), // multi for the ket
                     af_max = bra.gamma[0].alphamax(); // multi for the bra
 
         return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs);
@@ -263,20 +263,26 @@ namespace U3xU4
       	rhomax = u3::Rho(ket_omega_last.u3, Omega_last.u3, bra_omega_last.u3),  
       	etamax = u4::Eta(ket_omega_last.u4, Omega_last.u4, bra_omega_last.u4),
       	// multi for Wigner-Eckart theorem for the new tensor
-      	rhomax_new, etamax_new, 
+      	rhomax_new = u3::Rho(ket_omega_semilast.u3, Omega_semilast.u3, bra_omega_semilast.u3), 
+        etamax_new = u4::Eta(ket_omega_semilast.u4, Omega_semilast.u4, bra_omega_semilast.u4), 
       	// multi for Wigner-Eckart theorem for the last tensor
-      	rhomax_last, etamax_last;
+      	rhomax_last = 0, etamax_last = 0;
 
       // RMEs of the individual tensors			  
       auto rmes_new = new_tensor.RME(new_ket, new_bra, dbs);
       if (rmes_new.empty())
         return {};
+      //for (auto& rme_new : rmes_new) std::cout << rme_new << std::endl;
 
       auto rmes_last =
           tadat_last.RME(ket_alphamax_last, ket_gamma_last, bra_alphamax_last,
                          bra_gamma_last, rhomax_last, etamax_last, dbs);
       if (rmes_last.empty())
       	return {};
+      //for (auto& rme_last : rmes_last) std::cout << rme_last << std::endl;
+
+      //std::cout << rhomax_new << ";" << rhomax_last << ";"
+      //          << etamax_new << ";" << etamax_last << std::endl;
 
       // 9-U(3) recoupling coefficients
       auto [allowU3U9, U3U9coeff] = dbs.u3u9db.get(
@@ -291,6 +297,7 @@ namespace U3xU4
       		bra_omega_last.u3.n13(), bra_omega_last.u3.n23(), bra_omega_last.u3.n33());
       if (allowU3U9 == false)
       	return {};
+      //for (auto& u3u9 : U3U9coeff) std::cout << u3u9 << std::endl;
 
       // 9-U(4) recoupling coefficients
       auto [allowU4U9, U4U9coeff] = dbs.u4u9db.get(
@@ -305,6 +312,7 @@ namespace U3xU4
       		bra_omega_last.u4.n14(), bra_omega_last.u4.n24(), bra_omega_last.u4.n34(), bra_omega_last.u4.n44());
       if (allowU4U9 == false)
       	return {};
+      //for (auto& u4u9 : U4U9coeff) std::cout << u4u9 << std::endl;
 
       // multi-dimensional indices
       qcx_utils::NDIndex multis,   	  // for the RMEs of the total tensor
@@ -481,6 +489,9 @@ namespace U3xU4
                 multi_last[4] = rho_last;
                 multi_last[5] = eta_last;
                 auto rme_last = rmes_last[multis_last.to_linear(multi_last)];
+
+                //std::cout << u3u9 << ";" << u4u9 << ";" 
+                //          << rme_new << ";" << rme_last << std::endl; 
 
                 rmes[i] += u3u9 * u4u9 * rme_new * rme_last;
               }
