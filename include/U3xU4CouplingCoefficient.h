@@ -1,11 +1,6 @@
 #pragma once
 
-#include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
-
-#include <U3SO3xU3SO3.h>
-#include <U4SU2SU2xU4SU2SU2.h>
-
+#include <Databases.h>
 #include <U3xU4Irrep.h>
 
 namespace U3xU4
@@ -27,11 +22,14 @@ namespace U3xU4
                         int MMT1, int JJ1, int MMJ1, const U3xU4::irrep& b,
                         int LL2, int SS2, int TT2, int MMT2, int JJ2, int MMJ2,
                         const U3xU4::irrep& c, int LL3, int SS3, int TT3,
-                        int MMT3, int JJ3, int MMJ3, qcx_utils::SO3_CGC& cgcs,
-                        qcx_utils::SO3_Racah9& racah9,
-                        u3::WigU3SO3_db& wigU3SO3db,
-                        u4::WigU4SU2SU2_db& wigU4SU2SU2db)
+                        int MMT3, int JJ3, int MMJ3,
+                        sam::Databases& dbs)
     {
+      auto& cgcs = dbs.cgcs;
+      auto& racah9 = dbs.racah9;
+      auto& wigU3SO3db = dbs.wigU3SO3db;
+      auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+
       double cgcJ = cgcs.compute(JJ1, JJ2, JJ3, MMJ1, MMJ2, MMJ3),
              cgcT = cgcs.compute(TT1, TT2, TT3, MMT1, MMT2, MMT3),
              U9j = racah9.compute(LL1, SS1, JJ1, LL2, SS2, JJ2, LL3, SS3, JJ3),
