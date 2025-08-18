@@ -13,22 +13,18 @@
 #include <qcx_ND.h>
 #include <qcx_tree_generator.h>
 
+#include <U3basis.h>
+#include <U3decomposition.h>
 #include <U3irrep.h>
 
+#include <U4basis.h>
+#include <U4decomposition.h>
 #include <U4irrep.h>
 
 #include <UNtoU3.h>
 
 #include <U4xSU3Irrep.h>
 #include <U4xSU3ManyNucleonBasis.h>
-
-/*
-#include <U3basis.h>
-#include <U3decomposition.h>
-
-#include <U4basis.h>
-#include <U4decomposition.h>
-*/
 
 namespace U4xSU3
 {
