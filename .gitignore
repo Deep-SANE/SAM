@@ -28,6 +28,10 @@ bin/
 
 data/
 
+# Doxygen output:
+
+doxygen/html/
+
 # GDB history file:
 
 .gdb_history
