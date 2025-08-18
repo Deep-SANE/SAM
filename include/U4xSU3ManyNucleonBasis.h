@@ -212,7 +212,7 @@ namespace U4xSU3
       OmegaElement() : etamax_(1), rhomax_(1) { }
 
       OmegaElement(int etamax, const u4::irrep& u4, int rhomax,
-                   const u3::irrep& su3)
+                   const su3::irrep& su3)
           : U4xSU3::irrep(u4, su3),
             etamax_(qcx_utils::itou16(etamax)),
             rhomax_(qcx_utils::itou16(rhomax))
