@@ -1,36 +1,16 @@
 #ifndef SAM_U4XSU3_MANY_NUCLEON_BASIS_H
 #define SAM_U4XSU3_MANY_NUCLEON_BASIS_H
 
-#include <array>
 #include <cassert>
-#include <cmath>
 #include <cstdint>
-#include <iterator>
 #include <limits>
-#include <numeric>
-#include <ranges>
-#include <set>
 #include <span>
-#include <stdexcept>
-#include <tuple>
 #include <utility>
 #include <vector>
 
-#include <U3basis.h>
-#include <U3decomposition.h>
 #include <U3irrep.h>
-
-#include <U4basis.h>
-#include <U4decomposition.h>
 #include <U4irrep.h>
-
-#include <UNtoU3.h>
-
 #include <U4xSU3Irrep.h>
-
-#include <qcx_convert.h>
-#include <qcx_ND.h>
-#include <qcx_tree_generator.h>
 
 #ifdef HAVE_FMT
 #include <fmt/format.h>
@@ -38,119 +18,247 @@
 
 namespace U4xSU3
 {
+  /**
+   * Class that represents the many nucleon basis.
+   */
   class ManyNucleonBasis
   {
   public:
-    ManyNucleonBasis(int Z, int N, int Nmax, int JJ)
-        : A_(Z + N),
-          MMT_(std::abs(Z - N)),
-          Nmax_(Nmax),
-          JJ_(JJ),
-          n0hw_(Nmax % 2),
-          dim_(0)
-    { }
+    // **** PUBLIC MEMBER TYPES ****
 
-    void construct()
-    {
-      dim_ = 0;
-
-      shells_.clear();
-      gamma_elements_.clear();
-      gammas_.clear();
-      omega_elements_u4_.clear();
-      omegas_u4_.clear();
-      omega_elements_su3_.clear();
-      omegas_su3_.clear();
-      irreps_.clear();
-
-      generate_distributions();
-      generate_gammas();
-    }
-    
     // (1) distributions:
 
+    /**
+     * Type for storing a number of particles in a shell.
+     */
     using DistributionElement = uint16_t;
-
-  private:
-    // the following definitions need to be here:
-
-    auto n_distributions() const
-    {
-      assert(shells_.size() % D_ == 0);
-      return shells_.size() / D_;
-    }
-
-    auto distribution(size_t dist_id) const
-    {
-      auto end_index = D_ * (dist_id + 1) - 1;
-      assert(end_index < shells_.size());
-
-      return std::span(shells_.data() + D_ * dist_id, D_);
-    }
-
-  public:
 
     // (2) gammas:
 
+    /**
+     * Class that represent a single basis gamma element.
+     */
     class GammaElement : public U4xSU3::irrep
     {
       uint16_t alphamax_; // U(N)->U(3) reduction multiplicity
 
     public:
-      GammaElement() : alphamax_(1) { }
+      /**
+       * Default constructor.
+       *
+       * Creates a vaccum gamma element, where:
+       *   u4 = [0,0,0,0],
+       *   alphamax = 1,
+       *   su3 = (0, 0).
+       */
+      GammaElement();
 
-      GammaElement(const u4::irrep& u4, int alphamax, const su3::irrep& su3)
-          : U4xSU3::irrep(u4, su3), alphamax_(qcx_utils::itou16(alphamax))
-      { }
+      /**
+       * Consctuctor that creates a gamma element with given parameters.
+       *
+       * @param u4 U(4) irrep.
+       * @param alphamax U(N)->U(3) reduction multiplicity.
+       * @param su3 SU(3) irrep.
+       */
+      GammaElement(const u4::irrep& u4, int alphamax, const su3::irrep& su3);
 
-      void alphamax(int am) { alphamax_ = qcx_utils::itou16(am); }
-      int alphamax() const { return alphamax_; }
+      /**
+       * Sets U(N)->(3) reduction multiplicity.
+       *
+       * @param am U(N)->U(3) reduction multiplicity.
+       */
+      void alphamax(int am);
+
+      /**
+       * Returns U(N)->U(3) recution multiplicity.
+       *
+       * @return U(N)->U(3) recuction multiplicity.
+       */
+      int alphamax() const;
     };
-
-  private:
-    // the following definitions need to be here:
-
-    auto n_gammas() const { return gammas_.size(); }
-
-    auto gamma(size_t gamma_id) const
-    {
-      assert(gamma_id < gammas_.size());
-
-      auto begin_index = gammas_[gamma_id].first;
-      auto end_index = gammas_[gamma_id].second;
-
-      assert(end_index <= gamma_elements_.size());
-
-      return std::span(gamma_elements_.data() + begin_index,
-                       gamma_elements_.data() + end_index);
-    }
-
-  public:
 
     // (3) omegas:
 
   private:
-    // the following definitions need to be here:
-    
+    // the following declarations must precede OmegaElement class:
+    class OmegaElementU4;
+    class OmegaElementSU3;
+
+  public:
+    /**
+     * Class that represent a single basis omega element.
+     */
+    class OmegaElement : public U4xSU3::irrep
+    {
+      uint16_t etamax_; // U(4) coupling multiplicity
+      uint16_t rhomax_; // SU(3) coupling multiplicity
+
+    public:
+      /**
+       * Default constructor.
+       *
+       * Creates a vaccum omega element, where:
+       *   etamax = 1,
+       *   u4 = [0,0,0,0],
+       *   rhomax = 1,
+       *   su3 = (0, 0).
+       */
+      OmegaElement();
+
+      /**
+       * Consctuctor that creates an omega element with given parameters.
+       *
+       * @param etamax U(4) couling multiplicity.
+       * @param u4 U(4) irrep.
+       * @param rhomax SU(3) couling multiplicity.
+       * @param su3 SU(3) irrep.
+       */
+      OmegaElement(int etamax, const u4::irrep& u4, int rhomax,
+                   const su3::irrep& su3);
+
+      /**
+       * Consctuctor that creates an omega element from its U(4) and SU(3)
+       * parts.
+       *
+       * @param oe_u4 U(4) part.
+       * @param oe_su3 SU(3) part.
+       */
+      OmegaElement(const OmegaElementU4& oe_u4, const OmegaElementSU3& oe_su3);
+
+      /**
+       * Consctuctor that creates an omega element from a gamma element.
+       *
+       * Irreps are copied, multiplicities are set to 1.
+       *
+       * @param ge Gamma element.
+       */
+      OmegaElement(const GammaElement& ge);
+
+      /**
+       * Sets U(4) coupling multiplicity.
+       *
+       * @param em U(4) coupling multiplicity.
+       */
+      void etamax(int em);
+
+      /**
+       * Sets SU(3) coupling multiplicity.
+       *
+       * @param rm SU(3) coupling multiplicity.
+       */
+      void rhomax(int rm);
+
+      /**
+       * Returns U(4) coupling multiplicity.
+       *
+       * @return U(4) coupling multiplicity.
+       */
+      int etamax() const;
+
+      /**
+       * Returns SU(3) coupling multiplicity.
+       *
+       * @return SU(3) coupling multiplicity.
+       */
+      int rhomax() const;
+    };
+
+    // (4) irreps:
+
+    /**
+     * Single basis irrep.
+     */
+    struct Irrep
+    {
+      std::span<const DistributionElement> dist;
+      std::span<const GammaElement> gamma;
+      std::span<const OmegaElement> omega;
+      uint64_t offset;
+    };
+
+    /**
+     * Database of basis irreps.
+     */
+    class IrrepDB
+    {
+      const ManyNucleonBasis& basis_;
+
+      // storage for resulting combined omega elements:
+      std::vector<OmegaElement> omega_;
+
+    public:
+      /**
+       * Constructor.
+       *
+       * @param basis Basis to which irrep database is related.
+       */
+      IrrepDB(const ManyNucleonBasis& basis);
+
+      /**
+       * Size of the irrep database.
+       *
+       * @return Number of basis irreps.
+       */
+      auto size() const { return basis_.n_irreps(); }
+
+      /**
+       * Gets a basis irrep.
+       *
+       * @param irrep_id ID of the irrep to be returned.
+       *
+       * @return A required basis irrep.
+       */
+      Irrep operator[](size_t irrep_id);
+    };
+
+    // **** PUBLIC MEMBER FUNCTIONS  ****
+
+    /**
+     * Constructor that sets the model space parameters.
+     *
+     * @param Z Number of protons.
+     * @param N Number of neutrons.
+     * @param Nmax Nmax parameter.
+     * @param JJ Total angular momemtum J multiplied by 2.
+     */
+    ManyNucleonBasis(int Z, int N, int Nmax, int JJ);
+
+    /**
+     * Basis construction.
+     */
+    void construct();
+
+    /**
+     * Database of basis irreps.
+     *
+     * @returns Database of basis irreps.
+     */
+    auto irreps() const { return IrrepDB(*this); }
+
+    /**
+     * Basis dimension.
+     *
+     * @returns Dimension of the basis.
+     */
+    auto dim() const { return dim_; }
+
+  private:
+    // **** PRIVATE MEMBER TYPES ****
+
     class OmegaElementU4
     {
       uint16_t etamax_; // U(4) coupling multiplicity
       u4::irrep u4_;
 
     public:
-      OmegaElementU4() : etamax_(1) { }
+      OmegaElementU4();
+      OmegaElementU4(int etamax, const u4::irrep& u4);
 
-      OmegaElementU4(int etamax, const u4::irrep& u4)
-          : etamax_(qcx_utils::itou16(etamax)), u4_(u4)
-      { }
+      void etamax(int em);
+      int etamax() const;
 
-      void etamax(int em) { etamax_ = qcx_utils::itou16(em); }
-      int etamax() const { return etamax_; }
-
-      void u4(const u4::irrep& u4) { u4_ = u4; }
-      const u4::irrep& u4() const { return u4_; }
-
-      // bool vacuum() const { return u4_.zero(); }
+      void u4(const u4::irrep& u4);
+      const u4::irrep& u4() const;
     };
 
     class OmegaElementSU3
@@ -159,185 +267,27 @@ namespace U4xSU3
       su3::irrep su3_;
 
     public:
-      OmegaElementSU3() : rhomax_(1) { }
+      OmegaElementSU3();
+      OmegaElementSU3(int rhomax, const su3::irrep& su3);
 
-      OmegaElementSU3(int rhomax, const su3::irrep& su3)
-          : rhomax_(qcx_utils::itou16(rhomax)), su3_(su3)
-      { }
+      void rhomax(int rm);
+      int rhomax() const;
 
-      void rhomax(int rm) { rhomax_ = qcx_utils::itou16(rm); }
-      int rhomax() const { return rhomax_; }
-
-      void su3(const su3::irrep& su3) { su3_ = su3; }
-      const su3::irrep& su3() const { return su3_; }
-
-      // bool vacuum() const { return su3_.zero(); }
+      void su3(const su3::irrep& su3);
+      const su3::irrep& su3() const;
     };
 
-    auto omega_u4(size_t omega_u4_id) const
+    struct InternalIrrep
     {
-      assert(omega_u4_id != INVALID_OMEGA_ID);
-      assert(omega_u4_id < omegas_u4_.size());
-
-      auto begin_index = omegas_u4_[omega_u4_id].first;
-      auto end_index = omegas_u4_[omega_u4_id].second;
-
-      assert(end_index <= omega_elements_u4_.size());
-
-      return std::span(omega_elements_u4_.data() + begin_index,
-                       omega_elements_u4_.data() + end_index);
-    }
-
-    auto omega_su3(size_t omega_su3_id) const
-    {
-      assert(omega_su3_id != INVALID_OMEGA_ID);
-      assert(omega_su3_id < omegas_su3_.size());
-
-      auto begin_index = omegas_su3_[omega_su3_id].first;
-      auto end_index = omegas_su3_[omega_su3_id].second;
-
-      assert(end_index <= omega_elements_su3_.size());
-
-      return std::span(omega_elements_su3_.data() + begin_index,
-                       omega_elements_su3_.data() + end_index);
-    }
-
-  public:
-    class OmegaElement : public U4xSU3::irrep
-    {
-      uint16_t etamax_; // U(4) coupling multiplicity
-      uint16_t rhomax_; // SU(3) coupling multiplicity
-
-    public:
-      OmegaElement() : etamax_(1), rhomax_(1) { }
-
-      OmegaElement(int etamax, const u4::irrep& u4, int rhomax,
-                   const su3::irrep& su3)
-          : U4xSU3::irrep(u4, su3),
-            etamax_(qcx_utils::itou16(etamax)),
-            rhomax_(qcx_utils::itou16(rhomax))
-      { }
-
-      OmegaElement(const OmegaElementU4& oe_u4, const OmegaElementSU3& oe_su3)
-          : U4xSU3::irrep(oe_u4.u4(), oe_su3.su3()),
-            etamax_(oe_u4.etamax()),
-            rhomax_(oe_su3.rhomax())
-      { }
-
-      OmegaElement(const GammaElement& ge)
-          : U4xSU3::irrep(ge), etamax_(1), rhomax_(1)
-      { }
-
-      void etamax(int em) { etamax_ = qcx_utils::itou16(em); }
-      void rhomax(int rm) { rhomax_ = qcx_utils::itou16(rm); }
-
-      int etamax() const { return etamax_; }
-      int rhomax() const { return rhomax_; }
-    };
-
-  private:
-    // the following definition need to be here:
-
-    // class for combining U(4) and SU(3) omega parts:
-    class OmegaCombiner
-    {
-      // storage for resulting combined omega elements:
-      std::vector<OmegaElement> omega_;
-
-    public:
-      auto combine(std::span<const OmegaElementU4> omega_u4,
-                   std::span<const OmegaElementSU3> omega_su3)
-      {
-        assert(omega_u4.size() == omega_su3.size());
-
-        omega_.clear();
-
-        for (size_t i = 0; i < omega_u4.size(); i++)
-          omega_.emplace_back(omega_u4[i], omega_su3[i]);
-
-        return std::span(std::as_const(omega_));
-      }
-    };
-
-  public:
-
-    // (4) irreps:
-
-    auto n_irreps() const { return irreps_.size(); }
-
-    struct Irrep
-    {
-      std::span<const DistributionElement> dist;
-      std::span<const GammaElement> gamma;
-      std::span<const OmegaElement> omega;
+      uint32_t dist_id;
+      uint32_t gamma_id;
+      uint32_t omega_u4_id;
+      uint32_t omega_su3_id;
       uint64_t offset;
-      // std::span<const uint16_t> active_shells; 
     };
 
-    class IrrepDB
-    {
-      const ManyNucleonBasis& basis_;
-      OmegaCombiner oc_;
-      // std::vector<uint16_t> active_shells;
+    // **** PRIVATE MEMBER VARIABLES ****
 
-    public:
-      IrrepDB(const ManyNucleonBasis& basis) : basis_(basis) { }
-
-      auto size() const { return basis_.n_irreps(); }
-
-      Irrep operator[](size_t irrep_id) 
-      {
-        assert(irrep_id < basis_.irreps_.size());
-
-        auto [dist_id, gamma_id, omega_u4_id, omega_su3_id, offset] =
-            basis_.irreps_[irrep_id];
-
-        auto dist = basis_.distribution(dist_id);
-        auto gamma = basis_.gamma(gamma_id);
-
-        assert(gamma.size() > 0);
-
-        // transform dist to active shells:
-        /*
-        active_shells.clear();
-        for (size_t d = 0; d < dist.size(); d++)
-          if (dist[d] != 0)
-            active_shells.push_back(d);
-
-        assert(gamma.size() == active_shells.size());
-        */
-
-        if (gamma.size() == 1)
-        {
-          assert(omega_u4_id == INVALID_OMEGA_ID);
-          assert(omega_su3_id == INVALID_OMEGA_ID);
-
-          return {dist, gamma, std::span<const OmegaElement>(), offset};
-        }
-        else
-        {
-          auto omega_u4 = basis_.omega_u4(omega_u4_id);
-          auto omega_su3 = basis_.omega_su3(omega_su3_id);
-
-          assert(omega_u4.size() == gamma.size() - 1);
-          assert(omega_su3.size() == gamma.size() - 1);
-
-          auto omega = oc_.combine(omega_u4, omega_su3);
-
-          return {dist, gamma, omega, offset};
-        }
-      }
-
-   // friend class IrrepDB;
-    };
-
-    auto irreps() const { return IrrepDB(*this); }
-
-    // (5) others:
-
-    auto dim() const { return dim_; }
-
-  private:
     int A_;   // number of nucleons; equal to (Z+N)
     int MMT_; // proton-neutron "difference"; equal to (abs(Z-N))
     int Nmax_;
@@ -345,7 +295,7 @@ namespace U4xSU3
 
     int n0hw_; // lowest considered HO shell; 0 for even Nmax, 1 for odd Nmax
 
-    size_t dim_;
+    size_t dim_; // basis dimension
 
     // (1) distributions:
 
@@ -365,7 +315,7 @@ namespace U4xSU3
     std::vector<std::pair<size_t, size_t>> gammas_;
 
     // (3) omegas:
-    
+
     std::vector<OmegaElementU4> omega_elements_u4_;
     std::vector<std::pair<size_t, size_t>> omegas_u4_;
 
@@ -377,383 +327,195 @@ namespace U4xSU3
 
     // (4) irreps:
 
-    struct InternalIrrep
-    {
-      uint32_t dist_id;
-      uint32_t gamma_id;
-      uint32_t omega_u4_id;
-      uint32_t omega_su3_id;
-      uint64_t offset;
-    };
-
     std::vector<InternalIrrep> irreps_;
+
+    // **** PRIVATE MEMBER FUNCTIONS ****
 
     // (1) distributions:
 
-    void generate_distributions()
+    /**
+     * Number of basis distributions.
+     *
+     * @return Number of distributions.
+     */
+    auto n_distributions() const
     {
-      // configuration of a single shell:
-      using ShellConfig = std::vector<DistributionElement>;
+      assert(shells_.size() % D_ == 0);
+      return shells_.size() / D_;
+    }
 
-      // shell configurations for all subspaces:
-      std::vector<std::set<ShellConfig>> subspaces_configs(Nmax_ + 1);
+    /**
+     * Returns a distribution by ID.
+     *
+     * @param dist_id ID of the required distribution.
+     *
+     * @return Required distribution.
+     */
+    auto distribution(size_t dist_id) const
+    {
+      auto end_index = D_ * (dist_id + 1) - 1;
+      assert(end_index < shells_.size());
 
-      // (1) generate the (unique) shell configuration for 0hw:
-
-      ShellConfig v0hw_config;
-
-      assert(A_ > 0);
-
-      int nParticlesLeft = A_;
-      int n = 0; // shell index
-
-      while (nParticlesLeft > 0)
-      {
-        // number of nucleons that can fit into nth HO shell:
-        int N = 2 * (n + 1) * (n + 2);
-
-        auto place = std::min(nParticlesLeft, N);
-        assert(place > 0);
-
-        v0hw_config.push_back(place);
-        nParticlesLeft -= place;
-        n++;
-      }
-
-      n--; // n: last occuppied shell for 0hw subspace
-      assert(n >= 0);
-
-      n0max_ = n;
-      nmax_ = n0max_ + Nmax_;
-      D_ = nmax_ + 1;
-
-      v0hw_config.resize(D_);
-
-      // there is only one 0hw shell configuration:
-      subspaces_configs[0].insert(std::move(v0hw_config));
-
-      // (2) generate shell configurations for subspaces 1hw, 2hw, ..., Nmaxhw:
-
-      for (size_t Nsubspace = 1; Nsubspace <= Nmax_; Nsubspace++)
-      {
-        auto& subspace_configs = subspaces_configs[Nsubspace];
-        const auto& seed_subspace = subspaces_configs[Nsubspace - 1];
-
-        for (const auto& seed_config : seed_subspace)
-        {
-          // try to raise 1 nucleon for each occupied shell:
-          for (size_t q = 0; q < nmax_; q++)
-          {
-            auto new_config(seed_config);
-
-            // number of nucleons that can fit into next HO shell:
-            auto N = 2 * (q + 2) * (q + 3);
-
-            // if it is possible to raise a nucleon:
-            if (new_config[q] && new_config[q + 1] + 1 <= N)
-            {
-              // raise a nucleon:
-              new_config[q] -= 1;
-              new_config[q + 1] += 1;
-
-              // add to subspace configurations:
-              subspace_configs.insert(std::move(new_config));
-            }
-          }
-        }
-      }
-
-      // (3) add the generated Nmax-relevant configurations to the basis:
-
-      for (size_t Nsubspace = n0hw_; Nsubspace <= Nmax_; Nsubspace += 2)
-        for (const auto& subspace_config : subspaces_configs[Nsubspace])
-          std::ranges::copy(subspace_config, std::back_inserter(shells_));
+      return std::span(shells_.data() + D_ * dist_id, D_);
     }
 
     // (2) gammas:
-    
-    void generate_gammas()
+
+    /**
+     * Number of gammas in the basis.
+     *
+     * @return Number of gammas.
+     */
+    auto n_gammas() const { return gammas_.size(); }
+
+    /**
+     * Returns a gamma by ID.
+     *
+     * @param gamma_id ID of the required gamma.
+     * 
+     * @return Required gamma.
+     */
+    auto gamma(size_t gamma_id) const
     {
-      for (size_t dist_id = 0; dist_id < n_distributions(); dist_id++)
-        generate_gammas_for_distribution(dist_id);
-    }
+      assert(gamma_id < gammas_.size());
 
-    void generate_gammas_for_distribution(size_t dist_id)
-    {
-      assert(dist_id < n_distributions());
+      auto begin_index = gammas_[gamma_id].first;
+      auto end_index = gammas_[gamma_id].second;
 
-      const auto dist = distribution(dist_id);
+      assert(end_index <= gamma_elements_.size());
 
-      // (1) generate gamma elements for all non-vacant shells:
-
-      // gamma elements for non-vacant shells:
-      std::vector<std::vector<GammaElement>> shells_elements;
-
-      for (int n = 0; n < dist.size(); n++)
-      {
-        int A = dist[n];
-
-        if (A == 0)
-          continue;
-
-        std::vector<GammaElement> shell_elements;
-        generate_single_shell_gamma_elements(n, A, shell_elements);
-        shells_elements.push_back(std::move(shell_elements));
-      }
-
-      // (2) gammas = Cartesian product of single-shell gamma elements:
-
-      qcx_utils::NDSpan<GammaElement> nds;
-
-      for (const auto& shell_elements : shells_elements)
-        nds.add_dimension(shell_elements);
-
-      auto n_combinations = nds.cardinality();
-      auto n_active_shells = shells_elements.size();
-
-      assert(n_active_shells > 0);
-
-      std::vector<GammaElement> gamma(n_active_shells);
-
-      // add gammas to basis:
-      for (unsigned index = 0; index < n_combinations; index++)
-      {
-        nds.extract_multi_element(index, gamma);
-
-        // add gamma to basis:
-
-        auto gamma_id = gammas_.size();
-
-        auto begin = gamma_elements_.size();
-        auto end = begin + gamma.size();
-        gammas_.emplace_back(begin, end);
-
-        std::ranges::copy(gamma, std::back_inserter(gamma_elements_));
-
-        // a single gamma element case:
-        if (n_active_shells == 1)
-        {
-          const auto& ge = gamma[0];
-
-          auto dim_gamma = ge.alphamax() * compute_dim(ge.u4(), ge.su3());
-
-          if (dim_gamma > 0)
-          {
-            // add irrep to basis:
-            irreps_.emplace_back(dist_id, gamma_id, INVALID_OMEGA_ID,
-                                 INVALID_OMEGA_ID, dim_);
-
-            dim_ += dim_gamma;
-          }
-        }
-        else
-        {
-          // generate omegas for gamma:
-          generate_omegas_for_gamma(dist_id, gamma_id);
-        }
-      }
-    }
-
-    void generate_single_shell_gamma_elements(
-        int n, int A, std::vector<GammaElement>& gamma_elements)
-    {
-      std::vector<u4::irrep> u4_irreps;
-      generate_U4_irreps(n, A, u4_irreps);
-
-      untou3::UNtoU3<4> gen;
-      gen.set_shell(n);
-      int N = (n + 1) * (n + 2) / 2;
-
-      gamma_elements.clear();
-
-      for (auto u4 : u4_irreps)
-      {
-        gen.reduceU4(u4, N);
-        auto res = gen.irreps();
-
-        for (const auto& [u3, alphamax] : res)
-          gamma_elements.emplace_back(u4, alphamax, u3);
-      }
-    }
-
-    void generate_U4_irreps(int n, int A, std::vector<u4::irrep>& u4_irreps)
-    {
-      int nsps = (n + 1) * (n + 2) / 2;
-
-      // if (A > 4 * nsps) return;
-      assert(A <= 4 * nsps);
-
-      for (int n14 = std::min(A, nsps); n14 >= 0; --n14)
-      {
-        for (int n24 = n14; n24 >= 0; --n24)
-        {
-          if (n14 + n24 > A)
-            continue;
-
-          for (int n34 = n24; n34 >= 0; --n34)
-          {
-            if (n14 + n24 + n34 > A)
-              continue;
-
-            int n44 = A - (n14 + n24 + n34);
-
-            if (n44 <= n34 && n44 >= 0)
-              u4_irreps.emplace_back(n14, n24, n34, n44);
-          }
-        }
-      }
-    }
-
-    int compute_dim(const u4::irrep& u4, const su3::irrep& su3)
-    {
-      int dim = 0;
-
-      auto u4_basis = u4::physicalBasis(u4);
-
-      for (auto const& labels : u4_basis)
-      {
-        if (labels.TT >= MMT_)
-        {
-          int zeta = labels.zeta;
-          int SS = labels.SS;
-
-          dim += zeta * compute_dim(su3, SS);
-        }
-      }
-
-      return dim;
-    }
-
-    int compute_dim(const su3::irrep& su3, int SS)
-    {
-      int dim = 0;
-
-      for (int L = 0; L <= su3.lambda() + su3.mu(); L++)
-      {
-        int k0max = su3::kmax(su3, L);
-
-        if (k0max)
-        {
-          for (size_t jj = std::abs(2 * L - SS); jj <= (2 * L + SS); jj += 2)
-            if ((jj == JJ_) || (JJ_ == -1))
-              dim += k0max;
-        }
-      }
-
-      return dim;
+      return std::span(gamma_elements_.data() + begin_index,
+                       gamma_elements_.data() + end_index);
     }
 
     // (3) omegas:
 
-    void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id)
+    /**
+     * Returns a U(4) omega by ID.
+     *
+     * @param omega_u4_id ID of the required U(4) omega.
+     * 
+     * @return Required U(4) omega.
+     */
+    auto omega_u4(size_t omega_u4_id) const
     {
-      auto gamma = this->gamma(gamma_id);
-      auto gamma_size = gamma.size();
-      assert(gamma_size > 1);
-      auto omega_size = gamma_size - 1;
+      assert(omega_u4_id != INVALID_OMEGA_ID);
+      assert(omega_u4_id < omegas_u4_.size());
 
-      // (1) gamma2omega for U(4):
+      auto begin_index = omegas_u4_[omega_u4_id].first;
+      auto end_index = omegas_u4_[omega_u4_id].second;
 
-      std::vector<std::vector<OmegaElementU4>> omegas_u4;
+      assert(end_index <= omega_elements_u4_.size());
 
-      auto couple_u4 = [](const auto& first, const auto& second, auto& stack)
-      {
-        auto [u4s, mults] = u4::decomposition(first.u4(), second.u4());
-
-        for (size_t i = 0; i < u4s.size(); i++)
-          stack.emplace(mults[i], u4s[i]);
-      };
-
-      qcx_utils::tree_generator<OmegaElementU4> te_u4;
-
-      te_u4.generate(gamma, couple_u4, omegas_u4);
-
-      // add generated omegas into basis:
-
-      auto first_omega_u4_id = omegas_u4_.size();
-
-      for (const auto& omega_u4 : omegas_u4)
-      {
-        auto begin = omega_elements_u4_.size();
-        auto end = begin + omega_size;
-
-        omegas_u4_.emplace_back(begin, end);
-
-        std::ranges::copy(omega_u4, std::back_inserter(omega_elements_u4_));
-      }
-
-      // (2) gamma2omega for SU(3):
-
-      std::vector<std::vector<OmegaElementSU3>> omegas_su3;
-
-      auto couple_su3 = [](const auto& first, const auto& second, auto& stack)
-      {
-        auto [su3s, mults] = su3::decomposition(first.su3(), second.su3());
-
-        for (size_t i = 0; i < su3s.size(); i++)
-          stack.emplace(mults[i], su3s[i]);
-      };
-
-      qcx_utils::tree_generator<OmegaElementSU3> te_su3;
-
-      te_su3.generate(gamma, couple_su3, omegas_su3);
-
-      // add generated omegas into basis:
-
-      auto first_omega_su3_id = omegas_su3_.size();
-
-      for (const auto& omega_su3 : omegas_su3)
-      {
-        auto begin = omega_elements_su3_.size();
-        auto end = begin + omega_size;
-
-        omegas_su3_.emplace_back(begin, end);
-
-        std::ranges::copy(omega_su3, std::back_inserter(omega_elements_su3_));
-      }
-
-      // (3) add irreps:
-
-      // total gamma multiplicity:
-      uint32_t mult_gamma = 1;
-      for (const auto& ge : gamma)
-        mult_gamma *= ge.alphamax();
-
-      for (size_t i = 0; i < omegas_u4.size(); i++)
-      {
-        const auto& omega_u4 = omegas_u4[i];
-        const auto& last_oe_u4 = omega_u4.back();
-        auto omega_id_u4 = first_omega_u4_id + i;
-
-        uint32_t mult_u4 = 1;
-        for (const auto& oe_u4 : omega_u4)
-          mult_u4 *= oe_u4.etamax();
-
-        for (size_t j = 0; j < omegas_su3.size(); j++)
-        {
-          const auto& omega_su3 = omegas_su3[j];
-          const auto& last_oe_su3 = omega_su3.back();
-          auto omega_id_su3 = first_omega_su3_id + j;
-
-          uint32_t mult_su3 = 1;
-          for (const auto& oe_su3 : omega_su3)
-            mult_su3 *= oe_su3.rhomax();
-
-          auto mult = mult_gamma * mult_u4 * mult_su3;
-          auto dim_irrep = compute_dim(last_oe_u4.u4(), last_oe_su3.su3());
-          auto dim_omega = mult * dim_irrep;
-
-          if (dim_omega > 0)
-          {
-            // add irrep to basis:
-            irreps_.emplace_back(dist_id, gamma_id, omega_id_u4, omega_id_su3,
-                                 dim_);
-
-            dim_ += dim_omega;
-          }
-        }
-      }
+      return std::span(omega_elements_u4_.data() + begin_index,
+                       omega_elements_u4_.data() + end_index);
     }
+
+    /**
+     * Returns a SU(3) omega by ID.
+     *
+     * @param omega_su3_id ID of the required SU(3) omega.
+     * 
+     * @return Required SU(3) omega.
+     */
+    auto omega_su3(size_t omega_su3_id) const
+    {
+      assert(omega_su3_id != INVALID_OMEGA_ID);
+      assert(omega_su3_id < omegas_su3_.size());
+
+      auto begin_index = omegas_su3_[omega_su3_id].first;
+      auto end_index = omegas_su3_[omega_su3_id].second;
+
+      assert(end_index <= omega_elements_su3_.size());
+
+      return std::span(omega_elements_su3_.data() + begin_index,
+                       omega_elements_su3_.data() + end_index);
+    }
+
+    // (4) irreps:
+
+    /**
+     * Number of basis irreps.
+     * 
+     * @return Number of irreps in the basis.
+     */
+    size_t n_irreps() const;
+
+    // (5) basis construction distributions:
+
+    /**
+     * Generates model space distributions.
+     *
+     * Generate all possible distributions of the model space according to A and
+     * Nmax.
+     */
+    void generate_distributions();
+
+    /**
+     * Generates all the basis gammas.
+     */
+    void generate_gammas();
+
+    /**
+     * Generates gammas (and omegas) for a specific basis distribution.
+     *
+     * @param dist_id ID of the required distribution for which to generate
+     * gammas.
+     */
+    void generate_gammas_for_distribution(size_t dist_id);
+
+    /**
+     * Generates gamma elements for a single shell.
+     *
+     * @param n Shell number.
+     * @param A Number of particles in the shell.
+     * @param gamma_elements Resulting vector of gamma elements.
+     *
+     * @note To avoid repetitive memory allocations, the vector where the
+     * generated gamma elements are stored is passed by reference.
+     */
+    void generate_single_shell_gamma_elements(
+        int n, int A, std::vector<GammaElement>& gamma_elements);
+
+    /**
+     * Generates U(4) irreps for A particles in nth shell.
+     *
+     * @param n Shell number.
+     * @param A Number of particles in teh shell.
+     * @param u4_irreps Resulting vector of U(4) irreps.
+     *
+     * @note To avoid repetitive memory allocations, the vector where the
+     * generated U(4) irreps are stored is passed by reference.
+     */
+    void generate_U4_irreps(int n, int A, std::vector<u4::irrep>& u4_irreps);
+
+    /**
+     * Calculates the dimension of a pair of U(4) and SU(3) irreps.
+     *
+     * @param u4 U(4) irrep.
+     * @param su3 SU(3) irrep.
+     *
+     * @return Dimension.
+     */
+    int compute_dim(const u4::irrep& u4, const su3::irrep& su3);
+
+    /**
+     * Calculates the dimension of an SU(3) irrep and spin.
+     *
+     * @param su3 SU(3) irrep.
+     * @param SS Spin multiplied by 2.
+     *
+     * @return Dimension.
+     */
+    int compute_dim(const su3::irrep& su3, int SS);
+
+    /**
+     * Generates omegas for a gamma.
+     *
+     * @param dist_id ID of the gamma distribution.
+     * @param gamma_id ID of the required gamma for which to generate omegas.
+     */
+    void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id);
   };
 
   // structure for irrep used outside of the basis class:
@@ -887,7 +649,7 @@ namespace U4xSU3
         // add element to gamma2:
         o2.gamma.push_back(o2.dist[d] == 0 ? ge_vacuum : i2.gamma[g2++]);
         o2.gamma_shells.push_back(d);
-        
+
         // add element to omega2:
         if (o2.gamma.size() == 2)
           // couple first 2 gamma elements:
@@ -961,22 +723,23 @@ public:
 };
 */
 
-// formatter for OmegaElement:
+    // formatter for OmegaElement:
 
-template <>
-class fmt::formatter<U4xSU3::ManyNucleonBasis::OmegaElement>
-{
-public:
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <>
+    class fmt::formatter<U4xSU3::ManyNucleonBasis::OmegaElement>
+    {
+    public:
+      constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-  template <typename Context>
-  constexpr auto format(const U4xSU3::ManyNucleonBasis::OmegaElement& oe,
-                        Context& ctx) const
-  {
-    return format_to(ctx.out(), "{}[{},{},{},{}]{}({},{})", oe.etamax(),
-                     oe.u4().n14(), oe.u4().n24(), oe.u4().n34(), oe.u4().n44(),
-                     oe.rhomax(), oe.su3().lambda(), oe.su3().mu());
-  }
+      template <typename Context>
+      constexpr auto format(const U4xSU3::ManyNucleonBasis::OmegaElement& oe,
+                            Context& ctx) const
+      {
+        return format_to(ctx.out(), "{}[{},{},{},{}]{}({},{})", oe.etamax(),
+                         oe.u4().n14(), oe.u4().n24(), oe.u4().n34(),
+                         oe.u4().n44(), oe.rhomax(), oe.su3().lambda(),
+                         oe.su3().mu());
+      }
 };
 
 #endif
