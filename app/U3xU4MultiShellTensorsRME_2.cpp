@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 
   print("\nRMEs:\n");
   for (const auto& rme : RMEs)
-    print("{}\n", rme);
+    print("{: .8f}\n", rme);
 
 #ifdef SAM_USE_SLEPC
   SlepcFinalize();
