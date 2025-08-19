@@ -14,6 +14,10 @@
 #include <U3xU4SingleShellTensors.h>
 #include <U4xSU3ManyNucleonBasis.h>
 
+#ifdef HAVE_FMT
+#include <fmt/format.h>
+#endif
+
 namespace U3xU4
 {
   /* Class for holding one-body multi-shell tensors
@@ -200,19 +204,22 @@ namespace U3xU4
   class MultiShellTensor
   {
   public:
+    using GammaElement = U3xU4::Tadat;
+    using OmegaElement = std::tuple<U3xU4::irrep, int, int>;
+
     // List of single-shell tensors, each corresponds to Gamma in the document.
-    std::vector<U3xU4::Tadat> single_shell_tensors;
+    std::vector<GammaElement> single_shell_tensors;
 
     // The coupled (irrep, rhomax, etamax)'s, each corresponds to Omega in the document.
     // This list has one less element than the single_shell_tensors list.
-    std::vector<std::tuple<U3xU4::irrep, int, int>> coupled_irreps;
+    std::vector<OmegaElement> coupled_irreps;
 
     // Constructor
-    MultiShellTensor(const std::vector<U3xU4::Tadat>& single_shell_tensors_,
-      const std::vector<std::tuple<U3xU4::irrep, int, int>>& coupled_irreps_)
-      : single_shell_tensors(single_shell_tensors_),
-        coupled_irreps(coupled_irreps_)
-    {}
+    MultiShellTensor(const std::vector<GammaElement>& single_shell_tensors_,
+                     const std::vector<OmegaElement>& coupled_irreps_)
+        : single_shell_tensors(single_shell_tensors_),
+          coupled_irreps(coupled_irreps_)
+    { }
 
     // This method assumes that everything is already unified, i.e., bra and ket
     // irreps are unified, and identities have been filled in already.
@@ -222,12 +229,13 @@ namespace U3xU4
 
   // A function to couple single-shell tensors into multi-shell tensors
   using CouplingPath = std::pair<
-      std::vector<U3xU4::Tadat>, // list of selected single-shell tensors
-      std::vector<std::tuple<U3xU4::irrep, int, int>>>; // list of all coupled
-                                                        // (irrep,rhomax,etamax)
+      std::vector<MultiShellTensor::GammaElement>, // list of selected
+                                                   // single-shell tensors
+      std::vector<MultiShellTensor::OmegaElement>>; // list of all coupled
+                                                    // (irrep,rhomax,etamax)
 
   void CoupleSingShellTensors(
-      const std::vector<std::vector<U3xU4::Tadat>>&
+      const std::vector<std::vector<MultiShellTensor::GammaElement>>&
           Tadat_lists,                          // list of lists of Tadat
       std::size_t depth,                        // recursion depth
       std::vector<U3xU4::Tadat> Tadat_choices,  // current choices
@@ -237,3 +245,48 @@ namespace U3xU4
       std::vector<CouplingPath>& all_results);  // final results
 
 } // namespace U3xU4
+
+#ifdef HAVE_FMT
+
+// formatter for GammaElement:
+
+template <>
+class fmt::formatter<U3xU4::MultiShellTensor::GammaElement>
+{
+public:
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename Context>
+  constexpr auto format(const U3xU4::MultiShellTensor::GammaElement& ge,
+                        Context& ctx) const
+  {
+    return format_to(ctx.out(), "{}({},{}){}[{},{},{}]{}[{},{},{},{}]", ge.n,
+                     ge.ads, ge.ats, ge.rho0max, ge.T.u3.n13(), ge.T.u3.n23(),
+                     ge.T.u3.n33(), ge.eta0max, ge.T.u4.n14(), ge.T.u4.n24(),
+                     ge.T.u4.n34(), ge.T.u4.n44());
+  }
+};
+
+// formatter for OmegaElement:
+
+template <>
+class fmt::formatter<U3xU4::MultiShellTensor::OmegaElement>
+{
+public:
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename Context>
+  constexpr auto format(const U3xU4::MultiShellTensor::OmegaElement& oe,
+                        Context& ctx) const
+  {
+    const auto& i = std::get<0>(oe);
+    auto rho0max = std::get<1>(oe);
+    auto eta0max = std::get<1>(oe);
+
+    return format_to(ctx.out(), "{}[{},{},{}]{}[{},{},{},{}]", rho0max,
+                     i.u3.n13(), i.u3.n23(), i.u3.n33(), eta0max, i.u4.n14(),
+                     i.u4.n24(), i.u4.n34(), i.u4.n44());
+  }
+};
+
+#endif
