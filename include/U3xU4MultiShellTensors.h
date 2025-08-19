@@ -244,6 +244,16 @@ namespace U3xU4
       std::vector<int> etamax_list,             // etamax values
       std::vector<CouplingPath>& all_results);  // final results
 
+  /**
+   * Unification of a multi-shell tensor with a basis irrep.
+   *
+   * @param T Multi-shell tensor to be unified.
+   * @param irrep Basis irrep.
+   *
+   * @return Unified multi-shell tensor.
+   */
+  MultiShellTensor unify_tensor(const MultiShellTensor& T,
+                                const U4xSU3::Irrep& irrep);
 } // namespace U3xU4
 
 #ifdef HAVE_FMT
