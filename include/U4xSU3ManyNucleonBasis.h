@@ -660,6 +660,8 @@ namespace U4xSU3
               couple(o2.gamma.back(), o2.omega.back(), i2.omega, g2));
       }
 
+      assert(o1.gamma_shells == o2.gamma_shells);
+
       // (4) return result:
 
       return std::tie(std::as_const(o1_), std::as_const(o2_));
