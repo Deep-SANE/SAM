@@ -41,8 +41,9 @@ namespace U3xU4
     else if (bra.omega.size() == 1)
     {
       // extract single-shell tensors
-      const U3xU4::Tadat& tadat0 = single_shell_tensors[0],
-      					  tadat1 = single_shell_tensors[1];
+      const U3xU4::Tadat& tadat0 = single_shell_tensors[0];
+      const U3xU4::Tadat& tadat1 = single_shell_tensors[1];
+
       // extract intershell coupling of the total tensor
       const auto& [Omega, Rhomax, Etamax] = coupled_irreps[0];
 
