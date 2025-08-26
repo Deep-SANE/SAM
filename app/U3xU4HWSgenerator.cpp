@@ -21,14 +21,14 @@ int main(int argc, char* argv[])
   std::cout << "Enter U(3) irrep: ";
   std::cin >> n13 >> n23 >> n33;
   u3::irrep b(n13, n23, n33);
-  if (!b.check())
+  if ((n13 < n23) || (n23 < n33))
     throw std::out_of_range("Invalid irrep");
 
   int n14, n24, n34, n44;
   std::cout << "Enter U(4) irrep: ";
   std::cin >> n14 >> n24 >> n34 >> n44;
   u4::irrep p(n14, n24, n34, n44);
-  if (!p.check())
+  if ((n14 < n24) || (n24 < n34) || (n34 < n44))
     throw std::out_of_range("Invalid irrep");
 
   int A = p.quanta(),        // total number of nucleons
