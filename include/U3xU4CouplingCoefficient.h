@@ -35,18 +35,23 @@ namespace U3xU4
              U9j = racah9.compute(LL1, SS1, JJ1, LL2, SS2, JJ2, LL3, SS3, JJ3),
              factor = cgcJ * cgcT * U9j;
 
-      auto [allowU3, cgcU3] =
-          wigU3SO3db.get(a.u3.lam(), a.u3.mu(), LL1 / 2, b.u3.lam(), b.u3.mu(),
-                         LL2 / 2, c.u3.lam(), c.u3.mu(), LL3 / 2);
+      auto [allowU3, cgcU3] = wigU3SO3db.get(
+          a.u3().lam(), a.u3().mu(), LL1 / 2, b.u3().lam(), b.u3().mu(),
+          LL2 / 2, c.u3().lam(), c.u3().mu(), LL3 / 2);
 
-      auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
-          a.u4.P1(), a.u4.P2(), a.u4.P3(), SS1, TT1, b.u4.P1(), b.u4.P2(),
-          b.u4.P3(), SS2, TT2, c.u4.P1(), c.u4.P2(), c.u4.P3(), SS3, TT3);
+      auto [allowU4, cgcU4] =
+          wigU4SU2SU2db.get(a.u4().P1(), a.u4().P2(), a.u4().P3(), SS1, TT1,
+                            b.u4().P1(), b.u4().P2(), b.u4().P3(), SS2, TT2,
+                            c.u4().P1(), c.u4().P2(), c.u4().P3(), SS3, TT3);
 
-      k1max = u3::Kappa(a.u3, LL1 / 2), k2max = u3::Kappa(b.u3, LL2 / 2),
-      k3max = u3::Kappa(c.u3, LL3 / 2), z1max = u4::Zeta(a.u4, SS1, TT1),
-      z2max = u4::Zeta(b.u4, SS2, TT2), z3max = u4::Zeta(c.u4, SS3, TT3),
-      rhomax = u3::Rho(a.u3, b.u3, c.u3), etamax = u4::Eta(a.u4, b.u4, c.u4);
+      k1max = u3::Kappa(a.u3(), LL1 / 2);
+      k2max = u3::Kappa(b.u3(), LL2 / 2);
+      k3max = u3::Kappa(c.u3(), LL3 / 2);
+      z1max = u4::Zeta(a.u4(), SS1, TT1);
+      z2max = u4::Zeta(b.u4(), SS2, TT2);
+      z3max = u4::Zeta(c.u4(), SS3, TT3);
+      rhomax = u3::Rho(a.u3(), b.u3(), c.u3());
+      etamax = u4::Eta(a.u4(), b.u4(), c.u4());
 
       for (int k1 = 0; k1 < k1max; k1++)
         for (int k2 = 0; k2 < k2max; k2++)

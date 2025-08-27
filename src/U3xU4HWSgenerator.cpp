@@ -29,8 +29,8 @@ namespace U3xU4
                const U3xU4::irrep& x, const std::vector<u3::gelfand>& sps3,
                const std::vector<u4::gelfand>& sps4)
   {
-    const u3::irrep b = x.u3;
-    const u4::irrep p = x.u4;
+    const u3::irrep b = x.u3();
+    const u4::irrep p = x.u4();
 
     std::vector<UNxU4::SlaterDeterminant> SDarr;
 
@@ -55,9 +55,9 @@ namespace U3xU4
         N11p += sps4[r].n11();
       }
 
-      if (N12b == (x.u3.n13() + x.u3.n23()) && N11b == x.u3.n13() &&
-          N13p == (x.u4.n14() + x.u4.n24() + x.u4.n34()) &&
-          N12p == (x.u4.n14() + x.u4.n24()) && N11p == x.u4.n14())
+      if (N12b == (x.u3().n13() + x.u3().n23()) && N11b == x.u3().n13() &&
+          N13p == (x.u4().n14() + x.u4().n24() + x.u4().n34()) &&
+          N12p == (x.u4().n14() + x.u4().n24()) && N11p == x.u4().n14())
       {
         UNxU4::SlaterDeterminant SD(n);
         // fill SD with positions
@@ -358,8 +358,8 @@ namespace U3xU4
 #ifdef SAM_USE_SLEPC
     untou3::UNtoU3<4> gen;
     gen.set_shell(n);
-    gen.reduceU4(x.u4, N);
-    auto multi = gen.multiplicity(x.u3);
+    gen.reduceU4(x.u4(), N);
+    auto multi = gen.multiplicity(x.u3());
     Eigen::MatrixXd expansion = qcx_utils::null_space_slepc(mat, multi);
 #else
     Eigen::MatrixXd expansion = qcx_utils::null_space(mat);
@@ -386,10 +386,11 @@ namespace U3xU4
     std::filesystem::create_directories(dir);
 
     std::string filename =
-        std::to_string(x.u3.n13()) + "-" + std::to_string(x.u3.n23()) + "-" +
-        std::to_string(x.u3.n33()) + "-" + std::to_string(x.u4.n14()) + "-" +
-        std::to_string(x.u4.n24()) + "-" + std::to_string(x.u4.n34()) + "-" +
-        std::to_string(x.u4.n44()) + ".bin";
+        std::to_string(x.u3().n13()) + "-" + std::to_string(x.u3().n23()) +
+        "-" + std::to_string(x.u3().n33()) + "-" +
+        std::to_string(x.u4().n14()) + "-" + std::to_string(x.u4().n24()) +
+        "-" + std::to_string(x.u4().n34()) + "-" +
+        std::to_string(x.u4().n44()) + ".bin";
 
     std::filesystem::path full_path = dir / filename;
 

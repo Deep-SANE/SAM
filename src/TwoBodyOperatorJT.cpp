@@ -581,13 +581,13 @@ namespace JT
 
         if (coupled_irreps.empty()) // Tadat_choices has one element only
         {
-          pv3s = u3::physicalBasis(Tadat_choices[0].T.u3);
-          pv4s = u4::physicalBasis(Tadat_choices[0].T.u4);
+          pv3s = u3::physicalBasis(Tadat_choices[0].T.u3());
+          pv4s = u4::physicalBasis(Tadat_choices[0].T.u4());
         }
         else
         {
-          pv3s = u3::physicalBasis(coupled_irreps.back().u3);
-          pv4s = u4::physicalBasis(coupled_irreps.back().u4);
+          pv3s = u3::physicalBasis(coupled_irreps.back().u3());
+          pv4s = u4::physicalBasis(coupled_irreps.back().u4());
         }
 
         for (int pv3 = 0; pv3 < pv3s.size(); pv3++)

@@ -271,9 +271,10 @@ public:
                         Context& ctx) const
   {
     return format_to(ctx.out(), "{}({},{}){}[{},{},{}]{}[{},{},{},{}]", ge.n,
-                     ge.ads, ge.ats, ge.rho0max, ge.T.u3.n13(), ge.T.u3.n23(),
-                     ge.T.u3.n33(), ge.eta0max, ge.T.u4.n14(), ge.T.u4.n24(),
-                     ge.T.u4.n34(), ge.T.u4.n44());
+                     ge.ads, ge.ats, ge.rho0max, ge.T.u3().n13(),
+                     ge.T.u3().n23(), ge.T.u3().n33(), ge.eta0max,
+                     ge.T.u4().n14(), ge.T.u4().n24(), ge.T.u4().n34(),
+                     ge.T.u4().n44());
   }
 };
 
@@ -294,8 +295,8 @@ public:
     auto eta0max = std::get<1>(oe);
 
     return format_to(ctx.out(), "{}[{},{},{}]{}[{},{},{},{}]", rho0max,
-                     i.u3.n13(), i.u3.n23(), i.u3.n33(), eta0max, i.u4.n14(),
-                     i.u4.n24(), i.u4.n34(), i.u4.n44());
+                     i.u3().n13(), i.u3().n23(), i.u3().n33(), eta0max,
+                     i.u4().n14(), i.u4().n24(), i.u4().n34(), i.u4().n44());
   }
 };
 

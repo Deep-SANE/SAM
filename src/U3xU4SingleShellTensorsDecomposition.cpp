@@ -156,8 +156,10 @@ namespace U3xU4
     // three ad's
     else if (num == 3)
     {
-      std::vector<u3::gelfand> g3Arr0 = u3::gelfandBasis(prod_characters[0].u3);
-      std::vector<u4::gelfand> g4Arr0 = u4::gelfandBasis(prod_characters[0].u4);
+      std::vector<u3::gelfand> g3Arr0 =
+          u3::gelfandBasis(prod_characters[0].u3());
+      std::vector<u4::gelfand> g4Arr0 =
+          u4::gelfandBasis(prod_characters[0].u4());
 
       std::vector<std::pair<int, int>> uncouple_g3 =
           u3::expand_to_uncoupled(g3, g3Arr0, sps3);
@@ -282,11 +284,11 @@ namespace U3xU4
     // two ad's
     else if (num == 2)
     {
-      int lam = prod_characters.back().u3.lam(),
-          mu = prod_characters.back().u3.mu(),
-          P1 = prod_characters.back().u4.P1(),
-          P2 = prod_characters.back().u4.P2(),
-          P3 = prod_characters.back().u4.P3();
+      int lam = prod_characters.back().u3().lam(),
+          mu = prod_characters.back().u3().mu(),
+          P1 = prod_characters.back().u4().P1(),
+          P2 = prod_characters.back().u4().P2(),
+          P3 = prod_characters.back().u4().P3();
 
       for (int lla = ll_max; lla >= ll_min; lla -= 4)
       {
@@ -352,18 +354,20 @@ namespace U3xU4
     else if (num == 3)
     {
       std::vector<u3::physicalvector> pv3s0 =
-          u3::physicalBasis(prod_characters[0].u3);
+          u3::physicalBasis(prod_characters[0].u3());
       std::vector<u4::physicalvector> pv4s0 =
-          u4::physicalBasis(prod_characters[0].u4);
+          u4::physicalBasis(prod_characters[0].u4());
 
-      int lam = prod_characters.back().u3.lam(),
-          mu = prod_characters.back().u3.mu(),
-          P1 = prod_characters.back().u4.P1(),
-          P2 = prod_characters.back().u4.P2(),
-          P3 = prod_characters.back().u4.P3(),
-          lam0 = prod_characters[0].u3.lam(), mu0 = prod_characters[0].u3.mu(),
-          P10 = prod_characters[0].u4.P1(), P20 = prod_characters[0].u4.P2(),
-          P30 = prod_characters[0].u4.P3();
+      int lam = prod_characters.back().u3().lam(),
+          mu = prod_characters.back().u3().mu(),
+          P1 = prod_characters.back().u4().P1(),
+          P2 = prod_characters.back().u4().P2(),
+          P3 = prod_characters.back().u4().P3(),
+          lam0 = prod_characters[0].u3().lam(),
+          mu0 = prod_characters[0].u3().mu(),
+          P10 = prod_characters[0].u4().P1(),
+          P20 = prod_characters[0].u4().P2(),
+          P30 = prod_characters[0].u4().P3();
 
       for (int llc = ll_max; llc >= ll_min; llc -= 4)
       {
@@ -589,8 +593,8 @@ namespace U3xU4
     // three at's
     else if (num == 3)
     {
-      std::vector<u3::gelfand> g3Arr0 = u3::gelfandBasis(prod_characters[0].u3);
-      std::vector<u4::gelfand> g4Arr0 = u4::gelfandBasis(prod_characters[0].u4);
+      std::vector<u3::gelfand> g3Arr0 = u3::gelfandBasis(prod_characters[0].u3());
+      std::vector<u4::gelfand> g4Arr0 = u4::gelfandBasis(prod_characters[0].u4());
 
       std::vector<std::pair<int, int>> uncouple_g3 =
           u3::expand_to_uncoupled(g3, g3Arr0, sps3_conj);
@@ -721,11 +725,11 @@ namespace U3xU4
     // two at's
     else if (num == 2)
     {
-      int lam = prod_characters.back().u3.lam(),
-          mu = prod_characters.back().u3.mu(),
-          P1 = prod_characters.back().u4.P1(),
-          P2 = prod_characters.back().u4.P2(),
-          P3 = prod_characters.back().u4.P3();
+      int lam = prod_characters.back().u3().lam(),
+          mu = prod_characters.back().u3().mu(),
+          P1 = prod_characters.back().u4().P1(),
+          P2 = prod_characters.back().u4().P2(),
+          P3 = prod_characters.back().u4().P3();
 
       for (int lla = ll_max; lla >= ll_min; lla -= 4)
       {
@@ -798,18 +802,20 @@ namespace U3xU4
     else if (num == 3)
     {
       std::vector<u3::physicalvector> pv3s0 =
-          u3::physicalBasis(prod_characters[0].u3);
+          u3::physicalBasis(prod_characters[0].u3());
       std::vector<u4::physicalvector> pv4s0 =
-          u4::physicalBasis(prod_characters[0].u4);
+          u4::physicalBasis(prod_characters[0].u4());
 
-      int lam = prod_characters.back().u3.lam(),
-          mu = prod_characters.back().u3.mu(),
-          P1 = prod_characters.back().u4.P1(),
-          P2 = prod_characters.back().u4.P2(),
-          P3 = prod_characters.back().u4.P3(),
-          lam0 = prod_characters[0].u3.lam(), mu0 = prod_characters[0].u3.mu(),
-          P10 = prod_characters[0].u4.P1(), P20 = prod_characters[0].u4.P2(),
-          P30 = prod_characters[0].u4.P3();
+      int lam = prod_characters.back().u3().lam(),
+          mu = prod_characters.back().u3().mu(),
+          P1 = prod_characters.back().u4().P1(),
+          P2 = prod_characters.back().u4().P2(),
+          P3 = prod_characters.back().u4().P3(),
+          lam0 = prod_characters[0].u3().lam(),
+          mu0 = prod_characters[0].u3().mu(),
+          P10 = prod_characters[0].u4().P1(),
+          P20 = prod_characters[0].u4().P2(),
+          P30 = prod_characters[0].u4().P3();
 
       for (int llc = ll_max; llc >= ll_min; llc -= 4)
       {
@@ -963,8 +969,8 @@ namespace U3xU4
 
       if (ads > 1)
       {
-        g3Arr1 = u3::gelfandBasis(prod_ads.back().u3);
-        g4Arr1 = u4::gelfandBasis(prod_ads.back().u4);
+        g3Arr1 = u3::gelfandBasis(prod_ads.back().u3());
+        g4Arr1 = u4::gelfandBasis(prod_ads.back().u4());
       }
       else
       {
@@ -974,8 +980,8 @@ namespace U3xU4
 
       if (ats > 1)
       {
-        g3Arr2 = u3::gelfandBasis(prod_ats.back().u3);
-        g4Arr2 = u4::gelfandBasis(prod_ats.back().u4);
+        g3Arr2 = u3::gelfandBasis(prod_ats.back().u3());
+        g4Arr2 = u4::gelfandBasis(prod_ats.back().u4());
       }
       else
       {
@@ -1129,8 +1135,8 @@ namespace U3xU4
 
       if (ads > 1)
       {
-        pv3s1 = u3::physicalBasis(prod_ads.back().u3);
-        pv4s1 = u4::physicalBasis(prod_ads.back().u4);
+        pv3s1 = u3::physicalBasis(prod_ads.back().u3());
+        pv4s1 = u4::physicalBasis(prod_ads.back().u4());
       }
       else
       {
@@ -1140,8 +1146,8 @@ namespace U3xU4
 
       if (ats > 1)
       {
-        pv3s2 = u3::physicalBasis(prod_ats.back().u3);
-        pv4s2 = u4::physicalBasis(prod_ats.back().u4);
+        pv3s2 = u3::physicalBasis(prod_ats.back().u3());
+        pv4s2 = u4::physicalBasis(prod_ats.back().u4());
       }
       else
       {
@@ -1164,8 +1170,8 @@ namespace U3xU4
             continue;
 
           auto [allowU3, cgcU3] =
-              wigU3SO3db.get(lam1, mu1, LL1 / 2, lam2, mu2, LL2 / 2, T.u3.lam(),
-                             T.u3.mu(), LL / 2);
+              wigU3SO3db.get(lam1, mu1, LL1 / 2, lam2, mu2, LL2 / 2,
+                             T.u3().lam(), T.u3().mu(), LL / 2);
 
           for (int pv41 = 0; pv41 < pv4s1.size(); pv41++)
           {
@@ -1184,8 +1190,8 @@ namespace U3xU4
                 continue;
 
               auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
-                  P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2, T.u4.P1(),
-                  T.u4.P2(), T.u4.P3(), SS, TT);
+                  P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2, T.u4().P1(),
+                  T.u4().P2(), T.u4().P3(), SS, TT);
 
               for (int JJ1 = LL1 + SS1; JJ1 >= std::abs(LL1 - SS1); JJ1 -= 2)
               {

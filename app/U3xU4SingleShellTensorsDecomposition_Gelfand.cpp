@@ -79,8 +79,8 @@ int main(int argc, char* argv[])
                            sps4_conj = u4::gelfandBasis(y_conj);
 
   // Multiplicities of the final tensor
-  auto rhomax = u3::Rho(T1.u3, T2.u3, T.u3);
-  auto etamax = u4::Eta(T1.u4, T2.u4, T.u4);
+  auto rhomax = u3::Rho(T1.u3(), T2.u3(), T.u3());
+  auto etamax = u4::Eta(T1.u4(), T2.u4(), T.u4());
 
   U3xU4::Tadat_gelfand Tadat_Gelfand(n, sps3, sps3_conj, sps4, sps4_conj, ads,
                                      ats, prod_ads, prod_ats, T, rhomax, etamax,

@@ -63,11 +63,11 @@ namespace U3xU4
       assert(tadat1.rho0max == 1 && tadat1.eta0max == 1);
       assert(tadat2.rho0max == 1 && tadat2.eta0max == 1);
 
-      std::vector<u3::physicalvector> pv3s1 = u3::physicalBasis(tadat1.T.u3),
-                                      pv3s2 = u3::physicalBasis(tadat2.T.u3);
+      std::vector<u3::physicalvector> pv3s1 = u3::physicalBasis(tadat1.T.u3()),
+                                      pv3s2 = u3::physicalBasis(tadat2.T.u3());
 
-      std::vector<u4::physicalvector> pv4s1 = u4::physicalBasis(tadat1.T.u4),
-                                      pv4s2 = u4::physicalBasis(tadat2.T.u4);
+      std::vector<u4::physicalvector> pv4s1 = u4::physicalBasis(tadat1.T.u4()),
+                                      pv4s2 = u4::physicalBasis(tadat2.T.u4());
 
       for (int pv31 = 0; pv31 < pv3s1.size(); pv31++)
       {
@@ -83,8 +83,8 @@ namespace U3xU4
             continue;
 
           auto [allowU3, cgcU3] =
-              wigU3SO3db.get(lam1, mu1, LL1 / 2, lam2, mu2, LL2 / 2, T.u3.lam(),
-                             T.u3.mu(), LL / 2);
+              wigU3SO3db.get(lam1, mu1, LL1 / 2, lam2, mu2, LL2 / 2,
+                             T.u3().lam(), T.u3().mu(), LL / 2);
 
           for (int pv41 = 0; pv41 < pv4s1.size(); pv41++)
           {
@@ -103,8 +103,8 @@ namespace U3xU4
                 continue;
 
               auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
-                  P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2, T.u4.P1(),
-                  T.u4.P2(), T.u4.P3(), SS, TT);
+                  P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2, T.u4().P1(),
+                  T.u4().P2(), T.u4().P3(), SS, TT);
 
               for (int JJ1 = LL1 + SS1; JJ1 >= std::abs(LL1 - SS1); JJ1 -= 2)
               {
@@ -232,12 +232,12 @@ namespace U3xU4
              single_shell_tensors_new.back().eta0max == 1);
 
       std::vector<u3::physicalvector> pv3s1 = u3::physicalBasis(
-                                          coupled_irreps_new.back().u3),
-                                      pv3s2 = u3::physicalBasis(tadat.T.u3);
+                                          coupled_irreps_new.back().u3()),
+                                      pv3s2 = u3::physicalBasis(tadat.T.u3());
 
       std::vector<u4::physicalvector> pv4s1 = u4::physicalBasis(
-                                          coupled_irreps_new.back().u4),
-                                      pv4s2 = u4::physicalBasis(tadat.T.u4);
+                                          coupled_irreps_new.back().u4()),
+                                      pv4s2 = u4::physicalBasis(tadat.T.u4());
 
       for (int pv31 = 0; pv31 < pv3s1.size(); pv31++)
       {
@@ -253,8 +253,8 @@ namespace U3xU4
             continue;
 
           auto [allowU3, cgcU3] =
-              wigU3SO3db.get(lam1, mu1, LL1 / 2, lam2, mu2, LL2 / 2, T.u3.lam(),
-                             T.u3.mu(), LL / 2);
+              wigU3SO3db.get(lam1, mu1, LL1 / 2, lam2, mu2, LL2 / 2,
+                             T.u3().lam(), T.u3().mu(), LL / 2);
 
           for (int pv41 = 0; pv41 < pv4s1.size(); pv41++)
           {
@@ -273,8 +273,8 @@ namespace U3xU4
                 continue;
 
               auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
-                  P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2, T.u4.P1(),
-                  T.u4.P2(), T.u4.P3(), SS, TT);
+                  P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2, T.u4().P1(),
+                  T.u4().P2(), T.u4().P3(), SS, TT);
 
               for (int JJ1 = LL1 + SS1; JJ1 >= std::abs(LL1 - SS1); JJ1 -= 2)
               {

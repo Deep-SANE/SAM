@@ -22,46 +22,51 @@ namespace U3xU4
   // A class for representing U(3)xU(4) irreps
   class irrep
   {
-  public:
-    u3::irrep u3;
-    u4::irrep u4;
+    u3::irrep u3_;
+    u4::irrep u4_;
 
+  public:
     // constructors:
 
     irrep() = default;
 
-    irrep(const u3::irrep& u3, const u4::irrep& u4) : u3(u3), u4(u4) { }
+    irrep(const u3::irrep& u3, const u4::irrep& u4) : u3_(u3), u4_(u4) { }
 
     irrep(int n13, int n23, int n33, int n14, int n24, int n34, int n44)
-        : u3(n13, n23, n33), u4(n14, n24, n34, n44)
+        : u3_(n13, n23, n33), u4_(n14, n24, n34, n44)
     { }
 
     // comparison:
     auto operator<=>(const irrep&) const = default;
 
+    // getters:
+
+    const auto& u3() const { return u3_; }
+    const auto& u4() const { return u4_; }
+
     // total quanta:
-    int quanta() const { return u3.quanta(); }
+    int quanta() const { return u3_.quanta(); }
 
     // total particles:
-    int particles() const { return u4.quanta(); }
+    int particles() const { return u4_.quanta(); }
 
     // print U3xU4::irrep:
     friend std::ostream& operator<<(std::ostream& s, const irrep& x)
     {
-      return s << x.u3 << x.u4;
+      return s << x.u3_ << x.u4_;
     }
 
     // write to binary file
     void writeBinary(std::ostream& s) const
     {
-      qcx_utils::write<int>(s, u3.n13());
-      qcx_utils::write<int>(s, u3.n23());
-      qcx_utils::write<int>(s, u3.n33());
+      qcx_utils::write<int>(s, u3_.n13());
+      qcx_utils::write<int>(s, u3_.n23());
+      qcx_utils::write<int>(s, u3_.n33());
 
-      qcx_utils::write<int>(s, u4.n14());
-      qcx_utils::write<int>(s, u4.n24());
-      qcx_utils::write<int>(s, u4.n34());
-      qcx_utils::write<int>(s, u4.n44());
+      qcx_utils::write<int>(s, u4_.n14());
+      qcx_utils::write<int>(s, u4_.n24());
+      qcx_utils::write<int>(s, u4_.n34());
+      qcx_utils::write<int>(s, u4_.n44());
     }
 
     // read from binary file
@@ -79,8 +84,8 @@ namespace U3xU4
       qcx_utils::read<int>(s, n34);
       qcx_utils::read<int>(s, n44);
 
-      u3 = u3::irrep(n13, n23, n33);
-      u4 = u4::irrep(n14, n24, n34, n44);
+      u3_ = u3::irrep(n13, n23, n33);
+      u4_ = u4::irrep(n14, n24, n34, n44);
     }
   };
 
@@ -89,8 +94,8 @@ namespace U3xU4
   // The second std::vector<int> is for etamaxs
   inline auto decomposition(const U3xU4::irrep& a, const U3xU4::irrep& b)
   {
-    auto [u3s, multi3s] = u3::decomposition(a.u3, b.u3);
-    auto [u4s, multi4s] = u4::decomposition(a.u4, b.u4);
+    auto [u3s, multi3s] = u3::decomposition(a.u3(), b.u3());
+    auto [u4s, multi4s] = u4::decomposition(a.u4(), b.u4());
 
     std::vector<U3xU4::irrep> u3u4s;
     std::vector<int> rhomaxs, etamaxs;
@@ -126,7 +131,7 @@ public:
   template <typename Context>
   constexpr auto format(const U3xU4::irrep& i, Context& ctx) const
   {
-    return format_to(ctx.out(), "({},{})", i.u3, i.u4);
+    return format_to(ctx.out(), "({},{})", i.u3(), i.u4());
   }
 };
 

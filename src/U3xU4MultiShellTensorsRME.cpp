@@ -63,8 +63,8 @@ namespace U3xU4
       			  bra_rhomax = bra.omega[0].rhomax(),
       			  bra_etamax = bra.omega[0].etamax(),
       			  // multi for Wigner-Eckart theorem for the total tensor
-      			  rhomax = u3::Rho(ket_omega.u3, Omega.u3, bra_omega.u3),  
-      			  etamax = u4::Eta(ket_omega.u4, Omega.u4, bra_omega.u4),
+      			  rhomax = u3::Rho(ket_omega.u3(), Omega.u3(), bra_omega.u3()),  
+      			  etamax = u4::Eta(ket_omega.u4(), Omega.u4(), bra_omega.u4()),
       			  // multi for Wigner-Eckart theorem for the first tensor
       			  rhomax0, etamax0, 
       			  // multi for Wigner-Eckart theorem for the second tensor
@@ -83,29 +83,29 @@ namespace U3xU4
 
       // 9-U(3) recoupling coefficients
       auto [allowU3U9, U3U9coeff] = dbs.u3u9db.get(
-      		ket0.u3.n13(), ket0.u3.n23(), ket0.u3.n33(),
-      		tadat0.T.u3.n13(), tadat0.T.u3.n23(), tadat0.T.u3.n33(),
-      		ket1.u3.n13(), ket1.u3.n23(), ket1.u3.n33(),
-      		tadat1.T.u3.n13(), tadat1.T.u3.n23(), tadat1.T.u3.n33(),
-      		bra0.u3.n13(), bra0.u3.n23(), bra0.u3.n33(),
-      		bra1.u3.n13(), bra1.u3.n23(), bra1.u3.n33(),
-      		ket_omega.u3.n13(), ket_omega.u3.n23(), ket_omega.u3.n33(),
-      		Omega.u3.n13(), Omega.u3.n23(), Omega.u3.n33(),
-      		bra_omega.u3.n13(), bra_omega.u3.n23(), bra_omega.u3.n33());
+      		ket0.u3().n13(), ket0.u3().n23(), ket0.u3().n33(),
+      		tadat0.T.u3().n13(), tadat0.T.u3().n23(), tadat0.T.u3().n33(),
+      		ket1.u3().n13(), ket1.u3().n23(), ket1.u3().n33(),
+      		tadat1.T.u3().n13(), tadat1.T.u3().n23(), tadat1.T.u3().n33(),
+      		bra0.u3().n13(), bra0.u3().n23(), bra0.u3().n33(),
+      		bra1.u3().n13(), bra1.u3().n23(), bra1.u3().n33(),
+      		ket_omega.u3().n13(), ket_omega.u3().n23(), ket_omega.u3().n33(),
+      		Omega.u3().n13(), Omega.u3().n23(), Omega.u3().n33(),
+      		bra_omega.u3().n13(), bra_omega.u3().n23(), bra_omega.u3().n33());
       if (allowU3U9 == false)
       	return {};
 
       // 9-U(4) recoupling coefficients
       auto [allowU4U9, U4U9coeff] = dbs.u4u9db.get(
-      		ket0.u4.n14(), ket0.u4.n24(), ket0.u4.n34(), ket0.u4.n44(),
-      		tadat0.T.u4.n14(), tadat0.T.u4.n24(), tadat0.T.u4.n34(), tadat0.T.u4.n44(),
-      		ket1.u4.n14(), ket1.u4.n24(), ket1.u4.n34(), ket1.u4.n44(),
-      		tadat1.T.u4.n14(), tadat1.T.u4.n24(), tadat1.T.u4.n34(), tadat1.T.u4.n44(),
-      		bra0.u4.n14(), bra0.u4.n24(), bra0.u4.n34(), bra0.u4.n44(),
-      		bra1.u4.n14(), bra1.u4.n24(), bra1.u4.n34(), bra1.u4.n44(),
-      		ket_omega.u4.n14(), ket_omega.u4.n24(), ket_omega.u4.n34(), ket_omega.u4.n44(),
-      		Omega.u4.n14(), Omega.u4.n24(), Omega.u4.n34(), Omega.u4.n44(),
-      		bra_omega.u4.n14(), bra_omega.u4.n24(), bra_omega.u4.n34(), bra_omega.u4.n44());
+      		ket0.u4().n14(), ket0.u4().n24(), ket0.u4().n34(), ket0.u4().n44(),
+      		tadat0.T.u4().n14(), tadat0.T.u4().n24(), tadat0.T.u4().n34(), tadat0.T.u4().n44(),
+      		ket1.u4().n14(), ket1.u4().n24(), ket1.u4().n34(), ket1.u4().n44(),
+      		tadat1.T.u4().n14(), tadat1.T.u4().n24(), tadat1.T.u4().n34(), tadat1.T.u4().n44(),
+      		bra0.u4().n14(), bra0.u4().n24(), bra0.u4().n34(), bra0.u4().n44(),
+      		bra1.u4().n14(), bra1.u4().n24(), bra1.u4().n34(), bra1.u4().n44(),
+      		ket_omega.u4().n14(), ket_omega.u4().n24(), ket_omega.u4().n34(), ket_omega.u4().n44(),
+      		Omega.u4().n14(), Omega.u4().n24(), Omega.u4().n34(), Omega.u4().n44(),
+      		bra_omega.u4().n14(), bra_omega.u4().n24(), bra_omega.u4().n34(), bra_omega.u4().n44());
       if (allowU4U9 == false)
       	return {};
 
@@ -261,11 +261,11 @@ namespace U3xU4
       	bra_rhomax_semilast = bra.omega[bra.omega.size() - 2].rhomax(),
       	bra_etamax_semilast = bra.omega[bra.omega.size() - 2].etamax(),
       	// multi for Wigner-Eckart theorem for the total tensor
-      	rhomax = u3::Rho(ket_omega_last.u3, Omega_last.u3, bra_omega_last.u3),  
-      	etamax = u4::Eta(ket_omega_last.u4, Omega_last.u4, bra_omega_last.u4),
+      	rhomax = u3::Rho(ket_omega_last.u3(), Omega_last.u3(), bra_omega_last.u3()),  
+      	etamax = u4::Eta(ket_omega_last.u4(), Omega_last.u4(), bra_omega_last.u4()),
       	// multi for Wigner-Eckart theorem for the new tensor
-      	rhomax_new = u3::Rho(ket_omega_semilast.u3, Omega_semilast.u3, bra_omega_semilast.u3), 
-        etamax_new = u4::Eta(ket_omega_semilast.u4, Omega_semilast.u4, bra_omega_semilast.u4), 
+      	rhomax_new = u3::Rho(ket_omega_semilast.u3(), Omega_semilast.u3(), bra_omega_semilast.u3()), 
+        etamax_new = u4::Eta(ket_omega_semilast.u4(), Omega_semilast.u4(), bra_omega_semilast.u4()), 
       	// multi for Wigner-Eckart theorem for the last tensor
       	rhomax_last = 0, etamax_last = 0;
 
@@ -287,30 +287,30 @@ namespace U3xU4
 
       // 9-U(3) recoupling coefficients
       auto [allowU3U9, U3U9coeff] = dbs.u3u9db.get(
-      		ket_omega_semilast.u3.n13(), ket_omega_semilast.u3.n23(), ket_omega_semilast.u3.n33(),
-      		Omega_semilast.u3.n13(), Omega_semilast.u3.n23(), Omega_semilast.u3.n33(),
-      		ket_gamma_last.u3.n13(), ket_gamma_last.u3.n23(), ket_gamma_last.u3.n33(),
-      		tadat_last.T.u3.n13(), tadat_last.T.u3.n23(), tadat_last.T.u3.n33(),
-      		bra_omega_semilast.u3.n13(), bra_omega_semilast.u3.n23(), bra_omega_semilast.u3.n33(),
-      		bra_gamma_last.u3.n13(), bra_gamma_last.u3.n23(), bra_gamma_last.u3.n33(),
-      		ket_omega_last.u3.n13(), ket_omega_last.u3.n23(), ket_omega_last.u3.n33(),
-      		Omega_last.u3.n13(), Omega_last.u3.n23(), Omega_last.u3.n33(),
-      		bra_omega_last.u3.n13(), bra_omega_last.u3.n23(), bra_omega_last.u3.n33());
+      		ket_omega_semilast.u3().n13(), ket_omega_semilast.u3().n23(), ket_omega_semilast.u3().n33(),
+      		Omega_semilast.u3().n13(), Omega_semilast.u3().n23(), Omega_semilast.u3().n33(),
+      		ket_gamma_last.u3().n13(), ket_gamma_last.u3().n23(), ket_gamma_last.u3().n33(),
+      		tadat_last.T.u3().n13(), tadat_last.T.u3().n23(), tadat_last.T.u3().n33(),
+      		bra_omega_semilast.u3().n13(), bra_omega_semilast.u3().n23(), bra_omega_semilast.u3().n33(),
+      		bra_gamma_last.u3().n13(), bra_gamma_last.u3().n23(), bra_gamma_last.u3().n33(),
+      		ket_omega_last.u3().n13(), ket_omega_last.u3().n23(), ket_omega_last.u3().n33(),
+      		Omega_last.u3().n13(), Omega_last.u3().n23(), Omega_last.u3().n33(),
+      		bra_omega_last.u3().n13(), bra_omega_last.u3().n23(), bra_omega_last.u3().n33());
       if (allowU3U9 == false)
       	return {};
       //for (auto& u3u9 : U3U9coeff) std::cout << u3u9 << std::endl;
 
       // 9-U(4) recoupling coefficients
       auto [allowU4U9, U4U9coeff] = dbs.u4u9db.get(
-      		ket_omega_semilast.u4.n14(), ket_omega_semilast.u4.n24(), ket_omega_semilast.u4.n34(), ket_omega_semilast.u4.n44(),
-      		Omega_semilast.u4.n14(), Omega_semilast.u4.n24(), Omega_semilast.u4.n34(), Omega_semilast.u4.n44(),
-      		ket_gamma_last.u4.n14(), ket_gamma_last.u4.n24(), ket_gamma_last.u4.n34(), ket_gamma_last.u4.n44(),
-      		tadat_last.T.u4.n14(), tadat_last.T.u4.n24(), tadat_last.T.u4.n34(), tadat_last.T.u4.n44(),
-      		bra_omega_semilast.u4.n14(), bra_omega_semilast.u4.n24(), bra_omega_semilast.u4.n34(), bra_omega_semilast.u4.n44(),
-      		bra_gamma_last.u4.n14(), bra_gamma_last.u4.n24(), bra_gamma_last.u4.n34(), bra_gamma_last.u4.n44(),
-      		ket_omega_last.u4.n14(), ket_omega_last.u4.n24(), ket_omega_last.u4.n34(), ket_omega_last.u4.n44(),
-      		Omega_last.u4.n14(), Omega_last.u4.n24(), Omega_last.u4.n34(), Omega_last.u4.n44(),
-      		bra_omega_last.u4.n14(), bra_omega_last.u4.n24(), bra_omega_last.u4.n34(), bra_omega_last.u4.n44());
+      		ket_omega_semilast.u4().n14(), ket_omega_semilast.u4().n24(), ket_omega_semilast.u4().n34(), ket_omega_semilast.u4().n44(),
+      		Omega_semilast.u4().n14(), Omega_semilast.u4().n24(), Omega_semilast.u4().n34(), Omega_semilast.u4().n44(),
+      		ket_gamma_last.u4().n14(), ket_gamma_last.u4().n24(), ket_gamma_last.u4().n34(), ket_gamma_last.u4().n44(),
+      		tadat_last.T.u4().n14(), tadat_last.T.u4().n24(), tadat_last.T.u4().n34(), tadat_last.T.u4().n44(),
+      		bra_omega_semilast.u4().n14(), bra_omega_semilast.u4().n24(), bra_omega_semilast.u4().n34(), bra_omega_semilast.u4().n44(),
+      		bra_gamma_last.u4().n14(), bra_gamma_last.u4().n24(), bra_gamma_last.u4().n34(), bra_gamma_last.u4().n44(),
+      		ket_omega_last.u4().n14(), ket_omega_last.u4().n24(), ket_omega_last.u4().n34(), ket_omega_last.u4().n44(),
+      		Omega_last.u4().n14(), Omega_last.u4().n24(), Omega_last.u4().n34(), Omega_last.u4().n44(),
+      		bra_omega_last.u4().n14(), bra_omega_last.u4().n24(), bra_omega_last.u4().n34(), bra_omega_last.u4().n44());
       if (allowU4U9 == false)
       	return {};
       //for (auto& u4u9 : U4U9coeff) std::cout << u4u9 << std::endl;

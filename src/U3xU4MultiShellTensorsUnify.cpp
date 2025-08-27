@@ -63,9 +63,9 @@ namespace U3xU4
       if (added[0] && added[1])
         oOmega.emplace_back(U3xU4::irrep({0, 0, 0}, {0, 0, 0, 0}), 1, 1);
       else if (added[0])
-        oOmega.push_back({{oGamma[1].T.u3, oGamma[1].T.u4}, 1, 1});
+        oOmega.push_back({{oGamma[1].T.u3(), oGamma[1].T.u4()}, 1, 1});
       else if (added[1])
-        oOmega.push_back({{oGamma[0].T.u3, oGamma[0].T.u4}, 1, 1});
+        oOmega.push_back({{oGamma[0].T.u3(), oGamma[0].T.u4()}, 1, 1});
       else
         oOmega.push_back(Omega[i_Omega++]);
 
@@ -79,7 +79,7 @@ namespace U3xU4
         }
         else if (i_Omega == 0)
           oOmega.push_back(
-              {{oGamma[i_Gamma].T.u3, oGamma[i_Gamma].T.u4}, 1, 1});
+              {{oGamma[i_Gamma].T.u3(), oGamma[i_Gamma].T.u4()}, 1, 1});
         else
           oOmega.push_back(Omega[i_Omega++]);
     }

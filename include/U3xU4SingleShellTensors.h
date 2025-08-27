@@ -296,7 +296,7 @@ namespace U3xU4
       if (prod.empty())
         kappamax = 1;
       else
-        kappamax = u3::Kappa(prod.back().u3, LL / 2);
+        kappamax = u3::Kappa(prod.back().u3(), LL / 2);
     }
 
     // Get the number of ad's
@@ -410,7 +410,7 @@ namespace U3xU4
       if (prod.empty())
         kappamax = 1;
       else
-        kappamax = u3::Kappa(prod.back().u3, LL / 2);
+        kappamax = u3::Kappa(prod.back().u3(), LL / 2);
     }
 
     // Get the number of at's
@@ -574,8 +574,8 @@ namespace U3xU4
           MMJ(MMJ_),
           labels(labels_)
     {
-      kappamax = u3::Kappa(T.u3, LL / 2);
-      zetamax = u4::Zeta(T.u4, SS, TT);
+      kappamax = u3::Kappa(T.u3(), LL / 2);
+      zetamax = u4::Zeta(T.u4(), SS, TT);
     }
 
     // Get the number of ad's

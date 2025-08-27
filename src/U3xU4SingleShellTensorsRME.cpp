@@ -44,13 +44,13 @@ namespace U3xU4
         gen.set_shell(n);
         if (ai_max <= 0)
         {
-          gen.reduceU4(i.u4, N);
-          ai_max = gen.multiplicity(i.u3);
+          gen.reduceU4(i.u4(), N);
+          ai_max = gen.multiplicity(i.u3());
         }
         if (af_max <= 0)
         {
-          gen.reduceU4(f.u4, N);
-          af_max = gen.multiplicity(f.u3);
+          gen.reduceU4(f.u4(), N);
+          af_max = gen.multiplicity(f.u3());
         }
 
         // Now calculate RMEs
@@ -76,8 +76,8 @@ namespace U3xU4
       return {};
 
     // Get outer multiplicities due to Wigner-Eckart theorem
-    rhomax = u3::Rho(i.u3, T.u3, f.u3);
-    etamax = u4::Eta(i.u4, T.u4, f.u4);
+    rhomax = u3::Rho(i.u3(), T.u3(), f.u3());
+    etamax = u4::Eta(i.u4(), T.u4(), f.u4());
     if (rhomax == 0 || etamax == 0) // i x t does not produce f
       return {};
 
@@ -91,11 +91,11 @@ namespace U3xU4
                              sps4_conj = u4::gelfandBasis(y_conj);
 
     // Generate HWS for the ket irrep
-    u3::gelfand i3hws(i.u3.n13(), i.u3.n23(), i.u3.n33(), i.u3.n13(),
-                      i.u3.n23(), i.u3.n13());
-    u4::gelfand i4hws(i.u4.n14(), i.u4.n24(), i.u4.n34(), i.u4.n44(),
-                      i.u4.n14(), i.u4.n24(), i.u4.n34(), i.u4.n14(),
-                      i.u4.n24(), i.u4.n14());
+    u3::gelfand i3hws(i.u3().n13(), i.u3().n23(), i.u3().n33(), i.u3().n13(),
+                      i.u3().n23(), i.u3().n13());
+    u4::gelfand i4hws(i.u4().n14(), i.u4().n24(), i.u4().n34(), i.u4().n44(),
+                      i.u4().n14(), i.u4().n24(), i.u4().n34(), i.u4().n14(),
+                      i.u4().n24(), i.u4().n14());
     std::vector<UNxU4::SlaterDeterminant> SDarr_i;
     std::vector<Eigen::RowVectorXd> coeffs_i;
     if (A_i == 0) // vacuum
@@ -120,11 +120,11 @@ namespace U3xU4
     //     std::cout << coeffs_i[i] << std::endl;
 
     // Generate HWS for the bra irrep
-    u3::gelfand f3hws(f.u3.n13(), f.u3.n23(), f.u3.n33(), f.u3.n13(),
-                      f.u3.n23(), f.u3.n13());
-    u4::gelfand f4hws(f.u4.n14(), f.u4.n24(), f.u4.n34(), f.u4.n44(),
-                      f.u4.n14(), f.u4.n24(), f.u4.n34(), f.u4.n14(),
-                      f.u4.n24(), f.u4.n14());
+    u3::gelfand f3hws(f.u3().n13(), f.u3().n23(), f.u3().n33(), f.u3().n13(),
+                      f.u3().n23(), f.u3().n13());
+    u4::gelfand f4hws(f.u4().n14(), f.u4().n24(), f.u4().n34(), f.u4().n44(),
+                      f.u4().n14(), f.u4().n24(), f.u4().n34(), f.u4().n14(),
+                      f.u4().n24(), f.u4().n14());
     std::vector<UNxU4::SlaterDeterminant> SDarr_f;
     std::vector<Eigen::RowVectorXd> coeffs_f;
     if (A_f == 0) // vacuum
@@ -166,23 +166,23 @@ namespace U3xU4
     CGCs.setZero();
 
     // Generate tensor components of the tensor
-    std::vector<u3::gelfand> g3Arr = u3::gelfandBasis(T.u3);
+    std::vector<u3::gelfand> g3Arr = u3::gelfandBasis(T.u3());
     std::vector<std::size_t> g3Arr0;
-    int missing3 =
-        (i.u3.n13() + i.u3.n23() + i.u3.n33() + T.u3.n13() + T.u3.n23() +
-         T.u3.n33() - f.u3.n13() - f.u3.n23() - f.u3.n33()) /
-        3;
+    int missing3 = (i.u3().n13() + i.u3().n23() + i.u3().n33() + T.u3().n13() +
+                    T.u3().n23() + T.u3().n33() - f.u3().n13() - f.u3().n23() -
+                    f.u3().n33()) /
+                   3;
 
     for (std::size_t i = 0; i < g3Arr.size(); i++)
       if ((i3hws.e22() + g3Arr[i].e22()) == (f3hws.e22() + missing3) &&
           (i3hws.e11() + g3Arr[i].e11()) == (f3hws.e11() + missing3))
         g3Arr0.push_back(i);
 
-    std::vector<u4::gelfand> g4Arr = u4::gelfandBasis(T.u4);
+    std::vector<u4::gelfand> g4Arr = u4::gelfandBasis(T.u4());
     std::vector<std::size_t> g4Arr0;
-    int missing4 = (i.u4.n14() + i.u4.n24() + i.u4.n34() + i.u4.n44() +
-                    T.u4.n14() + T.u4.n24() + T.u4.n34() + T.u4.n44() -
-                    f.u4.n14() - f.u4.n24() - f.u4.n34() - f.u4.n44()) /
+    int missing4 = (i.u4().n14() + i.u4().n24() + i.u4().n34() + i.u4().n44() +
+                    T.u4().n14() + T.u4().n24() + T.u4().n34() + T.u4().n44() -
+                    f.u4().n14() - f.u4().n24() - f.u4().n34() - f.u4().n44()) /
                    4;
 
     for (std::size_t i = 0; i < g4Arr.size(); i++)
