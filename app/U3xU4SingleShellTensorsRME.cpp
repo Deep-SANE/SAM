@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include <Databases.h>
-#include <U3xU4Irrep.h>
+#include <U3xU4irrep.h>
 #include <U3xU4SingleShellTensors.h>
 
 #include <qcx_ND.h>

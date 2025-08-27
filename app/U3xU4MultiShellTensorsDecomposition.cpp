@@ -3,7 +3,7 @@
 #include <utility>
 
 #include <Databases.h>
-#include <U3xU4Irrep.h>
+#include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
 
 #ifdef SAM_USE_SLEPC

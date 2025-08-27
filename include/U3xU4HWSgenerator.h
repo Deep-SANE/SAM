@@ -6,7 +6,7 @@
 
 #include <Eigen/Dense>
 
-#include <U3xU4Irrep.h>
+#include <U3xU4irrep.h>
 
 #include "UNxU4SlaterDeterminant.h"
 

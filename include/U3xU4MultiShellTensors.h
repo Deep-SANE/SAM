@@ -10,7 +10,7 @@
 
 #include <Databases.h>
 #include <U3xU4CouplingCoefficient.h>
-#include <U3xU4Irrep.h>
+#include <U3xU4irrep.h>
 #include <U3xU4SingleShellTensors.h>
 #include <U4xSU3ManyNucleonBasis.h>
 

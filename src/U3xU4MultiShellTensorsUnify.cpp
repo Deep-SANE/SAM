@@ -1,7 +1,7 @@
 #include <cstddef>
 #include <vector>
 
-#include <U3xU4Irrep.h>
+#include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
 #include <U4xSU3ManyNucleonBasis.h>
 

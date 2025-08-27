@@ -10,7 +10,7 @@
 
 #include <Databases.h>
 #include <HOutilities.h>
-#include <U3xU4Irrep.h>
+#include <U3xU4irrep.h>
 
 namespace U3xU4
 {

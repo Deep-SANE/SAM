@@ -3,7 +3,7 @@
 #include <qcx_print.h>
 
 #include <Databases.h>
-#include <U3xU4Irrep.h>
+#include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
 #include <U3xU4SingleShellTensors.h>
 #include <U4xSU3Irrep.h>
