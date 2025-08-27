@@ -41,8 +41,28 @@ namespace U3xU4
 
     // getters:
 
-    const auto& u3() const { return u3_; }
-    const auto& u4() const { return u4_; }
+    const su3::irrep& su3() const { return u3_; }
+    const u3::irrep& u3() const { return u3_; }
+    const u4::irrep& u4() const { return u4_; }
+
+    // SU(3) shorthands:
+
+    int lambda() const { return u3_.lambda(); }
+    int lam() const { return lambda(); }
+    int mu() const { return u3_.mu(); }
+
+    // U(3) shorthands:
+
+    int n13() const { return u3_.n13(); }
+    int n23() const { return u3_.n23(); }
+    int n33() const { return u3_.n33(); }
+
+    // U(4) shorthands:
+
+    int n14() const { return u4_.n14(); }
+    int n24() const { return u4_.n24(); }
+    int n34() const { return u4_.n34(); }
+    int n44() const { return u4_.n44(); }
 
     // total quanta:
     int quanta() const { return u3_.quanta(); }
