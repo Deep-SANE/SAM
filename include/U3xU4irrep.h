@@ -151,7 +151,7 @@ public:
   template <typename Context>
   constexpr auto format(const U3xU4::irrep& i, Context& ctx) const
   {
-    return format_to(ctx.out(), "({},{})", i.u3(), i.u4());
+    return format_to(ctx.out(), "{},{}", i.u3(), i.u4());
   }
 };
 
