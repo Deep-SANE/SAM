@@ -1,14 +1,21 @@
 #pragma once
 
-#include <iostream>
+#include <istream>
+#include <ostream>
 #include <tuple>
 #include <vector>
 
-#include <U3basis.h>
+#include <U3irrep.h>
 #include <U3decomposition.h>
 
-#include <U4basis.h>
+#include <U4irrep.h>
 #include <U4decomposition.h>
+
+#include <qcx_readwrite.h>
+
+#ifdef HAVE_FMT
+#include <fmt/format.h>
+#endif
 
 namespace U3xU4
 {
@@ -19,26 +26,26 @@ namespace U3xU4
     u3::irrep u3;
     u4::irrep u4;
 
-    // constructor
+    // constructors:
+
     irrep() = default;
-    irrep(const u3::irrep& u3_, const u4::irrep& u4_) : u3(u3_), u4(u4_) { }
+
+    irrep(const u3::irrep& u3, const u4::irrep& u4) : u3(u3), u4(u4) { }
+
     irrep(int n13, int n23, int n33, int n14, int n24, int n34, int n44)
         : u3(n13, n23, n33), u4(n14, n24, n34, n44)
     { }
 
-    // comparison operator
-    bool operator==(const irrep& other) const
-    {
-      return (u3 == other.u3) && (u4 == other.u4);
-    }
+    // comparison:
+    auto operator<=>(const irrep&) const = default;
 
-    // total quanta
+    // total quanta:
     int quanta() const { return u3.quanta(); }
 
-    // total particle
+    // total particles:
     int particles() const { return u4.quanta(); }
 
-    // print U3xU4::irrep
+    // print U3xU4::irrep:
     friend std::ostream& operator<<(std::ostream& s, const irrep& x)
     {
       return s << x.u3 << x.u4;
@@ -47,23 +54,14 @@ namespace U3xU4
     // write to binary file
     void writeBinary(std::ostream& s) const
     {
-      int n13 = u3.n13();
-      int n23 = u3.n23();
-      int n33 = u3.n33();
+      qcx_utils::write<int>(s, u3.n13());
+      qcx_utils::write<int>(s, u3.n23());
+      qcx_utils::write<int>(s, u3.n33());
 
-      int n14 = u4.n14();
-      int n24 = u4.n24();
-      int n34 = u4.n34();
-      int n44 = u4.n44();
-
-      s.write(reinterpret_cast<const char*>(&n13), sizeof(n13));
-      s.write(reinterpret_cast<const char*>(&n23), sizeof(n23));
-      s.write(reinterpret_cast<const char*>(&n33), sizeof(n33));
-
-      s.write(reinterpret_cast<const char*>(&n14), sizeof(n14));
-      s.write(reinterpret_cast<const char*>(&n24), sizeof(n24));
-      s.write(reinterpret_cast<const char*>(&n34), sizeof(n34));
-      s.write(reinterpret_cast<const char*>(&n44), sizeof(n44));
+      qcx_utils::write<int>(s, u4.n14());
+      qcx_utils::write<int>(s, u4.n24());
+      qcx_utils::write<int>(s, u4.n34());
+      qcx_utils::write<int>(s, u4.n44());
     }
 
     // read from binary file
@@ -72,14 +70,14 @@ namespace U3xU4
       int n13, n23, n33;
       int n14, n24, n34, n44;
 
-      s.read(reinterpret_cast<char*>(&n13), sizeof(n13));
-      s.read(reinterpret_cast<char*>(&n23), sizeof(n23));
-      s.read(reinterpret_cast<char*>(&n33), sizeof(n33));
+      qcx_utils::read<int>(s, n13);
+      qcx_utils::read<int>(s, n23);
+      qcx_utils::read<int>(s, n33);
 
-      s.read(reinterpret_cast<char*>(&n14), sizeof(n14));
-      s.read(reinterpret_cast<char*>(&n24), sizeof(n24));
-      s.read(reinterpret_cast<char*>(&n34), sizeof(n34));
-      s.read(reinterpret_cast<char*>(&n44), sizeof(n44));
+      qcx_utils::read<int>(s, n14);
+      qcx_utils::read<int>(s, n24);
+      qcx_utils::read<int>(s, n34);
+      qcx_utils::read<int>(s, n44);
 
       u3 = u3::irrep(n13, n23, n33);
       u4 = u4::irrep(n14, n24, n34, n44);
@@ -89,25 +87,47 @@ namespace U3xU4
   // Decomposition of coupling irreps
   // The first std::vector<int> is for rhomaxs
   // The second std::vector<int> is for etamaxs
-  inline std::tuple<std::vector<U3xU4::irrep>, std::vector<int>,
-                    std::vector<int>>
-  decomposition(const U3xU4::irrep& a, const U3xU4::irrep& b)
+  inline auto decomposition(const U3xU4::irrep& a, const U3xU4::irrep& b)
   {
     auto [u3s, multi3s] = u3::decomposition(a.u3, b.u3);
     auto [u4s, multi4s] = u4::decomposition(a.u4, b.u4);
 
-    std::vector<U3xU4::irrep> cs;
+    std::vector<U3xU4::irrep> u3u4s;
     std::vector<int> rhomaxs, etamaxs;
+
+    auto n = u3s.size() * u4s.size();
+    u3u4s.reserve(n);
+    rhomaxs.reserve(n);
+    etamaxs.reserve(n);
 
     for (int i = 0; i < u3s.size(); i++)
       for (int j = 0; j < u4s.size(); j++)
       {
-        cs.emplace_back(u3s[i], u4s[j]);
+        u3u4s.emplace_back(u3s[i], u4s[j]);
         rhomaxs.push_back(multi3s[i]);
         etamaxs.push_back(multi4s[j]);
       }
 
-    return std::make_tuple(cs, rhomaxs, etamaxs);
+    return std::make_tuple(u3u4s, rhomaxs, etamaxs);
   }
 
 } // namespace U3xU4
+
+#ifdef HAVE_FMT
+
+// formatter for U3xU4::irrep:
+
+template <>
+class fmt::formatter<U3xU4::irrep>
+{
+public:
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename Context>
+  constexpr auto format(const U3xU4::irrep& i, Context& ctx) const
+  {
+    return format_to(ctx.out(), "({},{})", i.u3, i.u4);
+  }
+};
+
+#endif
