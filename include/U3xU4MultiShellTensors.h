@@ -11,8 +11,8 @@
 #include <Databases.h>
 #include <U3xU4CouplingCoefficient.h>
 #include <U3xU4irrep.h>
+#include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4SingleShellTensors.h>
-#include <U4xSU3ManyNucleonBasis.h>
 
 #ifdef HAVE_FMT
 #include <fmt/format.h>
@@ -223,7 +223,8 @@ namespace U3xU4
 
     // This method assumes that everything is already unified, i.e., bra and ket
     // irreps are unified, and identities have been filled in already.
-    std::vector<double> RME(const U4xSU3::Irrep& ket, const U4xSU3::Irrep& bra, 
+    std::vector<double> RME(const ManyNucleonBasis::Irrep& ket,
+                            const ManyNucleonBasis::Irrep& bra,
                             sam::Databases& dbs) const;
   };
 
@@ -253,7 +254,7 @@ namespace U3xU4
    * @return Unified multi-shell tensor.
    */
   MultiShellTensor unify_tensor(const MultiShellTensor& T,
-                                const U4xSU3::Irrep& irrep);
+                                const ManyNucleonBasis::Irrep& irrep);
 } // namespace U3xU4
 
 #ifdef HAVE_FMT

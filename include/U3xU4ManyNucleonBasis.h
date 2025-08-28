@@ -8,15 +8,15 @@
 #include <utility>
 #include <vector>
 
+#include <qcx_convert.h>
+
 #include <U3irrep.h>
 #include <U4irrep.h>
-#include <U4xSU3Irrep.h>
 
-#ifdef HAVE_FMT
-#include <fmt/format.h>
-#endif
+#include <U3xU4GammaOmega.h>
+#include <U3xU4irrep.h>
 
-namespace U4xSU3
+namespace U3xU4
 {
   /**
    * Class that represents the many nucleon basis.
@@ -26,154 +26,13 @@ namespace U4xSU3
   public:
     // **** PUBLIC MEMBER TYPES ****
 
-    // (1) distributions:
-
-    /**
-     * Type for storing a number of particles in a shell.
-     */
-    using DistributionElement = uint16_t;
-
-    // (2) gammas:
-
-    /**
-     * Class that represent a single basis gamma element.
-     */
-    class GammaElement : public U4xSU3::irrep
-    {
-      uint16_t alphamax_; // U(N)->U(3) reduction multiplicity
-
-    public:
-      /**
-       * Default constructor.
-       *
-       * Creates a vaccum gamma element, where:
-       *   u4 = [0,0,0,0],
-       *   alphamax = 1,
-       *   su3 = (0, 0).
-       */
-      GammaElement();
-
-      /**
-       * Consctuctor that creates a gamma element with given parameters.
-       *
-       * @param u4 U(4) irrep.
-       * @param alphamax U(N)->U(3) reduction multiplicity.
-       * @param su3 SU(3) irrep.
-       */
-      GammaElement(const u4::irrep& u4, int alphamax, const su3::irrep& su3);
-
-      /**
-       * Sets U(N)->(3) reduction multiplicity.
-       *
-       * @param am U(N)->U(3) reduction multiplicity.
-       */
-      void alphamax(int am);
-
-      /**
-       * Returns U(N)->U(3) recution multiplicity.
-       *
-       * @return U(N)->U(3) recuction multiplicity.
-       */
-      int alphamax() const;
-    };
-
-    // (3) omegas:
-
-  private:
-    // the following declarations must precede OmegaElement class:
-    class OmegaElementU4;
-    class OmegaElementSU3;
-
-  public:
-    /**
-     * Class that represent a single basis omega element.
-     */
-    class OmegaElement : public U4xSU3::irrep
-    {
-      uint16_t etamax_; // U(4) coupling multiplicity
-      uint16_t rhomax_; // SU(3) coupling multiplicity
-
-    public:
-      /**
-       * Default constructor.
-       *
-       * Creates a vaccum omega element, where:
-       *   etamax = 1,
-       *   u4 = [0,0,0,0],
-       *   rhomax = 1,
-       *   su3 = (0, 0).
-       */
-      OmegaElement();
-
-      /**
-       * Consctuctor that creates an omega element with given parameters.
-       *
-       * @param etamax U(4) couling multiplicity.
-       * @param u4 U(4) irrep.
-       * @param rhomax SU(3) couling multiplicity.
-       * @param su3 SU(3) irrep.
-       */
-      OmegaElement(int etamax, const u4::irrep& u4, int rhomax,
-                   const su3::irrep& su3);
-
-      /**
-       * Consctuctor that creates an omega element from its U(4) and SU(3)
-       * parts.
-       *
-       * @param oe_u4 U(4) part.
-       * @param oe_su3 SU(3) part.
-       */
-      OmegaElement(const OmegaElementU4& oe_u4, const OmegaElementSU3& oe_su3);
-
-      /**
-       * Consctuctor that creates an omega element from a gamma element.
-       *
-       * Irreps are copied, multiplicities are set to 1.
-       *
-       * @param ge Gamma element.
-       */
-      OmegaElement(const GammaElement& ge);
-
-      /**
-       * Sets U(4) coupling multiplicity.
-       *
-       * @param em U(4) coupling multiplicity.
-       */
-      void etamax(int em);
-
-      /**
-       * Sets SU(3) coupling multiplicity.
-       *
-       * @param rm SU(3) coupling multiplicity.
-       */
-      void rhomax(int rm);
-
-      /**
-       * Returns U(4) coupling multiplicity.
-       *
-       * @return U(4) coupling multiplicity.
-       */
-      int etamax() const;
-
-      /**
-       * Returns SU(3) coupling multiplicity.
-       *
-       * @return SU(3) coupling multiplicity.
-       */
-      int rhomax() const;
-    };
-
-    // (4) irreps:
-
     /**
      * Single basis irrep.
      */
     struct Irrep
     {
-      std::span<const DistributionElement> dist;
-      std::span<const GammaElement> gamma;
-      std::span<const OmegaElement> omega;
-      uint64_t offset;
+      std::vector<U3xU4::GammaElement> gamma;
+      std::vector<U3xU4::OmegaElement> omega;
     };
 
     /**
@@ -183,8 +42,10 @@ namespace U4xSU3
     {
       const ManyNucleonBasis& basis_;
 
-      // storage for resulting combined omega elements:
-      std::vector<OmegaElement> omega_;
+      // storage for resulting gamma and omega elements:
+      std::vector<uint16_t> active_shells_;
+      std::vector<U3xU4::GammaElement> gamma_;
+      std::vector<U3xU4::OmegaElement> omega_;
 
     public:
       /**
@@ -209,6 +70,8 @@ namespace U4xSU3
        * @return A required basis irrep.
        */
       Irrep operator[](size_t irrep_id);
+
+      size_t offset(size_t irrep_id) const;
     };
 
     // **** PUBLIC MEMBER FUNCTIONS  ****
@@ -245,38 +108,52 @@ namespace U4xSU3
   private:
     // **** PRIVATE MEMBER TYPES ****
 
-    class OmegaElementU4
+    using DistributionElement = uint16_t;
+
+     // class that represents a single basis gamma element:
+    struct GammaElement
     {
-      uint16_t etamax_; // U(4) coupling multiplicity
-      u4::irrep u4_;
+      u4::irrep u4;
+      uint16_t alphamax; // U(N)->U(3) reduction multiplicity
+      su3::irrep su3;
 
     public:
-      OmegaElementU4();
-      OmegaElementU4(int etamax, const u4::irrep& u4);
+      GammaElement() : alphamax(1) { }
 
-      void etamax(int em);
-      int etamax() const;
-
-      void u4(const u4::irrep& u4);
-      const u4::irrep& u4() const;
+      GammaElement(const u4::irrep& u4, int alphamax, const su3::irrep& su3)
+          : u4(u4), alphamax(qcx_utils::itou16(alphamax)), su3(su3)
+      { }
     };
 
-    class OmegaElementSU3
+    // class that represents an SU(3) part of a single basis omega element:
+    struct OmegaElementSU3
     {
-      uint16_t rhomax_; // SU(3) coupling multiplicity
-      su3::irrep su3_;
+      uint16_t rhomax; // SU(3) coupling multiplicity
+      su3::irrep su3;
 
     public:
-      OmegaElementSU3();
-      OmegaElementSU3(int rhomax, const su3::irrep& su3);
+      OmegaElementSU3() : rhomax(1) { }
 
-      void rhomax(int rm);
-      int rhomax() const;
-
-      void su3(const su3::irrep& su3);
-      const su3::irrep& su3() const;
+      OmegaElementSU3(int rhomax, const su3::irrep& su3)
+          : rhomax(qcx_utils::itou16(rhomax)), su3(su3)
+      { }
     };
 
+    // class that represents a U(4) part of a single basis omega element:
+    struct OmegaElementU4
+    {
+      uint16_t etamax; // U(4) coupling multiplicity
+      u4::irrep u4;
+
+    public:
+      OmegaElementU4() : etamax(1) { }
+
+      OmegaElementU4(int etamax, const u4::irrep& u4)
+          : etamax(qcx_utils::itou16(etamax)), u4(u4)
+      { }
+    };
+
+    // internal representation of basis irreps:
     struct InternalIrrep
     {
       uint32_t dist_id;
@@ -518,49 +395,7 @@ namespace U4xSU3
     void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id);
   };
 
-  // structure for irrep used outside of the basis class:
-  struct Irrep
-  {
-    std::vector<ManyNucleonBasis::DistributionElement> dist;
-    std::vector<ManyNucleonBasis::GammaElement> gamma;
-    std::vector<ManyNucleonBasis::OmegaElement> omega;
-    std::vector<uint16_t> gamma_shells;
-
-    inline static const size_t INVALID_INDEX =
-        std::numeric_limits<size_t>::max();
-
-    Irrep() = default;
-
-    Irrep(const std::vector<ManyNucleonBasis::DistributionElement>& dist_,
-          const std::vector<ManyNucleonBasis::GammaElement>& gamma_,
-          const std::vector<ManyNucleonBasis::OmegaElement>& omega_)
-      : dist(dist_), gamma(gamma_), omega(omega_)
-    {}
-
-    size_t gamma_shell(size_t gamma_idx) const
-    {
-      assert(gamma_idx < gamma.size());
-
-      return gamma_shells[gamma_idx];
-    }
-
-    size_t shell_gamma(size_t shell_idx) const
-    {
-      assert(shell_idx < dist.size());
-
-      auto iter = std::ranges::find(gamma_shells, shell_idx);
-
-      return (iter == gamma_shells.end() ? INVALID_INDEX : *iter);
-    }
-
-    void clear()
-    {
-      dist.clear();
-      gamma.clear();
-      omega.clear();
-    }
-  };
-
+  /*
   // class for unifying 2 irreps wrt to their active shells:
   class IrrepUnifier
   {
@@ -667,83 +502,7 @@ namespace U4xSU3
       return std::tie(std::as_const(o1_), std::as_const(o2_));
     }
   };
-} // namespace U4xSU3
-
-#ifdef HAVE_FMT
-
-// formatter for GammaElement:
-
-template <>
-class fmt::formatter<U4xSU3::ManyNucleonBasis::GammaElement>
-{
-public:
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-  template <typename Context>
-  constexpr auto format(const U4xSU3::ManyNucleonBasis::GammaElement& ge,
-                        Context& ctx) const
-  {
-    return format_to(ctx.out(), "[{},{},{},{}]{}({},{})", ge.u4().n14(),
-                     ge.u4().n24(), ge.u4().n34(), ge.u4().n44(), ge.alphamax(),
-                     ge.su3().lambda(), ge.su3().mu());
-  }
-};
-
-/*
-// formatter for OmegaElementU4:
-
-template <>
-class fmt::formatter<U4xSU3::ManyNucleonBasis::OmegaElementU4>
-{
-public:
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-  template <typename Context>
-  constexpr auto format(const U4xSU3::ManyNucleonBasis::OmegaElementU4& oe,
-                        Context& ctx) const
-  {
-    return format_to(ctx.out(), "{}[{},{},{},{}]", oe.etamax(), oe.u4().n14(),
-                     oe.u4().n24(), oe.u4().n34(), oe.u4().n44());
-  }
-};
-
-// formatter for OmegaElementSU3:
-
-template <>
-class fmt::formatter<U4xSU3::ManyNucleonBasis::OmegaElementSU3>
-{
-public:
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-  template <typename Context>
-  constexpr auto format(const U4xSU3::ManyNucleonBasis::OmegaElementSU3& oe,
-                        Context& ctx) const
-  {
-    return format_to(ctx.out(), "{}({},{})", oe.rhomax(), oe.su3().lambda(),
-                     oe.su3().mu());
-  }
-};
-*/
-
-    // formatter for OmegaElement:
-
-    template <>
-    class fmt::formatter<U4xSU3::ManyNucleonBasis::OmegaElement>
-    {
-    public:
-      constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-      template <typename Context>
-      constexpr auto format(const U4xSU3::ManyNucleonBasis::OmegaElement& oe,
-                            Context& ctx) const
-      {
-        return format_to(ctx.out(), "{}[{},{},{},{}]{}({},{})", oe.etamax(),
-                         oe.u4().n14(), oe.u4().n24(), oe.u4().n34(),
-                         oe.u4().n44(), oe.rhomax(), oe.su3().lambda(),
-                         oe.su3().mu());
-      }
-};
-
-#endif
+  */
+} // namespace U3xU4
 
 #endif

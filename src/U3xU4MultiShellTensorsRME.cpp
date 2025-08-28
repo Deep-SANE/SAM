@@ -1,3 +1,4 @@
+#include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
 
 #include <numeric>
@@ -10,8 +11,10 @@
 
 namespace U3xU4
 {
-  std::vector<double> MultiShellTensor::RME(const U4xSU3::Irrep& ket, 
-  	const U4xSU3::Irrep& bra, sam::Databases& dbs) const
+  std::vector<double>
+  MultiShellTensor::RME(const U3xU4::ManyNucleonBasis::Irrep& ket,
+                        const U3xU4::ManyNucleonBasis::Irrep& bra,
+                        sam::Databases& dbs) const
   {
     // everything must already be unified
     assert(bra.gamma.size() == ket.gamma.size());

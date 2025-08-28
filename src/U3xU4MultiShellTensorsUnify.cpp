@@ -2,13 +2,13 @@
 #include <vector>
 
 #include <U3xU4irrep.h>
+#include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4MultiShellTensors.h>
-#include <U4xSU3ManyNucleonBasis.h>
 
 namespace U3xU4
 {
   MultiShellTensor unify_tensor(const MultiShellTensor& T,
-                                const U4xSU3::Irrep& irrep)
+                                const ManyNucleonBasis::Irrep& irrep)
   {
     const auto& Gamma = T.single_shell_tensors;
     const auto& Omega = T.coupled_irreps;

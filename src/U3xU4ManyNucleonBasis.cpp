@@ -23,111 +23,12 @@
 
 #include <UNtoU3.h>
 
-#include <U4xSU3Irrep.h>
-#include <U4xSU3ManyNucleonBasis.h>
+#include <U3xU4GammaOmega.h>
+#include <U3xU4irrep.h>
+#include <U3xU4ManyNucleonBasis.h>
 
-namespace U4xSU3
+namespace U3xU4
 {
-  // **** ManyNucleonBasis::GammaElement ****
-
-  ManyNucleonBasis::GammaElement::GammaElement() : alphamax_(1) { }
-
-  ManyNucleonBasis::GammaElement::GammaElement(const u4::irrep& u4,
-                                               int alphamax,
-                                               const su3::irrep& su3)
-      : U4xSU3::irrep(u4, su3), alphamax_(qcx_utils::itou16(alphamax))
-  { }
-
-  void ManyNucleonBasis::GammaElement::alphamax(int am)
-  {
-    alphamax_ = qcx_utils::itou16(am);
-  }
-
-  int ManyNucleonBasis::GammaElement::alphamax() const { return alphamax_; }
-
-  // **** ManyNucleonBasis::OmegaElement ****
-
-  ManyNucleonBasis::OmegaElement::OmegaElement() : etamax_(1), rhomax_(1) { }
-
-  ManyNucleonBasis::OmegaElement::OmegaElement(int etamax, const u4::irrep& u4,
-                                               int rhomax,
-                                               const su3::irrep& su3)
-      : U4xSU3::irrep(u4, su3),
-        etamax_(qcx_utils::itou16(etamax)),
-        rhomax_(qcx_utils::itou16(rhomax))
-  { }
-
-  ManyNucleonBasis::OmegaElement::OmegaElement(const OmegaElementU4& oe_u4,
-                                               const OmegaElementSU3& oe_su3)
-      : U4xSU3::irrep(oe_u4.u4(), oe_su3.su3()),
-        etamax_(oe_u4.etamax()),
-        rhomax_(oe_su3.rhomax())
-  { }
-
-  ManyNucleonBasis::OmegaElement::OmegaElement(const GammaElement& ge)
-      : U4xSU3::irrep(ge), etamax_(1), rhomax_(1)
-  { }
-
-  void ManyNucleonBasis::OmegaElement::etamax(int em)
-  {
-    etamax_ = qcx_utils::itou16(em);
-  }
-
-  void ManyNucleonBasis::OmegaElement::rhomax(int rm)
-  {
-    rhomax_ = qcx_utils::itou16(rm);
-  }
-
-  int ManyNucleonBasis::OmegaElement::etamax() const { return etamax_; }
-
-  int ManyNucleonBasis::OmegaElement::rhomax() const { return rhomax_; }
-
-  // **** ManyNucleonBasis::OmegaElementU4 ****
-
-  ManyNucleonBasis::OmegaElementU4::OmegaElementU4() : etamax_(1) { }
-
-  ManyNucleonBasis::OmegaElementU4::OmegaElementU4(int etamax,
-                                                   const u4::irrep& u4)
-      : etamax_(qcx_utils::itou16(etamax)), u4_(u4)
-  { }
-
-  void ManyNucleonBasis::OmegaElementU4::etamax(int em)
-  {
-    etamax_ = qcx_utils::itou16(em);
-  }
-
-  int ManyNucleonBasis::OmegaElementU4::etamax() const { return etamax_; }
-
-  void ManyNucleonBasis::OmegaElementU4::u4(const u4::irrep& u4) { u4_ = u4; }
-
-  const u4::irrep& ManyNucleonBasis::OmegaElementU4::u4() const { return u4_; }
-
-  // **** ManyNucleonBasis::OmegaElementSU3 ****
-
-  ManyNucleonBasis::OmegaElementSU3::OmegaElementSU3() : rhomax_(1) { }
-
-  ManyNucleonBasis::OmegaElementSU3::OmegaElementSU3(int rhomax,
-                                                     const su3::irrep& su3)
-      : rhomax_(qcx_utils::itou16(rhomax)), su3_(su3)
-  { }
-
-  void ManyNucleonBasis::OmegaElementSU3::rhomax(int rm)
-  {
-    rhomax_ = qcx_utils::itou16(rm);
-  }
-
-  int ManyNucleonBasis::OmegaElementSU3::rhomax() const { return rhomax_; }
-
-  void ManyNucleonBasis::OmegaElementSU3::su3(const su3::irrep& su3)
-  {
-    su3_ = su3;
-  }
-
-  const su3::irrep& ManyNucleonBasis::OmegaElementSU3::su3() const
-  {
-    return su3_;
-  }
-
   // **** ManyNucleonBasis::IrrepDB ****
 
   ManyNucleonBasis::IrrepDB::IrrepDB(const ManyNucleonBasis& basis)
@@ -142,16 +43,41 @@ namespace U4xSU3
         basis_.irreps_[irrep_id];
 
     auto dist = basis_.distribution(dist_id);
+
+    // active shells:
+    active_shells_.clear();
+    for (size_t n = 0; n < dist.size(); n++)
+      if (dist[n] > 0)
+        active_shells_.push_back(n);
+
     auto gamma = basis_.gamma(gamma_id);
 
     assert(gamma.size() > 0);
+    assert(gamma.size() == active_shells_.size());
+
+    // create resulting gamma:
+    gamma_.clear();
+    for (size_t i = 0; i < gamma.size(); i++)
+    {
+      auto n = active_shells_[i];
+      const auto& ge = gamma[i];
+
+      auto A = ge.u4.quanta(); // particles
+      auto N = A * n;          // quanta
+
+      u3::irrep u3(ge.su3, N);
+
+      gamma_.emplace_back(n, ge.alphamax, u3, ge.u4);
+    }
+
+    assert(gamma_.size() == gamma.size());
 
     if (gamma.size() == 1)
     {
       assert(omega_u4_id == INVALID_OMEGA_ID);
       assert(omega_su3_id == INVALID_OMEGA_ID);
 
-      return {dist, gamma, std::span<const OmegaElement>(), offset};
+      return {std::move(gamma_), {}};
     }
     else
     {
@@ -164,10 +90,21 @@ namespace U4xSU3
       // combine omega U(4) and SU(3) parts:
       omega_.clear();
       for (size_t i = 0; i < omega_u4.size(); i++)
-        omega_.emplace_back(omega_u4[i], omega_su3[i]);
+      {
+        const auto& oe_u4 = omega_u4[i];
+        const auto& oe_su3 = omega_su3[i];
 
-      return {dist, gamma, std::span<const OmegaElement>(omega_), offset};
+        omega_.emplace_back(oe_su3.rhomax, oe_su3.su3, oe_u4.etamax, oe_u4.u4);
+      }
+
+      return {std::move(gamma_), std::move(omega_)};
     }
+  }
+
+  size_t ManyNucleonBasis::IrrepDB::offset(size_t irrep_id) const
+  {
+    assert(irrep_id < basis_.irreps_.size());
+    return basis_.irreps_[irrep_id].offset;
   }
 
   // **** ManyNucleonBasis ****
@@ -343,7 +280,7 @@ namespace U4xSU3
       {
         const auto& ge = gamma[0];
 
-        auto dim_gamma = ge.alphamax() * compute_dim(ge.u4(), ge.su3());
+        auto dim_gamma = ge.alphamax * compute_dim(ge.u4, ge.su3);
 
         if (dim_gamma > 0)
         {
@@ -466,7 +403,7 @@ namespace U4xSU3
 
     auto couple_u4 = [](const auto& first, const auto& second, auto& stack)
     {
-      auto [u4s, mults] = u4::decomposition(first.u4(), second.u4());
+      auto [u4s, mults] = u4::decomposition(first.u4, second.u4);
 
       for (size_t i = 0; i < u4s.size(); i++)
         stack.emplace(mults[i], u4s[i]);
@@ -496,7 +433,7 @@ namespace U4xSU3
 
     auto couple_su3 = [](const auto& first, const auto& second, auto& stack)
     {
-      auto [su3s, mults] = su3::decomposition(first.su3(), second.su3());
+      auto [su3s, mults] = su3::decomposition(first.su3, second.su3);
 
       for (size_t i = 0; i < su3s.size(); i++)
         stack.emplace(mults[i], su3s[i]);
@@ -525,7 +462,7 @@ namespace U4xSU3
     // total gamma multiplicity:
     uint32_t mult_gamma = 1;
     for (const auto& ge : gamma)
-      mult_gamma *= ge.alphamax();
+      mult_gamma *= ge.alphamax;
 
     for (size_t i = 0; i < omegas_u4.size(); i++)
     {
@@ -535,7 +472,7 @@ namespace U4xSU3
 
       uint32_t mult_u4 = 1;
       for (const auto& oe_u4 : omega_u4)
-        mult_u4 *= oe_u4.etamax();
+        mult_u4 *= oe_u4.etamax;
 
       for (size_t j = 0; j < omegas_su3.size(); j++)
       {
@@ -545,10 +482,10 @@ namespace U4xSU3
 
         uint32_t mult_su3 = 1;
         for (const auto& oe_su3 : omega_su3)
-          mult_su3 *= oe_su3.rhomax();
+          mult_su3 *= oe_su3.rhomax;
 
         auto mult = mult_gamma * mult_u4 * mult_su3;
-        auto dim_irrep = compute_dim(last_oe_u4.u4(), last_oe_su3.su3());
+        auto dim_irrep = compute_dim(last_oe_u4.u4, last_oe_su3.su3);
         auto dim_omega = mult * dim_irrep;
 
         if (dim_omega > 0)
@@ -563,4 +500,4 @@ namespace U4xSU3
     }
   }
 
-} // namespace U4xSU3
+} // namespace U3xU4

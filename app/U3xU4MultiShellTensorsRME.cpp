@@ -5,9 +5,9 @@
 
 #include <Databases.h>
 #include <U3xU4irrep.h>
-#include <U4xSU3Irrep.h>
+#include <U3xU4GammaOmega.h>
 #include <U3xU4MultiShellTensors.h>
-#include <U4xSU3ManyNucleonBasis.h>
+#include <U3xU4ManyNucleonBasis.h>
 
 #include <qcx_ND.h>
 
@@ -222,15 +222,15 @@ int main(int argc, char* argv[])
     |||                        1(2,1)         2(1,2)          1(2,0)     /
   */
   
-  U4xSU3::ManyNucleonBasis::GammaElement 
-    gamma0_ket(u4::irrep(0,0,0,0),1,su3::irrep(0,0)),
-    gamma1_ket(u4::irrep(2,1,1,0),1,su3::irrep(2,1)),
-    gamma2_ket(u4::irrep(2,0,0,0),1,su3::irrep(2,1)),
-    gamma3_ket(u4::irrep(1,1,0,0),1,su3::irrep(2,2)),
-    gamma0_bra(u4::irrep(1,0,0,0),1,su3::irrep(0,0)),
-    gamma1_bra(u4::irrep(3,1,0,0),1,su3::irrep(1,0)),
-    gamma2_bra(u4::irrep(1,0,0,0),1,su3::irrep(2,0)),
-    gamma3_bra(u4::irrep(1,1,0,0),1,su3::irrep(2,2));
+  U3xU4::ManyNucleonBasis::GammaElement 
+    gamma0_ket(0,su3::irrep(0,0),1,u4::irrep(0,0,0,0)),
+    gamma1_ket(1,su3::irrep(2,1),1,u4::irrep(2,1,1,0)),
+    gamma2_ket(2,su3::irrep(2,1),1,u4::irrep(2,0,0,0)),
+    gamma3_ket(3,su3::irrep(2,2),1,u4::irrep(1,1,0,0)),
+    gamma0_bra(0,su3::irrep(0,0),1,u4::irrep(1,0,0,0)),
+    gamma1_bra(1,su3::irrep(1,0),1,u4::irrep(3,1,0,0)),
+    gamma2_bra(2,su3::irrep(2,0),1,u4::irrep(1,0,0,0)),
+    gamma3_bra(3,su3::irrep(2,2),1,u4::irrep(1,1,0,0));
   U4xSU3::ManyNucleonBasis::OmegaElement 
     omega0_ket(1,u4::irrep(2,1,1,0),1,u3::irrep(3,1,0)),
     omega1_ket(1,u4::irrep(1,1,0,0),2,u3::irrep(3,2,0)),
