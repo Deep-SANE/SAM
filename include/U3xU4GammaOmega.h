@@ -17,22 +17,72 @@ namespace U3xU4
   class GammaElement : public U3xU4::irrep
   {
     uint16_t shell_;    // shell number
-    uint16_t alphamax_; // U(N)->U(3) reduction multiplicity
+
+    union
+    {
+      // basis part:
+      uint16_t alphamax_; // U(N)->U(3) reduction multiplicity
+
+      // tensor part:
+      struct
+      {
+        uint8_t rhomax; // rho(0)max
+        uint8_t etamax; // eta(0)max
+      } t_;
+    };
 
   public:
-    GammaElement(int shell) : shell_(shell), alphamax_(1) { }
+    enum class State : uint8_t { Basis, Tensor, None };
 
+  private:
+    State state_;
+
+  public:
+    // constructs a generic vacuum gamma element:
+    GammaElement(int shell) : shell_(shell), state_(State::None) { }
+
+    // constructs a basis gamma element:
     GammaElement(int shell, int alphamax, const u3::irrep& u3,
                  const u4::irrep& u4)
         : U3xU4::irrep(u3, u4),
           shell_(shell),
-          alphamax_(qcx_utils::itou16(alphamax))
+          alphamax_(qcx_utils::itou16(alphamax)),
+          state_(State::Basis)
+    { }
+
+    // constructs a tensor gamma element:
+    GammaElement(int shell, int rhomax, const u3::irrep& u3, int etamax,
+                 const u4::irrep& u4)
+        : U3xU4::irrep(u3, u4),
+          shell_(shell),
+          t_(qcx_utils::itou8(rhomax), qcx_utils::itou8(etamax)),
+          state_(State::Tensor)
     { }
 
     // getters:
 
     int shell() const { return shell_; }
-    int alphamax() const { return alphamax_; }
+
+    int alphamax() const
+    {
+      assert(state_ == State::Basis);
+      return alphamax_;
+    }
+
+    int rhomax() const
+    {
+      assert(state_ == State::Tensor);
+      return t_.rhomax;
+    }
+
+    int etamax() const
+    {
+      assert(state_ == State::Tensor);
+      return t_.etamax;
+    }
+
+    // state:
+    State state() const { return state_; }
   };
 
   // class that represents a single omega element:
@@ -71,7 +121,16 @@ public:
   template <typename Context>
   constexpr auto format(const U3xU4::GammaElement& ge, Context& ctx) const
   {
-    return format_to(ctx.out(), "{}{}{}", ge.u4(), ge.alphamax(), ge.su3());
+    if (ge.state() == U3xU4::GammaElement::State::None)
+      return format_to(ctx.out(), "{}:{}{}", ge.shell(), ge.u4(), ge.su3());
+    else if (ge.state() == U3xU4::GammaElement::State::Basis)
+      return format_to(ctx.out(), "{}:{}{}{}", ge.shell(), ge.u4(),
+                       ge.alphamax(), ge.su3());
+    else if (ge.state() == U3xU4::GammaElement::State::Tensor)
+      return format_to(ctx.out(), "{}:{}{}{}{}", ge.shell(), ge.etamax(),
+                       ge.u4(), ge.rhomax(), ge.u3());
+    else
+      return format_to(ctx.out(), "");
   }
 };
 

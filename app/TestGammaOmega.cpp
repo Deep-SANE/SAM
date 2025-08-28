@@ -8,15 +8,16 @@ using qcx_utils::print;
 
 int main()
 {
-  U3xU4::GammaElement g_vacuum(0);
+  U3xU4::GammaElement ge_vacuum(0);
+  print("{}\n", ge_vacuum);
 
-  print("{}\n", g_vacuum);
+  U3xU4::GammaElement ge_basis(2, 1, {4, 2, 0}, {3, 0, 0, 0});
+  print("{}\n", ge_basis);
 
-  U3xU4::GammaElement ge(2, 1, {4, 2, 0}, {3, 0, 0, 0});
+  U3xU4::GammaElement ge_tensor(2, 1, {4, 2, 0}, 1, {1, 1, 1, 0});
+  print("{}\n", ge_tensor);
 
-  print("{}\n", ge);
-
-  const U3xU4::irrep& ige = ge;
+  const U3xU4::irrep& ige = ge_tensor;
 
   print("{}\n", ige);
 
@@ -28,7 +29,7 @@ int main()
 
   print("{}\n", ioe);
 
-  qcx_utils::reference_wrapper<const U3xU4::irrep> rw1 = ge;
+  qcx_utils::reference_wrapper<const U3xU4::irrep> rw1 = ge_tensor;
 
   print("{}\n", rw1.get());
 
@@ -37,7 +38,7 @@ int main()
 
   print("{}\n", rw2.get());
 
-  auto rw3 = qcx_utils::cref<U3xU4::irrep>(ge);
+  auto rw3 = qcx_utils::cref<U3xU4::irrep>(ge_tensor);
 
   print("{}\n", rw3.get());
   print("{}\n", rw3->su3());
