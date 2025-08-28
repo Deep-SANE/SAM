@@ -527,7 +527,7 @@ namespace JT
 
       // auto groups_ns = group_same_shell(sorted_ns);
       auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
-      std::vector<std::vector<U3xU4::Tadat>> Tadat_lists;
+      std::vector<std::vector<U3xU4::SingleShellTensor>> Tadat_lists;
       for (auto group : groups_ns)
       {
         Tadat_lists.push_back(U3xU4::GenerateSingleShellTensors(

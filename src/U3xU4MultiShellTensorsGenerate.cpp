@@ -9,10 +9,10 @@ namespace U3xU4
   //  coupled (irrep,rhomax,etamax)
 
   void CoupleSingShellTensors(
-      const std::vector<std::vector<U3xU4::Tadat>>&
+      const std::vector<std::vector<U3xU4::SingleShellTensor>>&
           Tadat_lists,                          // list of lists of Tadat
       std::size_t depth,                        // recursion depth
-      std::vector<U3xU4::Tadat> Tadat_choices,  // current choices
+      std::vector<U3xU4::SingleShellTensor> Tadat_choices,  // current choices
       std::vector<U3xU4::irrep> coupled_irreps, // current coupled irreps
       std::vector<int> rhomax_list,             // rhomax values
       std::vector<int> etamax_list,             // etamax values

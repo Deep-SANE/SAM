@@ -112,7 +112,7 @@ namespace U3xU4
 
   public:
     // List of single-shell tensors, each corresponds to Gamma in the document.
-    std::vector<U3xU4::Tadat> single_shell_tensors;
+    std::vector<U3xU4::SingleShellTensor> single_shell_tensors;
 
     // The coupled irreps, each corresponds to Omega in the document.
     // This list has one less element than the single_shell_tensors list.
@@ -145,7 +145,7 @@ namespace U3xU4
           zetamax(0), SS(0), TT(0), MMT(0), JJ(0), MMJ(0)
     {}
     TwoBodyMultiShellTensor(
-        const std::vector<U3xU4::Tadat>& single_shell_tensors_,
+        const std::vector<U3xU4::SingleShellTensor>& single_shell_tensors_,
         const std::vector<U3xU4::irrep>& coupled_irreps_, int rho_, int eta_,
         int kappa_, int LL_, int zeta_, int SS_, int TT_, int MMT_, int JJ_,
         int MMJ_, const std::vector<double>& coeffs_,
@@ -204,7 +204,7 @@ namespace U3xU4
   class MultiShellTensor
   {
   public:
-    using GammaElement = U3xU4::Tadat;
+    using GammaElement = U3xU4::SingleShellTensor;
     using OmegaElement = std::tuple<U3xU4::irrep, int, int>;
 
     // List of single-shell tensors, each corresponds to Gamma in the document.
@@ -239,7 +239,7 @@ namespace U3xU4
       const std::vector<std::vector<MultiShellTensor::GammaElement>>&
           Tadat_lists,                          // list of lists of Tadat
       std::size_t depth,                        // recursion depth
-      std::vector<U3xU4::Tadat> Tadat_choices,  // current choices
+      std::vector<U3xU4::SingleShellTensor> Tadat_choices,  // current choices
       std::vector<U3xU4::irrep> coupled_irreps, // current coupled irreps
       std::vector<int> rhomax_list,             // rhomax values
       std::vector<int> etamax_list,             // etamax values

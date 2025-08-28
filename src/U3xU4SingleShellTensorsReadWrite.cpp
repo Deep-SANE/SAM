@@ -35,7 +35,7 @@ namespace U3xU4
                << mmt << ")";
   }
 
-  std::ostream& operator<<(std::ostream& s, const Tadat& x)
+  std::ostream& operator<<(std::ostream& s, const SingleShellTensor& x)
   {
     s << "[ (n=" << x.n << ") ";
     if (x.ads > 0)
@@ -57,7 +57,7 @@ namespace U3xU4
     return s;
   }
 
-  void Tadat::writeBinary(std::ostream& s) const
+  void SingleShellTensor::writeBinary(std::ostream& s) const
   {
     s.write(reinterpret_cast<const char*>(&n), sizeof(n));
     s.write(reinterpret_cast<const char*>(&ads), sizeof(ads));
@@ -74,7 +74,7 @@ namespace U3xU4
     T.writeBinary(s);
   }
 
-  void Tadat::readBinary(std::istream& s)
+  void SingleShellTensor::readBinary(std::istream& s)
   {
     s.read(reinterpret_cast<char*>(&n), sizeof(n));
     s.read(reinterpret_cast<char*>(&ads), sizeof(ads));

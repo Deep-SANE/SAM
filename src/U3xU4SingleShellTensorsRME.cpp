@@ -9,10 +9,11 @@
 
 namespace U3xU4
 {
-  std::vector<double> Tadat::RME(std::size_t& ai_max, const U3xU4::irrep& i,
-                                 std::size_t& af_max, const U3xU4::irrep& f,
-                                 std::size_t& rhomax, std::size_t& etamax,
-                                 sam::Databases& dbs) const
+  std::vector<double> SingleShellTensor::RME(
+    std::size_t& ai_max, const U3xU4::irrep& i,
+    std::size_t& af_max, const U3xU4::irrep& f,
+    std::size_t& rhomax, std::size_t& etamax,
+    sam::Databases& dbs) const
   {
     auto& cgcs = dbs.cgcs;
     auto& wigU3U2db = dbs.wigU3U2db;
@@ -263,9 +264,9 @@ namespace U3xU4
             CGCs(row, r * etamax + e) = cgcU3(r) * cgcU4(e);
 
         // Expand tensor into ad's and a's
-        U3xU4::Tadat_gelfand Tadat(n, sps3, sps3_conj, sps4, sps4_conj, ads,
-                                   ats, prod_ads, prod_ats, T, rho0max, eta0max,
-                                   gt3, gt4);
+        U3xU4::SingleShellTensor_gelfand 
+          Tadat(n, sps3, sps3_conj, sps4, sps4_conj, ads, ats, 
+                prod_ads, prod_ats, T, rho0max, eta0max, gt3, gt4);
 
         auto [coeffs, adArr, aArr] = Tadat.expand(dbs);
         /*

@@ -28,17 +28,17 @@ namespace U3xU4
     // Hence this becomes single-shell RME problem.
     if (bra.omega.empty())
     {
-      const U3xU4::Tadat& tadat = single_shell_tensors[0];
+      const U3xU4::SingleShellTensor& tadat = single_shell_tensors[0];
 
       assert(tadat.n == ket.gamma[0].shell());
       assert(tadat.n == bra.gamma[0].shell());
 
-        U3xU4::irrep i = ket.gamma[0],
-                     f = bra.gamma[0];
+      U3xU4::irrep i = ket.gamma[0],
+                   f = bra.gamma[0];
 
-        std::size_t rhomax, etamax, // multi for Wigner-Eckart theorem
-        			      ai_max = ket.gamma[0].alphamax(), // multi for the ket
-                    af_max = bra.gamma[0].alphamax(); // multi for the bra
+      std::size_t rhomax, etamax, // multi for Wigner-Eckart theorem
+        			    ai_max = ket.gamma[0].alphamax(), // multi for the ket
+                  af_max = bra.gamma[0].alphamax(); // multi for the bra
 
         return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs);
     }
@@ -47,8 +47,8 @@ namespace U3xU4
     else if (bra.omega.size() == 1)
     {
       // extract single-shell tensors
-      const U3xU4::Tadat& tadat0 = single_shell_tensors[0];
-      const U3xU4::Tadat& tadat1 = single_shell_tensors[1];
+      const U3xU4::SingleShellTensor& tadat0 = single_shell_tensors[0];
+      const U3xU4::SingleShellTensor& tadat1 = single_shell_tensors[1];
 
       // extract intershell coupling of the total tensor
       const auto& [Omega, Rhomax, Etamax] = coupled_irreps[0];
@@ -223,7 +223,7 @@ namespace U3xU4
     else
     {
       // extract the last single-shell tensor
-      const U3xU4::Tadat& tadat_last = single_shell_tensors.back();
+      const U3xU4::SingleShellTensor& tadat_last = single_shell_tensors.back();
       // extract the last intershell coupling of the total tensor
       const auto& [Omega_last, Rhomax_last, Etamax_last] = coupled_irreps.back();
 

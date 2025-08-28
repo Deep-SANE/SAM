@@ -82,14 +82,14 @@ int main(int argc, char* argv[])
   auto rhomax = u3::Rho(T1.u3(), T2.u3(), T.u3());
   auto etamax = u4::Eta(T1.u4(), T2.u4(), T.u4());
 
-  U3xU4::Tadat_gelfand Tadat_Gelfand(n, sps3, sps3_conj, sps4, sps4_conj, ads,
-                                     ats, prod_ads, prod_ats, T, rhomax, etamax,
-                                     b, p);
+  U3xU4::SingleShellTensor_gelfand 
+    Tadat(n, sps3, sps3_conj, sps4, sps4_conj, ads, ats, 
+          prod_ads, prod_ats, T, rhomax, etamax, b, p);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [coeffs, adArr, aArr] = Tadat_Gelfand.expand(dbs);
+  auto [coeffs, adArr, aArr] = Tadat.expand(dbs);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();

@@ -30,7 +30,8 @@ int main(int argc, char* argv[])
   U3xU4::GammaElement gamma0(1,1,u3::irrep(2,2,2),u4::irrep(3,3,0,0));
   U3xU4::ManyNucleonBasis::Irrep ket({gamma0},{}), bra({gamma0},{});
 
-  U3xU4::Tadat tadat(1,2,2,{U3xU4::irrep(2,0,0, 1,1,0,0)},
+  U3xU4::SingleShellTensor 
+    tadat(1,2,2,{U3xU4::irrep(2,0,0, 1,1,0,0)},
     {U3xU4::irrep(2,2,0, 1,1,0,0)},U3xU4::irrep(0,0,0, 0,0,0,0),1,1);
   U3xU4::MultiShellTensor tensor({tadat},{});
   */
@@ -60,8 +61,9 @@ int main(int argc, char* argv[])
     ket({gamma0,gamma1},{omega0}), 
     bra({gamma0,gamma1},{omega0});
 
-  U3xU4::Tadat tadat0(1,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1),
-               tadat1(2,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1);
+  U3xU4::SingleShellTensor 
+    tadat0(1,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1),
+    tadat1(2,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1);
   U3xU4::irrep irr0(4,2,0, 0,0,0,0);
   U3xU4::MultiShellTensor tensor({tadat0,tadat1},{{irr0,1,1}});
   */
@@ -92,8 +94,9 @@ int main(int argc, char* argv[])
     ket({gamma0,gamma1},{omega0}), 
     bra({gamma0,gamma1},{omega0});
 
-  U3xU4::Tadat tadat0(1,0,0,{},{},U3xU4::irrep(0,0,0, 0,0,0,0),1,1),
-               tadat1(2,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1);
+  U3xU4::SingleShellTensor 
+    tadat0(1,0,0,{},{},U3xU4::irrep(0,0,0, 0,0,0,0),1,1),
+    tadat1(2,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1);
   U3xU4::irrep irr0(2,1,0, 0,0,0,0);
   U3xU4::MultiShellTensor tensor({tadat0,tadat1},{{irr0,1,1}});
   */
@@ -123,8 +126,9 @@ int main(int argc, char* argv[])
     ket({gamma0,gamma1},{omega0}), 
     bra({gamma0,gamma1},{omega0});
 
-  U3xU4::Tadat tadat0(1,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1),
-               tadat1(2,0,0,{},{},U3xU4::irrep(0,0,0, 0,0,0,0),1,1);
+  U3xU4::SingleShellTensor 
+    tadat0(1,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1),
+    tadat1(2,0,0,{},{},U3xU4::irrep(0,0,0, 0,0,0,0),1,1);
   U3xU4::irrep irr0(2,1,0, 0,0,0,0);
   U3xU4::MultiShellTensor tensor({tadat0,tadat1},{{irr0,1,1}});
   */
@@ -161,9 +165,10 @@ int main(int argc, char* argv[])
     ket({gamma0_ket,gamma1_ket,gamma2_ket},{omega0_ket,omega1_ket}), 
     bra({gamma0_bra,gamma1_bra,gamma2_bra},{omega0_bra,omega1_bra});
 
-  U3xU4::Tadat tadat0(0,1,0,{},{},U3xU4::irrep(0,0,0, 1,0,0,0),1,1),
-               tadat1(1,1,1,{},{},U3xU4::irrep(2,1,0, 2,1,1,0),1,1),
-               tadat2(2,0,1,{},{},U3xU4::irrep(2,2,0, 1,1,1,0),1,1);
+  U3xU4::SingleShellTensor 
+    tadat0(0,1,0,{},{},U3xU4::irrep(0,0,0, 1,0,0,0),1,1),
+    tadat1(1,1,1,{},{},U3xU4::irrep(2,1,0, 2,1,1,0),1,1),
+    tadat2(2,0,1,{},{},U3xU4::irrep(2,2,0, 1,1,1,0),1,1);
   U3xU4::irrep irr0(2,1,0, 3,1,1,0), irr1(2,2,0, 4,2,2,0);
   U3xU4::MultiShellTensor tensor({tadat0,tadat1,tadat2},{{irr0,1,1},{irr1,1,1}});
   */
@@ -200,9 +205,10 @@ int main(int argc, char* argv[])
     ket({gamma0_ket,gamma1_ket,gamma2_ket},{omega0_ket,omega1_ket}), 
     bra({gamma0_bra,gamma1_bra,gamma2_bra},{omega0_bra,omega1_bra});
 
-  U3xU4::Tadat tadat0(0,1,0,{},{},U3xU4::irrep(0,0,0, 1,0,0,0),1,1),
-               tadat1(1,1,1,{},{},U3xU4::irrep(2,1,0, 2,1,1,0),1,1),
-               tadat2(2,0,1,{},{},U3xU4::irrep(2,2,0, 1,1,1,0),1,1);
+  U3xU4::SingleShellTensor 
+    tadat0(0,1,0,{},{},U3xU4::irrep(0,0,0, 1,0,0,0),1,1),
+    tadat1(1,1,1,{},{},U3xU4::irrep(2,1,0, 2,1,1,0),1,1),
+    tadat2(2,0,1,{},{},U3xU4::irrep(2,2,0, 1,1,1,0),1,1);
   U3xU4::irrep irr0(2,1,0, 3,1,1,0), irr1(2,2,0, 4,2,2,0);
   U3xU4::MultiShellTensor tensor({tadat0,tadat1,tadat2},{{irr0,1,1},{irr1,1,1}});
   */
@@ -243,10 +249,11 @@ int main(int argc, char* argv[])
     ket({gamma0_ket,gamma1_ket,gamma2_ket,gamma3_ket},{omega0_ket,omega1_ket,omega2_ket}), 
     bra({gamma0_bra,gamma1_bra,gamma2_bra,gamma3_bra},{omega0_bra,omega1_bra,omega2_bra});
 
-  U3xU4::Tadat tadat0(0,1,0,{},{},U3xU4::irrep(0,0,0, 1,0,0,0),1,1),
-               tadat1(1,1,1,{},{},U3xU4::irrep(2,1,0, 2,1,1,0),1,1),
-               tadat2(2,0,1,{},{},U3xU4::irrep(2,2,0, 1,1,1,0),1,1),
-               tadat3(3,0,0,{},{},U3xU4::irrep(0,0,0, 0,0,0,0),1,1);
+  U3xU4::SingleShellTensor 
+    tadat0(0,1,0,{},{},U3xU4::irrep(0,0,0, 1,0,0,0),1,1),
+    tadat1(1,1,1,{},{},U3xU4::irrep(2,1,0, 2,1,1,0),1,1),
+    tadat2(2,0,1,{},{},U3xU4::irrep(2,2,0, 1,1,1,0),1,1),
+    tadat3(3,0,0,{},{},U3xU4::irrep(0,0,0, 0,0,0,0),1,1);
   U3xU4::irrep irr0(2,1,0, 3,1,1,0), irr1(2,2,0, 4,2,2,0), irr2(2,2,0, 4,2,2,0);
   U3xU4::MultiShellTensor tensor({tadat0,tadat1,tadat2,tadat3},{{irr0,1,1},{irr1,1,1},{irr2,1,1}});
   

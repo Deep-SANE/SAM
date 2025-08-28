@@ -911,7 +911,7 @@ namespace U3xU4
   std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
              std::vector<U3xU4::ads_gelfand>, // ad's
              std::vector<U3xU4::ats_gelfand>> // a's
-  Tadat_gelfand::expand(sam::Databases& dbs) const
+  SingleShellTensor_gelfand::expand(sam::Databases& dbs) const
   {
     auto& cgcs = dbs.cgcs;
     auto& wigU3U2db = dbs.wigU3U2db;
@@ -1103,7 +1103,7 @@ namespace U3xU4
   std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
              std::vector<U3xU4::ads_phys>,    // ad's
              std::vector<U3xU4::ats_phys>>    // a's
-  Tadat_phys::expand(sam::Databases& dbs) const
+  SingleShellTensor_phys::expand(sam::Databases& dbs) const
   {
     auto& cgcs = dbs.cgcs;
     auto& racah9 = dbs.racah9;
