@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <stdexcept>
 
 #include <qcx_convert.h>
 #include <U3irrep.h>
@@ -39,7 +40,7 @@ namespace U3xU4
 
   public:
     // constructs a generic vacuum gamma element:
-    GammaElement(int shell) : shell_(shell), state_(State::None) { }
+    //GammaElement(int shell) : shell_(shell), state_(State::None) { }
 
     // constructs a basis gamma element:
     GammaElement(int shell, int alphamax, const u3::irrep& u3,
@@ -121,16 +122,18 @@ public:
   template <typename Context>
   constexpr auto format(const U3xU4::GammaElement& ge, Context& ctx) const
   {
+    /*
     if (ge.state() == U3xU4::GammaElement::State::None)
       return format_to(ctx.out(), "{}:{}{}", ge.shell(), ge.u4(), ge.su3());
-    else if (ge.state() == U3xU4::GammaElement::State::Basis)
+    */
+    if (ge.state() == U3xU4::GammaElement::State::Basis)
       return format_to(ctx.out(), "{}:{}{}{}", ge.shell(), ge.u4(),
-                       ge.alphamax(), ge.su3());
+                       ge.alphamax(), ge.u3());
     else if (ge.state() == U3xU4::GammaElement::State::Tensor)
       return format_to(ctx.out(), "{}:{}{}{}{}", ge.shell(), ge.etamax(),
                        ge.u4(), ge.rhomax(), ge.u3());
     else
-      return format_to(ctx.out(), "");
+      throw std::runtime_error("Invalid state of U3xU4::GammaElement!");
   }
 };
 
@@ -147,7 +150,7 @@ public:
   constexpr auto format(const U3xU4::OmegaElement& oe, Context& ctx) const
   {
     return format_to(ctx.out(), "{}{}{}{}", oe.etamax(), oe.u4(), oe.rhomax(),
-                     oe.su3());
+                     oe.u3());
   }
 };
 
