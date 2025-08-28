@@ -395,114 +395,169 @@ namespace U3xU4
     void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id);
   };
 
-  /*
   // class for unifying 2 irreps wrt to their active shells:
   class IrrepUnifier
   {
-    Irrep o1_, o2_;
+    ManyNucleonBasis::Irrep o1_, o2_;
 
   public:
-    auto unify(const auto& i1, const auto& i2)
+    auto unify(const ManyNucleonBasis::Irrep& i1,
+               const ManyNucleonBasis::Irrep& i2)
     {
       // (1) setup:
 
       auto& o1 = o1_;
       auto& o2 = o2_;
 
-      o1.clear();
-      o2.clear();
+      o1.gamma.clear();
+      o1.omega.clear();
+
+      o2.gamma.clear();
+      o2.omega.clear();
+
+      // (2) unify gamma elements:
+
+      assert(i1.gamma.size() > 0);
+      assert(i2.gamma.size() > 0);
 
       size_t g1 = 0; // igamma1 element index
       size_t g2 = 0; // igamma2 element index
 
-      static const ManyNucleonBasis::GammaElement ge_vacuum;
-      assert(ge_vacuum.vacuum());
-
-      static const ManyNucleonBasis::OmegaElement oe_vacuum;
-      assert(oe_vacuum.vacuum());
-
-      // vacuum-aware coupling:
-      auto couple = [](const auto& first, const auto& second,
-                       const auto& iomega,
-                       size_t g) -> ManyNucleonBasis::OmegaElement
+      while ((g1 < i1.gamma.size()) || (g2 < i2.gamma.size()))
       {
-        if (first.vacuum() && second.vacuum())
-          return oe_vacuum;
-        else if (first.vacuum())
+        if ((g1 < i1.gamma.size()) && (g2 < i2.gamma.size()))
         {
-          // couplig with vacuum results in rhomax = etamax = 1:
-          ManyNucleonBasis::OmegaElement copy = second;
-          copy.rhomax(1);
-          copy.etamax(1);
-          return copy;
+          assert(i1.gamma[g1].vacuum() == false);
+          assert(i2.gamma[g2].vacuum() == false);
+
+          if (i1.gamma[g1].shell() == i2.gamma[g2].shell())
+          {
+            o1.gamma.push_back(i1.gamma[g1++]);
+            o2.gamma.push_back(i2.gamma[g2++]);
+          }
+          else if (i1.gamma[g1].shell() < i2.gamma[g2].shell())
+          {
+            o2.gamma.emplace_back(i1.gamma[g1].shell(), 1, u3::irrep{}, u4::irrep{});
+            o1.gamma.push_back(i1.gamma[g1++]);
+          }
+          else // if (i1.gamma[g1].shell() > i2.gamma[g2].shell())
+          {
+            o1.gamma.emplace_back(i2.gamma[g2].shell(), 1, u3::irrep{}, u4::irrep{});
+            o2.gamma.push_back(i2.gamma[g2++]);
+          }
         }
-        else if (second.vacuum())
+        else if (g1 < i1.gamma.size())
         {
-          // ditto:
-          ManyNucleonBasis::OmegaElement copy = first;
-          copy.rhomax(1);
-          copy.etamax(1);
-          return copy;
+          assert(i1.gamma[g1].vacuum() == false);
+
+          o2.gamma.emplace_back(i1.gamma[g1].shell(), 1, u3::irrep{}, u4::irrep{});
+          o1.gamma.push_back(i1.gamma[g1++]);
         }
-        else
-          return iomega[g - 2];
-      };
+        else // if (g2 < i2.gamma.size())
+        {
+          assert(i2.gamma[g2].vacuum() == false);
 
-      // (2) unify distribution sizes:
-
-      std::copy(i1.dist.begin(), i1.dist.end(), std::back_inserter(o1.dist));
-      std::copy(i2.dist.begin(), i2.dist.end(), std::back_inserter(o2.dist));
-
-      auto D = std::max(o1.dist.size(), o2.dist.size());
-
-      assert(D > 0);
-
-      o1.dist.resize(D);
-      o2.dist.resize(D);
-
-      // (3) unify gammas and omegas:
-
-      for (size_t d = 0; d < D; d++)
-      {
-        // nothing to do if both shells are empty:
-        if ((o1.dist[d] == 0) && (o2.dist[d] == 0))
-          continue;
-
-        // add element to gamma1:
-        o1.gamma.push_back(o1.dist[d] == 0 ? ge_vacuum : i1.gamma[g1++]);
-        o1.gamma_shells.push_back(d);
-
-        // add element to omega1:
-        if (o1.gamma.size() == 2)
-          // couple first 2 gamma elements:
-          o1.omega.push_back(couple(o1.gamma[0], o1.gamma[1], i1.omega, g1));
-        else if (o1.gamma.size() > 2)
-          // couple last gamma element with last omega element:
-          o1.omega.push_back(
-              couple(o1.gamma.back(), o1.omega.back(), i1.omega, g1));
-
-        // add element to gamma2:
-        o2.gamma.push_back(o2.dist[d] == 0 ? ge_vacuum : i2.gamma[g2++]);
-        o2.gamma_shells.push_back(d);
-
-        // add element to omega2:
-        if (o2.gamma.size() == 2)
-          // couple first 2 gamma elements:
-          o2.omega.push_back(couple(o2.gamma[0], o2.gamma[1], i2.omega, g2));
-        else if (o2.gamma.size() > 2)
-          // couple last gamma element with last omega element:
-          o2.omega.push_back(
-              couple(o2.gamma.back(), o2.omega.back(), i2.omega, g2));
+          o1.gamma.emplace_back(i2.gamma[g2].shell(), 1, u3::irrep{}, u4::irrep{});
+          o2.gamma.push_back(i2.gamma[g2++]);
+        }
       }
 
-      assert(o1.gamma_shells == o2.gamma_shells);
+      assert(o1.gamma.size() == o2.gamma.size());
 
-      // (4) return result:
+      // (3) reconstruct omega elements for bra:
+
+      if (o1.gamma.size() > 1)
+      {
+        size_t om1 = 0;
+
+        const U3xU4::irrep& A = o1.gamma[0];
+        const U3xU4::irrep& B = o1.gamma[1];
+
+        if ((A.vacuum()) && (B.vacuum()))
+          o1.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
+        else if (A.vacuum())
+          o1.omega.emplace_back(1, B.u3(), 1, B.u4());
+        else if (B.vacuum())
+          o1.omega.emplace_back(1, A.u3(), 1, A.u4());
+        else
+        {
+          assert(om1 < i1.omega.size());
+          o1.omega.push_back(i1.omega[om1++]);
+        }
+
+        for (size_t g1 = 2; g1 < o1.gamma.size(); g1++)
+        {
+          assert(o1.omega.size() == g1 - 1);
+          const U3xU4::irrep& A = o1.omega.back();
+          const U3xU4::irrep& B = o1.gamma[g1];
+
+          if ((A.vacuum()) && (B.vacuum()))
+            o1.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
+          else if (A.vacuum())
+            o1.omega.emplace_back(1, B.u3(), 1, B.u4());
+          else if (B.vacuum())
+            o1.omega.emplace_back(1, A.u3(), 1, A.u4());
+          else
+          {
+            assert(om1 < i1.omega.size());
+            o1.omega.push_back(i1.omega[om1++]);
+          }
+        }
+
+        assert(om1 == i1.omega.size());
+      }
+
+      // (4) reconstruct omega elements for ket:
+
+      if (o2.gamma.size() > 1)
+      {
+        size_t om2 = 0;
+
+        const U3xU4::irrep& A = o2.gamma[0];
+        const U3xU4::irrep& B = o2.gamma[1];
+
+        if ((A.vacuum()) && (B.vacuum()))
+          o2.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
+        else if (A.vacuum())
+          o2.omega.emplace_back(1, B.u3(), 1, B.u4());
+        else if (B.vacuum())
+          o2.omega.emplace_back(1, A.u3(), 1, A.u4());
+        else
+        {
+          assert(om2 < i2.omega.size());
+          o2.omega.push_back(i2.omega[om2++]);
+        }
+
+        for (size_t g2 = 2; g2 < o2.gamma.size(); g2++)
+        {
+          assert(o2.omega.size() == g2 - 1);
+          const U3xU4::irrep& A = o2.omega.back();
+          const U3xU4::irrep& B = o2.gamma[g2];
+
+          if ((A.vacuum()) && (B.vacuum()))
+            o2.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
+          else if (A.vacuum())
+            o2.omega.emplace_back(1, B.u3(), 1, B.u4());
+          else if (B.vacuum())
+            o2.omega.emplace_back(1, A.u3(), 1, A.u4());
+          else
+          {
+            assert(om2 < i2.omega.size());
+            o2.omega.push_back(i2.omega[om2++]);
+          }
+        }
+
+        assert(om2 == i2.omega.size());
+      }
+
+      assert(o1.gamma.size() == o1.omega.size() + 1);
+      assert(o1.omega.size() == o2.omega.size());
+
+      // (5) return result:
 
       return std::tie(std::as_const(o1_), std::as_const(o2_));
     }
   };
-  */
 } // namespace U3xU4
 
 #endif

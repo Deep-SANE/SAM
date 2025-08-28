@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include <qcx_print.h>
-#include <U4xSU3ManyNucleonBasis.h>
+#include <U3xU4ManyNucleonBasis.h>
 
 int main()
 {
@@ -24,10 +24,10 @@ int main()
   std::cout << "Enter ket irrep id: ";
   std::cin >> ket_irrep_id;
 
-  U4xSU3::ManyNucleonBasis bra(Z, N, Nmax, JJ);
+  U3xU4::ManyNucleonBasis bra(Z, N, Nmax, JJ);
   bra.construct();
 
-  U4xSU3::ManyNucleonBasis ket(Z, N, Nmax, JJ);
+  U3xU4::ManyNucleonBasis ket(Z, N, Nmax, JJ);
   ket.construct();
 
   auto bra_irreps = bra.irreps();
@@ -36,21 +36,17 @@ int main()
   auto bra_irrep = bra_irreps[bra_irrep_id];
   auto ket_irrep = ket_irreps[ket_irrep_id];
 
-  print("Bra irrep: dist = {}; gamma = {}; omega = {}\n", 
-        bra_irrep.dist, bra_irrep.gamma, bra_irrep.omega);
-  print("Ket irrep: dist = {}; gamma = {}; omega = {}\n", 
-        ket_irrep.dist, ket_irrep.gamma, ket_irrep.omega);
+  print("Bra irrep: gamma = {}; omega = {}\n", bra_irrep.gamma,
+        bra_irrep.omega);
+  print("Ket irrep: gamma = {}; omega = {}\n", ket_irrep.gamma,
+        ket_irrep.omega);
 
-  U4xSU3::IrrepUnifier iu;
+  U3xU4::IrrepUnifier iu;
   const auto& [bra_uirrep, ket_uirrep] = iu.unify(bra_irrep, ket_irrep);
 
-  print("Bra unified irrep: dist = {}; gamma = {}; omega = {}; gamma shells = "
-        "{}\n",
-        bra_uirrep.dist, bra_uirrep.gamma, bra_uirrep.omega,
-        bra_uirrep.gamma_shells);
+  print("Bra unified irrep: gamma = {}; omega = {}\n", bra_uirrep.gamma,
+        bra_uirrep.omega);
 
-  print("Ket unified irrep: dist = {}; gamma = {}; omega = {}; gamma shells = "
-        "{}\n",
-        ket_uirrep.dist, ket_uirrep.gamma, ket_uirrep.omega,
-        ket_uirrep.gamma_shells);
+  print("Ket unified irrep: gamma = {}; omega = {}\n", ket_uirrep.gamma,
+        ket_uirrep.omega);
 }
