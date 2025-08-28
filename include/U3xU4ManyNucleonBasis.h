@@ -476,9 +476,17 @@ namespace U3xU4
         if ((A.vacuum()) && (B.vacuum()))
           o1.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
         else if (A.vacuum())
-          o1.omega.emplace_back(1, B.u3(), 1, B.u4());
+        {
+          u3::irrep u3 = B.u3();
+          u3.normalize();
+          o1.omega.emplace_back(1, u3, 1, B.u4());
+        }
         else if (B.vacuum())
-          o1.omega.emplace_back(1, A.u3(), 1, A.u4());
+        {
+          u3::irrep u3 = A.u3();
+          u3.normalize();
+          o1.omega.emplace_back(1, u3, 1, A.u4());
+        }
         else
         {
           assert(om1 < i1.omega.size());
@@ -494,9 +502,17 @@ namespace U3xU4
           if ((A.vacuum()) && (B.vacuum()))
             o1.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
           else if (A.vacuum())
-            o1.omega.emplace_back(1, B.u3(), 1, B.u4());
+          {
+            u3::irrep u3 = B.u3();
+            u3.normalize();
+            o1.omega.emplace_back(1, u3, 1, B.u4());
+          }
           else if (B.vacuum())
-            o1.omega.emplace_back(1, A.u3(), 1, A.u4());
+          {
+            u3::irrep u3 = A.u3();
+            u3.normalize();
+            o1.omega.emplace_back(1, u3, 1, A.u4());
+          }
           else
           {
             assert(om1 < i1.omega.size());
@@ -519,9 +535,17 @@ namespace U3xU4
         if ((A.vacuum()) && (B.vacuum()))
           o2.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
         else if (A.vacuum())
-          o2.omega.emplace_back(1, B.u3(), 1, B.u4());
+        {
+          u3::irrep u3 = B.u3();
+          u3.normalize();
+          o2.omega.emplace_back(1, u3, 1, B.u4());
+        }
         else if (B.vacuum())
-          o2.omega.emplace_back(1, A.u3(), 1, A.u4());
+        {
+          u3::irrep u3 = A.u3();
+          u3.normalize();
+          o2.omega.emplace_back(1, u3, 1, A.u4());
+        }
         else
         {
           assert(om2 < i2.omega.size());
@@ -537,9 +561,17 @@ namespace U3xU4
           if ((A.vacuum()) && (B.vacuum()))
             o2.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
           else if (A.vacuum())
-            o2.omega.emplace_back(1, B.u3(), 1, B.u4());
+          {
+            u3::irrep u3 = B.u3();
+            u3.normalize();
+            o2.omega.emplace_back(1, u3, 1, B.u4());
+          }
           else if (B.vacuum())
-            o2.omega.emplace_back(1, A.u3(), 1, A.u4());
+          {
+            u3::irrep u3 = A.u3();
+            u3.normalize();
+            o2.omega.emplace_back(1, u3, 1, A.u4());
+          }
           else
           {
             assert(om2 < i2.omega.size());
