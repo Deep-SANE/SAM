@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <ostream>
 #include <stdexcept>
 
 #include <qcx_convert.h>
@@ -105,6 +106,12 @@ namespace U3xU4
     // getters:
     int rhomax() const { return rhomax_; }
     int etamax() const { return etamax_; }
+
+    // print
+    friend std::ostream& operator<<(std::ostream& s, const OmegaElement& o)
+    {
+      return s << o.rhomax_ << o.u3() << o.etamax_ << o.u4();
+    }
   };
 
 } // namespace U3xU4

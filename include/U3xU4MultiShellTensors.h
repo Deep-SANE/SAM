@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <tuple>
 #include <utility>
@@ -196,8 +197,8 @@ namespace U3xU4
   };
 
   /* Class for holding a general U3xU4 multi-shell tensor.
-     It has an array of single-shell tensors U3xU4::Tadat
-     and an array of the coupled irreps with their multiplicities.
+     It has an array of single-shell tensors U3xU4::SingleShellTensor
+     and an array of OmegaElement's (coupled irreps with their multiplicities).
      No tensor components are specified. This class primarily serves
      to compute multi-shell RMEs.
   */
@@ -218,11 +219,47 @@ namespace U3xU4
         : Gamma(Gamma_), Omega(Omega_)
     { }
 
+    // Print
+    friend std::ostream& operator<<(std::ostream& s,
+                                    const MultiShellTensor& x);
+
     // This method assumes that everything is already unified, i.e., bra and ket
     // irreps are unified, and identities have been filled in already.
     std::vector<double> RME(const ManyNucleonBasis::Irrep& ket,
                             const ManyNucleonBasis::Irrep& bra,
                             sam::Databases& dbs) const;
+  };
+
+  /* Class for holding a general U3xU4 multi-shell tensor with physical labels.
+     It has a MultiShellTensor object and an array of subgroup labels, namely 
+     (kappamax,LL,zetamax,SS,TT). In addition, it also stores an array of tensor 
+     strengths, which are coefficients in the expansion from JT-coupled operator.
+  */
+  class MultiShellTensor_phys
+  {
+  public:
+    // A multi-shell tensor without subgroup labels
+    U3xU4::MultiShellTensor T;
+
+    // An array of subgroup labels
+    std::vector<std::array<uint16_t,5>> LST;
+
+    // Array to store strengths
+    std::vector<std::vector<double>> strengths;
+
+    // Constructor
+    MultiShellTensor_phys(
+      const U3xU4::MultiShellTensor& T_,
+      const std::vector<std::array<uint16_t,5>>& LST_,
+      const std::vector<std::vector<double>>& strengths_)
+        : T(T_), LST(LST_), strengths(strengths_)
+    { 
+      assert(LST_.size() == strengths.size());
+    }
+
+    // Print
+    friend std::ostream& operator<<(std::ostream& s,
+                                    const MultiShellTensor_phys& x);
   };
 
   // A function to couple single-shell tensors into multi-shell tensors
