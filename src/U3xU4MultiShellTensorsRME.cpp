@@ -30,8 +30,11 @@ namespace U3xU4
     {
       const U3xU4::Tadat& tadat = single_shell_tensors[0];
 
-        U3xU4::irrep i = ket.gamma[0].toU3xU4(tadat.n),
-                     f = bra.gamma[0].toU3xU4(tadat.n);
+      assert(tadat.n == ket.gamma[0].shell());
+      assert(tadat.n == bra.gamma[0].shell());
+
+        U3xU4::irrep i = ket.gamma[0],
+                     f = bra.gamma[0];
 
         std::size_t rhomax, etamax, // multi for Wigner-Eckart theorem
         			      ai_max = ket.gamma[0].alphamax(), // multi for the ket
@@ -50,28 +53,39 @@ namespace U3xU4
       // extract intershell coupling of the total tensor
       const auto& [Omega, Rhomax, Etamax] = coupled_irreps[0];
 
-      U3xU4::irrep ket0 = ket.gamma[0].toU3xU4(tadat0.n), // irreps in ket
-      			   ket1 = ket.gamma[1].toU3xU4(tadat1.n), 
-      			   ket_omega = ket.omega[0].toU3xU4(),
-      			   bra0 = bra.gamma[0].toU3xU4(tadat0.n), // irreps in bra
-      			   bra1 = bra.gamma[1].toU3xU4(tadat1.n),
-      			   bra_omega = bra.omega[0].toU3xU4();
+      assert(tadat0.n == ket.gamma[0].shell());
+      assert(tadat1.n == ket.gamma[1].shell());
+      assert(tadat0.n == bra.gamma[0].shell());
+      assert(tadat1.n == bra.gamma[1].shell());
 
-      std::size_t ket0_alphamax = ket.gamma[0].alphamax(), // multis in ket
-      			  ket1_alphamax = ket.gamma[1].alphamax(),
-      			  ket_rhomax = ket.omega[0].rhomax(),
-      			  ket_etamax = ket.omega[0].etamax(),
-                  bra0_alphamax = bra.gamma[0].alphamax(), // multis in bra
-      			  bra1_alphamax = bra.gamma[1].alphamax(), 
-      			  bra_rhomax = bra.omega[0].rhomax(),
-      			  bra_etamax = bra.omega[0].etamax(),
-      			  // multi for Wigner-Eckart theorem for the total tensor
-      			  rhomax = u3::Rho(ket_omega.u3(), Omega.u3(), bra_omega.u3()),  
-      			  etamax = u4::Eta(ket_omega.u4(), Omega.u4(), bra_omega.u4()),
-      			  // multi for Wigner-Eckart theorem for the first tensor
-      			  rhomax0, etamax0, 
-      			  // multi for Wigner-Eckart theorem for the second tensor
-      			  rhomax1, etamax1;
+      U3xU4::irrep 
+        // irreps in ket
+        ket0 = ket.gamma[0], 
+      	ket1 = ket.gamma[1], 
+      	ket_omega = ket.omega[0],
+        // irreps in bra
+      	bra0 = bra.gamma[0], 
+      	bra1 = bra.gamma[1],
+      	bra_omega = bra.omega[0];
+
+      std::size_t 
+        // multis in ket
+        ket0_alphamax = ket.gamma[0].alphamax(), 
+      	ket1_alphamax = ket.gamma[1].alphamax(),
+      	ket_rhomax = ket.omega[0].rhomax(),
+  		  ket_etamax = ket.omega[0].etamax(),
+        // multis in bra
+        bra0_alphamax = bra.gamma[0].alphamax(), 
+      	bra1_alphamax = bra.gamma[1].alphamax(), 
+      	bra_rhomax = bra.omega[0].rhomax(),
+      	bra_etamax = bra.omega[0].etamax(),
+      	// multi for Wigner-Eckart theorem for the total tensor
+      	rhomax = u3::Rho(ket_omega.u3(), Omega.u3(), bra_omega.u3()),  
+      	etamax = u4::Eta(ket_omega.u4(), Omega.u4(), bra_omega.u4()),
+      	// multi for Wigner-Eckart theorem for the first tensor
+      	rhomax0, etamax0, 
+      	// multi for Wigner-Eckart theorem for the second tensor
+      	rhomax1, etamax1;
 
       // RMEs of the individual tensors
       auto rmes0 = tadat0.RME(ket0_alphamax, ket0, bra0_alphamax, bra0, rhomax0,
@@ -223,32 +237,30 @@ namespace U3xU4
       	new_single_shell_tensors, new_coupled_irreps);
 
       // extract the rest of the ket
-      auto new_ket_dist = ket.dist; 
-      // new_ket_dist won't be used but should be popped properly for safety
       auto new_ket_gamma = ket.gamma;
       new_ket_gamma.pop_back();
       auto new_ket_omega = ket.omega;
       new_ket_omega.pop_back();
-      U4xSU3::Irrep new_ket(new_ket_dist, new_ket_gamma, new_ket_omega);
+      U3xU4::ManyNucleonBasis::Irrep new_ket(new_ket_gamma, new_ket_omega);
 
       // extract the rest of the bra
-      auto new_bra_dist = bra.dist; 
-      // new_bra_dist won't be used but should be popped properly
       auto new_bra_gamma = bra.gamma;
       new_bra_gamma.pop_back();
       auto new_bra_omega = bra.omega;
       new_bra_omega.pop_back();
-      U4xSU3::Irrep new_bra(new_bra_dist, new_bra_gamma, new_bra_omega);
+      U3xU4::ManyNucleonBasis::Irrep new_bra(new_bra_gamma, new_bra_omega);
 
+      assert(ket.gamma.back().shell() == tadat_last.n);
+      assert(bra.gamma.back().shell() == tadat_last.n);
       U3xU4::irrep 
       	// last irreps in ket
-      	ket_gamma_last = ket.gamma.back().toU3xU4(tadat_last.n), 
-      	ket_omega_last = ket.omega.back().toU3xU4(),
-      	ket_omega_semilast = ket.omega[ket.omega.size() - 2].toU3xU4(),
+      	ket_gamma_last = ket.gamma.back(), 
+      	ket_omega_last = ket.omega.back(),
+      	ket_omega_semilast = ket.omega[ket.omega.size() - 2],
       	// last irreps in bra
-      	bra_gamma_last = bra.gamma.back().toU3xU4(tadat_last.n), 
-      	bra_omega_last = bra.omega.back().toU3xU4(),
-      	bra_omega_semilast = bra.omega[bra.omega.size() - 2].toU3xU4();
+      	bra_gamma_last = bra.gamma.back(), 
+      	bra_omega_last = bra.omega.back(),
+      	bra_omega_semilast = bra.omega[bra.omega.size() - 2];
 
       std::size_t 
       	// last multis in ket
