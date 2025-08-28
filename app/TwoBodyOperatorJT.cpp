@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
     std::cout << tensor << std::endl;
   */
 
-  // Example 3: Two-body Hamiltonian (bare) with N2LO_opt
+  // Example 3: Two-body potential (bare) with N2LO_opt
   /*
   int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
   // auto tensors = NN.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  NN.writeBinary(dbs);
+  // NN.writeBinary(dbs);
 
   // read from binary
   auto tensors = NN.readBinary();
@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
     std::cout << tensor << std::endl;
   */
 
-  // Example 4: Two-body Hamiltonian (bare) with N3LO_EMN500
+  // Example 4: Two-body potential (bare) with N3LO_EMN500
   
   int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);

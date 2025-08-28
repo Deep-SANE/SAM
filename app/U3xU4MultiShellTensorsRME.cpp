@@ -56,7 +56,8 @@ int main(int argc, char* argv[])
     gamma0(1,1,u3::irrep(2,1,1),u4::irrep(3,1,0,0)),
     gamma1(2,1,u3::irrep(3,1,0),u4::irrep(2,0,0,0));
   U3xU4::OmegaElement
-    omega0(1,u3::irrep(3,2,0),1,u4::irrep(3,2,1,0));
+    omega0(1,u3::irrep(3,2,0),1,u4::irrep(3,2,1,0)),
+    irr0(1,u3::irrep(4,2,0),1,u4::irrep(0,0,0,0));
   U3xU4::ManyNucleonBasis::Irrep
     ket({gamma0,gamma1},{omega0}), 
     bra({gamma0,gamma1},{omega0});
@@ -64,8 +65,7 @@ int main(int argc, char* argv[])
   U3xU4::SingleShellTensor 
     tadat0(1,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1),
     tadat1(2,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1);
-  U3xU4::irrep irr0(4,2,0, 0,0,0,0);
-  U3xU4::MultiShellTensor tensor({tadat0,tadat1},{{irr0,1,1}});
+  U3xU4::MultiShellTensor tensor({tadat0,tadat1},{irr0});
   */
 
   /* Example 3: n = 1 and n = 2 shells
@@ -89,7 +89,8 @@ int main(int argc, char* argv[])
     gamma0(1,1,u3::irrep(2,1,1),u4::irrep(3,1,0,0)),
     gamma1(2,1,u3::irrep(3,1,0),u4::irrep(2,0,0,0));
   U3xU4::OmegaElement
-    omega0(1,u3::irrep(3,2,0),1,u4::irrep(3,2,1,0));
+    omega0(1,u3::irrep(3,2,0),1,u4::irrep(3,2,1,0)),
+    irr0(1,u3::irrep(2,1,0),1,u4::irrep(0,0,0,0));
   U3xU4::ManyNucleonBasis::Irrep
     ket({gamma0,gamma1},{omega0}), 
     bra({gamma0,gamma1},{omega0});
@@ -97,8 +98,7 @@ int main(int argc, char* argv[])
   U3xU4::SingleShellTensor 
     tadat0(1,0,0,{},{},U3xU4::irrep(0,0,0, 0,0,0,0),1,1),
     tadat1(2,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1);
-  U3xU4::irrep irr0(2,1,0, 0,0,0,0);
-  U3xU4::MultiShellTensor tensor({tadat0,tadat1},{{irr0,1,1}});
+  U3xU4::MultiShellTensor tensor({tadat0,tadat1},{irr0});
   */
 
   /* Example 4: n = 1 and n = 2 shells
@@ -121,7 +121,8 @@ int main(int argc, char* argv[])
     gamma0(1,1,u3::irrep(3,1,0),u4::irrep(2,1,1,0)),
     gamma1(2,1,u3::irrep(3,1,0),u4::irrep(2,0,0,0));
   U3xU4::OmegaElement 
-    omega0(2,u3::irrep(3,2,0),1,u4::irrep(2,0,0,0));
+    omega0(2,u3::irrep(3,2,0),1,u4::irrep(2,0,0,0)),
+    irr0(1,u3::irrep(2,1,0),1,u4::irrep(0,0,0,0));
   U3xU4::ManyNucleonBasis::Irrep  
     ket({gamma0,gamma1},{omega0}), 
     bra({gamma0,gamma1},{omega0});
@@ -129,8 +130,7 @@ int main(int argc, char* argv[])
   U3xU4::SingleShellTensor 
     tadat0(1,1,1,{},{},U3xU4::irrep(2,1,0, 0,0,0,0),1,1),
     tadat1(2,0,0,{},{},U3xU4::irrep(0,0,0, 0,0,0,0),1,1);
-  U3xU4::irrep irr0(2,1,0, 0,0,0,0);
-  U3xU4::MultiShellTensor tensor({tadat0,tadat1},{{irr0,1,1}});
+  U3xU4::MultiShellTensor tensor({tadat0,tadat1},{irr0});
   */
 
   /* Example 5: n = 0, n = 1 and n = 2 shells
@@ -160,7 +160,9 @@ int main(int argc, char* argv[])
     omega0_ket(1,u3::irrep(1,1,0),1,u4::irrep(3,1,1,0)),
     omega1_ket(1,u3::irrep(1,0,0),1,u4::irrep(3,2,1,0)),
     omega0_bra(1,u3::irrep(1,1,0),1,u4::irrep(2,0,0,0)),
-    omega1_bra(1,u3::irrep(1,1,0),1,u4::irrep(2,0,0,0));
+    omega1_bra(1,u3::irrep(1,1,0),1,u4::irrep(2,0,0,0)),
+    irr0(1,u3::irrep(2,1,0),1,u4::irrep(3,1,1,0)), 
+    irr1(1,u3::irrep(2,2,0),1,u4::irrep(4,2,2,0));
   U3xU4::ManyNucleonBasis::Irrep 
     ket({gamma0_ket,gamma1_ket,gamma2_ket},{omega0_ket,omega1_ket}), 
     bra({gamma0_bra,gamma1_bra,gamma2_bra},{omega0_bra,omega1_bra});
@@ -169,8 +171,7 @@ int main(int argc, char* argv[])
     tadat0(0,1,0,{},{},U3xU4::irrep(0,0,0, 1,0,0,0),1,1),
     tadat1(1,1,1,{},{},U3xU4::irrep(2,1,0, 2,1,1,0),1,1),
     tadat2(2,0,1,{},{},U3xU4::irrep(2,2,0, 1,1,1,0),1,1);
-  U3xU4::irrep irr0(2,1,0, 3,1,1,0), irr1(2,2,0, 4,2,2,0);
-  U3xU4::MultiShellTensor tensor({tadat0,tadat1,tadat2},{{irr0,1,1},{irr1,1,1}});
+  U3xU4::MultiShellTensor tensor({tadat0,tadat1,tadat2},{irr0,irr1});
   */
 
   /* Example 6: n = 0, n = 1 and n = 2 shells
@@ -200,7 +201,9 @@ int main(int argc, char* argv[])
     omega0_ket(1,u3::irrep(3,1,0),1,u4::irrep(2,1,1,0)),
     omega1_ket(2,u3::irrep(3,2,0),1,u4::irrep(1,1,0,0)),
     omega0_bra(1,u3::irrep(1,0,0),1,u4::irrep(3,2,0,0)),
-    omega1_bra(1,u3::irrep(2,1,0),1,u4::irrep(3,2,1,0));
+    omega1_bra(1,u3::irrep(2,1,0),1,u4::irrep(3,2,1,0)),
+    irr0(1,u3::irrep(2,1,0),1,u4::irrep(3,1,1,0)), 
+    irr1(1,u3::irrep(2,2,0),1,u4::irrep(4,2,2,0));
   U3xU4::ManyNucleonBasis::Irrep 
     ket({gamma0_ket,gamma1_ket,gamma2_ket},{omega0_ket,omega1_ket}), 
     bra({gamma0_bra,gamma1_bra,gamma2_bra},{omega0_bra,omega1_bra});
@@ -209,8 +212,7 @@ int main(int argc, char* argv[])
     tadat0(0,1,0,{},{},U3xU4::irrep(0,0,0, 1,0,0,0),1,1),
     tadat1(1,1,1,{},{},U3xU4::irrep(2,1,0, 2,1,1,0),1,1),
     tadat2(2,0,1,{},{},U3xU4::irrep(2,2,0, 1,1,1,0),1,1);
-  U3xU4::irrep irr0(2,1,0, 3,1,1,0), irr1(2,2,0, 4,2,2,0);
-  U3xU4::MultiShellTensor tensor({tadat0,tadat1,tadat2},{{irr0,1,1},{irr1,1,1}});
+  U3xU4::MultiShellTensor tensor({tadat0,tadat1,tadat2},{irr0,irr1});
   */
 
   /* Example 7: n = 0, 1, 2 and 3 shells
@@ -244,7 +246,10 @@ int main(int argc, char* argv[])
     omega2_ket(1,u3::irrep(2,0,0),1,u4::irrep(2,2,0,0)),
     omega0_bra(1,u3::irrep(1,0,0),1,u4::irrep(3,2,0,0)),
     omega1_bra(1,u3::irrep(2,1,0),1,u4::irrep(3,2,1,0)),
-    omega2_bra(2,u3::irrep(4,2,0),1,u4::irrep(3,1,0,0));
+    omega2_bra(2,u3::irrep(4,2,0),1,u4::irrep(3,1,0,0)),
+    irr0(1,u3::irrep(2,1,0),1,u4::irrep(3,1,1,0)),
+    irr1(1,u3::irrep(2,2,0),1,u4::irrep(4,2,2,0)), 
+    irr2(1,u3::irrep(2,2,0),1,u4::irrep(4,2,2,0));
   U3xU4::ManyNucleonBasis::Irrep 
     ket({gamma0_ket,gamma1_ket,gamma2_ket,gamma3_ket},{omega0_ket,omega1_ket,omega2_ket}), 
     bra({gamma0_bra,gamma1_bra,gamma2_bra,gamma3_bra},{omega0_bra,omega1_bra,omega2_bra});
@@ -254,8 +259,7 @@ int main(int argc, char* argv[])
     tadat1(1,1,1,{},{},U3xU4::irrep(2,1,0, 2,1,1,0),1,1),
     tadat2(2,0,1,{},{},U3xU4::irrep(2,2,0, 1,1,1,0),1,1),
     tadat3(3,0,0,{},{},U3xU4::irrep(0,0,0, 0,0,0,0),1,1);
-  U3xU4::irrep irr0(2,1,0, 3,1,1,0), irr1(2,2,0, 4,2,2,0), irr2(2,2,0, 4,2,2,0);
-  U3xU4::MultiShellTensor tensor({tadat0,tadat1,tadat2,tadat3},{{irr0,1,1},{irr1,1,1},{irr2,1,1}});
+  U3xU4::MultiShellTensor tensor({tadat0,tadat1,tadat2,tadat3},{irr0,irr1,irr2});
   
 
   // Start time measurement

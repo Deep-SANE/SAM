@@ -24,8 +24,8 @@ int main()
       std::cout << Tadat << " ";
 
     std::cout << "| coupled irreps: ";
-    for (const auto& [irrep, rhomax, etamax] : coupling_info_list)
-      std::cout << "rhoMax" << rhomax << "etaMax" << etamax << irrep << " ";
+    for (const auto& path : coupling_info_list)
+      std::cout << "rhoMax" << path.rhomax() << "etaMax" << path.etamax() << path << " ";
 
     std::cout << std::endl;
   }

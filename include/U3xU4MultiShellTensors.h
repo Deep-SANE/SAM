@@ -9,7 +9,7 @@
 #include <Eigen/Dense>
 
 #include <Databases.h>
-#include <U3xU4CouplingCoefficient.h>
+#include <U3xU4GammaOmega.h>
 #include <U3xU4irrep.h>
 #include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4SingleShellTensors.h>
@@ -204,21 +204,18 @@ namespace U3xU4
   class MultiShellTensor
   {
   public:
-    using GammaElement = U3xU4::SingleShellTensor;
-    using OmegaElement = std::tuple<U3xU4::irrep, int, int>;
-
     // List of single-shell tensors, each corresponds to Gamma in the document.
-    std::vector<GammaElement> single_shell_tensors;
+    std::vector<U3xU4::SingleShellTensor> Gamma;
 
     // The coupled (irrep, rhomax, etamax)'s, each corresponds to Omega in the document.
     // This list has one less element than the single_shell_tensors list.
-    std::vector<OmegaElement> coupled_irreps;
+    std::vector<U3xU4::OmegaElement> Omega;
 
     // Constructor
-    MultiShellTensor(const std::vector<GammaElement>& single_shell_tensors_,
-                     const std::vector<OmegaElement>& coupled_irreps_)
-        : single_shell_tensors(single_shell_tensors_),
-          coupled_irreps(coupled_irreps_)
+    MultiShellTensor(
+      const std::vector<U3xU4::SingleShellTensor>& Gamma_,
+      const std::vector<U3xU4::OmegaElement>& Omega_)
+        : Gamma(Gamma_), Omega(Omega_)
     { }
 
     // This method assumes that everything is already unified, i.e., bra and ket
@@ -230,13 +227,11 @@ namespace U3xU4
 
   // A function to couple single-shell tensors into multi-shell tensors
   using CouplingPath = std::pair<
-      std::vector<MultiShellTensor::GammaElement>, // list of selected
-                                                   // single-shell tensors
-      std::vector<MultiShellTensor::OmegaElement>>; // list of all coupled
-                                                    // (irrep,rhomax,etamax)
+    std::vector<U3xU4::SingleShellTensor>, // list of selected single-shell tensors
+    std::vector<U3xU4::OmegaElement>>;     // list of all coupled (irrep,rhomax,etamax)
 
   void CoupleSingShellTensors(
-      const std::vector<std::vector<MultiShellTensor::GammaElement>>&
+      const std::vector<std::vector<U3xU4::SingleShellTensor>>&
           Tadat_lists,                          // list of lists of Tadat
       std::size_t depth,                        // recursion depth
       std::vector<U3xU4::SingleShellTensor> Tadat_choices,  // current choices
@@ -262,13 +257,13 @@ namespace U3xU4
 // formatter for GammaElement:
 
 template <>
-class fmt::formatter<U3xU4::MultiShellTensor::GammaElement>
+class fmt::formatter<U3xU4::SingleShellTensor>
 {
 public:
   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename Context>
-  constexpr auto format(const U3xU4::MultiShellTensor::GammaElement& ge,
+  constexpr auto format(const U3xU4::SingleShellTensor& ge,
                         Context& ctx) const
   {
     return format_to(ctx.out(), "{}({},{}){}[{},{},{}]{}[{},{},{},{}]", ge.n,
@@ -280,15 +275,15 @@ public:
 };
 
 // formatter for OmegaElement:
-
+/*
 template <>
-class fmt::formatter<U3xU4::MultiShellTensor::OmegaElement>
+class fmt::formatter<U3xU4::OmegaElement>
 {
 public:
   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename Context>
-  constexpr auto format(const U3xU4::MultiShellTensor::OmegaElement& oe,
+  constexpr auto format(const U3xU4::OmegaElement& oe,
                         Context& ctx) const
   {
     const auto& i = std::get<0>(oe);
@@ -300,5 +295,5 @@ public:
                      i.u4().n14(), i.u4().n24(), i.u4().n34(), i.u4().n44());
   }
 };
-
+*/
 #endif
