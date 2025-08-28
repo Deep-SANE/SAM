@@ -111,7 +111,7 @@ namespace U3xU4
 
   ManyNucleonBasis::ManyNucleonBasis(int Z, int N, int Nmax, int JJ)
       : A_(Z + N),
-        MMT_(std::abs(Z - N)),
+        MMT_(N - Z),
         Nmax_(Nmax),
         JJ_(JJ),
         n0hw_(Nmax % 2),
@@ -358,7 +358,7 @@ namespace U3xU4
 
     for (auto const& labels : u4_basis)
     {
-      if (labels.TT >= MMT_)
+      if (labels.TT >= abs(MMT_))
       {
         int zeta = labels.zeta;
         int SS = labels.SS;
