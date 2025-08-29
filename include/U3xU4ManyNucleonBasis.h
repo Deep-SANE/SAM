@@ -395,7 +395,7 @@ namespace U3xU4
     void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id);
   };
 
-  // class for unifying 2 irreps wrt to their active shells:
+  // class for unifying 2 irreps wrt to their shells:
   class IrrepUnifier
   {
     ManyNucleonBasis::Irrep o1_, o2_;
@@ -464,128 +464,88 @@ namespace U3xU4
 
       assert(o1.gamma.size() == o2.gamma.size());
 
-      // (3) reconstruct omega elements for bra:
+      // check unification of shells:
+      for (size_t i = 0; i < o1.gamma.size(); i++)
+        assert(o1.gamma[i].shell() == o2.gamma[i].shell());
 
-      if (o1.gamma.size() > 1)
+      // (3) setup coupling for omega elements:
+
+      auto couple = [](const U3xU4::irrep A, const U3xU4::irrep B,
+                       const U3xU4::OmegaElement* poe) -> U3xU4::OmegaElement
       {
-        size_t om1 = 0;
-
-        const U3xU4::irrep& A = o1.gamma[0];
-        const U3xU4::irrep& B = o1.gamma[1];
-
         if ((A.vacuum()) && (B.vacuum()))
-          o1.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
+          return {1, {}, 1, {}};
         else if (A.vacuum())
         {
           u3::irrep u3 = B.u3();
           u3.normalize();
-          o1.omega.emplace_back(1, u3, 1, B.u4());
+          return {1, u3, 1, B.u4()};
         }
         else if (B.vacuum())
         {
           u3::irrep u3 = A.u3();
           u3.normalize();
-          o1.omega.emplace_back(1, u3, 1, A.u4());
+          return {1, u3, 1, A.u4()};
         }
         else
+        {
+          assert(poe != nullptr);
+          return *poe;
+        }
+      };
+
+      // (4) reconstruct omega elements for bra:
+
+      size_t om1 = 0;
+
+      for (size_t g1 = 1; g1 < o1.gamma.size(); g1++)
+      {
+        assert(o1.omega.size() == g1 - 1);
+
+        const U3xU4::irrep& A =
+            (g1 == 1) ? static_cast<const U3xU4::irrep&>(o1.gamma[0])
+                      : static_cast<const U3xU4::irrep&>(o1.omega.back());
+
+        const U3xU4::irrep& B = o1.gamma[g1];
+
+        const U3xU4::OmegaElement* poe = nullptr;
+        if ((A.vacuum() == false) && (B.vacuum() == false))
         {
           assert(om1 < i1.omega.size());
-          o1.omega.push_back(i1.omega[om1++]);
+          poe = i1.omega.data() + om1++;
         }
 
-        for (size_t g1 = 2; g1 < o1.gamma.size(); g1++)
-        {
-          assert(o1.omega.size() == g1 - 1);
-          const U3xU4::irrep& A = o1.omega.back();
-          const U3xU4::irrep& B = o1.gamma[g1];
-
-          if ((A.vacuum()) && (B.vacuum()))
-            o1.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
-          else if (A.vacuum())
-          {
-            u3::irrep u3 = B.u3();
-            u3.normalize();
-            o1.omega.emplace_back(1, u3, 1, B.u4());
-          }
-          else if (B.vacuum())
-          {
-            u3::irrep u3 = A.u3();
-            u3.normalize();
-            o1.omega.emplace_back(1, u3, 1, A.u4());
-          }
-          else
-          {
-            assert(om1 < i1.omega.size());
-            o1.omega.push_back(i1.omega[om1++]);
-          }
-        }
-
-        assert(om1 == i1.omega.size());
+        o1.omega.push_back(couple(A, B, poe));
       }
 
-      // (4) reconstruct omega elements for ket:
+      // (5) reconstruct omega elements for ket:
 
-      if (o2.gamma.size() > 1)
+      size_t om2 = 0;
+
+      for (size_t g2 = 1; g2 < o2.gamma.size(); g2++)
       {
-        size_t om2 = 0;
+        assert(o2.omega.size() == g2 - 1);
 
-        const U3xU4::irrep& A = o2.gamma[0];
-        const U3xU4::irrep& B = o2.gamma[1];
+        const U3xU4::irrep& A =
+            (g2 == 1) ? static_cast<const U3xU4::irrep&>(o2.gamma[0])
+                      : static_cast<const U3xU4::irrep&>(o2.omega.back());
 
-        if ((A.vacuum()) && (B.vacuum()))
-          o2.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
-        else if (A.vacuum())
-        {
-          u3::irrep u3 = B.u3();
-          u3.normalize();
-          o2.omega.emplace_back(1, u3, 1, B.u4());
-        }
-        else if (B.vacuum())
-        {
-          u3::irrep u3 = A.u3();
-          u3.normalize();
-          o2.omega.emplace_back(1, u3, 1, A.u4());
-        }
-        else
+        const U3xU4::irrep& B = o2.gamma[g2];
+
+        const U3xU4::OmegaElement* poe = nullptr;
+        if ((A.vacuum() == false) && (B.vacuum() == false))
         {
           assert(om2 < i2.omega.size());
-          o2.omega.push_back(i2.omega[om2++]);
+          poe = i2.omega.data() + om2++;
         }
 
-        for (size_t g2 = 2; g2 < o2.gamma.size(); g2++)
-        {
-          assert(o2.omega.size() == g2 - 1);
-          const U3xU4::irrep& A = o2.omega.back();
-          const U3xU4::irrep& B = o2.gamma[g2];
-
-          if ((A.vacuum()) && (B.vacuum()))
-            o2.omega.emplace_back(1, u3::irrep{}, 1, u4::irrep{});
-          else if (A.vacuum())
-          {
-            u3::irrep u3 = B.u3();
-            u3.normalize();
-            o2.omega.emplace_back(1, u3, 1, B.u4());
-          }
-          else if (B.vacuum())
-          {
-            u3::irrep u3 = A.u3();
-            u3.normalize();
-            o2.omega.emplace_back(1, u3, 1, A.u4());
-          }
-          else
-          {
-            assert(om2 < i2.omega.size());
-            o2.omega.push_back(i2.omega[om2++]);
-          }
-        }
-
-        assert(om2 == i2.omega.size());
+        o2.omega.push_back(couple(A, B, poe));
       }
 
       assert(o1.gamma.size() == o1.omega.size() + 1);
       assert(o1.omega.size() == o2.omega.size());
 
-      // (5) return result:
+      // (6) return result:
 
       return std::tie(std::as_const(o1_), std::as_const(o2_));
     }
