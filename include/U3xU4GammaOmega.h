@@ -34,15 +34,12 @@ namespace U3xU4
     };
 
   public:
-    enum class State : uint8_t { Basis, Tensor, None };
+    enum class State : uint8_t { Basis, Tensor };
 
   private:
     State state_;
 
   public:
-    // constructs a generic vacuum gamma element:
-    //GammaElement(int shell) : shell_(shell), state_(State::None) { }
-
     // constructs a basis gamma element:
     GammaElement(int shell, int alphamax, const u3::irrep& u3,
                  const u4::irrep& u4)
@@ -87,6 +84,16 @@ namespace U3xU4
     State state() const { return state_; }
   };
 
+  inline std::ostream& operator<<(std::ostream& s, const GammaElement& ge)
+  {
+    if (ge.state() == U3xU4::GammaElement::State::Basis)
+      return s << ge.alphamax() << ge.u3() << ge.u3();
+    else if (ge.state() == U3xU4::GammaElement::State::Tensor)
+      return s << ge.rhomax() << ge.u3() << ge.etamax() << ge.u4();
+    else
+      throw std::runtime_error("Invalid state of U3xU4::GammaElement!");
+  }
+
   // class that represents a single omega element:
   class OmegaElement : public U3xU4::irrep
   {
@@ -106,13 +113,12 @@ namespace U3xU4
     // getters:
     int rhomax() const { return rhomax_; }
     int etamax() const { return etamax_; }
-
-    // print
-    friend std::ostream& operator<<(std::ostream& s, const OmegaElement& o)
-    {
-      return s << o.rhomax_ << o.u3() << o.etamax_ << o.u4();
-    }
   };
+
+  inline std::ostream& operator<<(std::ostream& s, const OmegaElement& oe)
+  {
+    return s << oe.rhomax() << oe.u3() << oe.etamax() << oe.u4();
+  }
 
 } // namespace U3xU4
 
@@ -129,16 +135,12 @@ public:
   template <typename Context>
   constexpr auto format(const U3xU4::GammaElement& ge, Context& ctx) const
   {
-    /*
-    if (ge.state() == U3xU4::GammaElement::State::None)
-      return format_to(ctx.out(), "{}:{}{}", ge.shell(), ge.u4(), ge.su3());
-    */
     if (ge.state() == U3xU4::GammaElement::State::Basis)
-      return format_to(ctx.out(), "{}:{}{}{}", ge.shell(), ge.u4(),
-                       ge.alphamax(), ge.u3());
+      return format_to(ctx.out(), "{}:{}{}{}", ge.shell(), ge.alphamax(),
+                       ge.u3(), ge.u4());
     else if (ge.state() == U3xU4::GammaElement::State::Tensor)
-      return format_to(ctx.out(), "{}:{}{}{}{}", ge.shell(), ge.etamax(),
-                       ge.u4(), ge.rhomax(), ge.u3());
+      return format_to(ctx.out(), "{}:{}{}{}{}", ge.shell(), ge.rhomax(),
+                       ge.u3(), ge.etamax(), ge.u4());
     else
       throw std::runtime_error("Invalid state of U3xU4::GammaElement!");
   }
@@ -156,8 +158,8 @@ public:
   template <typename Context>
   constexpr auto format(const U3xU4::OmegaElement& oe, Context& ctx) const
   {
-    return format_to(ctx.out(), "{}{}{}{}", oe.etamax(), oe.u4(), oe.rhomax(),
-                     oe.u3());
+    return format_to(ctx.out(), "{}{}{}{}", oe.rhomax(), oe.u3(), oe.etamax(),
+                     oe.u4());
   }
 };
 

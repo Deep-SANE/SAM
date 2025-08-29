@@ -73,12 +73,6 @@ namespace U3xU4
     // is vacuum?
     bool vacuum() const { return u3_.zero() && u4_.zero(); }
 
-    // print U3xU4::irrep:
-    friend std::ostream& operator<<(std::ostream& s, const irrep& x)
-    {
-      return s << x.u3_ << x.u4_;
-    }
-
     // write to binary file
     void writeBinary(std::ostream& s) const
     {
@@ -111,6 +105,12 @@ namespace U3xU4
       u4_ = u4::irrep(n14, n24, n34, n44);
     }
   };
+
+  // print U3xU4::irrep:
+  inline std::ostream& operator<<(std::ostream& s, const irrep& x)
+  {
+    return s << x.u3() << x.u4();
+  }
 
   // Decomposition of coupling irreps
   // The first std::vector<int> is for rhomaxs
@@ -154,7 +154,7 @@ public:
   template <typename Context>
   constexpr auto format(const U3xU4::irrep& i, Context& ctx) const
   {
-    return format_to(ctx.out(), "{},{}", i.u3(), i.u4());
+    return format_to(ctx.out(), "{}{}", i.u3(), i.u4());
   }
 };
 
