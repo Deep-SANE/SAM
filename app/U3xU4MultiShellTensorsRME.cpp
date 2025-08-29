@@ -280,7 +280,7 @@ int main(int argc, char* argv[])
   // Output the time in seconds
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
-
+  
 #ifdef SAM_USE_SLEPC
   SlepcFinalize();
 #endif

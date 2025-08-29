@@ -31,8 +31,8 @@ int main(int argc, char* argv[])
   */
   /*
   std::size_t n = 2, ads = 3, ats = 2;
-  U3xU4::irrep i(4,3,1, 3,1,0,0), f(5,3,2, 3,1,1,0),
-               T1_0(3,1,0, 1,1,0,0), T1(3,3,0, 2,1,0,0),
+  U3xU4::GammaElement i(n,{4,3,1},{3,1,0,0}), f(n,{5,3,2},{3,1,1,0});
+  U3xU4::irrep T1_0(3,1,0, 1,1,0,0), T1(3,3,0, 2,1,0,0),
                T2(3,2,0, 1,1,0,0), T(4,1,0, 1,0,0,0);
 
   prod_ads.push_back(T1_0);
@@ -52,8 +52,9 @@ int main(int argc, char* argv[])
   */
   /*
   std::size_t n = 4, ads = 2, ats = 2;
-  U3xU4::irrep i(14, 2, 0, 1, 1, 1, 1), f(14, 2, 0, 1, 1, 1, 1),
-      T1(6, 2, 0, 1, 1, 0, 0), T2(6, 4, 0, 1, 1, 0, 0), T(4, 2, 0, 0, 0, 0, 0);
+  U3xU4::GammaElement i(n,{14,2,0},{1,1,1,1}), f(n,{14,2,0},{1,1,1,1});
+  U3xU4::irrep T1(6, 2, 0, 1, 1, 0, 0), 
+    T2(6, 4, 0, 1, 1, 0, 0), T(4, 2, 0, 0, 0, 0, 0);
 
   prod_ads.push_back(T1);
   prod_ats.push_back(T2);
@@ -70,7 +71,8 @@ int main(int argc, char* argv[])
   */
   /*
   std::size_t n = 4, ads = 1, ats = 0;
-  U3xU4::irrep i(0,0,0, 0,0,0,0), T(n,0,0, 1,0,0,0), f(n,0,0, 1,0,0,0);
+  U3xU4::GammaElement i(n,{0,0,0},{0,0,0,0}), f(n,{n,0,0},{1,0,0,0});
+  U3xU4::irrep T(n,0,0, 1,0,0,0);
   std::size_t rho0max = 1, eta0max = 1;
   */
 
@@ -82,7 +84,8 @@ int main(int argc, char* argv[])
   */
   /*
   std::size_t n = 4, ads = 0, ats = 1;
-  U3xU4::irrep i(n,0,0, 1,0,0,0), T(n,n,0, 1,1,1,0), f(0,0,0, 0,0,0,0);
+  U3xU4::GammaElement i(n,{n,0,0},{1,0,0,0}), f(n,{0,0,0}, {0,0,0,0});
+  U3xU4::irrep T(n,n,0, 1,1,1,0);
   std::size_t rho0max = 1, eta0max = 1;
   */
 
@@ -93,7 +96,8 @@ int main(int argc, char* argv[])
   */
   /*
   std::size_t n = 8, ads = 1, ats = 1;
-  U3xU4::irrep i(n,0,0, 1,0,0,0), T(0,0,0, 0,0,0,0), f(n,0,0, 1,0,0,0);
+  U3xU4::GammaElement i(n,{n,0,0},{1,0,0,0}), f(n,{n,0,0},{1,0,0,0});
+  U3xU4::irrep T(0,0,0, 0,0,0,0);
   std::size_t rho0max = 1, eta0max = 1;
   */
 
@@ -102,9 +106,8 @@ int main(int argc, char* argv[])
   */
   
   std::size_t n = 2, ads = 0, ats = 0;
-  U3xU4::irrep i(5,3,2, 3,1,1,0), f(5,3,2, 3,1,1,0),
-               //i(0,0,0, 0,0,0,0), f(0,0,0, 0,0,0,0),
-               T(0,0,0, 0,0,0,0);
+  U3xU4::GammaElement i(n,{5,3,2},{3,1,1,0}), f(n,{5,3,2},{3,1,1,0});
+  U3xU4::irrep T(0,0,0, 0,0,0,0);
   std::size_t rho0max = 1, eta0max = 1;
   
 
@@ -114,23 +117,23 @@ int main(int argc, char* argv[])
     Tadxat(n, ads, ats, prod_ads, prod_ats, T, rho0max, eta0max);
 
   // These will be calculated inside RME() method
-  std::size_t ai_max = 0, af_max = 0, rhomax = 0, etamax = 0;
+  std::size_t rhomax = 0, etamax = 0;
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto RMEs = Tadxat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs);
+  auto RMEs = Tadxat.RME(i, f, rhomax, etamax, dbs);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  std::cout << "< " << af_max << f << " ||| " << Tadxat << " ||| " << ai_max
+  std::cout << "< " << f << " ||| " << Tadxat << " ||| "
             << i << " >" << rhomax << "," << etamax << std::endl;
 
   std::cout << "ai\taf\trho0\teta0\trho\teta" << std::endl;
 
   qcx_utils::NDIndex multis;
-  multis.add_dimensions(ai_max, af_max, rho0max, eta0max, rhomax, etamax);
+  multis.add_dimensions(i.alphamax(), f.alphamax(), rho0max, eta0max, rhomax, etamax);
 
   std::vector<size_t> multi(6);
   for (std::size_t i = 0; i < RMEs.size(); i++)

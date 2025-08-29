@@ -9,6 +9,8 @@
 #include <qcx_convert.h>
 #include <qcx_readwrite.h>
 
+#include <UNtoU3.h>
+
 #include <U3irrep.h>
 #include <U3xU4irrep.h>
 #include <U4irrep.h>
@@ -52,6 +54,19 @@ namespace U3xU4
           alphamax_(qcx_utils::itou16(alphamax)),
           state_(State::Basis)
     { }
+
+    // constructs a basis gamma element without alphamax:
+    GammaElement(int shell, const u3::irrep& u3, const u4::irrep& u4)
+        : U3xU4::irrep(u3, u4),
+          shell_(shell),
+          state_(State::Basis)
+    { 
+      int N = (shell + 1) * (shell + 2) / 2;
+      untou3::UNtoU3<4> gen;
+      gen.set_shell(shell);
+      gen.reduceU4(u4, N);
+      alphamax_ = gen.multiplicity(u3);
+    }
 
     // constructs a tensor gamma element:
     GammaElement(int shell, int rhomax, const u3::irrep& u3, int etamax,

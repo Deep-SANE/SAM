@@ -33,14 +33,16 @@ namespace U3xU4
       assert(tadat.shell() == ket.gamma[0].shell());
       assert(tadat.shell() == bra.gamma[0].shell());
 
-      U3xU4::irrep i = ket.gamma[0],
-                   f = bra.gamma[0];
+      // U3xU4::irrep i = ket.gamma[0], f = bra.gamma[0];
+      const auto& i = ket.gamma[0];
+      const auto& f = bra.gamma[0];
 
-      std::size_t rhomax, etamax, // multi for Wigner-Eckart theorem
-        			    ai_max = ket.gamma[0].alphamax(), // multi for the ket
-                  af_max = bra.gamma[0].alphamax(); // multi for the bra
+      std::size_t rhomax, etamax; // multi for Wigner-Eckart theorem
+      //  			    ai_max = ket.gamma[0].alphamax(), // multi for the ket
+      //            af_max = bra.gamma[0].alphamax(); // multi for the bra
 
-      return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs);
+      // return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs);
+      return tadat.RME(i, f, rhomax, etamax, dbs);
     }
 
     // If there is only one OmegaElement
@@ -59,14 +61,21 @@ namespace U3xU4
       assert(tadat0.shell() == bra.gamma[0].shell());
       assert(tadat1.shell() == bra.gamma[1].shell());
 
+      // irreps in ket
+      const auto& ket0 = ket.gamma[0];
+      const auto& ket1 = ket.gamma[1];
+      // irreps in bra
+      const auto& bra0 = bra.gamma[0];
+      const auto& bra1 = bra.gamma[1];
+
       U3xU4::irrep 
         // irreps in ket
-        ket0 = ket.gamma[0], 
-      	ket1 = ket.gamma[1], 
+        // ket0 = ket.gamma[0], 
+      	// ket1 = ket.gamma[1], 
       	ket_omega = ket.omega[0],
         // irreps in bra
-      	bra0 = bra.gamma[0], 
-      	bra1 = bra.gamma[1],
+      	// bra0 = bra.gamma[0], 
+      	// bra1 = bra.gamma[1],
       	bra_omega = bra.omega[0];
 
       std::size_t 
@@ -89,13 +98,15 @@ namespace U3xU4
       	rhomax1, etamax1;
 
       // RMEs of the individual tensors
-      auto rmes0 = tadat0.RME(ket0_alphamax, ket0, bra0_alphamax, bra0, rhomax0,
-                              etamax0, dbs);
+      // auto rmes0 = tadat0.RME(ket0_alphamax, ket0, bra0_alphamax, bra0, rhomax0,
+      //                         etamax0, dbs);
+      auto rmes0 = tadat0.RME(ket0, bra0, rhomax0, etamax0, dbs);
       if (rmes0.empty()) 
         return {};
 
-      auto rmes1 = tadat1.RME(ket1_alphamax, ket1, bra1_alphamax, bra1, rhomax1,
-                             etamax1, dbs);
+      // auto rmes1 = tadat1.RME(ket1_alphamax, ket1, bra1_alphamax, bra1, rhomax1,
+      //                       etamax1, dbs);
+      auto rmes1 = tadat1.RME(ket1, bra1, rhomax1, etamax1, dbs);
       if (rmes1.empty())
       	return{};
 
@@ -260,13 +271,17 @@ namespace U3xU4
 
       assert(ket.gamma.back().shell() == tadat_last.shell());
       assert(bra.gamma.back().shell() == tadat_last.shell());
+      // last irrep in ket
+      const auto& ket_gamma_last = ket.gamma.back();
+      // last irreps in bra
+      const auto& bra_gamma_last = bra.gamma.back();
       U3xU4::irrep 
       	// last irreps in ket
-      	ket_gamma_last = ket.gamma.back(), 
+      	// ket_gamma_last = ket.gamma.back(), 
       	ket_omega_last = ket.omega.back(),
       	ket_omega_semilast = ket.omega[ket.omega.size() - 2],
       	// last irreps in bra
-      	bra_gamma_last = bra.gamma.back(), 
+      	// bra_gamma_last = bra.gamma.back(), 
       	bra_omega_last = bra.omega.back(),
       	bra_omega_semilast = bra.omega[bra.omega.size() - 2];
 
@@ -298,9 +313,11 @@ namespace U3xU4
         return {};
       //for (auto& rme_new : rmes_new) std::cout << rme_new << std::endl;
 
+      // auto rmes_last =
+      //     tadat_last.RME(ket_alphamax_last, ket_gamma_last, bra_alphamax_last,
+      //                    bra_gamma_last, rhomax_last, etamax_last, dbs);
       auto rmes_last =
-          tadat_last.RME(ket_alphamax_last, ket_gamma_last, bra_alphamax_last,
-                         bra_gamma_last, rhomax_last, etamax_last, dbs);
+          tadat_last.RME(ket_gamma_last, bra_gamma_last, rhomax_last, etamax_last, dbs);
       if (rmes_last.empty())
       	return {};
       //for (auto& rme_last : rmes_last) std::cout << rme_last << std::endl;

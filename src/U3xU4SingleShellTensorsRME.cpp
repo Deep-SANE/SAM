@@ -10,8 +10,10 @@
 namespace U3xU4
 {
   std::vector<double> SingleShellTensor::RME(
-    std::size_t& ai_max, const U3xU4::irrep& i,
-    std::size_t& af_max, const U3xU4::irrep& f,
+    //std::size_t& ai_max, const U3xU4::irrep& i,
+    const U3xU4::GammaElement& i,
+    //std::size_t& af_max, const U3xU4::irrep& f,
+    const U3xU4::GammaElement& f,
     std::size_t& rhomax, std::size_t& etamax,
     sam::Databases& dbs) const
   {
@@ -24,6 +26,9 @@ namespace U3xU4
 
     if ((A_i - ats + ads) != A_f) // number of particles is not conserved
       return {};
+
+    auto ai_max = i.alphamax();
+    auto af_max = f.alphamax();
 
     // If this is an identity tensor
     if (ads == 0 && ats == 0)
@@ -38,7 +43,7 @@ namespace U3xU4
       {
         rhomax = 1;
         etamax = 1;
-
+/*
         // If ai_max or af_max  has not been calculated
         int N = (shell() + 1) * (shell() + 2) / 2;
         untou3::UNtoU3<4> gen;
@@ -53,7 +58,7 @@ namespace U3xU4
           gen.reduceU4(f.u4(), N);
           af_max = gen.multiplicity(f.u3());
         }
-
+*/
         // Now calculate RMEs
         std::vector<double> rmes;
         for (std::size_t ai = 0; ai < ai_max; ai++)
@@ -114,9 +119,10 @@ namespace U3xU4
       std::tie(SDarr_i, coeffs_i) = U3xU4::read_HWS_data(path_i);
     }
     // Check pre-calculated multiplicity is correct
-    if (ai_max > 0 && ai_max != coeffs_i[0].cols())
-      throw std::runtime_error("max(alpha_i) disagree with nullity");
-    ai_max = coeffs_i[0].cols();
+    assert(ai_max == coeffs_i[0].cols());
+    // if (ai_max > 0 && ai_max != coeffs_i[0].cols())
+    //   throw std::runtime_error("max(alpha_i) disagree with nullity");
+    // ai_max = coeffs_i[0].cols();
     // std::cout << "coeffs_i:" << std::endl;
     // for (int i = 0; i < coeffs_i.size(); i++)
     //     std::cout << coeffs_i[i] << std::endl;
@@ -144,9 +150,10 @@ namespace U3xU4
       std::tie(SDarr_f, coeffs_f) = U3xU4::read_HWS_data(path_f);
     }
     // Check pre-calculated multiplicity is correct
-    if (af_max > 0 && af_max != coeffs_f[0].cols())
-      throw std::runtime_error("max(alpha_f) disagree with nullity");
-    af_max = coeffs_f[0].cols();
+    assert(af_max == coeffs_f[0].cols());
+    // if (af_max > 0 && af_max != coeffs_f[0].cols())
+    //   throw std::runtime_error("max(alpha_f) disagree with nullity");
+    // af_max = coeffs_f[0].cols();
     // std::cout << "coeffs_f:" << std::endl;
     // for (int i = 0; i < coeffs_f.size(); i++)
     //     std::cout << coeffs_f[i] << std::endl;
