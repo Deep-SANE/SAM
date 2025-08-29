@@ -4,6 +4,7 @@
 #include <istream>
 #include <ostream>
 #include <stdexcept>
+#include <vector>
 
 #include <qcx_convert.h>
 #include <qcx_readwrite.h>
@@ -155,6 +156,19 @@ namespace U3xU4
   inline std::ostream& operator<<(std::ostream& s, const OmegaElement& oe)
   {
     return s << oe.rhomax() << oe.u3() << oe.etamax() << oe.u4();
+  }
+
+  // helper function to extract shells from a set of gamma elements:
+  template <typename R> // R - a range of GammaElements
+  inline std::vector<int> extract_shells_from_gamma(const R& gamma)
+  {
+    std::vector<int> shells;
+    shells.reserve(gamma.size());
+
+    for (const auto& g : gamma)
+      shells.push_back(g.shell());
+
+    return shells;
   }
 
 } // namespace U3xU4

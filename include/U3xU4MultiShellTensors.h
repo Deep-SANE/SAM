@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -294,8 +295,9 @@ namespace U3xU4
    * @param T Multi-shell tensor to be unified.
    * @param irrep Basis irrep.
    *
-   * @return Unified multi-shell tensor.
+   * @return Unified multi-shell tensor, or, an empty optional if unification
+   * is not possible.
    */
-  MultiShellTensor unify_tensor(const MultiShellTensor& T,
-                                const ManyNucleonBasis::Irrep& irrep);
+  std::optional<MultiShellTensor>
+  unify_tensor(const MultiShellTensor& T, const ManyNucleonBasis::Irrep& irrep);
 } // namespace U3xU4
