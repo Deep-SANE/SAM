@@ -26,7 +26,7 @@ namespace U3xU4
 
     assert(omega.size() + 1 == gamma.size());
 
-    // (2) check is unification is possible:
+    // (2) check if unification is possible:
 
     if (Gamma.size() > gamma.size())
         return {};
