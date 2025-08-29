@@ -38,8 +38,8 @@ namespace U3xU4
       const auto& f = bra.gamma[0];
 
       std::size_t rhomax, etamax; // multi for Wigner-Eckart theorem
-      //  			    ai_max = ket.gamma[0].alphamax(), // multi for the ket
-      //            af_max = bra.gamma[0].alphamax(); // multi for the bra
+      //  			  ai_max = ket.gamma[0].alphamax(), // multi for the ket
+      //          af_max = bra.gamma[0].alphamax(); // multi for the bra
 
       // return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs);
       return tadat.RME(i, f, rhomax, etamax, dbs);
