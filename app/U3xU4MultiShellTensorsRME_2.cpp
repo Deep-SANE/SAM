@@ -22,17 +22,18 @@ int main(int argc, char* argv[])
 
   U3xU4::GammaElement
     gamma0_bra(0,1,{0,0,0},{1,0,0,0}),
-    gamma1_bra(1,1,{1,0,0},{3,1,0,0}),
+    gamma1_bra(1,1,{2,1,1},{3,1,0,0}),
     gamma2_bra(2,1,{2,0,0},{1,0,0,0}),
     gamma3_bra(3,1,{4,2,0},{1,1,0,0});
 
   U3xU4::OmegaElement
     omega01_bra  (1,{1,0,0},1,{3,2,0,0}),
     omega012_bra (1,{2,1,0},1,{3,2,1,0}),
-    omega0123_bra(1,{4,2,0},2,{3,1,0,0});
+    omega0123_bra(2,{4,2,0},1,{3,1,0,0});
 
-  U3xU4::ManyNucleonBasis::Irrep bra({gamma0_bra, gamma1_bra, gamma2_bra, gamma3_bra},
-                    {omega01_bra, omega012_bra, omega0123_bra});
+  U3xU4::ManyNucleonBasis::Irrep 
+    bra({gamma0_bra, gamma1_bra, gamma2_bra, gamma3_bra},
+        {omega01_bra, omega012_bra, omega0123_bra});
 
   print("Bra irrep: gamma = {}, omega = {}\n", bra.gamma, bra.omega);
 
@@ -44,11 +45,12 @@ int main(int argc, char* argv[])
     gamma3_ket(3,1,{4,2,0},{1,1,0,0});
 
   U3xU4::OmegaElement
-    omega12_ket (1,{3,2,0},2,{1,1,0,0}),
+    omega12_ket (2,{3,2,0},1,{1,1,0,0}),
     omega123_ket(1,{2,0,0},1,{2,2,0,0});
 
-  U3xU4::ManyNucleonBasis::Irrep ket({gamma1_ket, gamma2_ket, gamma3_ket},
-                    {omega12_ket, omega123_ket});
+  U3xU4::ManyNucleonBasis::Irrep 
+    ket({gamma1_ket, gamma2_ket, gamma3_ket},
+        {omega12_ket, omega123_ket});
 
   print("Ket irrep: gamma = {}, omega = {}\n\n", ket.gamma, ket.omega);
 
