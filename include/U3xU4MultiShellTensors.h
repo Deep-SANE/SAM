@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 #include <Databases.h>
 #include <U3xU4GammaOmega.h>
@@ -231,13 +232,23 @@ namespace U3xU4
   };
 
   /* Class for holding a general U3xU4 multi-shell tensor with physical labels.
-     It has a MultiShellTensor object and an array of subgroup labels, namely 
-     (kappamax,LL,zetamax,SS,TT). In addition, it also stores an array of tensor 
-     strengths, which are coefficients in the expansion from JT-coupled operator.
+     It has total spin and isospin quantum numbers, a MultiShellTensor object 
+     and an array of subgroup labels, namely (kappamax,LL,zetamax,SS,TT). 
+     In addition, it also stores an array of tensor strengths, which are 
+     coefficients in the expansion from JT-coupled operator. The strengths are 
+     stored in a 2D array: 
+     - The 1st dimension has the same size with the array of subgroup labels
+     - The 2nd dimension has varying size, depending on the multiplicities of
+       the tensor, including all multiplicities of SingleShellTensors, 
+       intershell couplings, kappamax and zetamax. All of these can be extracted
+       easily using qcx_utils::NDIndex object. 
   */
   class MultiShellTensor_phys
   {
   public:
+    int16_t TT, MMT,    // twice isospin and projection
+            JJ, MMJ;    // twice total angular momentum and projection
+
     // A multi-shell tensor without subgroup labels
     U3xU4::MultiShellTensor T;
 
@@ -261,6 +272,10 @@ namespace U3xU4
     friend std::ostream& operator<<(std::ostream& s,
                                     const MultiShellTensor_phys& x);
   };
+
+  Eigen::SparseMatrix<double> MatrixElements(
+    std::vector<MultiShellTensor_phys>& tensors,
+    U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
 
   // A function to couple single-shell tensors into multi-shell tensors
   using CouplingPath = std::pair<
