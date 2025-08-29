@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include <qcx_readwrite.h>
+
 #include <U3xU4SingleShellTensors.h>
 
 namespace U3xU4
@@ -60,9 +62,11 @@ namespace U3xU4
   void SingleShellTensor::writeBinary(std::ostream& s) const
   {
     U3xU4::GammaElement::writeBinary(s);
+    qcx_utils::writeBinary(s, ads);
+    qcx_utils::writeBinary(s, ats);
     //s.write(reinterpret_cast<const char*>(&n), sizeof(n));
-    s.write(reinterpret_cast<const char*>(&ads), sizeof(ads));
-    s.write(reinterpret_cast<const char*>(&ats), sizeof(ats));
+    //s.write(reinterpret_cast<const char*>(&ads), sizeof(ads));
+    //s.write(reinterpret_cast<const char*>(&ats), sizeof(ats));
     //s.write(reinterpret_cast<const char*>(&rho0max), sizeof(rho0max));
     //s.write(reinterpret_cast<const char*>(&eta0max), sizeof(eta0max));
 
@@ -78,9 +82,11 @@ namespace U3xU4
   void SingleShellTensor::readBinary(std::istream& s)
   {
     U3xU4::GammaElement::readBinary(s);
+    qcx_utils::readBinary(s, ads);
+    qcx_utils::readBinary(s, ats);
     //s.read(reinterpret_cast<char*>(&n), sizeof(n));
-    s.read(reinterpret_cast<char*>(&ads), sizeof(ads));
-    s.read(reinterpret_cast<char*>(&ats), sizeof(ats));
+    //s.read(reinterpret_cast<char*>(&ads), sizeof(ads));
+    //s.read(reinterpret_cast<char*>(&ats), sizeof(ats));
     //s.read(reinterpret_cast<char*>(&rho0max), sizeof(rho0max));
     //s.read(reinterpret_cast<char*>(&eta0max), sizeof(eta0max));
 
