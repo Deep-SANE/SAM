@@ -16,10 +16,6 @@
 #include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4SingleShellTensors.h>
 
-#ifdef HAVE_FMT
-#include <fmt/format.h>
-#endif
-
 namespace U3xU4
 {
   /* Class for holding one-body multi-shell tensors
@@ -303,49 +299,3 @@ namespace U3xU4
   MultiShellTensor unify_tensor(const MultiShellTensor& T,
                                 const ManyNucleonBasis::Irrep& irrep);
 } // namespace U3xU4
-
-#ifdef HAVE_FMT
-
-// formatter for GammaElement:
-
-template <>
-class fmt::formatter<U3xU4::SingleShellTensor>
-{
-public:
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-  template <typename Context>
-  constexpr auto format(const U3xU4::SingleShellTensor& ge,
-                        Context& ctx) const
-  {
-    return format_to(ctx.out(), "{}({},{}){}[{},{},{}]{}[{},{},{},{}]", ge.n,
-                     ge.ads, ge.ats, ge.rho0max, ge.T.u3().n13(),
-                     ge.T.u3().n23(), ge.T.u3().n33(), ge.eta0max,
-                     ge.T.u4().n14(), ge.T.u4().n24(), ge.T.u4().n34(),
-                     ge.T.u4().n44());
-  }
-};
-
-// formatter for OmegaElement:
-/*
-template <>
-class fmt::formatter<U3xU4::OmegaElement>
-{
-public:
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-  template <typename Context>
-  constexpr auto format(const U3xU4::OmegaElement& oe,
-                        Context& ctx) const
-  {
-    const auto& i = std::get<0>(oe);
-    auto rho0max = std::get<1>(oe);
-    auto eta0max = std::get<1>(oe);
-
-    return format_to(ctx.out(), "{}[{},{},{}]{}[{},{},{},{}]", rho0max,
-                     i.u3().n13(), i.u3().n23(), i.u3().n33(), eta0max,
-                     i.u4().n14(), i.u4().n24(), i.u4().n34(), i.u4().n44());
-  }
-};
-*/
-#endif

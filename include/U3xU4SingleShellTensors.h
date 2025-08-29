@@ -10,7 +10,12 @@
 
 #include <Databases.h>
 #include <HOutilities.h>
+#include <U3xU4GammaOmega.h>
 #include <U3xU4irrep.h>
+
+#ifdef HAVE_FMT
+#include <fmt/format.h>
+#endif
 
 namespace U3xU4
 {
@@ -609,12 +614,11 @@ namespace U3xU4
      of ad's and at's. It can have up to 3 ad's and 3 at's
      Tensor components are not specified
   */
-  class SingleShellTensor
+  class SingleShellTensor : public U3xU4::GammaElement
   {
   public:
     // tensor character of ad [n,0,0] x [1,0,0,0]
     // tensor character of at [n,n,0] x [1,1,1,0]
-    uint16_t n;
 
     // coupled tensor characters
     // 0 element for ad
@@ -633,23 +637,26 @@ namespace U3xU4
     uint8_t ats;
 
     // final tensor coupling
+    /*
+     * irrep and multiplicities stored in GammaElement base class
+     *
     U3xU4::irrep T;
     uint8_t rho0max, eta0max;
+    */
 
     // Constructor
-    SingleShellTensor() : n(0), ads(0), ats(0), rho0max(0), eta0max(0) {}
+    SingleShellTensor() : U3xU4::GammaElement(0, 0, {}, 0, {}), ads(0), ats(0)
+    { }
+
     SingleShellTensor(uint16_t n_, uint8_t ads_, uint8_t ats_,
-          const std::vector<U3xU4::irrep>& prod_ads_,
-          const std::vector<U3xU4::irrep>& prod_ats_, const U3xU4::irrep& t,
-          uint8_t rho0max_, uint8_t eta0max_)
-        : n(n_),
+                      const std::vector<U3xU4::irrep>& prod_ads_,
+                      const std::vector<U3xU4::irrep>& prod_ats_,
+                      const U3xU4::irrep& t, uint8_t rho0max_, uint8_t eta0max_)
+        : U3xU4::GammaElement(n_, rho0max_, t.u3(), eta0max_, t.u4()),
           ads(ads_),
           ats(ats_),
           prod_ads(prod_ads_),
-          prod_ats(prod_ats_),
-          T(t),
-          rho0max(rho0max_),
-          eta0max(eta0max_)
+          prod_ats(prod_ats_)
     { }
 
     // Get the number of ad's
@@ -658,8 +665,10 @@ namespace U3xU4
     // Get the number of at's
     uint8_t num_ats() const { return ats; }
 
-    // Get shell number
-    int16_t shell() const { return n; }
+    const U3xU4::irrep& T() const { return *this; }
+
+    int rho0max() const { return rhomax(); }
+    int eta0max() const { return etamax(); }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s, const SingleShellTensor& x);
@@ -704,3 +713,23 @@ namespace U3xU4
     GenerateSingleShellTensors(int n, int num_ads, int num_ats);
 
 } // namespace U3xU4
+
+#ifdef HAVE_FMT
+
+// formatter for SingleShellTensor:
+
+template <>
+class fmt::formatter<U3xU4::SingleShellTensor>
+{
+public:
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename Context>
+  constexpr auto format(const U3xU4::SingleShellTensor& t, Context& ctx) const
+  {
+    return format_to(ctx.out(), "{}({},{}){}{}{}{}", t.shell(), t.ads, t.ats,
+                     t.rho0max(), t.u3(), t.eta0max(), t.u4());
+  }
+};
+
+#endif

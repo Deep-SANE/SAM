@@ -45,15 +45,15 @@ namespace U3xU4
     {
       for (auto& Tadat : current_list)
       {
-        auto prev_irrep = coupled_irreps.empty() ? Tadat_choices.back().T
+        auto prev_irrep = coupled_irreps.empty() ? Tadat_choices.back().T()
                                                  : coupled_irreps.back();
-        auto prev_rhomax = rhomax_list.empty() ? Tadat_choices.back().rho0max
+        auto prev_rhomax = rhomax_list.empty() ? Tadat_choices.back().rho0max()
                                                : rhomax_list.back();
-        auto prev_etamax = etamax_list.empty() ? Tadat_choices.back().eta0max
+        auto prev_etamax = etamax_list.empty() ? Tadat_choices.back().eta0max()
                                                : etamax_list.back();
 
         auto [new_irreps, rhomaxs, etamaxs] =
-            U3xU4::decomposition(prev_irrep, Tadat.T);
+            U3xU4::decomposition(prev_irrep, Tadat.T());
 
         for (std::size_t i = 0; i < new_irreps.size(); i++)
         {

@@ -32,8 +32,8 @@ namespace U3xU4
       // Delegate to single-shell expansion
       const U3xU4::SingleShellTensor& tadat = single_shell_tensors[0];
       U3xU4::SingleShellTensor_phys tadat_phys(
-          tadat.n, tadat.ads, tadat.ats, tadat.prod_ads, tadat.prod_ats,
-          tadat.T, rhomax, etamax, LL, SS, TT, MMT, JJ, MMJ, labels);
+          tadat.shell(), tadat.ads, tadat.ats, tadat.prod_ads, tadat.prod_ats,
+          tadat.T(), rhomax, etamax, LL, SS, TT, MMT, JJ, MMJ, labels);
 
       auto [coeffs, ads, ats] = tadat_phys.expand(dbs);
 
@@ -61,14 +61,18 @@ namespace U3xU4
         tadat1 = single_shell_tensors[0],
         tadat2 = single_shell_tensors[1];
 
-      assert(tadat1.rho0max == 1 && tadat1.eta0max == 1);
-      assert(tadat2.rho0max == 1 && tadat2.eta0max == 1);
+      assert(tadat1.rho0max() == 1 && tadat1.eta0max() == 1);
+      assert(tadat2.rho0max() == 1 && tadat2.eta0max() == 1);
 
-      std::vector<u3::physicalvector> pv3s1 = u3::physicalBasis(tadat1.T.u3()),
-                                      pv3s2 = u3::physicalBasis(tadat2.T.u3());
+      std::vector<u3::physicalvector> pv3s1 =
+                                          u3::physicalBasis(tadat1.T().u3()),
+                                      pv3s2 =
+                                          u3::physicalBasis(tadat2.T().u3());
 
-      std::vector<u4::physicalvector> pv4s1 = u4::physicalBasis(tadat1.T.u4()),
-                                      pv4s2 = u4::physicalBasis(tadat2.T.u4());
+      std::vector<u4::physicalvector> pv4s1 =
+                                          u4::physicalBasis(tadat1.T().u4()),
+                                      pv4s2 =
+                                          u4::physicalBasis(tadat2.T().u4());
 
       for (int pv31 = 0; pv31 < pv3s1.size(); pv31++)
       {
@@ -133,17 +137,17 @@ namespace U3xU4
                       double cgcT = cgcs.compute(TT1, TT2, TT, MMT1, MMT2, MMT);
 
                       U3xU4::SingleShellTensor_phys tadat_phys1(
-                          tadat1.n, tadat1.ads, tadat1.ats, tadat1.prod_ads,
-                          tadat1.prod_ats, tadat1.T, tadat1.rho0max,
-                          tadat1.eta0max, LL1, SS1, TT1, MMT1, JJ1, MMJ1,
-                          labels);
+                          tadat1.shell(), tadat1.ads, tadat1.ats,
+                          tadat1.prod_ads, tadat1.prod_ats, tadat1.T(),
+                          tadat1.rho0max(), tadat1.eta0max(), LL1, SS1, TT1,
+                          MMT1, JJ1, MMJ1, labels);
                       auto [coeffsArr1, adsArr1, asArr1] = tadat_phys1.expand(dbs);
 
                       U3xU4::SingleShellTensor_phys tadat_phys2(
-                          tadat2.n, tadat2.ads, tadat2.ats, tadat2.prod_ads,
-                          tadat2.prod_ats, tadat2.T, tadat2.rho0max,
-                          tadat2.eta0max, LL2, SS2, TT2, MMT2, JJ2, MMJ2,
-                          labels);
+                          tadat2.shell(), tadat2.ads, tadat2.ats,
+                          tadat2.prod_ads, tadat2.prod_ats, tadat2.T(),
+                          tadat2.rho0max(), tadat2.eta0max(), LL2, SS2, TT2,
+                          MMT2, JJ2, MMJ2, labels);
                       auto [coeffsArr2, adsArr2, asArr2] = tadat_phys2.expand(dbs);
 
                       for (int i = 0; i < coeffsArr1.size(); i++)
@@ -225,21 +229,21 @@ namespace U3xU4
 
       // Extract the last single-shell tensor
       U3xU4::SingleShellTensor tadat = single_shell_tensors.back();
-      assert(tadat.rho0max == 1 && tadat.eta0max == 1);
+      assert(tadat.rho0max() == 1 && tadat.eta0max() == 1);
       // Take out the rest
       std::vector<U3xU4::SingleShellTensor> 
         single_shell_tensors_new = single_shell_tensors;
       single_shell_tensors_new.pop_back();
-      assert(single_shell_tensors_new.back().rho0max == 1 &&
-             single_shell_tensors_new.back().eta0max == 1);
+      assert(single_shell_tensors_new.back().rho0max() == 1 &&
+             single_shell_tensors_new.back().eta0max() == 1);
 
       std::vector<u3::physicalvector> pv3s1 = u3::physicalBasis(
                                           coupled_irreps_new.back().u3()),
-                                      pv3s2 = u3::physicalBasis(tadat.T.u3());
+                                      pv3s2 = u3::physicalBasis(tadat.T().u3());
 
       std::vector<u4::physicalvector> pv4s1 = u4::physicalBasis(
                                           coupled_irreps_new.back().u4()),
-                                      pv4s2 = u4::physicalBasis(tadat.T.u4());
+                                      pv4s2 = u4::physicalBasis(tadat.T().u4());
 
       for (int pv31 = 0; pv31 < pv3s1.size(); pv31++)
       {
@@ -317,9 +321,10 @@ namespace U3xU4
                           new_multi_shell_tensor.expand(dbs);
 
                       U3xU4::SingleShellTensor_phys tadat_phys(
-                          tadat.n, tadat.ads, tadat.ats, tadat.prod_ads,
-                          tadat.prod_ats, tadat.T, tadat.rho0max, tadat.eta0max,
-                          LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels);
+                          tadat.shell(), tadat.ads, tadat.ats, tadat.prod_ads,
+                          tadat.prod_ats, tadat.T(), tadat.rho0max(),
+                          tadat.eta0max(), LL2, SS2, TT2, MMT2, JJ2, MMJ2,
+                          labels);
                       auto [coeffsArr2, adsArr2, asArr2] =
                           tadat_phys.expand(dbs);
 

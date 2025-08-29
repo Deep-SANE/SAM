@@ -30,9 +30,9 @@ namespace U3xU4
     {
       assert(prod_ads.empty());
       assert(prod_ats.empty());
-      assert(T == U3xU4::irrep(0,0,0, 0,0,0,0));
-      assert(rho0max == 1);
-      assert(eta0max == 1);
+      assert(T() == U3xU4::irrep(0,0,0, 0,0,0,0));
+      assert(rho0max() == 1);
+      assert(eta0max() == 1);
 
       if (i == f)
       {
@@ -40,9 +40,9 @@ namespace U3xU4
         etamax = 1;
 
         // If ai_max or af_max  has not been calculated
-        int N = (n + 1) * (n + 2) / 2;
+        int N = (shell() + 1) * (shell() + 2) / 2;
         untou3::UNtoU3<4> gen;
-        gen.set_shell(n);
+        gen.set_shell(shell());
         if (ai_max <= 0)
         {
           gen.reduceU4(i.u4(), N);
@@ -70,20 +70,20 @@ namespace U3xU4
     if (A_i == 0 && A_f == 0) 
       return {};
 
-    if (A_i > 0 && n != N_quanta_i / A_i)
+    if (A_i > 0 && shell() != N_quanta_i / A_i)
       return {};
 
-    if (A_f > 0 && n != N_quanta_f / A_f)
+    if (A_f > 0 && shell() != N_quanta_f / A_f)
       return {};
 
     // Get outer multiplicities due to Wigner-Eckart theorem
-    rhomax = u3::Rho(i.u3(), T.u3(), f.u3());
-    etamax = u4::Eta(i.u4(), T.u4(), f.u4());
+    rhomax = u3::Rho(i.u3(), T().u3(), f.u3());
+    etamax = u4::Eta(i.u4(), T().u4(), f.u4());
     if (rhomax == 0 || etamax == 0) // i x t does not produce f
       return {};
 
     // Building single-particle states
-    u3::irrep x(n, 0, 0), x_conj(n, n, 0);
+    u3::irrep x(shell(), 0, 0), x_conj(shell(), shell(), 0);
     std::vector<u3::gelfand> sps3 = u3::gelfandBasis(x),
                              sps3_conj = u3::gelfandBasis(x_conj);
 
@@ -101,7 +101,7 @@ namespace U3xU4
     std::vector<Eigen::RowVectorXd> coeffs_i;
     if (A_i == 0) // vacuum
     {
-      const boost::dynamic_bitset<> bits(2 * (n + 1) * (n + 2), 0);
+      const boost::dynamic_bitset<> bits(2 * (shell() + 1) * (shell() + 2), 0);
       UNxU4::SlaterDeterminant SDi(bits);
       SDarr_i.push_back(SDi);
       Eigen::RowVectorXd c = Eigen::RowVectorXd::Constant(1, 1.0);
@@ -109,7 +109,8 @@ namespace U3xU4
     }
     else
     {
-      std::filesystem::path path_i = U3xU4::get_HWS_file(A_i, n, i, sps3, sps4);
+      std::filesystem::path path_i =
+          U3xU4::get_HWS_file(A_i, shell(), i, sps3, sps4);
       std::tie(SDarr_i, coeffs_i) = U3xU4::read_HWS_data(path_i);
     }
     // Check pre-calculated multiplicity is correct
@@ -130,7 +131,7 @@ namespace U3xU4
     std::vector<Eigen::RowVectorXd> coeffs_f;
     if (A_f == 0) // vacuum
     {
-      const boost::dynamic_bitset<> bits(2 * (n + 1) * (n + 2), 0);
+      const boost::dynamic_bitset<> bits(2 * (shell() + 1) * (shell() + 2), 0);
       UNxU4::SlaterDeterminant SDf(bits);
       SDarr_f.push_back(SDf);
       Eigen::RowVectorXd c = Eigen::RowVectorXd::Constant(1, 1.0);
@@ -138,7 +139,8 @@ namespace U3xU4
     }
     else
     {
-      std::filesystem::path path_f = U3xU4::get_HWS_file(A_f, n, f, sps3, sps4);
+      std::filesystem::path path_f =
+          U3xU4::get_HWS_file(A_f, shell(), f, sps3, sps4);
       std::tie(SDarr_f, coeffs_f) = U3xU4::read_HWS_data(path_f);
     }
     // Check pre-calculated multiplicity is correct
@@ -156,7 +158,7 @@ namespace U3xU4
     {
       for (std::size_t af = 0; af < af_max; af++)
       {
-        Eigen::MatrixXd fme(rhomax * etamax, rho0max * eta0max);
+        Eigen::MatrixXd fme(rhomax * etamax, rho0max() * eta0max());
         fme.setZero();
         FMEs.push_back(fme);
       }
@@ -167,11 +169,11 @@ namespace U3xU4
     CGCs.setZero();
 
     // Generate tensor components of the tensor
-    std::vector<u3::gelfand> g3Arr = u3::gelfandBasis(T.u3());
+    std::vector<u3::gelfand> g3Arr = u3::gelfandBasis(T().u3());
     std::vector<std::size_t> g3Arr0;
-    int missing3 = (i.u3().n13() + i.u3().n23() + i.u3().n33() + T.u3().n13() +
-                    T.u3().n23() + T.u3().n33() - f.u3().n13() - f.u3().n23() -
-                    f.u3().n33()) /
+    int missing3 = (i.u3().n13() + i.u3().n23() + i.u3().n33() +
+                    T().u3().n13() + T().u3().n23() + T().u3().n33() -
+                    f.u3().n13() - f.u3().n23() - f.u3().n33()) /
                    3;
 
     for (std::size_t i = 0; i < g3Arr.size(); i++)
@@ -179,12 +181,13 @@ namespace U3xU4
           (i3hws.e11() + g3Arr[i].e11()) == (f3hws.e11() + missing3))
         g3Arr0.push_back(i);
 
-    std::vector<u4::gelfand> g4Arr = u4::gelfandBasis(T.u4());
+    std::vector<u4::gelfand> g4Arr = u4::gelfandBasis(T().u4());
     std::vector<std::size_t> g4Arr0;
-    int missing4 = (i.u4().n14() + i.u4().n24() + i.u4().n34() + i.u4().n44() +
-                    T.u4().n14() + T.u4().n24() + T.u4().n34() + T.u4().n44() -
-                    f.u4().n14() - f.u4().n24() - f.u4().n34() - f.u4().n44()) /
-                   4;
+    int missing4 =
+        (i.u4().n14() + i.u4().n24() + i.u4().n34() + i.u4().n44() +
+         T().u4().n14() + T().u4().n24() + T().u4().n34() + T().u4().n44() -
+         f.u4().n14() - f.u4().n24() - f.u4().n34() - f.u4().n44()) /
+        4;
 
     for (std::size_t i = 0; i < g4Arr.size(); i++)
       if ((i4hws.e33() + g4Arr[i].e33()) == (f4hws.e33() + missing4) &&
@@ -264,9 +267,9 @@ namespace U3xU4
             CGCs(row, r * etamax + e) = cgcU3(r) * cgcU4(e);
 
         // Expand tensor into ad's and a's
-        U3xU4::SingleShellTensor_gelfand 
-          Tadat(n, sps3, sps3_conj, sps4, sps4_conj, ads, ats, 
-                prod_ads, prod_ats, T, rho0max, eta0max, gt3, gt4);
+        U3xU4::SingleShellTensor_gelfand Tadat(
+            shell(), sps3, sps3_conj, sps4, sps4_conj, ads, ats, prod_ads,
+            prod_ats, T(), rho0max(), eta0max(), gt3, gt4);
 
         auto [coeffs, adArr, aArr] = Tadat.expand(dbs);
         /*
@@ -366,13 +369,13 @@ namespace U3xU4
     std::vector<double> rmes;
     for (std::size_t ai = 0; ai < ai_max; ai++)
       for (std::size_t af = 0; af < af_max; af++)
-        for (int rho0 = 0; rho0 < rho0max; rho0++)
-          for (int eta0 = 0; eta0 < eta0max; eta0++)
+        for (int rho0 = 0; rho0 < rho0max(); rho0++)
+          for (int eta0 = 0; eta0 < eta0max(); eta0++)
             for (int rho = 0; rho < rhomax; rho++)
               for (int eta = 0; eta < etamax; eta++)
               {
                 double rme = RMEs[ai * af_max + af](rho * etamax + eta,
-                                                    rho0 * eta0max + eta0);
+                                                    rho0 * eta0max() + eta0);
                 rmes.push_back((std::fabs(rme) < 1e-10) ? 0.0 : rme);
               }
 

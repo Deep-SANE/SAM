@@ -549,7 +549,7 @@ namespace JT
 
             // Assert that if there are more than 1 single-shell tensor,
             // they must be all free of multiplicity.
-            assert(tadat.rho0max == 1 && tadat.eta0max == 1);
+            assert(tadat.rho0max() == 1 && tadat.eta0max() == 1);
           }
           //std::cout << std::endl;
         }
@@ -583,8 +583,8 @@ namespace JT
 
         if (coupled_irreps.empty()) // Tadat_choices has one element only
         {
-          pv3s = u3::physicalBasis(Tadat_choices[0].T.u3());
-          pv4s = u4::physicalBasis(Tadat_choices[0].T.u4());
+          pv3s = u3::physicalBasis(Tadat_choices[0].T().u3());
+          pv4s = u4::physicalBasis(Tadat_choices[0].T().u4());
         }
         else
         {
@@ -608,8 +608,8 @@ namespace JT
             // otherwise, it remains a multi-shell tensor
             U3xU4::TwoBodyMultiShellTensor tensor(
               Tadat_choices, coupled_irreps, 
-              coupled_irreps.empty() ? Tadat_choices[0].rho0max : Rhomax,
-              coupled_irreps.empty() ? Tadat_choices[0].eta0max : Etamax, 
+              coupled_irreps.empty() ? Tadat_choices[0].rho0max() : Rhomax,
+              coupled_irreps.empty() ? Tadat_choices[0].eta0max() : Etamax, 
               kappa0, LL0, zeta0, SS0, TT, MMT, JJ, MMJ, {}, labels);
 
             bool ignore =
@@ -763,14 +763,14 @@ namespace JT
       U3xU4::TwoBodyMultiShellTensor tensor(labels);
       tensor.readBinary(s);
 
-      if (tensor.single_shell_tensors.back().n > maxShell)
+      if (tensor.single_shell_tensors.back().shell() > maxShell)
         continue;
 
       int ab_Nhw = 0, cd_Nhw = 0;
       for (const auto& Tadat : tensor.single_shell_tensors)
       {
-        ab_Nhw += ((Tadat.n - valenceShell) * Tadat.ads);
-        cd_Nhw += ((Tadat.n - valenceShell) * Tadat.ats);
+        ab_Nhw += ((Tadat.shell() - valenceShell) * Tadat.ads);
+        cd_Nhw += ((Tadat.shell() - valenceShell) * Tadat.ats);
       }
       if (ab_Nhw > Nmax || cd_Nhw > Nmax)
         continue;

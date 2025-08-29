@@ -37,7 +37,7 @@ namespace U3xU4
 
   std::ostream& operator<<(std::ostream& s, const SingleShellTensor& x)
   {
-    s << "[ (n=" << x.n << ") ";
+    s << "[ (n=" << x.shell() << ") ";
     if (x.ads > 0)
     {
       s << static_cast<int>(x.ads) << "ads ";
@@ -52,18 +52,19 @@ namespace U3xU4
       for (auto at : x.prod_ats)
         s << at << " ";
     }
-    s << "] rho0max" << static_cast<int>(x.rho0max) << " eta0max"
-      << static_cast<int>(x.eta0max) << x.T;
+    s << "] rho0max" << static_cast<int>(x.rho0max()) << " eta0max"
+      << static_cast<int>(x.eta0max()) << x.T();
     return s;
   }
 
   void SingleShellTensor::writeBinary(std::ostream& s) const
   {
-    s.write(reinterpret_cast<const char*>(&n), sizeof(n));
+    U3xU4::GammaElement::writeBinary(s);
+    //s.write(reinterpret_cast<const char*>(&n), sizeof(n));
     s.write(reinterpret_cast<const char*>(&ads), sizeof(ads));
     s.write(reinterpret_cast<const char*>(&ats), sizeof(ats));
-    s.write(reinterpret_cast<const char*>(&rho0max), sizeof(rho0max));
-    s.write(reinterpret_cast<const char*>(&eta0max), sizeof(eta0max));
+    //s.write(reinterpret_cast<const char*>(&rho0max), sizeof(rho0max));
+    //s.write(reinterpret_cast<const char*>(&eta0max), sizeof(eta0max));
 
     for (const auto& ir : prod_ads)
       ir.writeBinary(s);
@@ -71,16 +72,17 @@ namespace U3xU4
     for (const auto& ir : prod_ats)
       ir.writeBinary(s);
 
-    T.writeBinary(s);
+    //T.writeBinary(s);
   }
 
   void SingleShellTensor::readBinary(std::istream& s)
   {
-    s.read(reinterpret_cast<char*>(&n), sizeof(n));
+    U3xU4::GammaElement::readBinary(s);
+    //s.read(reinterpret_cast<char*>(&n), sizeof(n));
     s.read(reinterpret_cast<char*>(&ads), sizeof(ads));
     s.read(reinterpret_cast<char*>(&ats), sizeof(ats));
-    s.read(reinterpret_cast<char*>(&rho0max), sizeof(rho0max));
-    s.read(reinterpret_cast<char*>(&eta0max), sizeof(eta0max));
+    //s.read(reinterpret_cast<char*>(&rho0max), sizeof(rho0max));
+    //s.read(reinterpret_cast<char*>(&eta0max), sizeof(eta0max));
 
     prod_ads.resize(std::max(0, static_cast<int>(ads) - 1));
     for (auto& ir : prod_ads)
@@ -90,6 +92,6 @@ namespace U3xU4
     for (auto& ir : prod_ats)
       ir.readBinary(s);
 
-    T.readBinary(s);
+    //T.readBinary(s);
   }
 } // namespace U3xU4

@@ -98,7 +98,7 @@ namespace U3xU4
             //std::cout << "Before unified: " << G << std::endl;
             bool flag2 = false; // check if this tensor belong to any shell
             for (auto gam : ubra.gamma)
-              if (gam.shell() == G.n) // find the shell
+              if (gam.shell() == G.shell()) // find the shell
               {
               	flag2 = true;
               	break;
