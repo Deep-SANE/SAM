@@ -76,33 +76,15 @@ namespace U3xU4
     // write to binary file
     void writeBinary(std::ostream& s) const
     {
-      qcx_utils::write<int>(s, u3_.n13());
-      qcx_utils::write<int>(s, u3_.n23());
-      qcx_utils::write<int>(s, u3_.n33());
-
-      qcx_utils::write<int>(s, u4_.n14());
-      qcx_utils::write<int>(s, u4_.n24());
-      qcx_utils::write<int>(s, u4_.n34());
-      qcx_utils::write<int>(s, u4_.n44());
+      u3_.writeBinary(s);
+      u4_.writeBinary(s);
     }
 
     // read from binary file
     void readBinary(std::istream& s)
     {
-      int n13, n23, n33;
-      int n14, n24, n34, n44;
-
-      qcx_utils::read<int>(s, n13);
-      qcx_utils::read<int>(s, n23);
-      qcx_utils::read<int>(s, n33);
-
-      qcx_utils::read<int>(s, n14);
-      qcx_utils::read<int>(s, n24);
-      qcx_utils::read<int>(s, n34);
-      qcx_utils::read<int>(s, n44);
-
-      u3_ = u3::irrep(n13, n23, n33);
-      u4_ = u4::irrep(n14, n24, n34, n44);
+      u3_.readBinary(s);
+      u4_.readBinary(s);
     }
   };
 

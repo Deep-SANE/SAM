@@ -1,10 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <istream>
 #include <ostream>
 #include <stdexcept>
 
 #include <qcx_convert.h>
+#include <qcx_readwrite.h>
+
 #include <U3irrep.h>
 #include <U3xU4irrep.h>
 #include <U4irrep.h>
@@ -82,6 +85,40 @@ namespace U3xU4
 
     // state:
     State state() const { return state_; }
+
+    // write to binary file
+    void writeBinary(std::ostream& s) const
+    {
+      U3xU4::irrep::writeBinary(s);
+      qcx_utils::writeBinary(s, shell_);
+
+      if (state_ == State::Basis)
+        qcx_utils::writeBinary(s, alphamax_);
+      else if (state_ == State::Tensor)
+      {
+        qcx_utils::writeBinary(s, t_.rhomax);
+        qcx_utils::writeBinary(s, t_.etamax);
+      }
+      else
+        throw std::runtime_error("Invalid state of U3xU4::GammaElement!");
+    }
+
+    // read from binary file
+    void readBinary(std::istream& s)
+    {
+      U3xU4::irrep::readBinary(s);
+      qcx_utils::readBinary(s, shell_);
+
+      if (state_ == State::Basis)
+        qcx_utils::readBinary(s, alphamax_);
+      else if (state_ == State::Tensor)
+      {
+        qcx_utils::readBinary(s, t_.rhomax);
+        qcx_utils::readBinary(s, t_.etamax);
+      }
+      else
+        throw std::runtime_error("Invalid state of U3xU4::GammaElement!");
+    }
   };
 
   inline std::ostream& operator<<(std::ostream& s, const GammaElement& ge)
