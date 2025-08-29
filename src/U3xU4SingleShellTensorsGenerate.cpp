@@ -4,8 +4,8 @@ namespace U3xU4
 {
   // Find all single-shell tensors composed of
   // num_ads creation tensors and num_ats annihilation tensors
-  std::vector<U3xU4::Tadat> GenerateSingleShellTensors(int n, int num_ads,
-                                                       int num_ats)
+  std::vector<U3xU4::SingleShellTensor> 
+    GenerateSingleShellTensors(int n, int num_ads, int num_ats)
   {
     std::vector<std::vector<U3xU4::irrep>> coupled_ads, coupled_ats;
 
@@ -63,18 +63,19 @@ namespace U3xU4
     // std::cout << "coupled ats: " << coupled_ats.size() << std::endl;
 
     // Now couple to the final tensor
-    std::vector<U3xU4::Tadat> final;
+    std::vector<U3xU4::SingleShellTensor> final;
 
     if (num_ats == 0) // only ad's
     {
       if (num_ads == 1)
-        final.emplace_back(U3xU4::Tadat(n, 1, 0, {}, {}, d, 1, 1));
+        final.emplace_back(
+          U3xU4::SingleShellTensor(n, 1, 0, {}, {}, d, 1, 1));
       else
       {
         for (auto coupled_ad : coupled_ads)
         {
-          U3xU4::Tadat Tad(n, num_ads, 0, coupled_ad, {}, coupled_ad.back(), 1,
-                           1);
+          U3xU4::SingleShellTensor 
+            Tad(n, num_ads, 0, coupled_ad, {}, coupled_ad.back(), 1, 1);
           final.emplace_back(Tad);
         }
       }
@@ -83,13 +84,14 @@ namespace U3xU4
     if (num_ads == 0) // only at's
     {
       if (num_ats == 1)
-        final.emplace_back(U3xU4::Tadat(n, 0, 1, {}, {}, t, 1, 1));
+        final.emplace_back(
+          U3xU4::SingleShellTensor(n, 0, 1, {}, {}, t, 1, 1));
       else
       {
         for (auto coupled_at : coupled_ats)
         {
-          U3xU4::Tadat Tat(n, 0, num_ats, {}, coupled_at, coupled_at.back(), 1,
-                           1);
+          U3xU4::SingleShellTensor 
+            Tat(n, 0, num_ats, {}, coupled_at, coupled_at.back(), 1, 1);
           final.emplace_back(Tat);
         }
       }
@@ -99,7 +101,8 @@ namespace U3xU4
     {
       auto [irreps, rhomaxs, etamaxs] = U3xU4::decomposition(d, t);
       for (auto irr : irreps)
-        final.emplace_back(U3xU4::Tadat(n, 1, 1, {}, {}, irr, 1, 1));
+        final.emplace_back(
+          U3xU4::SingleShellTensor(n, 1, 1, {}, {}, irr, 1, 1));
     }
     else if (num_ads > 1 && num_ats == 1)
     {
@@ -110,8 +113,9 @@ namespace U3xU4
 
         for (auto i = 0; i < irreps.size(); i++)
         {
-          U3xU4::Tadat Tadxat(n, num_ads, 1, coupled_ad, {}, irreps[i],
-                              rhomaxs[i], etamaxs[i]);
+          U3xU4::SingleShellTensor 
+            Tadxat(n, num_ads, 1, coupled_ad, {}, irreps[i], 
+                                    rhomaxs[i], etamaxs[i]);
           final.emplace_back(Tadxat);
         }
       }
@@ -125,8 +129,9 @@ namespace U3xU4
 
         for (auto i = 0; i < irreps.size(); i++)
         {
-          U3xU4::Tadat Tadxat(n, 1, num_ats, {}, coupled_at, irreps[i],
-                              rhomaxs[i], etamaxs[i]);
+          U3xU4::SingleShellTensor 
+            Tadxat(n, 1, num_ats, {}, coupled_at, irreps[i], 
+                                    rhomaxs[i], etamaxs[i]);
           final.emplace_back(Tadxat);
         }
       }
@@ -142,8 +147,9 @@ namespace U3xU4
 
           for (auto i = 0; i < irreps.size(); i++)
           {
-            U3xU4::Tadat Tadxat(n, num_ads, num_ats, coupled_ad, coupled_at,
-                                irreps[i], rhomaxs[i], etamaxs[i]);
+            U3xU4::SingleShellTensor 
+              Tadxat(n, num_ads, num_ats, coupled_ad, coupled_at,
+                              irreps[i], rhomaxs[i], etamaxs[i]);
             final.emplace_back(Tadxat);
           }
         }

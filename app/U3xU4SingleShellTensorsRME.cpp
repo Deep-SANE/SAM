@@ -110,7 +110,8 @@ int main(int argc, char* argv[])
 
   ////////////////////////////////////
 
-  U3xU4::Tadat Tadxat(n, ads, ats, prod_ads, prod_ats, T, rho0max, eta0max);
+  U3xU4::SingleShellTensor 
+    Tadxat(n, ads, ats, prod_ads, prod_ats, T, rho0max, eta0max);
 
   // These will be calculated inside RME() method
   std::size_t ai_max = 0, af_max = 0, rhomax = 0, etamax = 0;

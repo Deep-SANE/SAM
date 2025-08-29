@@ -1,18 +1,20 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <tuple>
 #include <utility>
 #include <vector>
 
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 #include <Databases.h>
-#include <U3xU4CouplingCoefficient.h>
+#include <U3xU4GammaOmega.h>
 #include <U3xU4irrep.h>
+#include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4SingleShellTensors.h>
-#include <U4xSU3ManyNucleonBasis.h>
 
 #ifdef HAVE_FMT
 #include <fmt/format.h>
@@ -112,7 +114,7 @@ namespace U3xU4
 
   public:
     // List of single-shell tensors, each corresponds to Gamma in the document.
-    std::vector<U3xU4::Tadat> single_shell_tensors;
+    std::vector<U3xU4::SingleShellTensor> single_shell_tensors;
 
     // The coupled irreps, each corresponds to Omega in the document.
     // This list has one less element than the single_shell_tensors list.
@@ -145,7 +147,7 @@ namespace U3xU4
           zetamax(0), SS(0), TT(0), MMT(0), JJ(0), MMJ(0)
     {}
     TwoBodyMultiShellTensor(
-        const std::vector<U3xU4::Tadat>& single_shell_tensors_,
+        const std::vector<U3xU4::SingleShellTensor>& single_shell_tensors_,
         const std::vector<U3xU4::irrep>& coupled_irreps_, int rho_, int eta_,
         int kappa_, int LL_, int zeta_, int SS_, int TT_, int MMT_, int JJ_,
         int MMJ_, const std::vector<double>& coeffs_,
@@ -196,49 +198,95 @@ namespace U3xU4
   };
 
   /* Class for holding a general U3xU4 multi-shell tensor.
-     It has an array of single-shell tensors U3xU4::Tadat
-     and an array of the coupled irreps with their multiplicities.
+     It has an array of single-shell tensors U3xU4::SingleShellTensor
+     and an array of OmegaElement's (coupled irreps with their multiplicities).
      No tensor components are specified. This class primarily serves
      to compute multi-shell RMEs.
   */
   class MultiShellTensor
   {
   public:
-    using GammaElement = U3xU4::Tadat;
-    using OmegaElement = std::tuple<U3xU4::irrep, int, int>;
-
     // List of single-shell tensors, each corresponds to Gamma in the document.
-    std::vector<GammaElement> single_shell_tensors;
+    std::vector<U3xU4::SingleShellTensor> Gamma;
 
     // The coupled (irrep, rhomax, etamax)'s, each corresponds to Omega in the document.
     // This list has one less element than the single_shell_tensors list.
-    std::vector<OmegaElement> coupled_irreps;
+    std::vector<U3xU4::OmegaElement> Omega;
 
     // Constructor
-    MultiShellTensor(const std::vector<GammaElement>& single_shell_tensors_,
-                     const std::vector<OmegaElement>& coupled_irreps_)
-        : single_shell_tensors(single_shell_tensors_),
-          coupled_irreps(coupled_irreps_)
+    MultiShellTensor(
+      const std::vector<U3xU4::SingleShellTensor>& Gamma_,
+      const std::vector<U3xU4::OmegaElement>& Omega_)
+        : Gamma(Gamma_), Omega(Omega_)
     { }
+
+    // Print
+    friend std::ostream& operator<<(std::ostream& s,
+                                    const MultiShellTensor& x);
 
     // This method assumes that everything is already unified, i.e., bra and ket
     // irreps are unified, and identities have been filled in already.
-    std::vector<double> RME(const U4xSU3::Irrep& ket, const U4xSU3::Irrep& bra, 
+    std::vector<double> RME(const ManyNucleonBasis::Irrep& ket,
+                            const ManyNucleonBasis::Irrep& bra,
                             sam::Databases& dbs) const;
   };
 
+  /* Class for holding a general U3xU4 multi-shell tensor with physical labels.
+     It has total spin and isospin quantum numbers, a MultiShellTensor object 
+     and an array of subgroup labels, namely (kappamax,LL,zetamax,SS,TT). 
+     In addition, it also stores an array of tensor strengths, which are 
+     coefficients in the expansion from JT-coupled operator. The strengths are 
+     stored in a 2D array: 
+     - The 1st dimension has the same size with the array of subgroup labels
+     - The 2nd dimension has varying size, depending on the multiplicities of
+       the tensor, including all multiplicities of SingleShellTensors, 
+       intershell couplings, kappamax and zetamax. All of these can be extracted
+       easily using qcx_utils::NDIndex object. 
+  */
+  class MultiShellTensor_phys
+  {
+  public:
+    int16_t TT, MMT,    // twice isospin and projection
+            JJ, MMJ;    // twice total angular momentum and projection
+
+    // A multi-shell tensor without subgroup labels
+    U3xU4::MultiShellTensor T;
+
+    // An array of subgroup labels
+    std::vector<std::array<uint16_t,5>> LST;
+
+    // Array to store strengths
+    std::vector<std::vector<double>> strengths;
+
+    // Constructor
+    MultiShellTensor_phys(
+      const U3xU4::MultiShellTensor& T_,
+      const std::vector<std::array<uint16_t,5>>& LST_,
+      const std::vector<std::vector<double>>& strengths_)
+        : T(T_), LST(LST_), strengths(strengths_)
+    { 
+      assert(LST_.size() == strengths.size());
+    }
+
+    // Print
+    friend std::ostream& operator<<(std::ostream& s,
+                                    const MultiShellTensor_phys& x);
+  };
+
+  Eigen::SparseMatrix<double> MatrixElements(
+    std::vector<MultiShellTensor_phys>& tensors,
+    U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
+
   // A function to couple single-shell tensors into multi-shell tensors
   using CouplingPath = std::pair<
-      std::vector<MultiShellTensor::GammaElement>, // list of selected
-                                                   // single-shell tensors
-      std::vector<MultiShellTensor::OmegaElement>>; // list of all coupled
-                                                    // (irrep,rhomax,etamax)
+    std::vector<U3xU4::SingleShellTensor>, // list of selected single-shell tensors
+    std::vector<U3xU4::OmegaElement>>;     // list of all coupled (irrep,rhomax,etamax)
 
   void CoupleSingShellTensors(
-      const std::vector<std::vector<MultiShellTensor::GammaElement>>&
+      const std::vector<std::vector<U3xU4::SingleShellTensor>>&
           Tadat_lists,                          // list of lists of Tadat
       std::size_t depth,                        // recursion depth
-      std::vector<U3xU4::Tadat> Tadat_choices,  // current choices
+      std::vector<U3xU4::SingleShellTensor> Tadat_choices,  // current choices
       std::vector<U3xU4::irrep> coupled_irreps, // current coupled irreps
       std::vector<int> rhomax_list,             // rhomax values
       std::vector<int> etamax_list,             // etamax values
@@ -253,7 +301,7 @@ namespace U3xU4
    * @return Unified multi-shell tensor.
    */
   MultiShellTensor unify_tensor(const MultiShellTensor& T,
-                                const U4xSU3::Irrep& irrep);
+                                const ManyNucleonBasis::Irrep& irrep);
 } // namespace U3xU4
 
 #ifdef HAVE_FMT
@@ -261,13 +309,13 @@ namespace U3xU4
 // formatter for GammaElement:
 
 template <>
-class fmt::formatter<U3xU4::MultiShellTensor::GammaElement>
+class fmt::formatter<U3xU4::SingleShellTensor>
 {
 public:
   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename Context>
-  constexpr auto format(const U3xU4::MultiShellTensor::GammaElement& ge,
+  constexpr auto format(const U3xU4::SingleShellTensor& ge,
                         Context& ctx) const
   {
     return format_to(ctx.out(), "{}({},{}){}[{},{},{}]{}[{},{},{},{}]", ge.n,
@@ -279,15 +327,15 @@ public:
 };
 
 // formatter for OmegaElement:
-
+/*
 template <>
-class fmt::formatter<U3xU4::MultiShellTensor::OmegaElement>
+class fmt::formatter<U3xU4::OmegaElement>
 {
 public:
   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename Context>
-  constexpr auto format(const U3xU4::MultiShellTensor::OmegaElement& oe,
+  constexpr auto format(const U3xU4::OmegaElement& oe,
                         Context& ctx) const
   {
     const auto& i = std::get<0>(oe);
@@ -299,5 +347,5 @@ public:
                      i.u4().n14(), i.u4().n24(), i.u4().n34(), i.u4().n44());
   }
 };
-
+*/
 #endif

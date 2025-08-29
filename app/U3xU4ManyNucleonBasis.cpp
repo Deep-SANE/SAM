@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include <qcx_print.h>
-#include <U4xSU3ManyNucleonBasis.h>
+#include <U3xU4ManyNucleonBasis.h>
 
 int main()
 {
@@ -19,18 +19,18 @@ int main()
   std::cout << "Enter JJ: ";
   std::cin >> JJ;
 
-  U4xSU3::ManyNucleonBasis basis(Z, N, Nmax, JJ);
+  U3xU4::ManyNucleonBasis basis(Z, N, Nmax, JJ);
   basis.construct();
 
   auto irreps = basis.irreps();
 
   for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
   {
-    auto [dist, gamma, omega, offset] = irreps[irrep_id];
+    auto [gamma, omega] = irreps[irrep_id];
+    auto offset = irreps.offset(irrep_id);
 
     print("Irrep ID {:5} : ", irrep_id);
-    print("dist = {}", dist);
-    print(" ; gamma = {}", gamma);
+    print("gamma = {}", gamma);
     print(" ; omega = {}", omega);
     print(" ; offset = {}\n", offset);
   }

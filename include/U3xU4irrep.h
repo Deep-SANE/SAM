@@ -70,6 +70,9 @@ namespace U3xU4
     // total particles:
     int particles() const { return u4_.quanta(); }
 
+    // is vacuum?
+    bool vacuum() const { return u3_.zero() && u4_.zero(); }
+
     // print U3xU4::irrep:
     friend std::ostream& operator<<(std::ostream& s, const irrep& x)
     {

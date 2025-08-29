@@ -84,4 +84,30 @@ namespace U3xU4
     coeffs.resize(n_coeffs);
     s.read(reinterpret_cast<char*>(coeffs.data()), n_coeffs * sizeof(double));
   }
+
+  std::ostream& operator<<(std::ostream& s, const MultiShellTensor& x)
+  {
+    s << x.Gamma[0];
+    if (!x.Omega.empty())
+      for (size_t i = 0; i < x.Omega.size(); i++)
+        s << " x " << x.Gamma[i + 1] << " ] " << x.Omega[i];
+
+    return s;
+  }
+
+  std::ostream& operator<<(std::ostream& s, const MultiShellTensor_phys& x)
+  {
+    s << x.T << "\n";
+    for (size_t lst_id = 0; lst_id < x.LST.size(); lst_id++)
+    {
+      s << "kappamax:" << x.LST[lst_id][0] 
+        << " LL:" << x.LST[lst_id][1] 
+        << " zetamax:" << x.LST[lst_id][2]
+        << " SS:" << x.LST[lst_id][3] 
+        << " TT:" << x.LST[lst_id][4] << " strengths:";
+      for (auto c : x.strengths[lst_id])
+        s << c << " ";
+    }
+    return s;
+  }
 } // namespace U3xU4

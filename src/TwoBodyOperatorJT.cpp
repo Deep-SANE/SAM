@@ -527,7 +527,7 @@ namespace JT
 
       // auto groups_ns = group_same_shell(sorted_ns);
       auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
-      std::vector<std::vector<U3xU4::Tadat>> Tadat_lists;
+      std::vector<std::vector<U3xU4::SingleShellTensor>> Tadat_lists;
       for (auto group : groups_ns)
       {
         Tadat_lists.push_back(U3xU4::GenerateSingleShellTensors(
@@ -559,16 +559,18 @@ namespace JT
         for (auto coupling_info = coupling_info_list.begin(); 
              coupling_info != coupling_info_list.end(); coupling_info++)
         {
-          const auto& [irrep, rhomax, etamax] = *coupling_info;
+          U3xU4::irrep irr(coupling_info->u3(), coupling_info->u4());
+          auto rhomax = coupling_info->rhomax(), etamax = coupling_info->etamax();
+          //const auto& [irr, rhomax, etamax] = *coupling_info;
 
-          // std::cout << irrep << "," << rhomax << "," << etamax << "\t";
+          // std::cout << irr << "," << rhomax << "," << etamax << "\t";
 
           // Assert that the intershell coupling is free of multiplicity,
           // except for the last one.
           if (std::next(coupling_info) != coupling_info_list.end()) 
             assert(rhomax == 1 && etamax == 1);
           
-          coupled_irreps.push_back(irrep);
+          coupled_irreps.push_back(irr);
           Rhomax = rhomax;
           Etamax = etamax;
         }

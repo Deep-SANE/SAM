@@ -7,7 +7,7 @@ int main()
 {
   std::vector<std::array<int, 3>> groups = {{0, 2, 1}, {1, 0, 1}, {8, 1, 0}};
 
-  std::vector<std::vector<U3xU4::Tadat>> Tadat_lists;
+  std::vector<std::vector<U3xU4::SingleShellTensor>> Tadat_lists;
 
   for (auto group : groups)
   {
@@ -24,8 +24,8 @@ int main()
       std::cout << Tadat << " ";
 
     std::cout << "| coupled irreps: ";
-    for (const auto& [irrep, rhomax, etamax] : coupling_info_list)
-      std::cout << "rhoMax" << rhomax << "etaMax" << etamax << irrep << " ";
+    for (const auto& path : coupling_info_list)
+      std::cout << "rhoMax" << path.rhomax() << "etaMax" << path.etamax() << path << " ";
 
     std::cout << std::endl;
   }

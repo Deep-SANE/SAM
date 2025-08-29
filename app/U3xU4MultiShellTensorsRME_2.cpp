@@ -4,10 +4,9 @@
 
 #include <Databases.h>
 #include <U3xU4irrep.h>
+#include <U3xU4GammaOmega.h>
 #include <U3xU4MultiShellTensors.h>
-#include <U3xU4SingleShellTensors.h>
-#include <U4xSU3Irrep.h>
-#include <U4xSU3ManyNucleonBasis.h>
+#include <U3xU4ManyNucleonBasis.h>
 
 using qcx_utils::print;
 
@@ -20,7 +19,7 @@ int main(int argc, char* argv[])
   sam::Databases dbs;
 
   // (1) bra irrep:
-
+/*
   std::vector<U4xSU3::ManyNucleonBasis::DistributionElement>
     dist_bra = {1,4,1,2};
 
@@ -103,7 +102,7 @@ int main(int argc, char* argv[])
   print("\nRMEs:\n");
   for (const auto& rme : RMEs)
     print("{: .8f}\n", rme);
-
+*/
 #ifdef SAM_USE_SLEPC
   SlepcFinalize();
 #endif

@@ -18,8 +18,6 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
-  std::vector<U3xU4::irrep> prod_ads, prod_ats;
-
   /* Example 1: n = 2
                (3,2,0)(1,1,0,0)  (5,4,0)(1,0,0,0)
       [[at x at]             x at]
@@ -27,12 +25,10 @@ int main(int argc, char* argv[])
   */
   /*
   U3xU4::irrep T2_0(3,2,0, 1,1,0,0), T2(5,4,0, 1,0,0,0);
-  prod_ats.push_back(T2_0);
-  prod_ats.push_back(T2);
   int rhomax = 1, etamax = 1;
   HO::Table_nljmjmt labels(2);
-  U3xU4::Tadat_phys
-  Tadat(2,0,3,prod_ads,prod_ats,T2,rhomax,etamax,2,1,1,1,3,3,labels);
+  U3xU4::SingleShellTensor_phys
+    Tadat(2,0,3,{},{T2_0,T2},T2,rhomax,etamax,2,1,1,1,3,3,labels);
   */
 
   /* Example 2: n = 5
@@ -42,11 +38,10 @@ int main(int argc, char* argv[])
   */
   /*
   U3xU4::irrep T1(7,3,0, 1,1,0,0);
-  prod_ads.push_back(T1);
   int rhomax = 1, etamax = 1;
   HO::Table_nljmjmt labels(5);
-  U3xU4::Tadat_phys
-  Tadat(5,2,0,prod_ads,prod_ats,T1,rhomax,etamax,10,2,0,0,10,0,labels);
+  U3xU4::SingleShellTensor_phys
+    Tadat(5,2,0,{T1},{},T1,rhomax,etamax,10,2,0,0,10,0,labels);
   */
 
   /* Example 3: n = 1
@@ -58,8 +53,8 @@ int main(int argc, char* argv[])
   U3xU4::irrep T(0,0,0, 0,0,0,0);
   int rhomax = 1, etamax = 1;
   HO::Table_nljmjmt labels(1);
-  U3xU4::Tadat_phys
-  Tadat(1,1,1,prod_ads,prod_ats,T,rhomax,etamax,0,0,0,0,0,0,labels);
+  U3xU4::SingleShellTensor_phys
+  Tadat(1,1,1,{},{},T,rhomax,etamax,0,0,0,0,0,0,labels);
   */
 
   /* Example 4: n = 2
@@ -70,13 +65,10 @@ int main(int argc, char* argv[])
 
   U3xU4::irrep T1_0(3, 1, 0, 1, 1, 0, 0), T1(3, 3, 0, 2, 1, 0, 0),
       T2(3, 2, 0, 1, 1, 0, 0), T(4, 1, 0, 1, 0, 0, 0);
-  prod_ads.push_back(T1_0);
-  prod_ads.push_back(T1);
-  prod_ats.push_back(T2);
   int rhomax = 1, etamax = 1;
   HO::Table_nljmjmt labels(2);
-  U3xU4::Tadat_phys Tadat(2, 3, 2, prod_ads, prod_ats, T, rhomax, etamax, 2, 1,
-                          1, 1, 1, 1, labels);
+  U3xU4::SingleShellTensor_phys 
+    Tadat(2, 3, 2, {T1_0,T1}, {T2}, T, rhomax, etamax, 2, 1, 1, 1, 1, 1, labels);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();

@@ -1,3 +1,4 @@
+#include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
 
 #include <numeric>
@@ -10,14 +11,16 @@
 
 namespace U3xU4
 {
-  std::vector<double> MultiShellTensor::RME(const U4xSU3::Irrep& ket, 
-  	const U4xSU3::Irrep& bra, sam::Databases& dbs) const
+  std::vector<double>
+  MultiShellTensor::RME(const U3xU4::ManyNucleonBasis::Irrep& ket,
+                        const U3xU4::ManyNucleonBasis::Irrep& bra,
+                        sam::Databases& dbs) const
   {
     // everything must already be unified
     assert(bra.gamma.size() == ket.gamma.size());
-    assert(single_shell_tensors.size() == ket.gamma.size());
+    assert(Gamma.size() == ket.gamma.size());
     assert(bra.omega.size() == ket.omega.size());
-    assert(coupled_irreps.size() == bra.omega.size());
+    assert(Omega.size() == bra.omega.size());
 
     // If there is no OmegaElement, i.e., only one GammaElement, 
     // both bra and ket GammaElement's are be in the same shell.
@@ -25,50 +28,65 @@ namespace U3xU4
     // Hence this becomes single-shell RME problem.
     if (bra.omega.empty())
     {
-      const U3xU4::Tadat& tadat = single_shell_tensors[0];
+      const U3xU4::SingleShellTensor& tadat = Gamma[0];
 
-        U3xU4::irrep i = ket.gamma[0].toU3xU4(tadat.n),
-                     f = bra.gamma[0].toU3xU4(tadat.n);
+      assert(tadat.n == ket.gamma[0].shell());
+      assert(tadat.n == bra.gamma[0].shell());
 
-        std::size_t rhomax, etamax, // multi for Wigner-Eckart theorem
-        			      ai_max = ket.gamma[0].alphamax(), // multi for the ket
-                    af_max = bra.gamma[0].alphamax(); // multi for the bra
+      U3xU4::irrep i = ket.gamma[0],
+                   f = bra.gamma[0];
 
-        return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs);
+      std::size_t rhomax, etamax, // multi for Wigner-Eckart theorem
+        			    ai_max = ket.gamma[0].alphamax(), // multi for the ket
+                  af_max = bra.gamma[0].alphamax(); // multi for the bra
+
+      return tadat.RME(ai_max, i, af_max, f, rhomax, etamax, dbs);
     }
 
     // If there is only one OmegaElement
     else if (bra.omega.size() == 1)
     {
       // extract single-shell tensors
-      const U3xU4::Tadat& tadat0 = single_shell_tensors[0];
-      const U3xU4::Tadat& tadat1 = single_shell_tensors[1];
+      const U3xU4::SingleShellTensor& tadat0 = Gamma[0];
+      const U3xU4::SingleShellTensor& tadat1 = Gamma[1];
 
       // extract intershell coupling of the total tensor
-      const auto& [Omega, Rhomax, Etamax] = coupled_irreps[0];
+      auto Rhomax = Omega[0].rhomax(), Etamax = Omega[0].etamax();
+      //const auto& [Omega_last, Rhomax, Etamax] = Omega[0];
 
-      U3xU4::irrep ket0 = ket.gamma[0].toU3xU4(tadat0.n), // irreps in ket
-      			   ket1 = ket.gamma[1].toU3xU4(tadat1.n), 
-      			   ket_omega = ket.omega[0].toU3xU4(),
-      			   bra0 = bra.gamma[0].toU3xU4(tadat0.n), // irreps in bra
-      			   bra1 = bra.gamma[1].toU3xU4(tadat1.n),
-      			   bra_omega = bra.omega[0].toU3xU4();
+      assert(tadat0.n == ket.gamma[0].shell());
+      assert(tadat1.n == ket.gamma[1].shell());
+      assert(tadat0.n == bra.gamma[0].shell());
+      assert(tadat1.n == bra.gamma[1].shell());
 
-      std::size_t ket0_alphamax = ket.gamma[0].alphamax(), // multis in ket
-      			  ket1_alphamax = ket.gamma[1].alphamax(),
-      			  ket_rhomax = ket.omega[0].rhomax(),
-      			  ket_etamax = ket.omega[0].etamax(),
-                  bra0_alphamax = bra.gamma[0].alphamax(), // multis in bra
-      			  bra1_alphamax = bra.gamma[1].alphamax(), 
-      			  bra_rhomax = bra.omega[0].rhomax(),
-      			  bra_etamax = bra.omega[0].etamax(),
-      			  // multi for Wigner-Eckart theorem for the total tensor
-      			  rhomax = u3::Rho(ket_omega.u3(), Omega.u3(), bra_omega.u3()),  
-      			  etamax = u4::Eta(ket_omega.u4(), Omega.u4(), bra_omega.u4()),
-      			  // multi for Wigner-Eckart theorem for the first tensor
-      			  rhomax0, etamax0, 
-      			  // multi for Wigner-Eckart theorem for the second tensor
-      			  rhomax1, etamax1;
+      U3xU4::irrep 
+        // irreps in ket
+        ket0 = ket.gamma[0], 
+      	ket1 = ket.gamma[1], 
+      	ket_omega = ket.omega[0],
+        // irreps in bra
+      	bra0 = bra.gamma[0], 
+      	bra1 = bra.gamma[1],
+      	bra_omega = bra.omega[0];
+
+      std::size_t 
+        // multis in ket
+        ket0_alphamax = ket.gamma[0].alphamax(), 
+      	ket1_alphamax = ket.gamma[1].alphamax(),
+      	ket_rhomax = ket.omega[0].rhomax(),
+  		  ket_etamax = ket.omega[0].etamax(),
+        // multis in bra
+        bra0_alphamax = bra.gamma[0].alphamax(), 
+      	bra1_alphamax = bra.gamma[1].alphamax(), 
+      	bra_rhomax = bra.omega[0].rhomax(),
+      	bra_etamax = bra.omega[0].etamax(),
+      	// multi for Wigner-Eckart theorem for the total tensor
+      	rhomax = u3::Rho(ket_omega.u3(), Omega[0].u3(), bra_omega.u3()),  
+      	etamax = u4::Eta(ket_omega.u4(), Omega[0].u4(), bra_omega.u4()),
+      	// multi for Wigner-Eckart theorem for the first tensor
+      	rhomax0, etamax0, 
+      	// multi for Wigner-Eckart theorem for the second tensor
+      	rhomax1, etamax1;
 
       // RMEs of the individual tensors
       auto rmes0 = tadat0.RME(ket0_alphamax, ket0, bra0_alphamax, bra0, rhomax0,
@@ -90,7 +108,7 @@ namespace U3xU4
       		bra0.u3().n13(), bra0.u3().n23(), bra0.u3().n33(),
       		bra1.u3().n13(), bra1.u3().n23(), bra1.u3().n33(),
       		ket_omega.u3().n13(), ket_omega.u3().n23(), ket_omega.u3().n33(),
-      		Omega.u3().n13(), Omega.u3().n23(), Omega.u3().n33(),
+      		Omega[0].u3().n13(), Omega[0].u3().n23(), Omega[0].u3().n33(),
       		bra_omega.u3().n13(), bra_omega.u3().n23(), bra_omega.u3().n33());
       if (allowU3U9 == false)
       	return {};
@@ -104,7 +122,7 @@ namespace U3xU4
       		bra0.u4().n14(), bra0.u4().n24(), bra0.u4().n34(), bra0.u4().n44(),
       		bra1.u4().n14(), bra1.u4().n24(), bra1.u4().n34(), bra1.u4().n44(),
       		ket_omega.u4().n14(), ket_omega.u4().n24(), ket_omega.u4().n34(), ket_omega.u4().n44(),
-      		Omega.u4().n14(), Omega.u4().n24(), Omega.u4().n34(), Omega.u4().n44(),
+      		Omega[0].u4().n14(), Omega[0].u4().n24(), Omega[0].u4().n34(), Omega[0].u4().n44(),
       		bra_omega.u4().n14(), bra_omega.u4().n24(), bra_omega.u4().n34(), bra_omega.u4().n44());
       if (allowU4U9 == false)
       	return {};
@@ -206,46 +224,47 @@ namespace U3xU4
     else
     {
       // extract the last single-shell tensor
-      const U3xU4::Tadat& tadat_last = single_shell_tensors.back();
+      const U3xU4::SingleShellTensor& tadat_last = Gamma.back();
       // extract the last intershell coupling of the total tensor
-      const auto& [Omega_last, Rhomax_last, Etamax_last] = coupled_irreps.back();
+      auto Rhomax_last = Omega.back().rhomax(), 
+           Etamax_last = Omega.back().etamax();
+      //const auto& [Omega_last, Rhomax_last, Etamax_last] = Omega.back();
 
       // extract the rest of the tensor
-      auto new_single_shell_tensors = single_shell_tensors;
-      new_single_shell_tensors.pop_back();
-      auto new_coupled_irreps = coupled_irreps;
-      new_coupled_irreps.pop_back();
-      const auto& [Omega_semilast, Rhomax_semilast, Etamax_semilast] = new_coupled_irreps.back();
-      U3xU4::MultiShellTensor new_tensor(
-      	new_single_shell_tensors, new_coupled_irreps);
+      auto new_Gamma = Gamma;
+      new_Gamma.pop_back();
+      auto new_Omega = Omega;
+      new_Omega.pop_back();
+      auto Rhomax_semilast = new_Omega.back().rhomax(),
+           Etamax_semilast = new_Omega.back().etamax();
+      //const auto& [Omega_semilast, Rhomax_semilast, Etamax_semilast] = new_Omega.back();
+      U3xU4::MultiShellTensor new_tensor(new_Gamma, new_Omega);
 
       // extract the rest of the ket
-      auto new_ket_dist = ket.dist; 
-      // new_ket_dist won't be used but should be popped properly for safety
       auto new_ket_gamma = ket.gamma;
       new_ket_gamma.pop_back();
       auto new_ket_omega = ket.omega;
       new_ket_omega.pop_back();
-      U4xSU3::Irrep new_ket(new_ket_dist, new_ket_gamma, new_ket_omega);
+      U3xU4::ManyNucleonBasis::Irrep new_ket(new_ket_gamma, new_ket_omega);
 
       // extract the rest of the bra
-      auto new_bra_dist = bra.dist; 
-      // new_bra_dist won't be used but should be popped properly
       auto new_bra_gamma = bra.gamma;
       new_bra_gamma.pop_back();
       auto new_bra_omega = bra.omega;
       new_bra_omega.pop_back();
-      U4xSU3::Irrep new_bra(new_bra_dist, new_bra_gamma, new_bra_omega);
+      U3xU4::ManyNucleonBasis::Irrep new_bra(new_bra_gamma, new_bra_omega);
 
+      assert(ket.gamma.back().shell() == tadat_last.n);
+      assert(bra.gamma.back().shell() == tadat_last.n);
       U3xU4::irrep 
       	// last irreps in ket
-      	ket_gamma_last = ket.gamma.back().toU3xU4(tadat_last.n), 
-      	ket_omega_last = ket.omega.back().toU3xU4(),
-      	ket_omega_semilast = ket.omega[ket.omega.size() - 2].toU3xU4(),
+      	ket_gamma_last = ket.gamma.back(), 
+      	ket_omega_last = ket.omega.back(),
+      	ket_omega_semilast = ket.omega[ket.omega.size() - 2],
       	// last irreps in bra
-      	bra_gamma_last = bra.gamma.back().toU3xU4(tadat_last.n), 
-      	bra_omega_last = bra.omega.back().toU3xU4(),
-      	bra_omega_semilast = bra.omega[bra.omega.size() - 2].toU3xU4();
+      	bra_gamma_last = bra.gamma.back(), 
+      	bra_omega_last = bra.omega.back(),
+      	bra_omega_semilast = bra.omega[bra.omega.size() - 2];
 
       std::size_t 
       	// last multis in ket
@@ -261,11 +280,11 @@ namespace U3xU4
       	bra_rhomax_semilast = bra.omega[bra.omega.size() - 2].rhomax(),
       	bra_etamax_semilast = bra.omega[bra.omega.size() - 2].etamax(),
       	// multi for Wigner-Eckart theorem for the total tensor
-      	rhomax = u3::Rho(ket_omega_last.u3(), Omega_last.u3(), bra_omega_last.u3()),  
-      	etamax = u4::Eta(ket_omega_last.u4(), Omega_last.u4(), bra_omega_last.u4()),
+      	rhomax = u3::Rho(ket_omega_last.u3(), Omega.back().u3(), bra_omega_last.u3()),  
+      	etamax = u4::Eta(ket_omega_last.u4(), Omega.back().u4(), bra_omega_last.u4()),
       	// multi for Wigner-Eckart theorem for the new tensor
-      	rhomax_new = u3::Rho(ket_omega_semilast.u3(), Omega_semilast.u3(), bra_omega_semilast.u3()), 
-        etamax_new = u4::Eta(ket_omega_semilast.u4(), Omega_semilast.u4(), bra_omega_semilast.u4()), 
+      	rhomax_new = u3::Rho(ket_omega_semilast.u3(), new_Omega.back().u3(), bra_omega_semilast.u3()), 
+        etamax_new = u4::Eta(ket_omega_semilast.u4(), new_Omega.back().u4(), bra_omega_semilast.u4()), 
       	// multi for Wigner-Eckart theorem for the last tensor
       	rhomax_last = 0, etamax_last = 0;
 
@@ -288,13 +307,13 @@ namespace U3xU4
       // 9-U(3) recoupling coefficients
       auto [allowU3U9, U3U9coeff] = dbs.u3u9db.get(
       		ket_omega_semilast.u3().n13(), ket_omega_semilast.u3().n23(), ket_omega_semilast.u3().n33(),
-      		Omega_semilast.u3().n13(), Omega_semilast.u3().n23(), Omega_semilast.u3().n33(),
+      		new_Omega.back().u3().n13(), new_Omega.back().u3().n23(), new_Omega.back().u3().n33(),
       		ket_gamma_last.u3().n13(), ket_gamma_last.u3().n23(), ket_gamma_last.u3().n33(),
       		tadat_last.T.u3().n13(), tadat_last.T.u3().n23(), tadat_last.T.u3().n33(),
       		bra_omega_semilast.u3().n13(), bra_omega_semilast.u3().n23(), bra_omega_semilast.u3().n33(),
       		bra_gamma_last.u3().n13(), bra_gamma_last.u3().n23(), bra_gamma_last.u3().n33(),
       		ket_omega_last.u3().n13(), ket_omega_last.u3().n23(), ket_omega_last.u3().n33(),
-      		Omega_last.u3().n13(), Omega_last.u3().n23(), Omega_last.u3().n33(),
+      		Omega.back().u3().n13(), Omega.back().u3().n23(), Omega.back().u3().n33(),
       		bra_omega_last.u3().n13(), bra_omega_last.u3().n23(), bra_omega_last.u3().n33());
       if (allowU3U9 == false)
       	return {};
@@ -303,13 +322,13 @@ namespace U3xU4
       // 9-U(4) recoupling coefficients
       auto [allowU4U9, U4U9coeff] = dbs.u4u9db.get(
       		ket_omega_semilast.u4().n14(), ket_omega_semilast.u4().n24(), ket_omega_semilast.u4().n34(), ket_omega_semilast.u4().n44(),
-      		Omega_semilast.u4().n14(), Omega_semilast.u4().n24(), Omega_semilast.u4().n34(), Omega_semilast.u4().n44(),
+      		new_Omega.back().u4().n14(), new_Omega.back().u4().n24(), new_Omega.back().u4().n34(), new_Omega.back().u4().n44(),
       		ket_gamma_last.u4().n14(), ket_gamma_last.u4().n24(), ket_gamma_last.u4().n34(), ket_gamma_last.u4().n44(),
       		tadat_last.T.u4().n14(), tadat_last.T.u4().n24(), tadat_last.T.u4().n34(), tadat_last.T.u4().n44(),
       		bra_omega_semilast.u4().n14(), bra_omega_semilast.u4().n24(), bra_omega_semilast.u4().n34(), bra_omega_semilast.u4().n44(),
       		bra_gamma_last.u4().n14(), bra_gamma_last.u4().n24(), bra_gamma_last.u4().n34(), bra_gamma_last.u4().n44(),
       		ket_omega_last.u4().n14(), ket_omega_last.u4().n24(), ket_omega_last.u4().n34(), ket_omega_last.u4().n44(),
-      		Omega_last.u4().n14(), Omega_last.u4().n24(), Omega_last.u4().n34(), Omega_last.u4().n44(),
+      		Omega.back().u4().n14(), Omega.back().u4().n24(), Omega.back().u4().n34(), Omega.back().u4().n44(),
       		bra_omega_last.u4().n14(), bra_omega_last.u4().n24(), bra_omega_last.u4().n34(), bra_omega_last.u4().n44());
       if (allowU4U9 == false)
       	return {};
@@ -333,10 +352,10 @@ namespace U3xU4
       for (const auto& omega : bra.omega) 
         multis.add_dimensions(omega.rhomax(), omega.etamax());
       // add multis from tensor
-      for (const auto& tensor : single_shell_tensors) 
+      for (const auto& tensor : Gamma) 
         multis.add_dimensions(tensor.rho0max, tensor.eta0max);
-      for (const auto& [irr, rmax, emax] : coupled_irreps)
-        multis.add_dimensions(rmax, emax);
+      for (const auto& o : Omega)
+        multis.add_dimensions(o.rhomax(), o.etamax());
       // add multis from Wigner-Eckart theorem
       multis.add_dimensions(rhomax, etamax);
 
@@ -351,10 +370,10 @@ namespace U3xU4
       for (const auto& omega : new_bra.omega) 
         multis_new.add_dimensions(omega.rhomax(), omega.etamax());
       // add multis_new from new_tensor
-      for (const auto& tensor : new_tensor.single_shell_tensors) 
+      for (const auto& tensor : new_tensor.Gamma) 
         multis_new.add_dimensions(tensor.rho0max, tensor.eta0max);
-      for (const auto& [irr, rmax, emax] : new_tensor.coupled_irreps)
-        multis_new.add_dimensions(rmax, emax);
+      for (const auto& o : new_tensor.Omega)
+        multis_new.add_dimensions(o.rhomax(), o.etamax());
       // add multis_new from Wigner-Eckart theorem
       multis_new.add_dimensions(rhomax_new, etamax_new);
 
@@ -381,7 +400,7 @@ namespace U3xU4
         n_new_ket += gamma.u4().quanta();
       for (const auto& gamma : new_bra.gamma) 
         n_new_bra += gamma.u4().quanta();
-      for (const auto& tensor : new_tensor.single_shell_tensors)
+      for (const auto& tensor : new_tensor.Gamma)
         N_new += tensor.ads + tensor.ats;
 
 #ifdef FRONT_CREATE
@@ -438,7 +457,7 @@ namespace U3xU4
         multiU4[2] = multi[j];
         j++;
 
-        for (const auto& tensor : new_tensor.single_shell_tensors)
+        for (const auto& tensor : new_tensor.Gamma)
         {
           multi_new[k] = multi[j];
           multi_new[k + 1] = multi[j + 1];
@@ -450,7 +469,7 @@ namespace U3xU4
         multi_last[3] = multi[j];
         j++;
 
-        for (const auto& [irr, rmax, emax] : new_tensor.coupled_irreps)
+        for (const auto& o : new_tensor.Omega)
         {
           multi_new[k] = multi[j];
           multi_new[k + 1] = multi[j + 1];

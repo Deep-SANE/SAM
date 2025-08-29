@@ -4,15 +4,15 @@ namespace U3xU4
 {
   // A function to couple single-shell tensors into multi-shell tensors
   // using CouplingPath = std::pair<
-  //  std::vector<U3xU4::Tadat>,            // list of selected single-shell
-  //  tensors std::vector<std::tuple<U3xU4::irrep, int, int>>>;  // list of all
-  //  coupled (irrep,rhomax,etamax)
+  // std::vector<U3xU4::SingleShellTensor>, // list of selected single-shell
+  // tensors std::vector<OmegaElement>;  // list of all
+  // coupled (irrep,rhomax,etamax)
 
   void CoupleSingShellTensors(
-      const std::vector<std::vector<U3xU4::Tadat>>&
+      const std::vector<std::vector<U3xU4::SingleShellTensor>>&
           Tadat_lists,                          // list of lists of Tadat
       std::size_t depth,                        // recursion depth
-      std::vector<U3xU4::Tadat> Tadat_choices,  // current choices
+      std::vector<U3xU4::SingleShellTensor> Tadat_choices,  // current choices
       std::vector<U3xU4::irrep> coupled_irreps, // current coupled irreps
       std::vector<int> rhomax_list,             // rhomax values
       std::vector<int> etamax_list,             // etamax values
@@ -21,10 +21,11 @@ namespace U3xU4
     // If we've chosen one Tadat from every list, we stop and store the path
     if (depth == Tadat_lists.size())
     {
-      std::vector<std::tuple<U3xU4::irrep, int, int>> coupling_data;
+      std::vector<U3xU4::OmegaElement> coupling_data;
       for (std::size_t i = 0; i < coupled_irreps.size(); ++i)
-        coupling_data.emplace_back(coupled_irreps[i], rhomax_list[i],
-                                   etamax_list[i]);
+        coupling_data.push_back(U3xU4::OmegaElement(
+                      rhomax_list[i], coupled_irreps[i].u3(),
+                      etamax_list[i], coupled_irreps[i].u4()));
 
       all_results.emplace_back(Tadat_choices, coupling_data);
       return;
