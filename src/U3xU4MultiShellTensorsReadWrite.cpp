@@ -98,16 +98,18 @@ namespace U3xU4
   std::ostream& operator<<(std::ostream& s, const MultiShellTensor_phys& x)
   {
     s << x.T << "\n";
-    for (size_t lst_id = 0; lst_id < x.LST.size(); lst_id++)
+    for (size_t ls_id = 0; ls_id < x.LLSSs.size(); ls_id++)
     {
-      s << "kappamax:" << x.LST[lst_id][0] 
-        << " LL:" << x.LST[lst_id][1] 
-        << " zetamax:" << x.LST[lst_id][2]
-        << " SS:" << x.LST[lst_id][3] 
-        << " TT:" << x.LST[lst_id][4] << " strengths:";
-      for (auto c : x.strengths[lst_id])
+      s << "kappamax:" << x.LLSSs[ls_id][0] 
+        << " LL:" << x.LLSSs[ls_id][1] 
+        << " zetamax:" << x.LLSSs[ls_id][2]
+        << " SS:" << x.LLSSs[ls_id][3] 
+        << " strengths:";
+      for (auto c : x.strengths[ls_id])
         s << c << " ";
     }
+    s << "TT:" << x.TT << " MMT:" << x.MMT 
+      << " JJ:" << x.JJ << " MMJ:" << x.MMJ;
     return s;
   }
 } // namespace U3xU4

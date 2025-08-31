@@ -226,14 +226,19 @@ namespace U3xU4
     std::vector<double> RME(const ManyNucleonBasis::Irrep& ket,
                             const ManyNucleonBasis::Irrep& bra,
                             sam::Databases& dbs) const;
+
+  private:
+    // Phase during uncoupling of RME
+    int8_t uncoupling_phase(const ManyNucleonBasis::Irrep& ket,
+                         const ManyNucleonBasis::Irrep& bra) const;
   };
 
   /* Class for holding a general U3xU4 multi-shell tensor with physical labels.
-     It has total spin and isospin quantum numbers, a MultiShellTensor object 
-     and an array of subgroup labels, namely (kappamax,LL,zetamax,SS,TT). 
-     In addition, it also stores an array of tensor strengths, which are 
-     coefficients in the expansion from JT-coupled operator. The strengths are 
-     stored in a 2D array: 
+     It has total spin (JJ,MMJ) and isospin (TT,MMT) quantum numbers, 
+     a MultiShellTensor object and an array of subgroup labels, namely 
+     (kappamax,LL,zetamax,SS). In addition, it also stores an array of tensor 
+     strengths, which are coefficients in the expansion from JT-coupled operator. 
+     The strengths are stored in a 2D array: 
      - The 1st dimension has the same size with the array of subgroup labels
      - The 2nd dimension has varying size, depending on the multiplicities of
        the tensor, including all multiplicities of SingleShellTensors, 
@@ -250,7 +255,7 @@ namespace U3xU4
     U3xU4::MultiShellTensor T;
 
     // An array of subgroup labels
-    std::vector<std::array<uint16_t,5>> LST;
+    std::vector<std::array<uint16_t,4>> LLSSs;
 
     // Array to store strengths
     std::vector<std::vector<double>> strengths;
@@ -258,11 +263,13 @@ namespace U3xU4
     // Constructor
     MultiShellTensor_phys(
       const U3xU4::MultiShellTensor& T_,
-      const std::vector<std::array<uint16_t,5>>& LST_,
-      const std::vector<std::vector<double>>& strengths_)
-        : T(T_), LST(LST_), strengths(strengths_)
+      const std::vector<std::array<uint16_t,4>>& LLSSs_,
+      const std::vector<std::vector<double>>& strengths_,
+      int16_t TT_, int16_t MMT_, int16_t JJ_, int16_t MMJ_)
+        : T(T_), LLSSs(LLSSs_), strengths(strengths_),
+          TT(TT_), MMT(MMT_), JJ(JJ_), MMJ(MMJ_)
     { 
-      assert(LST_.size() == strengths.size());
+      assert(LLSSs_.size() == strengths_.size());
     }
 
     // Print
