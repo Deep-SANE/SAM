@@ -92,15 +92,22 @@ namespace U3xU4
         oOmega.push_back(Omega[i_Omega++]);
 
       for (i_Gamma = 2; i_Gamma < oGamma.size(); i_Gamma++)
+      {
         if (added[i_Gamma])
         {
           auto Oe = oOmega.back();
           oOmega.emplace_back(1, Oe.u3(), 1, Oe.u4());
         }
         else if (i_Omega == 0)
-          oOmega.emplace_back(1, oGamma[i_Gamma].u3(), 1, oGamma[i_Gamma].u4());
+        {
+          if (added[0] && added[1])
+            oOmega.emplace_back(1, oGamma[i_Gamma].u3(), 1, oGamma[i_Gamma].u4());
+          else
+            oOmega.emplace_back(Omega[i_Omega]);
+        }
         else
           oOmega.push_back(Omega[i_Omega++]);
+      }
     }
 
     assert(oOmega.size() + 1 == oGamma.size());
