@@ -336,17 +336,20 @@ namespace U3xU4
             }
 
             // Check which SDf matches the new SDi
-            for (std::size_t f = 0; f < SDarr_f.size(); f++)
+            if (!annihilated)
             {
-              auto SDf = SDarr_f[f];
-              if (SDi == SDf && !annihilated)
+              for (std::size_t f = 0; f < SDarr_f.size(); f++)
               {
-                for (std::size_t ai = 0; ai < ai_max; ai++)
+                auto SDf = SDarr_f[f];
+                if (SDi == SDf)
                 {
-                  for (std::size_t af = 0; af < af_max; af++)
+                  for (std::size_t ai = 0; ai < ai_max; ai++)
                   {
-                    FMEs[ai * af_max + af].row(row) +=
+                    for (std::size_t af = 0; af < af_max; af++)
+                    {
+                      FMEs[ai * af_max + af].row(row) +=
                         phase * coeffs_i[i](ai) * coeffs[t] * coeffs_f[f](af);
+                    }
                   }
                 }
               }
