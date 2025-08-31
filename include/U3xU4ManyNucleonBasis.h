@@ -1,6 +1,7 @@
 #ifndef SAM_U4XSU3_MANY_NUCLEON_BASIS_H
 #define SAM_U4XSU3_MANY_NUCLEON_BASIS_H
 
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <limits>
@@ -393,6 +394,16 @@ namespace U3xU4
      * @param gamma_id ID of the required gamma for which to generate omegas.
      */
     void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id);
+  
+  public:
+    // get twice angular momentum
+    auto getJJ() const { return JJ_; }
+
+    // get twice isospin projection
+    auto getMMT() const { return MMT_; }
+
+    // perform decomposition to LL,SS,TT
+    std::vector<std::vector<std::array<int,5>>> decomposition() const;
   };
 
   // class for unifying 2 irreps wrt to their shells:

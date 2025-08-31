@@ -500,4 +500,52 @@ namespace U3xU4
     }
   }
 
+  std::vector<std::vector<std::array<int,5>>> ManyNucleonBasis::decomposition() const
+  {
+    auto irrs = irreps();
+
+    std::vector<std::vector<std::array<int,5>>> labels(irrs.size());
+
+    for (size_t irr_id = 0; irr_id < irrs.size(); irr_id++)
+    {
+      std::vector<u3::physicalvector> u3_basis;
+      std::vector<u4::physicalvector> u4_basis;
+
+      if (irrs[irr_id].omega.empty())
+      {
+        u3::irrep u3 = {irrs[irr_id].gamma.back().su3().lam() 
+          + irrs[irr_id].gamma.back().su3().mu(),
+          irrs[irr_id].gamma.back().su3().mu(), 0};
+        u3_basis = u3::physicalBasis(u3);
+        u4_basis = u4::physicalBasis(irrs[irr_id].gamma.back().u4());
+      }
+      else
+      {
+        u3::irrep u3 = {irrs[irr_id].omega.back().su3().lam() 
+          + irrs[irr_id].omega.back().su3().mu(),
+          irrs[irr_id].omega.back().su3().mu(), 0};
+        u3_basis = u3::physicalBasis(u3);
+        u4_basis = u4::physicalBasis(irrs[irr_id].omega.back().u4());
+      }
+
+      for (auto u4_labels : u4_basis)
+      {
+        if (u4_labels.TT < abs(MMT_))
+          continue;
+
+        for (auto u3_labels : u3_basis)
+        {
+          if (abs(2 * u3_labels.L - u4_labels.SS) <= JJ_ &&
+              JJ_ <= (2 * u3_labels.L + u4_labels.SS))
+          {
+            labels[irr_id].push_back({u3_labels.kappa, 2 * u3_labels.L,
+              u4_labels.zeta, u4_labels.SS, u4_labels.TT});
+          }
+        }
+      }
+    }
+
+    return labels;
+  }
+
 } // namespace U3xU4

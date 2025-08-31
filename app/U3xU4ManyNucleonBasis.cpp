@@ -23,6 +23,7 @@ int main()
   basis.construct();
 
   auto irreps = basis.irreps();
+  auto labels = basis.decomposition();
 
   for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
   {
@@ -32,6 +33,7 @@ int main()
     print("Irrep ID {:5} : ", irrep_id);
     print("gamma = {}", gamma);
     print(" ; omega = {}", omega);
+    print(" ; kappamax LL zetamax SS TT = {}", labels[irrep_id]);
     print(" ; offset = {}\n", offset);
   }
 
