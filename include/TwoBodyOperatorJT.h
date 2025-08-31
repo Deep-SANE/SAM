@@ -96,6 +96,10 @@ namespace JT
     // Read from binary file
     std::vector<U3xU4::TwoBodyMultiShellTensor> readBinary();
 
+    // Matrix representation
+    Eigen::SparseMatrix<double>
+    matrix(U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
+
   private:
     // Perform permutation of tensor in increasing shell.
     // For tensors of the same shell, ad's are in the front of at's.

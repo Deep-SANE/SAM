@@ -1,6 +1,8 @@
 #include <cassert>
 #include <cmath>
 
+#include <qcx_convert.h>
+
 #include <Databases.h>
 #include <HOutilities.h>
 #include <OneBodyOperatorJT.h>
@@ -733,5 +735,50 @@ namespace JT
     }
 
     return tensors;
+  }
+
+  Eigen::SparseMatrix<double> OneBodyOperator::matrix(
+    U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs) const
+  {
+    auto tensors = expand(dbs);
+
+    std::vector<U3xU4::MultiShellTensor_phys> tensors_new;
+    for (auto tensor : tensors)
+    {
+      std::vector<U3xU4::SingleShellTensor> Gamma;
+      std::vector<U3xU4::OmegaElement> Omega;
+
+      // Initialize this tensor
+      if (tensor.a.n13() == tensor.b.n13())
+      {
+        Gamma.push_back(
+          {qcx_utils::itou16(tensor.a.n13()),1,1,{},{},tensor.t,1,1});
+      }
+      else
+      {
+        Gamma.push_back({
+          qcx_utils::itou16(tensor.a.n13()),
+          qcx_utils::itou8((tensor.a.n23() == 0) ? 1 : 0),
+          qcx_utils::itou8((tensor.a.n23() == 0) ? 0 : 1),
+          {},{},tensor.a,1,1});
+        Gamma.push_back({
+          qcx_utils::itou16(tensor.b.n13()),
+          qcx_utils::itou8((tensor.b.n23() == 0) ? 1 : 0),
+          qcx_utils::itou8((tensor.b.n23() == 0) ? 0 : 1),
+          {},{},tensor.b,1,1});
+
+        Omega.emplace_back(1,tensor.t.u3(),1,tensor.t.u4());
+      }
+      U3xU4::MultiShellTensor T(Gamma,Omega);
+      U3xU4::MultiShellTensor_phys T_phys(T,
+        {{static_cast<unsigned short>(tensor.kappamax),
+          static_cast<unsigned short>(tensor.LL),1,
+          static_cast<unsigned short>(tensor.SS)}},
+          {tensor.coeffs},tensor.TT,tensor.MMT,tensor.JJ,tensor.MMJ);
+
+      tensors_new.push_back(T_phys);  
+    }
+
+    return U3xU4::MatrixElements(tensors_new,basis,dbs);
   }
 } // namespace JT

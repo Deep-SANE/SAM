@@ -780,4 +780,51 @@ namespace JT
     return tensors;
   }
 
+  Eigen::SparseMatrix<double> TwoBodyOperator::matrix(
+    U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs)
+  {
+    // expand now
+    // auto tensors = expand(dbs);
+
+    // write to binary, valenceShell must be 0 for future reuse
+    // writeBinary(dbs);
+
+    // read from binary
+    auto tensors = readBinary();
+    //std::cout << "Expand successfully" << std::endl;
+
+    std::vector<U3xU4::MultiShellTensor_phys> tensors_new;
+    // std::cout << "Start converting to MultiShellTensor_phys" << std::endl;
+    for (auto tensor : tensors)
+    {
+      std::vector<U3xU4::SingleShellTensor> 
+              Gamma = tensor.single_shell_tensors;
+      std::vector<U3xU4::OmegaElement> Omega;
+      if (!tensor.coupled_irreps.empty())
+      {
+        for (size_t irr_id = 0; 
+             irr_id < tensor.coupled_irreps.size() - 1; irr_id++)
+          Omega.push_back({1,tensor.coupled_irreps[irr_id].u3(),
+                           1,tensor.coupled_irreps[irr_id].u4()});
+        Omega.push_back({tensor.rhomax,tensor.coupled_irreps.back().u3(),
+                         tensor.etamax,tensor.coupled_irreps.back().u4()});
+      }
+
+      U3xU4::MultiShellTensor T(Gamma,Omega);
+      U3xU4::MultiShellTensor_phys T_phys(T,
+        {{static_cast<unsigned short>(tensor.kappamax),
+          static_cast<unsigned short>(tensor.LL),
+          static_cast<unsigned short>(tensor.zetamax),
+          static_cast<unsigned short>(tensor.SS)}},
+          {tensor.coeffs},tensor.TT,tensor.MMT,tensor.JJ,tensor.MMJ);
+
+      // std::cout << T_phys << std::endl;
+
+      tensors_new.push_back(T_phys);  
+    }
+    // std::cout << "Finish converting to MultiShellTensor_phys" << std::endl;
+
+    return U3xU4::MatrixElements(tensors_new,basis,dbs);
+  }
+
 } // namespace JT

@@ -32,8 +32,8 @@ int main(int argc, char* argv[])
   //////////////////////////////////////
 
   // Example 1: Two-body part of LL
-  /*
-  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
+  
+  int hw = 20, valenceShell = 0, Nmax = 20, maxShell = 20;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
   LL.is();
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
-  */
+  
 
   // Example 2: Two-body part of relative kinetic energy
   /*
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
   */
 
   // Example 4: Two-body potential (bare) with N3LO_EMN500
-  
+  /*
   int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
@@ -139,7 +139,7 @@ int main(int argc, char* argv[])
   NN.is();
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
-  
+  */
 
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
 

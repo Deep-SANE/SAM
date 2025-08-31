@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4MultiShellTensors.h>
 
 namespace JT
@@ -64,6 +65,10 @@ namespace JT
     // expand into a sum of multi-shell one-body tensors
     std::vector<U3xU4::OneBodyMultiShellTensor>
     expand(sam::Databases& dbs) const;
+
+    // matrix representation
+    Eigen::SparseMatrix<double>
+    matrix(U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs) const;
   };
 
 } // namespace JT
