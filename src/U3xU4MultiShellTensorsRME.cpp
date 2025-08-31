@@ -6,11 +6,55 @@
 #include <qcx_convert.h>
 #include <qcx_ND.h>
 
-#define FRONT_CREATE
-// #define REAR_CREATE
+//#define FRONT_CREATE
+#define REAR_CREATE
 
 namespace U3xU4
 {
+  // Adaptation from lsu3shell
+  int8_t MultiShellTensor::uncoupling_phase(const ManyNucleonBasis::Irrep& ket,
+                                    const ManyNucleonBasis::Irrep& bra) const
+  {
+    if (bra.omega.empty())
+      return 1;
+
+    int G1 = Gamma[0].ads + Gamma[0].ats, 
+        G2 = Gamma[1].ads + Gamma[1].ats,
+        g1_ket = ket.gamma[0].particles(), g2_ket = ket.gamma[1].particles(),
+        g1_bra = bra.gamma[0].particles(), g2_bra = bra.gamma[1].particles();
+
+#ifdef FRONT_CREATE
+    int phi = g1_ket * G2 + g2_bra * (G1 + g1_ket + g1_bra);
+    int8_t phase = (phi % 2 == 0) ? 1 : -1;
+#endif
+#ifdef REAR_CREATE
+    int phi = g2_bra * G1 + g1_ket * (G2 + g2_ket + g2_bra);
+    int8_t phase = (phi % 2 == 0) ? 1 : -1;
+#endif
+
+    for (size_t i = 2; i < bra.gamma.size(); i++)
+    {
+      g1_bra += g2_bra;
+      G1 += G2;
+      g1_ket += g2_ket;
+
+      g2_bra = bra.gamma[i].particles();
+      G2 = Gamma[i].ads + Gamma[i].ats;
+      g2_ket = ket.gamma[i].particles();
+
+#ifdef FRONT_CREATE
+    int phi = g1_ket * G2 + g2_bra * (G1 + g1_ket + g1_bra);
+    phase *= (phi % 2 == 0) ? 1 : -1;
+#endif
+#ifdef REAR_CREATE
+    int phi = g2_bra * G1 + g1_ket * (G2 + g2_ket + g2_bra);
+    phase *= (phi % 2 == 0) ? 1 : -1;
+#endif
+    }
+
+    return phase;
+  }
+
   std::vector<double>
   MultiShellTensor::RME(const U3xU4::ManyNucleonBasis::Irrep& ket,
                         const U3xU4::ManyNucleonBasis::Irrep& bra,
@@ -21,6 +65,10 @@ namespace U3xU4
     assert(Gamma.size() == ket.gamma.size());
     assert(bra.omega.size() == ket.omega.size());
     assert(Omega.size() == bra.omega.size());
+
+    auto phase = uncoupling_phase(ket, bra);
+
+    std::vector<double> RMEs;
 
     // If there is no OmegaElement, i.e., only one GammaElement, 
     // both bra and ket GammaElement's are be in the same shell.
@@ -172,7 +220,7 @@ namespace U3xU4
       auto total_rmes = multis.cardinality();
       std::vector<double> rmes(total_rmes, 0.0);
       std::vector<size_t> multi(16), multi0(6), multi1(6), multiU3(6), multiU4(6);
-
+/*
       // Please double check this phase with lsu3shell
       int phi, N0 = tadat0.ads + tadat0.ats, N1 = tadat1.ads + tadat1.ats,
       	  n0_ket = ket0.particles(), n1_ket = ket1.particles(),
@@ -186,7 +234,7 @@ namespace U3xU4
 #endif
 
       double phase = (phi % 2 == 0) ? 1.0 : -1.0;
-
+*/
       for (size_t i = 0; i < total_rmes; i++)
       {
       	multis.to_multi(i, multi);
@@ -229,10 +277,9 @@ namespace U3xU4
       	  	}
       	  }
       	}
-
-        rmes[i] *= phase;
+        // rmes[i] *= phase;
       }
-      return rmes;
+      RMEs = rmes;
     }
 
     // If there are more than one OmegaElement, there is a recursive cycle
@@ -426,7 +473,7 @@ namespace U3xU4
       std::vector<double> rmes(total_rmes, 0.0);
       std::vector<size_t> multi(multis.n_dimensions()), 
         multi_new(multis_new.n_dimensions()), multi_last(6), multiU3(6), multiU4(6);
-
+/*
       // Please double check this phase with lsu3shell
       int phi, N_new = 0, N_last = tadat_last.ads + tadat_last.ats,
           n_new_ket = 0, n_last_ket = ket_gamma_last.particles(),
@@ -447,7 +494,7 @@ namespace U3xU4
 #endif
 
       double phase = (phi % 2 == 0) ? 1.0 : -1.0;
-
+*/
       for (size_t i = 0; i < total_rmes; i++)
       {
         multis.to_multi(i, multi);
@@ -554,11 +601,15 @@ namespace U3xU4
             }
           }
         }
-
-        rmes[i] *= phase;
+        // rmes[i] *= phase;
       }
-
-      return rmes;
+      RMEs = rmes;
     }
+
+    if (!RMEs.empty())
+      for (auto& rme : RMEs)
+        rme *= phase;
+
+    return RMEs;
   }
 } // namespace U3xU4
