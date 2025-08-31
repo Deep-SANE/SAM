@@ -34,7 +34,20 @@ int main(int argc, char* argv[])
   U3xU4::ManyNucleonBasis::Irrep 
     bra({gamma0_bra, gamma1_bra, gamma2_bra, gamma3_bra},
         {omega01_bra, omega012_bra, omega0123_bra});
+/*
+  U3xU4::GammaElement
+    gamma0_bra(0,1,{0,0,0},{1,0,0,0}),
+    gamma1_bra(1,1,{1,1,0},{2,0,0,0}),
+    gamma2_bra(2,1,{2,0,0},{1,0,0,0});
 
+  U3xU4::OmegaElement
+    omega01_bra  (1,{1,1,0},1,{2,1,0,0}),
+    omega012_bra (1,{1,0,0},1,{2,1,1,0});
+
+  U3xU4::ManyNucleonBasis::Irrep 
+    bra({gamma0_bra, gamma1_bra, gamma2_bra},
+        {omega01_bra, omega012_bra});
+*/
   print("Bra irrep: gamma = {}, omega = {}\n", bra.gamma, bra.omega);
 
   // (2) ket irrep:
@@ -51,7 +64,11 @@ int main(int argc, char* argv[])
   U3xU4::ManyNucleonBasis::Irrep 
     ket({gamma1_ket, gamma2_ket, gamma3_ket},
         {omega12_ket, omega123_ket});
-
+/*
+  U3xU4::ManyNucleonBasis::Irrep 
+    ket({gamma0_bra, gamma1_bra, gamma2_bra},
+        {omega01_bra, omega012_bra});
+*/
   print("Ket irrep: gamma = {}, omega = {}\n\n", ket.gamma, ket.omega);
 
   // (3) irreps unification:
@@ -76,8 +93,18 @@ int main(int argc, char* argv[])
     Omega0123(1,{2,2,0},1,{4,2,2,0});
 
   U3xU4::MultiShellTensor 
-    T({Gamma0, Gamma1, Gamma2 /*, Gamma3 */}, {Omega01, Omega012 /*, Omega0123 */});
+    T({Gamma0, Gamma1, Gamma2/*, Gamma3*/}, {Omega01, Omega012/*, Omega0123*/});
+/*
+  U3xU4::SingleShellTensor
+    Gamma0(1, 1, 1, {}, {}, {{2,1,0},{0,0,0,0}}, 1, 1),
+    Gamma1(2, 1, 1, {}, {}, {{2,1,0},{0,0,0,0}}, 1, 1);
 
+  U3xU4::OmegaElement
+    Omega01  (1,{4,2,0},1,{0,0,0,0});
+
+  U3xU4::MultiShellTensor 
+    T({Gamma0, Gamma1}, {Omega01});
+*/
   print("\nTensor: Gamma = {}, Omaga = {}\n", T.Gamma, T.Omega);
 
   // (5) unify tensor with irreps:
