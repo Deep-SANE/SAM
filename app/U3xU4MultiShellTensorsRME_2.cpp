@@ -123,8 +123,8 @@ int main(int argc, char* argv[])
   auto RMEs = uT->RME(uket, ubra, dbs);
 
   print("\nRMEs:\n");
-  for (const auto& rme : RMEs)
-    print("{: .8f}\n", rme);
+  for (size_t i = 0; i < RMEs.size(); i++)
+    print("{: .8f}\n", RMEs[i]);
 
 #ifdef SAM_USE_SLEPC
   SlepcFinalize();

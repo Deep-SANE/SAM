@@ -12,6 +12,7 @@
 #include <Eigen/Sparse>
 
 #include <Databases.h>
+#include <RME.h>
 #include <U3xU4GammaOmega.h>
 #include <U3xU4irrep.h>
 #include <U3xU4ManyNucleonBasis.h>
@@ -223,14 +224,13 @@ namespace U3xU4
 
     // This method assumes that everything is already unified, i.e., bra and ket
     // irreps are unified, and identities have been filled in already.
-    std::vector<double> RME(const ManyNucleonBasis::Irrep& ket,
-                            const ManyNucleonBasis::Irrep& bra,
-                            sam::Databases& dbs) const;
+    sam::RME RME(const ManyNucleonBasis::Irrep& bra,
+                 const ManyNucleonBasis::Irrep& ket, sam::Databases& dbs) const;
 
   private:
     // Phase during uncoupling of RME
-    int8_t uncoupling_phase(const ManyNucleonBasis::Irrep& ket,
-                         const ManyNucleonBasis::Irrep& bra) const;
+    int8_t uncoupling_phase(const ManyNucleonBasis::Irrep& bra,
+                            const ManyNucleonBasis::Irrep& ket) const;
   };
 
   /* Class for holding a general U3xU4 multi-shell tensor with physical labels.
