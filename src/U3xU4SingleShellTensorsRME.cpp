@@ -1,15 +1,17 @@
 #include <cassert>
 #include <stdexcept>
+#include <utility>
 
 #include <UNtoU3.h>
 
 #include <Databases.h>
 #include <U3xU4HWSgenerator.h>
 #include <U3xU4SingleShellTensors.h>
+#include <RME.h>
 
 namespace U3xU4
 {
-  std::vector<double> SingleShellTensor::RME(
+  sam::RME SingleShellTensor::RME(
     //std::size_t& ai_max, const U3xU4::irrep& i,
     const U3xU4::GammaElement& i,
     //std::size_t& af_max, const U3xU4::irrep& f,
@@ -61,11 +63,16 @@ namespace U3xU4
 */
         // Now calculate RMEs
         std::vector<double> rmes;
-        for (std::size_t ai = 0; ai < ai_max; ai++)
-          for (std::size_t af = 0; af < af_max; af++)
+        for (std::size_t af = 0; af < af_max; af++)
+          for (std::size_t ai = 0; ai < ai_max; ai++)
             rmes.push_back((ai == af) ? 1.0 : 0.0);
 
-        return rmes;
+        return {std::move(rmes),
+                static_cast<size_t>(af_max),
+                static_cast<size_t>(ai_max),
+                1,
+                1,
+                1};
       }
       else
         return {};
@@ -377,8 +384,8 @@ namespace U3xU4
     }
 
     std::vector<double> rmes;
-    for (std::size_t ai = 0; ai < ai_max; ai++)
-      for (std::size_t af = 0; af < af_max; af++)
+    for (std::size_t af = 0; af < af_max; af++)
+      for (std::size_t ai = 0; ai < ai_max; ai++)
         for (int rho0 = 0; rho0 < rho0max(); rho0++)
           for (int eta0 = 0; eta0 < eta0max(); eta0++)
             for (int rho = 0; rho < rhomax; rho++)
@@ -389,6 +396,13 @@ namespace U3xU4
                 rmes.push_back((std::fabs(rme) < 1e-10) ? 0.0 : rme);
               }
 
-    return rmes;
+    size_t aT_max = rho0max() * eta0max();
+
+    return {std::move(rmes),
+            static_cast<size_t>(af_max),
+            static_cast<size_t>(ai_max),
+            aT_max,
+            rhomax,
+            etamax};
   }
 } // namespace U3xU4

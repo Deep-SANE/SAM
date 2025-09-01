@@ -130,10 +130,10 @@ int main(int argc, char* argv[])
   std::cout << "< " << f << " ||| " << Tadxat << " ||| "
             << i << " >" << rhomax << "," << etamax << std::endl;
 
-  std::cout << "ai\taf\trho0\teta0\trho\teta" << std::endl;
+  std::cout << "af\tai\trho0\teta0\trho\teta" << std::endl;
 
   qcx_utils::NDIndex multis;
-  multis.add_dimensions(i.alphamax(), f.alphamax(), rho0max, eta0max, rhomax, etamax);
+  multis.add_dimensions(f.alphamax(), i.alphamax(), rho0max, eta0max, rhomax, etamax);
 
   std::vector<size_t> multi(6);
   for (std::size_t i = 0; i < RMEs.size(); i++)
