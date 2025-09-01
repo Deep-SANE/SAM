@@ -85,15 +85,15 @@ int main(int argc, char* argv[])
     Gamma0(0, 1, 0, {}, {}, {{0,0,0},{1,0,0,0}}, 1, 1),
     Gamma1(1, 1, 1, {}, {}, {{2,1,0},{2,1,1,0}}, 1, 1),
     Gamma2(2, 0, 1, {}, {}, {{2,2,0},{1,1,1,0}}, 1, 1),
-    Gamma3(5, 1, 1, {}, {}, {{0,0,0},{0,0,0,0}}, 1, 1);
+    Gamma5(5, 1, 1, {}, {}, {{0,0,0},{0,0,0,0}}, 1, 1);
 
   U3xU4::OmegaElement
     Omega01  (1,{2,1,0},1,{3,1,1,0}),
     Omega012 (1,{2,2,0},1,{4,2,2,0}),
-    Omega0123(1,{2,2,0},1,{4,2,2,0});
+    Omega0125(1,{2,2,0},1,{4,2,2,0});
 
   U3xU4::MultiShellTensor 
-    T({Gamma0, Gamma1, Gamma2/*, Gamma3*/}, {Omega01, Omega012/*, Omega0123*/});
+    T({Gamma0, Gamma1, Gamma2/*, Gamma5*/}, {Omega01, Omega012/*, Omega0125*/});
 /*
   U3xU4::SingleShellTensor
     Gamma0(1, 1, 1, {}, {}, {{2,1,0},{0,0,0,0}}, 1, 1),
