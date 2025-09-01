@@ -702,11 +702,9 @@ namespace U3xU4
       af_max: outer multiplicity of f
       rhomax, etamax: multiplicities of RMEs
     */
-    sam::RME RME( // std::size_t& ai_max, const U3xU4::irrep& i,
-        const U3xU4::GammaElement& i,
-        // std::size_t& af_max, const U3xU4::irrep& f,
-        const U3xU4::GammaElement& f, std::size_t& rhomax, std::size_t& etamax,
-        sam::Databases& dbs) const;
+    sam::RME RME(const U3xU4::GammaElement& f, const U3xU4::GammaElement& i,
+                 std::size_t& rhomax, std::size_t& etamax,
+                 sam::Databases& dbs) const;
   };
 
   // Find all single-shell tensors composed of

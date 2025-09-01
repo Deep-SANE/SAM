@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto RMEs = Tadxat.RME(i, f, rhomax, etamax, dbs);
+  auto RMEs = Tadxat.RME(f, i, rhomax, etamax, dbs);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();

@@ -11,13 +11,10 @@
 
 namespace U3xU4
 {
-  sam::RME SingleShellTensor::RME(
-    //std::size_t& ai_max, const U3xU4::irrep& i,
-    const U3xU4::GammaElement& i,
-    //std::size_t& af_max, const U3xU4::irrep& f,
-    const U3xU4::GammaElement& f,
-    std::size_t& rhomax, std::size_t& etamax,
-    sam::Databases& dbs) const
+  sam::RME SingleShellTensor::RME(const U3xU4::GammaElement& f,
+                                  const U3xU4::GammaElement& i,
+                                  std::size_t& rhomax, std::size_t& etamax,
+                                  sam::Databases& dbs) const
   {
     auto& cgcs = dbs.cgcs;
     auto& wigU3U2db = dbs.wigU3U2db;
