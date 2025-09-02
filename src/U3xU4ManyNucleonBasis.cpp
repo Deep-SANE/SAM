@@ -500,11 +500,11 @@ namespace U3xU4
     }
   }
 
-  std::vector<std::vector<std::array<int,5>>> ManyNucleonBasis::decomposition() const
+  std::vector<std::vector<std::array<int,6>>> ManyNucleonBasis::decomposition() const
   {
     auto irrs = irreps();
 
-    std::vector<std::vector<std::array<int,5>>> labels(irrs.size());
+    std::vector<std::vector<std::array<int,6>>> labels(irrs.size());
 
     for (size_t irr_id = 0; irr_id < irrs.size(); irr_id++)
     {
@@ -528,6 +528,7 @@ namespace U3xU4
         u4_basis = u4::physicalBasis(irrs[irr_id].omega.back().u4());
       }
 
+      int offset = 0;
       for (auto u4_labels : u4_basis)
       {
         if (u4_labels.TT < abs(MMT_))
@@ -539,7 +540,8 @@ namespace U3xU4
               JJ_ <= (2 * u3_labels.L + u4_labels.SS))
           {
             labels[irr_id].push_back({u3_labels.kappa, 2 * u3_labels.L,
-              u4_labels.zeta, u4_labels.SS, u4_labels.TT});
+              u4_labels.zeta, u4_labels.SS, u4_labels.TT,offset});
+            offset += (u3_labels.kappa * u4_labels.zeta);
           }
         }
       }
