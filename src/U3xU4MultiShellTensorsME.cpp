@@ -37,15 +37,12 @@ namespace U3xU4
      The quantum numbers (kappamax,L,zetamax,S,T) are stored in an array.
      For a specific irrepID, we get:
      - irrep_offset
-     - multiplicities of gamma and omega: stored with qcx_utils::NDIndex
-     - a list of (kappamax,LL,zetamax,SS,TT) quantum numbers
-     Practically, the degeneracy of each irrep can be captured in a 4D array:
-     1st dim: gamma & omega multiplicities
-     2nd dim: array storing (L,S,T)
-     3rd dim: kappa
-     4th dim: zeta
-     The index of a state is
-     offset + ((1st * max(2nd) + 2nd) * max(3rd) + 3rd) * max(4th) + 4th
+     - multiplicities of gamma and omega: alpha
+     - a list of (kappamax,LL,zetamax,SS,TT,LST_offset) quantum numbers
+     To access the index of a particular state, calculate the following
+     LST_length = last(LST_offset) + last(kappamax) * last(zetamax)
+     state_id = irrep_offset + alpha * LST_length 
+              + LST_offset + kappa * zetamax + zeta
   */
   Eigen::SparseMatrix<double>
   MatrixElements(std::vector<U3xU4::MultiShellTensor_phys>& tensors,
@@ -85,12 +82,13 @@ namespace U3xU4
       for (size_t bra_id = 0; bra_id < irreps.size(); bra_id++)
       {
         // std::cout << "bra_id: " << bra_id << std::endl;
-        // std::cout << "Construct bra_multis" << std::endl;
-        qcx_utils::NDIndex bra_multis;
+
+        // get alphamax for bra
+        size_t bra_alphamax = 1;
         for (const auto& gamma : irreps[bra_id].gamma)
-          bra_multis.add_dimension(gamma.alphamax());
+          bra_alphamax *= gamma.alphamax();
         for (const auto& omega : irreps[bra_id].omega)
-          bra_multis.add_dimensions(omega.rhomax(), omega.etamax());
+          bra_alphamax *= (omega.rhomax() * omega.etamax());
 
         // get offset
         auto bra_offset = irreps.offset(bra_id);
@@ -98,12 +96,13 @@ namespace U3xU4
         for (size_t ket_id = 0; ket_id < irreps.size(); ket_id++)
         {
           // std::cout << "ket_id: " << ket_id << std::endl;
-          // std::cout << "Construct ket_multis" << std::endl;
-          qcx_utils::NDIndex ket_multis;
+
+          // get alphamax for bra
+          size_t ket_alphamax = 1;
           for (const auto& gamma : irreps[ket_id].gamma)
-            ket_multis.add_dimension(gamma.alphamax());
+            ket_alphamax *= gamma.alphamax();
           for (const auto& omega : irreps[ket_id].omega)
-            ket_multis.add_dimensions(omega.rhomax(), omega.etamax());
+            ket_alphamax *= (omega.rhomax() * omega.etamax());
 
           // get offset
           auto ket_offset = irreps.offset(ket_id);
@@ -137,7 +136,7 @@ namespace U3xU4
 
           // calculate RMEs
           // std::cout << "Start to calculate RMEs" << std::endl;
-          std::vector<std::vector<double>> RMEs;
+          std::vector<sam::RME> RMEs;
           RMEs.reserve(tensors_count);
           for (auto tensor : tensors)
           {
@@ -149,15 +148,15 @@ namespace U3xU4
 
             if (uT.has_value())
             {
-              // std::cout << "After unified: " << std::endl;
-              // for (auto uG : uT->Gamma)
-              //   std::cout << uG << std::endl;
-              // for (auto uO : uT->Omega)
-              //   std::cout << uO << std::endl;
-
-              auto rmes = uT->RME(uket, ubra, dbs);
-              // for (const auto& rme : rmes)
-              //   std::cout << rme << std::endl;
+/*
+              std::cout << "After unified: " << std::endl;
+              for (auto uG : uT->Gamma)
+                std::cout << uG << std::endl;
+              for (auto uO : uT->Omega)
+                std::cout << uO << std::endl;
+*/
+              auto rmes = uT->RME(ubra, uket, dbs);
+              rmes.print();
               RMEs.push_back(rmes);
             }
             else
@@ -169,20 +168,32 @@ namespace U3xU4
 
           // now, we compute full matrix elements
           // std::cout << "Start to calculate FMEs" << std::endl;
-          size_t bmax = labels[bra_id].size(), kmax = labels[ket_id].size();
-          for (size_t b = 0; b < bmax; b++) // going through bra labels
-          {
-            auto bra_kappamax = labels[bra_id][b][0],
-                 bra_LL = labels[bra_id][b][1],
-                 bra_zetamax = labels[bra_id][b][2],
-                 bra_SS = labels[bra_id][b][3], bra_TT = labels[bra_id][b][4];
+          size_t bra_labels_max = labels[bra_id].size(),
+                 bra_labels_dim = labels[bra_id].back()[5] +
+                   labels[bra_id].back()[0] * labels[bra_id].back()[2],
+                 ket_labels_max = labels[ket_id].size(),
+                 ket_labels_dim = labels[ket_id].back()[5] +
+                   labels[ket_id].back()[0] * labels[ket_id].back()[2];
 
-            for (size_t k = 0; k < kmax; k++) // going through ket labels
+          for (size_t bra_labels_id = 0; bra_labels_id < bra_labels_max;
+               bra_labels_id++) // going through bra labels
+          {
+            auto bra_kappamax = labels[bra_id][bra_labels_id][0],
+                 bra_LL = labels[bra_id][bra_labels_id][1],
+                 bra_zetamax = labels[bra_id][bra_labels_id][2],
+                 bra_SS = labels[bra_id][bra_labels_id][3], 
+                 bra_TT = labels[bra_id][bra_labels_id][4],
+                 bra_labels_offset = labels[bra_id][bra_labels_id][5];
+
+            for (size_t ket_labels_id = 0; ket_labels_id < ket_labels_max;
+                 ket_labels_id++) // going through ket labels
             {
-              auto ket_kappamax = labels[ket_id][k][0],
-                   ket_LL = labels[ket_id][k][1],
-                   ket_zetamax = labels[ket_id][k][2],
-                   ket_SS = labels[ket_id][k][3], ket_TT = labels[ket_id][k][4];
+              auto ket_kappamax = labels[ket_id][ket_labels_id][0],
+                   ket_LL = labels[ket_id][ket_labels_id][1],
+                   ket_zetamax = labels[ket_id][ket_labels_id][2],
+                   ket_SS = labels[ket_id][ket_labels_id][3], 
+                   ket_TT = labels[ket_id][ket_labels_id][4],
+                   ket_labels_offset = labels[ket_id][ket_labels_id][5];
 
               // std::cout << "TT,MMT: " << ket_TT << "," << TT_opt << "," << bra_TT
               //		<< "," << MMT << "," << MMT_opt << "," << MMT << std::endl;
@@ -195,7 +206,6 @@ namespace U3xU4
               std::vector<std::vector<Eigen::MatrixXd>> Coeffs3(tensors_count),
                   										Coeffs4(tensors_count);
               std::vector<std::vector<double>> U9js(tensors_count);
-              std::vector<std::pair<int, int>> rhomaxs_etamaxs(tensors_count);
 
               // std::cout << "Start to calculate coupling coeffs" << std::endl;
               for (size_t tensor_id = 0; tensor_id < tensors_count; tensor_id++)
@@ -220,9 +230,6 @@ namespace U3xU4
 
                 if (rhomax == 0 || etamax == 0)
                   continue;
-
-                rhomaxs_etamaxs[tensor_id].first = rhomax;
-                rhomaxs_etamaxs[tensor_id].second = etamax;
                 
                 for (auto LLSS : tensors[tensor_id].LLSSs)
                 {
@@ -249,30 +256,21 @@ namespace U3xU4
               }
               // std::cout << "Finish calculating coupling coeffs" << std::endl;
 
-              for (size_t bra_multi_id = 0;
-                   bra_multi_id < bra_multis.cardinality(); bra_multi_id++)
+              for (size_t bra_alpha = 0;
+                   bra_alpha < bra_alphamax; bra_alpha++)
               {
-                std::vector<size_t> bra_multi(bra_multis.n_dimensions());
-                bra_multis.to_multi(bra_multi_id, bra_multi);
-
                 for (size_t bra_kappa = 0; bra_kappa < bra_kappamax;
                      bra_kappa++)
                 {
                   for (size_t bra_zeta = 0; bra_zeta < bra_zetamax; bra_zeta++)
                   {
                     // bra index in the matrix
-                    size_t i =
-                        bra_offset +
-                        ((bra_multi_id * bmax + b) * bra_kappamax + bra_kappa) *
-                            bra_zetamax + bra_zeta;
+                    size_t i = bra_offset + bra_alpha * bra_labels_dim +
+                      bra_labels_offset + (bra_kappa * bra_zetamax + bra_zeta);
 
-                    for (size_t ket_multi_id = 0;
-                         ket_multi_id < ket_multis.cardinality();
-                         ket_multi_id++)
+                    for (size_t ket_alpha = 0;
+                         ket_alpha < ket_alphamax; ket_alpha++)
                     {
-                      std::vector<size_t> ket_multi(ket_multis.n_dimensions());
-                      ket_multis.to_multi(ket_multi_id, ket_multi);
-
                       for (size_t ket_kappa = 0; ket_kappa < ket_kappamax;
                            ket_kappa++)
                       {
@@ -280,9 +278,8 @@ namespace U3xU4
                              ket_zeta++)
                         {
                           // ket index in the matrix
-                          size_t j = ket_offset +
-                                     ((ket_multi_id * kmax + k) * ket_kappamax +
-                                      ket_kappa) * ket_zetamax + ket_zeta;
+                          size_t j = ket_offset + ket_alpha * ket_labels_dim +
+                            ket_labels_offset + (ket_kappa * ket_zetamax + ket_zeta);
 
                           double me = 0.0;
                           // std::cout << "i:" << i << " j:" << j << std::endl;
@@ -293,7 +290,8 @@ namespace U3xU4
                           	if (RMEs[tensor_id].empty())
                               continue;
 
-                            auto [rhomax, etamax] = rhomaxs_etamaxs[tensor_id];
+                            auto rhomax = RMEs[tensor_id].rhomax(), 
+                                 etamax = RMEs[tensor_id].etamax();
                             if (rhomax == 0 || etamax == 0)
                               continue;
 
@@ -301,55 +299,7 @@ namespace U3xU4
                             // 		   << " etamax = " << etamax << std::endl;
 
                           	// std::cout << "Tensor: " << tensors[tensor_id] << std::endl;
-                          	// for (const auto& rme : RMEs[tensor_id])
-              				//   std::cout << "rme: " << rme << std::endl;
-
-                          	// multi-dimensional array for obtaining RMEs
-                            qcx_utils::NDIndex RME_multis;
-                            // add multis from ket
-                            // std::cout << "Construct RME_multis from ket" <<
-                            // std::endl;
-                            for (const auto& gamma : irreps[ket_id].gamma)
-                              RME_multis.add_dimension(gamma.alphamax());
-                            for (const auto& omega : irreps[ket_id].omega)
-                              RME_multis.add_dimensions(omega.rhomax(),
-                                                        omega.etamax());
-                            // add multis from bra
-                            // std::cout << "Construct RME_multis from bra" <<
-                            // std::endl;
-                            for (const auto& gamma : irreps[bra_id].gamma)
-                              RME_multis.add_dimension(gamma.alphamax());
-                            for (const auto& omega : irreps[bra_id].omega)
-                              RME_multis.add_dimensions(omega.rhomax(),
-                                                        omega.etamax());
-                            // add multis from tensor
-                            // std::cout << "Construct RME_multis from tensor"
-                            // << std::endl;
-                            for (const auto& Gamma : tensors[tensor_id].T.Gamma)
-                              RME_multis.add_dimensions(Gamma.rho0max(),
-                                                        Gamma.eta0max());
-                            for (const auto& Omega : tensors[tensor_id].T.Omega)
-                              RME_multis.add_dimensions(Omega.rhomax(),
-                                                        Omega.etamax());
-                            // add multis from Wigner-Eckart
-                            // std::cout << "Construct RME_multis from WK" <<
-                            // std::endl;
-                            RME_multis.add_dimensions(rhomax, etamax);
-                            std::vector<size_t> RME_multi(
-                                RME_multis.n_dimensions());
-
-                            size_t cnt = 0;
-                            for (auto x : ket_multi)
-                            {
-                              RME_multi[cnt] = x;
-                              cnt++;
-                            }
-                            for (auto x : bra_multi)
-                            {
-                              RME_multi[cnt] = x;
-                              cnt++;
-                            }
-                            // std::cout << "cnt: " << cnt << std::endl;
+                          	// RMEs[tensor_id].print();
 
                             // going through subgroup labels of the tensor
                             for (size_t ls_id = 0;
@@ -371,84 +321,56 @@ namespace U3xU4
                               auto zeta0max =
                                   tensors[tensor_id].LLSSs[ls_id][2];
 
-                              // multi-dimensional array for obtaining strength
-                              qcx_utils::NDIndex strength_multis;
+                              size_t tensor_alphamax = 1;
                               for (const auto& Gamma :
                                    tensors[tensor_id].T.Gamma)
-                                strength_multis.add_dimensions(Gamma.rho0max(),
-                                                               Gamma.eta0max());
+                                tensor_alphamax *= 
+                                  (Gamma.rho0max() * Gamma.eta0max());
                               for (const auto& Omega :
                                    tensors[tensor_id].T.Omega)
-                                strength_multis.add_dimensions(Omega.rhomax(),
-                                                               Omega.etamax());
-                              strength_multis.add_dimensions(kappa0max, zeta0max); 
+                                tensor_alphamax *= 
+                                  (Omega.rhomax() * Omega.etamax());
 
-                              std::vector<size_t> strength_multi(
-                                  strength_multis.n_dimensions());
-
-                              for (size_t s = 0;
-                                   s < strength_multis.cardinality(); s++)
+                              for (size_t tensor_alpha = 0; 
+                                   tensor_alpha < tensor_alphamax; tensor_alpha++)
                               {
-                              	double strength = 
-                              		tensors[tensor_id].strengths[ls_id][s];
-                                // std::cout << "strength: " << strength << std::endl;
-
-                                // extract multiplicities
-                              	strength_multis.to_multi(s, strength_multi);
-                                size_t cnt2 = cnt, cnt3 = 0;
-                                for (const auto& Gamma :
-                                     tensors[tensor_id].T.Gamma)
+                                for (size_t kappa0 = 0; kappa0 < kappa0max; kappa0++)
                                 {
-                                  RME_multi[cnt2] = strength_multi[cnt3];
-                                  RME_multi[cnt2 + 1] = strength_multi[cnt3 + 1];
-                                  cnt2 += 2;
-                                  cnt3 += 2;
-                                }
-                                for (const auto& Omega :
-                                     tensors[tensor_id].T.Omega)
-                                {
-                                  RME_multi[cnt2] = strength_multi[cnt3];
-                                  RME_multi[cnt2 + 1] = strength_multi[cnt3 + 1];
-                                  cnt2 += 2;
-                                  cnt3 += 2;
-                                }
-                                // std::cout << "cnt2: " << cnt2 
-                                // << " cnt3: " << cnt3 << std::endl;
-                                auto kappa0 = strength_multi[cnt3];
-                                auto zeta0 = strength_multi[cnt3 + 1];
+                                  auto cgcU3_row = (ket_kappa * kappa0max + kappa0) 
+                                           * bra_kappamax + bra_kappa;
 
-                                auto cgcU3_row = (ket_kappa * kappa0max + kappa0) 
-                                			   * bra_kappamax + bra_kappa;
-                                auto cgcU4_row = (ket_zeta * zeta0max + zeta0) 
-                                			   * bra_zetamax + bra_zeta;
-
-                                // going through multiplicities of 
-                                // Wigner-Eckart theorem
-                                for (size_t rho = 0; rho < rhomax; rho++)
-                                {
-                                  double cgcU3 = 
-                                  	Coeffs3[tensor_id][ls_id](cgcU3_row,rho);
-                                  // std::cout << "cgcU3: " << cgcU3 << std::endl;
-                                  RME_multi[cnt2] = rho;
-
-                                  for (size_t eta = 0; eta < etamax; eta++)
+                                  for (size_t zeta0 = 0; zeta0 < zeta0max; zeta0++)
                                   {
-                                  	double cgcU4 = 
-                                      Coeffs4[tensor_id][ls_id](cgcU4_row,eta);
-                                    // std::cout << "cgcU4: " << cgcU4 << std::endl;
+                                    double strength = tensors[tensor_id]
+                                      .strengths[ls_id][(tensor_alpha * kappa0max 
+                                                        + kappa0) * zeta0max + zeta0];
+                                    // std::cout << "strength: " << strength << std::endl;
 
-                                  	RME_multi[cnt2 + 1] = eta;
-                                  	// for (const auto& m : RME_multi)
-                                  	//   std::cout << m << " ";
-                                  	// std::cout << std::endl;
+                                    auto cgcU4_row = (ket_zeta * zeta0max + zeta0) 
+                                           * bra_zetamax + bra_zeta;
 
-                                  	auto rme =
-                                        RMEs[tensor_id]
-                                            [RME_multis.to_linear(RME_multi)];
-                                    // std::cout << "rme: " << rme << std::endl;
+                                    // going through multiplicities of 
+                                    // Wigner-Eckart theorem
+                                    for (size_t rho = 0; rho < rhomax; rho++)
+                                    {
+                                      double cgcU3 = 
+                                        Coeffs3[tensor_id][ls_id](cgcU3_row,rho);
+                                      // std::cout << "cgcU3: " << cgcU3 << std::endl;
 
-                                    me +=
-                                        (strength * U9j * cgcU3 * cgcU4 * rme);
+                                      for (size_t eta = 0; eta < etamax; eta++)
+                                      {
+                                        double cgcU4 = 
+                                          Coeffs4[tensor_id][ls_id](cgcU4_row,eta);
+                                        // std::cout << "cgcU4: " << cgcU4 << std::endl;
+
+                                  
+                                        auto rme = RMEs[tensor_id].get(
+                                          bra_alpha, ket_alpha, tensor_alpha, rho, eta);
+                                        // std::cout << "rme: " << rme << std::endl;
+
+                                        me += (strength * U9j * cgcU3 * cgcU4 * rme);
+                                      }
+                                    }
                                   }
                                 }
                               }

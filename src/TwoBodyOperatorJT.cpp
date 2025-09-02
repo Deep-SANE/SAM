@@ -516,14 +516,14 @@ namespace JT
 
     for (int i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
-      /*
-            for (auto sorted_n : all_na_nb_nc_nd[i])
-              std::cout << sorted_n << " ";
-            std::cout << "\n phases = ";
-            for (auto phase : all_phase[i])
-              std::cout << phase << " ";
-            std::cout << "\n";
-      */
+/*      
+      for (auto sorted_n : all_na_nb_nc_nd[i])
+        std::cout << sorted_n << " ";
+      std::cout << "\n phases = ";
+      for (auto phase : all_phase[i])
+        std::cout << phase << " ";
+      std::cout << "\n";
+*/      
 
       // auto groups_ns = group_same_shell(sorted_ns);
       auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
@@ -614,6 +614,9 @@ namespace JT
 
             bool ignore =
                 setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
+
+            //std::cout << (ignore ? "Ignore" : "Accept") << tensor << std::endl;
+
             if (ignore == false)
             {
               // std::cout << tensor << std::endl;
@@ -784,13 +787,13 @@ namespace JT
     U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs)
   {
     // expand now
-    // auto tensors = expand(dbs);
+    auto tensors = expand(dbs);
 
     // write to binary, valenceShell must be 0 for future reuse
     // writeBinary(dbs);
 
     // read from binary
-    auto tensors = readBinary();
+    // auto tensors = readBinary();
     //std::cout << "Expand successfully" << std::endl;
 
     std::vector<U3xU4::MultiShellTensor_phys> tensors_new;

@@ -31,27 +31,45 @@ int main(int argc, char* argv[])
 
   U3xU4::ManyNucleonBasis basis(Z, N, Nmax, JJ);
   basis.construct();
+  auto irreps = basis.irreps();
+  auto labels = basis.decomposition();
+  std::vector<double> lls;
+
+  size_t i = 0;
+  for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
+  {
+    for (size_t labels_id = 0; labels_id < labels[irrep_id].size(); labels_id++)
+    {
+      for (size_t j = 0; 
+           j < labels[irrep_id][labels_id][0]*labels[irrep_id][labels_id][2]; j++)
+      {
+        auto l = labels[irrep_id][labels_id][1] / 2; 
+        lls.push_back(l * (l + 1));
+        i++;
+      }
+    }
+  }
 
   sam::Databases dbs;
 
   // Example 1: the L.L operator
   
   int hw = -1, maxShell = valanceShell + Nmax;
-  HO::Table_nljmjmt labels(maxShell);
+  HO::Table_nljmjmt HO_labels(maxShell);
   JT::OneBodyOperator LL1("L.L",hw,maxShell);  
-  JT::TwoBodyOperator LL2("L.L", labels, hw, Nmax, valanceShell, maxShell);
+  JT::TwoBodyOperator LL2("L.L", HO_labels, hw, Nmax, valanceShell, maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
   LL1.is();
   auto mat1 = LL1.matrix(basis, dbs);
-  std::cout << "Matrix representation is " << std::endl;
+  //std::cout << "Matrix representation is " << std::endl;
   //std::cout << mat1 << std::endl;
 
   LL2.is();
   auto mat2 = LL2.matrix(basis, dbs);
-  std::cout << "Matrix representation is " << std::endl;
+  //std::cout << "Matrix representation is " << std::endl;
   //std::cout << mat2 << std::endl;
 
   Eigen::SparseMatrix<double> mat = mat1 + mat2;
@@ -64,8 +82,15 @@ int main(int argc, char* argv[])
     for (Eigen::SparseMatrix<double>::InnerIterator it(mat, k); it; ++it) 
     {
       if (std::fabs(it.value()) > 1e-10)
+      {
         std::cout << "(" << it.row() << "," << it.col() << "): "
-                  << it.value() << "\n";
+                  << it.value() << "\t";
+        if (it.row() != it.col())
+          std::cout << "Off-diagonal\t";
+      	if (std::fabs(lls[it.row()] - it.value()) > 1e-10)
+      	  std::cout << "Not analytical";
+      	std::cout << std::endl;
+      }
     }
   
   

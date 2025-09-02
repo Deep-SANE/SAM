@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 
   // Example 1: Two-body part of LL
   
-  int hw = 20, valenceShell = 0, Nmax = 20, maxShell = 20;
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
   // auto tensors = LL.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  LL.writeBinary(dbs);
+  // LL.writeBinary(dbs);
 
   // read from binary
   auto tensors = LL.readBinary();

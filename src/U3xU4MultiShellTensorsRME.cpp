@@ -7,8 +7,8 @@
 #include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
 
-// #define FRONT_CREATE
-#define REAR_CREATE
+#define FRONT_CREATE
+//#define REAR_CREATE
 
 namespace U3xU4
 {
@@ -130,6 +130,10 @@ namespace U3xU4
       auto rhoCDmax = RMEsR.rhomax();
       auto rhoACBDmax = u3::Rho(AC.u3(), BD.u3(), ABCD.u3());
 
+      if (rhoACmax == 0 || rhoBDmax == 0 || rhoABCDmax == 0 ||
+          rhoABmax == 0 || rhoCDmax == 0 || rhoACBDmax == 0)
+        return {};
+
       auto U3U9 =
           dbs.u3u9db.get_U3U9(A.u3(), B.u3(), C.u3(), D.u3(), AB.u3(), CD.u3(),
                               AC.u3(), BD.u3(), ABCD.u3(), rhoACmax, rhoBDmax,
@@ -147,6 +151,10 @@ namespace U3xU4
       auto etaCDmax = RMEsR.etamax();
       auto etaACBDmax = u4::Eta(AC.u4(), BD.u4(), ABCD.u4());
 
+      if (etaACmax == 0 || etaBDmax == 0 || etaABCDmax == 0 ||
+          etaABmax == 0 || etaCDmax == 0 || etaACBDmax == 0)
+        return {};
+
       auto U4U9 =
           dbs.u4u9db.get_U4U9(A.u4(), B.u4(), C.u4(), D.u4(), AB.u4(), CD.u4(),
                               AC.u4(), BD.u4(), ABCD.u4(), etaACmax, etaBDmax,
@@ -159,10 +167,12 @@ namespace U3xU4
 
       // multiplicities for calculated RMEs:
       qcx_utils::NDIndex14 ndi_res;
+      //std::cout << "Start adding dimensions" << std::endl;
       ndi_res.add_dimensions(RMEsL.afmax(), RMEsR.afmax(), rhoABCDmax,
                              etaABCDmax, RMEsL.aimax(), RMEsR.aimax(), rhoACmax,
                              etaACmax, RMEsL.a0max(), RMEsR.a0max(), rhoBDmax,
                              etaBDmax, rhoACBDmax, etaACBDmax);
+      //std::cout << "Finish adding dimensions" << std::endl;
       size_t n = ndi_res.cardinality();
 
       std::vector<double> rmes(n);
