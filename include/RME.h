@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <iostream>
 #include <utility>
 #include <vector>
 
@@ -57,6 +58,14 @@ namespace sam
       if (ph == -1)
         for (auto& rme : rmes_)
           rme *= -1.0;
+    }
+
+    void print() const
+    {
+      std::cout << "rmes: ";
+      for (const auto rme : rmes_)
+        std::cout << rme << " ";
+      std::cout << "\n";
     }
   };
 
