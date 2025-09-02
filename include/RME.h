@@ -13,7 +13,7 @@ namespace sam
   class RME
   {
     std::vector<double> rmes_;
-    qcx_utils::NDIndex ndi_;
+    qcx_utils::NDIndex5 ndi_;
 
   public:
     RME()
