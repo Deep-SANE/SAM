@@ -265,7 +265,7 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto RMEs = tensor.RME(ket, bra, dbs);
+  auto RMEs = tensor.RME(bra, ket, dbs);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();

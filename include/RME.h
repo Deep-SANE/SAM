@@ -16,12 +16,7 @@ namespace sam
     qcx_utils::NDIndex5 ndi_;
 
   public:
-    RME()
-    {
-      ndi_.add_dimensions(0, 0, 0, 0, 0);
-
-      assert(rmes_.size() == ndi_.cardinality());
-    }
+    RME() = default;
 
     RME(std::vector<double>&& rmes, size_t afmax, size_t aimax, size_t a0max,
         size_t rhomax, size_t etamax)

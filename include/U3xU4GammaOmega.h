@@ -99,6 +99,8 @@ namespace U3xU4
       return t_.etamax;
     }
 
+    const U3xU4::irrep& u3u4() const { return *this; }
+
     // state:
     State state() const { return state_; }
 
@@ -164,8 +166,11 @@ namespace U3xU4
     { }
 
     // getters:
+
     int rhomax() const { return rhomax_; }
     int etamax() const { return etamax_; }
+
+    const U3xU4::irrep& u3u4() const { return *this; }
   };
 
   inline std::ostream& operator<<(std::ostream& s, const OmegaElement& oe)

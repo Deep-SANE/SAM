@@ -76,91 +76,93 @@ namespace U3xU4
 
     auto phase = uncoupling_phase(bra, ket);
 
-    // (3) first single-shell RMEs:
+    // (3) calculate RMEs:
 
-    const U3xU4::SingleShellTensor& T = Gamma[0];
-    const auto& f = bra.gamma[0];
-    const auto& i = ket.gamma[0];
+    sam::RME RMEsL; // left part
 
-    assert(T.shell() == f.shell());
-    assert(T.shell() == i.shell());
-
-    std::size_t rhomaxA, etamaxA; // multi for Wigner-Eckart theorem
-    auto RMEsA = T.RME(f, i, rhomaxA, etamaxA, dbs);
-
-    if (RMEsA.empty())
-      return {};
-
-    // (4) multi-shell RMEs:
-
-    for (size_t k = 1; k < ket.gamma.size(); k++)
+    for (size_t k = 0; k < ket.gamma.size(); k++)
     {
+      // (I) next single-shell RMEs:
+
       const U3xU4::SingleShellTensor& T = Gamma[k];
       const auto& f = bra.gamma[k];
       const auto& i = ket.gamma[k];
 
+      // check unified shells:
       assert(T.shell() == f.shell());
       assert(T.shell() == i.shell());
 
-      std::size_t rhomaxB, etamaxB; // multi for Wigner-Eckart theorem
-      auto RMEsB = T.RME(f, i, rhomaxB, etamaxB, dbs);
+      std::size_t rhomaxR, etamaxR; // multi for Wigner-Eckart theorem
+      auto RMEsR = T.RME(f, i, rhomaxR, etamaxR, dbs); // right part
 
-      if (RMEsB.empty())
+      if (RMEsR.empty())
         return {};
 
-      const U3xU4::irrep& u3u4_11 =
-          (k > 1) ? static_cast<const U3xU4::irrep&>(ket.omega[k - 2])
-                  : static_cast<const U3xU4::irrep&>(ket.gamma[0]);
-      const U3xU4::irrep& u3u4_12 =
-          (k > 1) ? static_cast<const U3xU4::irrep&>(Omega[k - 2])
-                  : static_cast<const U3xU4::irrep&>(Gamma[0]);
-      const U3xU4::irrep& u3u4_13 =
-          (k > 1) ? static_cast<const U3xU4::irrep&>(bra.omega[k - 2])
-                  : static_cast<const U3xU4::irrep&>(bra.gamma[0]);
+      // nothing more to do in first iteration:
+      if (k == 0)
+      {
+        RMEsL = std::move(RMEsR);
+        continue;
+      }
 
-      const U3xU4::irrep& u3u4_21 = i;
-      const U3xU4::irrep& u3u4_22 = T;
-      const U3xU4::irrep& u3u4_23 = f;
+      // (II) 9-recoupling coefficients:
 
-      const U3xU4::irrep& u3u4_31 = ket.omega[k - 1];
-      const U3xU4::irrep& u3u4_32 = Omega[k - 1];
-      const U3xU4::irrep& u3u4_33 = bra.omega[k - 1];
+      const U3xU4::irrep& A =
+          (k > 1) ? ket.omega[k - 2].u3u4() : ket.gamma[0].u3u4();
+      const U3xU4::irrep& B = (k > 1) ? Omega[k - 2].u3u4() : Gamma[0].u3u4();
+      const U3xU4::irrep& AB =
+          (k > 1) ? bra.omega[k - 2].u3u4() : bra.gamma[0].u3u4();
 
-      size_t rhomax = u3::Rho(u3u4_31.u3(), u3u4_32.u3(), u3u4_33.u3());
-      size_t etamax = u4::Eta(u3u4_31.u4(), u3u4_32.u4(), u3u4_33.u4());
+      const U3xU4::irrep& C = i;
+      const U3xU4::irrep& D = T;
+      const U3xU4::irrep& CD = f;
 
-      // 9-U(3) recoupling coefficients
-      auto U3U9 = dbs.u3u9db.get_U3U9(
-          u3u4_11.u3(), u3u4_12.u3(), u3u4_21.u3(), u3u4_22.u3(), u3u4_13.u3(),
-          u3u4_23.u3(), u3u4_31.u3(), u3u4_32.u3(), u3u4_33.u3(),
-          ket.omega[k - 1].rhomax(), Omega[k - 1].rhomax(),
-          bra.omega[k - 1].rhomax(), RMEsA.rhomax(), RMEsB.rhomax(), rhomax);
+      const U3xU4::irrep& AC = ket.omega[k - 1];
+      const U3xU4::irrep& BD = Omega[k - 1];
+      const U3xU4::irrep& ABCD = bra.omega[k - 1];
+
+      // 9-U(3) recoupling coefficients:
+
+      auto rhoACmax = ket.omega[k - 1].rhomax();
+      auto rhoBDmax = Omega[k - 1].rhomax();
+      auto rhoABCDmax = bra.omega[k - 1].rhomax();
+      auto rhoABmax = RMEsL.rhomax();
+      auto rhoCDmax = RMEsR.rhomax();
+      auto rhoACBDmax = u3::Rho(AC.u3(), BD.u3(), ABCD.u3());
+
+      auto U3U9 =
+          dbs.u3u9db.get_U3U9(A.u3(), B.u3(), C.u3(), D.u3(), AB.u3(), CD.u3(),
+                              AC.u3(), BD.u3(), ABCD.u3(), rhoACmax, rhoBDmax,
+                              rhoABCDmax, rhoABmax, rhoCDmax, rhoACBDmax);
 
       if (U3U9.empty())
         return {};
 
-      // 9-U(4) recoupling coefficients
-      auto U4U9 = dbs.u4u9db.get_U4U9(
-          u3u4_11.u4(), u3u4_12.u4(), u3u4_21.u4(), u3u4_22.u4(), u3u4_13.u4(),
-          u3u4_23.u4(), u3u4_31.u4(), u3u4_32.u4(), u3u4_33.u4(),
-          ket.omega[k - 1].etamax(), Omega[k - 1].etamax(),
-          bra.omega[k - 1].etamax(), RMEsA.etamax(), RMEsB.etamax(), etamax);
+      // 9-U(4) recoupling coefficients:
+
+      auto etaACmax = ket.omega[k - 1].etamax();
+      auto etaBDmax = Omega[k - 1].etamax();
+      auto etaABCDmax = bra.omega[k - 1].etamax();
+      auto etaABmax = RMEsL.etamax();
+      auto etaCDmax = RMEsR.etamax();
+      auto etaACBDmax = u4::Eta(AC.u4(), BD.u4(), ABCD.u4());
+
+      auto U4U9 =
+          dbs.u4u9db.get_U4U9(A.u4(), B.u4(), C.u4(), D.u4(), AB.u4(), CD.u4(),
+                              AC.u4(), BD.u4(), ABCD.u4(), etaACmax, etaBDmax,
+                              etaABCDmax, etaABmax, etaCDmax, etaACBDmax);
 
       if (U4U9.empty())
         return {};
 
-      // combine RMEsA, RMEsB, U3U9coeff, and U4U9coeff into RMEs:
+      // (III) combine RMEsL, RMEsR, U3U9coeff, and U4U9coeff into RMEs:
 
-      // multiplicities for resulting RMEs:
-      qcx_utils::NDIndex ndi_res;
-
-      ndi_res.add_dimensions(
-          RMEsA.afmax(), RMEsB.afmax(), bra.omega[k - 1].rhomax(),
-          bra.omega[k - 1].etamax(), RMEsA.aimax(), RMEsB.aimax(),
-          ket.omega[k - 1].rhomax(), ket.omega[k - 1].etamax(), RMEsA.a0max(),
-          RMEsB.a0max(), Omega[k - 1].rhomax(), Omega[k - 1].etamax(), rhomax,
-          etamax);
-
+      // multiplicities for calculated RMEs:
+      qcx_utils::NDIndex14 ndi_res;
+      ndi_res.add_dimensions(RMEsL.afmax(), RMEsR.afmax(), rhoABCDmax,
+                             etaABCDmax, RMEsL.aimax(), RMEsR.aimax(), rhoACmax,
+                             etaACmax, RMEsL.a0max(), RMEsR.a0max(), rhoBDmax,
+                             etaBDmax, rhoACBDmax, etaACBDmax);
       size_t n = ndi_res.cardinality();
 
       std::vector<double> rmes(n);
@@ -170,27 +172,44 @@ namespace U3xU4
         std::array<size_t, 14> multi_res;
         ndi_res.to_multi(k, multi_res);
 
-        for (size_t rhoA = 0; rhoA < RMEsA.rhomax(); rhoA++)
-          for (size_t rhoB = 0; rhoB < RMEsB.rhomax(); rhoB++)
+        for (size_t rhoAB = 0; rhoAB < rhoABmax; rhoAB++)
+          for (size_t rhoCD = 0; rhoCD < rhoCDmax; rhoCD++)
           {
-            auto u3u9 = U3U9.get(multi_res[6], multi_res[10], multi_res[2],
-                                 rhoA, rhoB, multi_res[12]);
+            auto rhoAC = multi_res[6];
+            auto rhoBD = multi_res[10];
+            auto rhoABCD = multi_res[2];
+            auto rhoACBD = multi_res[12];
 
-            for (size_t etaA = 0; etaA < RMEsA.etamax(); etaA++)
-              for (size_t etaB = 0; etaB < RMEsB.etamax(); etaB++)
+            auto u3u9 = U3U9.get(rhoAC, rhoBD, rhoABCD, rhoAB, rhoCD, rhoACBD);
+
+            for (size_t etaAB = 0; etaAB < etaABmax; etaAB++)
+              for (size_t etaCD = 0; etaCD < etaCDmax; etaCD++)
               {
-                auto u4u9 = U4U9.get(multi_res[7], multi_res[11], multi_res[3],
-                                     etaA, etaB, multi_res[12]);
+                auto etaAC = multi_res[7];
+                auto etaBD = multi_res[11];
+                auto etaABCD = multi_res[3];
+                auto etaACBD = multi_res[13];
 
-                auto rmeA = RMEsA.get(multi_res[0], multi_res[4], multi_res[8],
-                                      rhoA, etaA);
-                auto rmeB = RMEsB.get(multi_res[1], multi_res[5], multi_res[9],
-                                      rhoB, etaB);
+                auto u4u9 = U4U9.get(etaAC, etaBD, etaABCD, etaAB, etaCD, etaACBD);
 
-                rmes[k] += u3u9 * u4u9 * rmeA * rmeB;
+                auto aLf = multi_res[0];
+                auto aLi = multi_res[4];
+                auto aL0 = multi_res[8];
+
+                auto rmeL = RMEsL.get(aLf, aLi, aL0, rhoAB, etaAB);
+
+                auto aRf = multi_res[1];
+                auto aRi = multi_res[5];
+                auto aR0 = multi_res[9];
+
+                auto rmeR = RMEsR.get(aRf, aRi, aR0, rhoCD, etaCD);
+
+                rmes[k] += u3u9 * u4u9 * rmeL * rmeR;
               }
           }
       }
+
+      // resolve multiplicities of resulting RMEs:
 
       size_t af_max = ndi_res.dimension(0) * ndi_res.dimension(1) *
                       ndi_res.dimension(2) * ndi_res.dimension(3);
@@ -199,12 +218,17 @@ namespace U3xU4
       size_t a0_max = ndi_res.dimension(8) * ndi_res.dimension(9) *
                       ndi_res.dimension(10) * ndi_res.dimension(11);
 
-      RMEsA = {std::move(rmes), af_max, ai_max, a0_max, rhomax, etamax};
+      RMEsL = {std::move(rmes),
+               af_max,
+               ai_max,
+               a0_max,
+               static_cast<size_t>(rhoACBDmax),
+               static_cast<size_t>(etaACBDmax)};
     }
 
-    RMEsA.phase(phase);
+    RMEsL.phase(phase);
 
-    return RMEsA;
+    return RMEsL;
   }
 
 } // namespace U3xU4

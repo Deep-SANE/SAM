@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
 
   // (6) calculate RMEs:
 
-  auto RMEs = uT->RME(uket, ubra, dbs);
+  auto RMEs = uT->RME(ubra, uket, dbs);
 
   print("\nRMEs:\n");
   for (size_t i = 0; i < RMEs.size(); i++)
