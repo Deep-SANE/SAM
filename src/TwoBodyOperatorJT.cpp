@@ -787,13 +787,13 @@ namespace JT
     U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs)
   {
     // expand now
-    auto tensors = expand(dbs);
+    // auto tensors = expand(dbs);
 
     // write to binary, valenceShell must be 0 for future reuse
     // writeBinary(dbs);
 
     // read from binary
-    // auto tensors = readBinary();
+    auto tensors = readBinary();
     //std::cout << "Expand successfully" << std::endl;
 
     std::vector<U3xU4::MultiShellTensor_phys> tensors_new;

@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
   //////////////////////////////////////
 
   // Example 1: Two-body part of LL
-  
+  /*
   int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
@@ -56,9 +56,36 @@ int main(int argc, char* argv[])
   LL.is();
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
+  */
+
+  // Example 2: Two-body part of LS
+  
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
+  HO::Table_nljmjmt labels(maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  JT::TwoBodyOperator LS("L.S", labels, hw, Nmax, valenceShell, maxShell);
+
+  // expand now
+  // auto tensors = LS.expand(dbs);
+
+  // write to binary, valenceShell must be 0 for future reuse
+  LS.writeBinary(dbs);
+
+  // read from binary
+  auto tensors = LS.readBinary();
+  
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  LS.is();
+  for (auto tensor : tensors)
+    std::cout << tensor << std::endl;
   
 
-  // Example 2: Two-body part of relative kinetic energy
+  // Example 3: Two-body part of relative kinetic energy
   /*
   int hw = 20, valenceShell = 1, Nmax = 2, maxShell = 3;
   HO::Table_nljmjmt labels(maxShell);
@@ -85,7 +112,7 @@ int main(int argc, char* argv[])
     std::cout << tensor << std::endl;
   */
 
-  // Example 3: Two-body potential (bare) with N2LO_opt
+  // Example 4: Two-body potential (bare) with N2LO_opt
   /*
   int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
@@ -113,7 +140,7 @@ int main(int argc, char* argv[])
     std::cout << tensor << std::endl;
   */
 
-  // Example 4: Two-body potential (bare) with N3LO_EMN500
+  // Example 5: Two-body potential (bare) with N3LO_EMN500
   /*
   int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);

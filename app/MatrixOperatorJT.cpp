@@ -33,8 +33,12 @@ int main(int argc, char* argv[])
   basis.construct();
   auto irreps = basis.irreps();
   auto labels = basis.decomposition();
-  std::vector<double> lls;
+  std::vector<double> analyticals;
 
+  sam::Databases dbs;
+
+  // Example 1: the L.L operator
+  /*
   size_t i = 0;
   for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
   {
@@ -43,16 +47,12 @@ int main(int argc, char* argv[])
       for (size_t j = 0; 
            j < labels[irrep_id][labels_id][0]*labels[irrep_id][labels_id][2]; j++)
       {
-        auto l = labels[irrep_id][labels_id][1] / 2; 
-        lls.push_back(l * (l + 1));
+        auto l = labels[irrep_id][labels_id][1] / 2.0; 
+        analyticals.push_back(l * (l + 1));
         i++;
       }
     }
   }
-
-  sam::Databases dbs;
-
-  // Example 1: the L.L operator
   
   int hw = -1, maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
@@ -72,10 +72,52 @@ int main(int argc, char* argv[])
   //std::cout << "Matrix representation is " << std::endl;
   //std::cout << mat2 << std::endl;
 
-  Eigen::SparseMatrix<double> mat = mat1 + mat2;
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
+  */
 
+  // Example 2: the L.S operator
+  
+  size_t i = 0;
+  for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
+  {
+    for (size_t labels_id = 0; labels_id < labels[irrep_id].size(); labels_id++)
+    {
+      for (size_t j = 0; 
+           j < labels[irrep_id][labels_id][0]*labels[irrep_id][labels_id][2]; j++)
+      {
+        auto L = labels[irrep_id][labels_id][1] / 2.0; 
+        auto S = labels[irrep_id][labels_id][3] / 2.0; 
+        auto J = JJ / 2.0;
+        analyticals.push_back((J * (J + 1.0) - L * (L + 1.0) - S * (S + 1.0)) / 2.0);
+        i++;
+      }
+    }
+  }
+  
+  int hw = -1, maxShell = valanceShell + Nmax;
+  HO::Table_nljmjmt HO_labels(maxShell);
+  JT::OneBodyOperator LS1("L.S",hw,maxShell);  
+  JT::TwoBodyOperator LS2("L.S", HO_labels, hw, Nmax, valanceShell, maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  LS1.is();
+  auto mat1 = LS1.matrix(basis, dbs);
+  //std::cout << "Matrix representation is " << std::endl;
+  //std::cout << mat1 << std::endl;
+
+  LS2.is();
+  auto mat2 = LS2.matrix(basis, dbs);
+  //std::cout << "Matrix representation is " << std::endl;
+  //std::cout << mat2 << std::endl;
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+  
+
+  Eigen::SparseMatrix<double> mat = mat1 + mat2;
   std::cout << "Total matrix representation is " << std::endl;
   //std::cout << mat << std::endl;
   for (int k = 0; k < mat.outerSize(); ++k) 
@@ -87,7 +129,7 @@ int main(int argc, char* argv[])
                   << it.value() << "\t";
         if (it.row() != it.col())
           std::cout << "Off-diagonal\t";
-      	if (std::fabs(lls[it.row()] - it.value()) > 1e-10)
+      	if (std::fabs(analyticals[it.row()] - it.value()) > 1e-10)
       	  std::cout << "Not analytical";
       	std::cout << std::endl;
       }

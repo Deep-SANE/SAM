@@ -153,10 +153,10 @@ namespace U3xU4
               for (auto uG : uT->Gamma)
                 std::cout << uG << std::endl;
               for (auto uO : uT->Omega)
-                std::cout << uO << std::endl;
+                std::cout << uO << std::endl; 
 */
               auto rmes = uT->RME(ubra, uket, dbs);
-              rmes.print();
+              // rmes.print();
               RMEs.push_back(rmes);
             }
             else
@@ -299,7 +299,7 @@ namespace U3xU4
                             // 		   << " etamax = " << etamax << std::endl;
 
                           	// std::cout << "Tensor: " << tensors[tensor_id] << std::endl;
-                          	// RMEs[tensor_id].print();
+                            // RMEs[tensor_id].print();
 
                             // going through subgroup labels of the tensor
                             for (size_t ls_id = 0;
