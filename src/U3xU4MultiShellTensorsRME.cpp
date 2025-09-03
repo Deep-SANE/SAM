@@ -112,8 +112,8 @@ namespace U3xU4
       assert(T.shell() == f.shell());
       assert(T.shell() == i.shell());
 
-      std::size_t rhomaxR, etamaxR; // multi for Wigner-Eckart theorem
-      auto RMEsR = T.RME(f, i, rhomaxR, etamaxR, dbs); // right part
+      std::size_t rhomax_temp, etamax_temp; // multi for Wigner-Eckart theorem
+      auto RMEsR = T.RME(f, i, rhomax_temp, etamax_temp, dbs); // right part
 
       if (RMEsR.empty())
         return {};
@@ -201,44 +201,42 @@ namespace U3xU4
 
       std::vector<double> rmes(n);
 
-      for (size_t k = 0; k < n; k++)
+      for (size_t j = 0; j < n; j++)
       {
         std::array<size_t, 14> multi_res;
-        ndi_res.to_multi(k, multi_res);
+        ndi_res.to_multi(j, multi_res);
+
+        auto rhoAC = multi_res[6];
+        auto rhoBD = multi_res[10];
+        auto rhoABCD = multi_res[2];
+        auto rhoACBD = multi_res[12];
+
+        auto etaAC = multi_res[7];
+        auto etaBD = multi_res[11];
+        auto etaABCD = multi_res[3];
+        auto etaACBD = multi_res[13];
+
+        auto aLf = multi_res[0];
+        auto aLi = multi_res[4];
+        auto aL0 = multi_res[8];
+
+        auto aRf = multi_res[1];
+        auto aRi = multi_res[5];
+        auto aR0 = multi_res[9];
 
         for (size_t rhoAB = 0; rhoAB < rhoABmax; rhoAB++)
           for (size_t rhoCD = 0; rhoCD < rhoCDmax; rhoCD++)
           {
-            auto rhoAC = multi_res[6];
-            auto rhoBD = multi_res[10];
-            auto rhoABCD = multi_res[2];
-            auto rhoACBD = multi_res[12];
-
             auto u3u9 = U3U9.get(rhoAC, rhoBD, rhoABCD, rhoAB, rhoCD, rhoACBD);
 
             for (size_t etaAB = 0; etaAB < etaABmax; etaAB++)
               for (size_t etaCD = 0; etaCD < etaCDmax; etaCD++)
               {
-                auto etaAC = multi_res[7];
-                auto etaBD = multi_res[11];
-                auto etaABCD = multi_res[3];
-                auto etaACBD = multi_res[13];
-
                 auto u4u9 = U4U9.get(etaAC, etaBD, etaABCD, etaAB, etaCD, etaACBD);
-
-                auto aLf = multi_res[0];
-                auto aLi = multi_res[4];
-                auto aL0 = multi_res[8];
-
                 auto rmeL = RMEsL.get(aLf, aLi, aL0, rhoAB, etaAB);
-
-                auto aRf = multi_res[1];
-                auto aRi = multi_res[5];
-                auto aR0 = multi_res[9];
-
                 auto rmeR = RMEsR.get(aRf, aRi, aR0, rhoCD, etaCD);
 
-                rmes[k] += u3u9 * u4u9 * rmeL * rmeR;
+                rmes[j] += u3u9 * u4u9 * rmeL * rmeR;
               }
           }
       }
