@@ -104,6 +104,20 @@ namespace U3xU4
     // state:
     State state() const { return state_; }
 
+    // checks for vacuum/identity:
+
+    bool vacuum() const 
+    {
+      assert(state_ == State::Basis);
+      return U3xU4::irrep::vacuum();
+    }
+
+    bool identity() const
+    {
+      assert(state_ == State::Tensor);
+      return U3xU4::irrep::vacuum();
+    }
+
     // write to binary file
     void writeBinary(std::ostream& s) const
     {

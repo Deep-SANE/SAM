@@ -46,8 +46,10 @@ namespace U3xU4
     oGamma.reserve(gamma.size());
     oOmega.reserve(omega.size());
 
+    /*
     std::vector<uint8_t> added;
     added.reserve(gamma.size());
+    */
 
     // (4) unify tensor gamma:
 
@@ -61,7 +63,7 @@ namespace U3xU4
       {
         // (1) there is a corresponding tensor Gamma element:
         oGamma.push_back(Gamma[i_Gamma]);
-        added.push_back(false);
+        // added.push_back(false);
         i_Gamma++;
       }
       else
@@ -70,7 +72,7 @@ namespace U3xU4
         SingleShellTensor Identity(shell, 0, 0, {}, {},
                                    {{0, 0, 0}, {0, 0, 0, 0}}, 1, 1);
         oGamma.push_back(Identity);
-        added.push_back(true);
+        // added.push_back(true);
       }
     }
 
@@ -82,25 +84,30 @@ namespace U3xU4
 
     if (oGamma.size() > 1)
     {
-      if (added[0] && added[1])
+      // if (added[0] && added[1])
+      if (oGamma[0].identity() && oGamma[1].identity())
         oOmega.emplace_back(1, u3::irrep{0, 0, 0}, 1, u4::irrep{0, 0, 0, 0});
-      else if (added[0])
+      // else if (added[0])
+      else if (oGamma[0].identity())
         oOmega.emplace_back(1, oGamma[1].u3(), 1, oGamma[1].u4());
-      else if (added[1])
+      // else if (added[1])
+      else if (oGamma[1].identity())
         oOmega.emplace_back(1, oGamma[0].u3(), 1, oGamma[0].u4());
       else
         oOmega.push_back(Omega[i_Omega++]);
 
       for (i_Gamma = 2; i_Gamma < oGamma.size(); i_Gamma++)
       {
-        if (added[i_Gamma])
+        // if (added[i_Gamma])
+        if (oGamma[i_Gamma].identity())
         {
           auto Oe = oOmega.back();
           oOmega.emplace_back(1, Oe.u3(), 1, Oe.u4());
         }
         else if (i_Omega == 0)
         {
-          if (added[0] && added[1])
+          // if (added[0] && added[1])
+          if (oGamma[0].identity() && oGamma[1].identity())
             oOmega.emplace_back(1, oGamma[i_Gamma].u3(), 1, oGamma[i_Gamma].u4());
           else
             oOmega.emplace_back(Omega[i_Omega]);
