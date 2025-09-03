@@ -58,6 +58,26 @@ namespace U3xU4
     return phase;
   }
 
+  // helper function to check RMEs multiplicities:
+  template <typename G, typename O>
+  static size_t alphamax(const G& gamma, const O& omega)
+  {
+    assert(gamma.size() == omega.size() + 1);
+
+    size_t res = 1;
+
+    for (const auto& ge : gamma)
+      if (ge.state() == U3xU4::GammaElement::State::Basis)
+        res *= ge.alphamax();
+      else if (ge.state() == U3xU4::GammaElement::State::Tensor)
+        res *= ge.rhomax() * ge.etamax();
+
+    for (const auto& oe : omega)
+      res *= oe.rhomax() * oe.etamax();
+
+    return res;
+  }
+
   sam::RME MultiShellTensor::RME(const U3xU4::ManyNucleonBasis::Irrep& bra,
                                  const U3xU4::ManyNucleonBasis::Irrep& ket,
                                  sam::Databases& dbs) const
@@ -240,6 +260,12 @@ namespace U3xU4
                static_cast<size_t>(etaACBDmax)};
     }
 
+    // check multiplicities:
+    assert(RMEsL.afmax() == alphamax(bra.gamma, bra.omega));
+    assert(RMEsL.aimax() == alphamax(ket.gamma, ket.omega));
+    assert(RMEsL.a0max() == alphamax(Gamma, Omega));
+
+    // apply phase factor:
     RMEsL.phase(phase);
 
     return RMEsL;
