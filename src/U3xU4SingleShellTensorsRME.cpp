@@ -162,31 +162,16 @@ namespace U3xU4
     // for (int i = 0; i < coeffs_f.size(); i++)
     //     std::cout << coeffs_f[i] << std::endl;
 
-    // Array of matricies containing full matrix elements:
-    // index = alpha_i * max(alpha_f) + alpha_f
-    std::vector<Eigen::MatrixXd> FMEs;
-    for (std::size_t ai = 0; ai < ai_max; ai++)
-    {
-      for (std::size_t af = 0; af < af_max; af++)
-      {
-        Eigen::MatrixXd fme(rhomax * etamax, rho0max() * eta0max());
-        fme.setZero();
-        FMEs.push_back(fme);
-      }
-    }
-
-    // A matrix containing coupling coefficients
-    Eigen::MatrixXd CGCs(rhomax * etamax, rhomax * etamax);
-    CGCs.setZero();
-
     // Generate tensor components of the tensor
     std::vector<u3::gelfand> g3Arr = u3::gelfandBasis(T().u3());
     std::vector<std::size_t> g3Arr0;
+    int missing3 = (N_quanta_i + T().quanta() - N_quanta_f) / 3;
+/*
     int missing3 = (i.u3().n13() + i.u3().n23() + i.u3().n33() +
                     T().u3().n13() + T().u3().n23() + T().u3().n33() -
                     f.u3().n13() - f.u3().n23() - f.u3().n33()) /
                    3;
-
+*/
     for (std::size_t i = 0; i < g3Arr.size(); i++)
       if ((i3hws.e22() + g3Arr[i].e22()) == (f3hws.e22() + missing3) &&
           (i3hws.e11() + g3Arr[i].e11()) == (f3hws.e11() + missing3))
@@ -194,11 +179,14 @@ namespace U3xU4
 
     std::vector<u4::gelfand> g4Arr = u4::gelfandBasis(T().u4());
     std::vector<std::size_t> g4Arr0;
+    int missing4 = (A_i + T().particles() - A_f) / 4;
+/*
     int missing4 =
         (i.u4().n14() + i.u4().n24() + i.u4().n34() + i.u4().n44() +
          T().u4().n14() + T().u4().n24() + T().u4().n34() + T().u4().n44() -
          f.u4().n14() - f.u4().n24() - f.u4().n34() - f.u4().n44()) /
         4;
+*/
 
     for (std::size_t i = 0; i < g4Arr.size(); i++)
       if ((i4hws.e33() + g4Arr[i].e33()) == (f4hws.e33() + missing4) &&
@@ -213,14 +201,33 @@ namespace U3xU4
         jj_f4 = f4hws.Lambdax2(), mm_f4 = f4hws.MLambdax2();
 
     // std::cout << "Count tensor components: " << g3Arr0.size()
-    //		  <<" x " << g4Arr0.size() << std::endl;
+    // 		  <<" x " << g4Arr0.size() << std::endl;
+
+    // Array of matricies containing full matrix elements:
+    // index = alpha_i * max(alpha_f) + alpha_f
+    std::vector<Eigen::MatrixXd> FMEs;
+    for (std::size_t ai = 0; ai < ai_max; ai++)
+    {
+      for (std::size_t af = 0; af < af_max; af++)
+      {
+        //Eigen::MatrixXd fme(rhomax * etamax, rho0max() * eta0max());
+        Eigen::MatrixXd fme(g3Arr0.size() * g4Arr0.size(), rho0max() * eta0max());
+        fme.setZero();
+        FMEs.push_back(fme);
+      }
+    }
+
+    // A matrix containing coupling coefficients
+    Eigen::MatrixXd CGCs(g3Arr0.size() * g4Arr0.size(), rhomax * etamax);
+    CGCs.setZero();
 
     // Now run through tensor components
     int row = 0;
-    bool done = false;
-    for (std::size_t g3 = 0; g3 < g3Arr0.size() && !done; g3++)
+    //bool done = false;
+    for (std::size_t g3 = 0; g3 < g3Arr0.size()/* && !done*/; g3++)
     {
       u3::gelfand gt3 = g3Arr[g3Arr0[g3]];
+      // std::cout << gt3 << std::endl;
       int jj_t3 = gt3.Lambdax2(), mm_t3 = gt3.MLambdax2();
 
       auto [allowU3, accU3] = wigU3U2db.get(
@@ -237,10 +244,11 @@ namespace U3xU4
 
       // std::cout << "cgcU3 " << cgcU3 << std::endl;
 
-      for (std::size_t g4 = 0; g4 < g4Arr0.size() && !done; g4++)
+      for (std::size_t g4 = 0; g4 < g4Arr0.size()/* && !done*/; g4++)
       {
 
         u4::gelfand gt4 = g4Arr[g4Arr0[g4]];
+        // std::cout << gt4 << std::endl;
         int jj_t4 = gt4.Lambdax2(), mm_t4 = gt4.MLambdax2();
 
         auto [allowU4, accU4] =
@@ -362,8 +370,8 @@ namespace U3xU4
         }
 
         row++;
-        if (row == CGCs.rows())
-          done = true;
+        //if (row == CGCs.rows())
+        //  done = true;
       }
     }
 
