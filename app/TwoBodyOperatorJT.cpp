@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
   */
 
   // Example 2: Two-body part of LS
-  
+  /*
   int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
   LS.is();
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
-  
+  */
 
   // Example 3: Two-body part of relative kinetic energy
   /*
@@ -167,6 +167,34 @@ int main(int argc, char* argv[])
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
   */
+
+  // Example 5: Two-body potential (bare) with N3LO_EMN500
+  
+  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  HO::Table_nljmjmt labels(maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  JT::TwoBodyOperator CoM("CoMNumberOp", labels, hw, Nmax, valenceShell,
+                         maxShell);
+
+  // expand now
+  // auto tensors = CoM.expand(dbs);
+
+  // write to binary, valenceShell must be 0 for future reuse
+  CoM.writeBinary(dbs);
+
+  // read from binary
+  auto tensors = CoM.readBinary();
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  CoM.is();
+  for (auto tensor : tensors)
+    std::cout << tensor << std::endl;
+  
 
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
 

@@ -170,10 +170,10 @@ namespace U3xU4
           // std::cout << "Start to calculate FMEs" << std::endl;
           size_t bra_labels_max = labels[bra_id].size(),
                  bra_labels_dim = labels[bra_id].back()[5] +
-                   labels[bra_id].back()[0] * labels[bra_id].back()[2],
+                 labels[bra_id].back()[0] * labels[bra_id].back()[2],
                  ket_labels_max = labels[ket_id].size(),
                  ket_labels_dim = labels[ket_id].back()[5] +
-                   labels[ket_id].back()[0] * labels[ket_id].back()[2];
+                 labels[ket_id].back()[0] * labels[ket_id].back()[2];
 
           for (size_t bra_labels_id = 0; bra_labels_id < bra_labels_max;
                bra_labels_id++) // going through bra labels

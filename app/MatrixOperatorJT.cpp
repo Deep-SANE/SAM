@@ -1,4 +1,5 @@
 #include <chrono>
+#include <iomanip>
 #include <iostream>
 
 #include <Databases.h>
@@ -31,14 +32,16 @@ int main(int argc, char* argv[])
 
   U3xU4::ManyNucleonBasis basis(Z, N, Nmax, JJ);
   basis.construct();
-  auto irreps = basis.irreps();
-  auto labels = basis.decomposition();
-  std::vector<double> analyticals;
+  std::cout << "Basis dimension: " << basis.dim() << std::endl;
 
   sam::Databases dbs;
 
   // Example 1: the L.L operator
-  /*
+  
+  auto irreps = basis.irreps();
+  auto labels = basis.decomposition();
+  std::vector<double> analyticals;
+
   size_t i = 0;
   for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
   {
@@ -74,10 +77,32 @@ int main(int argc, char* argv[])
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  */
+
+  Eigen::SparseMatrix<double> mat = mat1 + mat2;
+  std::cout << "Total matrix representation is " << std::endl;
+  //std::cout << mat << std::endl;
+  for (int k = 0; k < mat.outerSize(); ++k) 
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat, k); it; ++it) 
+    {
+      if (std::fabs(it.value()) > 1e-10)
+      {
+        std::cout << "(" << it.row() << "," << it.col() << "): "
+                  << it.value() << "\t";
+        if (it.row() != it.col())
+          std::cout << "Off-diagonal\t";
+      	if (std::fabs(analyticals[it.row()] - it.value()) > 1e-10)
+      	  std::cout << "Not analytical";
+      	std::cout << std::endl;
+      }
+    }
+  
 
   // Example 2: the L.S operator
-  
+  /*
+  auto irreps = basis.irreps();
+  auto labels = basis.decomposition();
+  std::vector<double> analyticals;
+
   size_t i = 0;
   for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
   {
@@ -116,7 +141,6 @@ int main(int argc, char* argv[])
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
   
-
   Eigen::SparseMatrix<double> mat = mat1 + mat2;
   std::cout << "Total matrix representation is " << std::endl;
   //std::cout << mat << std::endl;
@@ -134,7 +158,44 @@ int main(int argc, char* argv[])
       	std::cout << std::endl;
       }
     }
+  */
+
+  // Example 3: the CoM number operator
+  /*
+  int hw = -1, maxShell = valanceShell + Nmax;
+  HO::Table_nljmjmt HO_labels(maxShell);
+  JT::OneBodyOperator CoM1("CoMNumberOp",hw,maxShell);  
+  JT::TwoBodyOperator CoM2("CoMNumberOp", HO_labels, hw, Nmax, valanceShell, maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  CoM1.is();
+  auto mat1 = CoM1.matrix(basis, dbs);
+  //std::cout << "Matrix representation is " << std::endl;
+  //std::cout << mat1 << std::endl;
+
+  CoM2.is();
+  auto mat2 = CoM2.matrix(basis, dbs);
+  //std::cout << "Matrix representation is " << std::endl;
+  //std::cout << mat2 << std::endl;
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
   
+  Eigen::SparseMatrix<double> mat = mat1 + mat2;
+  std::cout << "Total matrix representation is " << std::endl;
+  //std::cout << mat << std::endl;
+  for (int k = 0; k < mat.outerSize(); ++k) 
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat, k); it; ++it) 
+    {
+      if (std::fabs(it.value()) > 1e-10)
+      {
+        std::cout << it.row() << "\t" << it.col() << "\t"
+                  << std::setprecision(10) << it.value() << std::endl;
+      }
+    }
+  */
   
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;
