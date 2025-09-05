@@ -110,10 +110,9 @@ namespace U3xU4
           if (oGamma[0].identity() && oGamma[1].identity())
             oOmega.emplace_back(1, oGamma[i_Gamma].u3(), 1, oGamma[i_Gamma].u4());
           else
-          {
             oOmega.emplace_back(Omega[i_Omega]);
-            i_Omega++;
-          }
+          
+          i_Omega++;
         }
         else
         {
