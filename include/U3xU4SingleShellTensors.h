@@ -666,6 +666,9 @@ namespace U3xU4
     // Get the number of at's
     uint8_t num_ats() const { return ats; }
 
+    // Check if it's identity
+    bool identity() const { return (ads == 0) && (ats == 0); }
+
     const U3xU4::irrep& T() const { return *this; }
 
     int rho0max() const { return rhomax(); }
