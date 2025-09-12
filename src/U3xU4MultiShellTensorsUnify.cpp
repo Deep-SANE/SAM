@@ -81,7 +81,7 @@ namespace U3xU4
     // (5) reconstruct tensor omega:
 
     size_t i_Omega = 0;
-
+/*
     if (oGamma.size() > 1)
     {
       // if (added[0] && added[1])
@@ -119,6 +119,54 @@ namespace U3xU4
         {
           // std::cout << i_Omega << std::endl;
           oOmega.push_back(Omega[i_Omega++]);
+        }
+      }
+    }
+*/
+
+    if (oGamma.size() > 1)
+    {
+      size_t count_preceding_identities = 0;
+      for (const auto& g : oGamma)
+      {
+        if (g.identity())
+          count_preceding_identities++;
+        else
+          break;
+      }
+
+      if (count_preceding_identities >= 2)
+      {
+        for (size_t cnt = 0; cnt < count_preceding_identities - 1; cnt++)
+          oOmega.emplace_back(1, u3::irrep{0, 0, 0}, 1, u4::irrep{0, 0, 0, 0});
+
+        oOmega.emplace_back(1, oGamma[count_preceding_identities].u3(), 
+                            1, oGamma[count_preceding_identities].u4());
+
+        for (i_Gamma = count_preceding_identities + 1; 
+             i_Gamma < oGamma.size(); i_Gamma++)
+        {
+          if (oGamma[i_Gamma].identity())
+            oOmega.emplace_back(1, oOmega.back().u3(), 1, oOmega.back().u4());
+          else
+            oOmega.push_back(Omega[i_Omega++]);
+        }
+      }
+      else // count_preceding_identities == 0
+      {
+        if (oGamma[0].identity())
+          oOmega.emplace_back(1, oGamma[1].u3(), 1, oGamma[1].u4());
+        else if (oGamma[1].identity())
+          oOmega.emplace_back(1, oGamma[0].u3(), 1, oGamma[0].u4());
+        else
+          oOmega.push_back(Omega[i_Omega++]);
+
+        for (i_Gamma = 2; i_Gamma < oGamma.size(); i_Gamma++)
+        {
+          if (oGamma[i_Gamma].identity())
+            oOmega.emplace_back(1, oOmega.back().u3(), 1, oOmega.back().u4());
+          else
+            oOmega.push_back(Omega[i_Omega++]);
         }
       }
     }
