@@ -8,6 +8,9 @@
 #include <GlobalConstants.h>
 #include <HOutilities.h>
 
+#define POSITIVE_INFINITY
+//#define POSITIVE_ORIGIN
+
 namespace HO
 {
   //////////// Class Table_nljmjmt /////////////
@@ -60,7 +63,12 @@ namespace HO
       if (lla == llb + 2)
         return factor * std::sqrt((llb / 2.0 + 1.0) * (nb + llb / 2.0 + 3.0));
       else if (lla == llb - 2)
+#ifdef POSITIVE_INFINITY
         return -1.0 * factor * std::sqrt((llb / 2.0) * (nb - llb / 2.0 + 2.0));
+#endif
+#ifdef POSITIVE_ORIGIN
+        return factor * std::sqrt((llb / 2.0) * (nb - llb / 2.0 + 2.0));
+#endif
       else
         return 0.0;
     }
@@ -91,7 +99,12 @@ namespace HO
     {
       double factor = 1.0 / std::sqrt(lla + 1.0);
       if (lla == llb + 2)
+#ifdef POSITIVE_INFINITY
         return factor * std::sqrt((llb / 2.0 + 1.0) * (nb - llb / 2.0));
+#endif
+#ifdef POSITIVE_ORIGIN
+        return -1.0 * factor * std::sqrt((llb / 2.0 + 1.0) * (nb - llb / 2.0));
+#endif
       else if (lla == llb - 2)
         return -1.0 * factor * std::sqrt((llb / 2.0) * (nb + llb / 2.0 + 1.0));
       else
