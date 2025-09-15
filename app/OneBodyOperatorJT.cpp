@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
   */
 
   // Example 3: one-body part of the relative kinetic energy
-
+  /*
   int hw = -1, maxShell = 8;
   JT::OneBodyOperator KE("Kinetic", hw, maxShell);
 
@@ -68,6 +68,25 @@ int main(int argc, char* argv[])
   KE.is();
   for (auto tensor : tensors)
     std::cout << tensor << std::endl;
+  */
+
+  // Example 4: one-body part of the CoM HO Number Operator
+  
+  int hw = -1, maxShell = 0;
+  JT::OneBodyOperator CoM("CoMNumberOp", hw, maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  auto tensors = CoM.expand(dbs);
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  CoM.is();
+  for (auto tensor : tensors)
+    std::cout << tensor << std::endl;
+  
 
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;

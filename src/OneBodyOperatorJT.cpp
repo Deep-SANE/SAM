@@ -476,7 +476,7 @@ namespace JT
     auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
 
     std::vector<double> x(kappa0, 0.0);
-    double sum = 0.0;
+
     // loop over la
     for (int lla = 2 * na; lla >= 2 * (na % 2); lla -= 4)
     {
@@ -548,7 +548,6 @@ namespace JT
                   double y = phase * U9j * Coeffs3(k, 0) * Coeffs4(0, 0) * rme *
                              factor;
                   // std::cout << y << std::endl;
-                  sum += y;
                   x[k] += y;
                 }
               }
@@ -565,8 +564,7 @@ namespace JT
                   double y = phase * U9j * Coeffs3(k, 0) * Coeffs4(0, 0) * rme *
                              factor;
                   // std::cout << y << std::endl;
-                  sum += y;
-                  x[k] += y;
+                  x[k] -= y;
                 }
               }
             }
@@ -602,7 +600,6 @@ namespace JT
                       double y = phase * cgcJ * cgcT * U9j * Coeffs3(k, 0) *
                                  Coeffs4(0, 0) * me;
                       // std::cout << y << std::endl;
-                      sum += y;
                       x[k] += y;
                     }
                   }
@@ -616,7 +613,6 @@ namespace JT
                       double y = phase * cgcJ * cgcT * U9j * Coeffs3(k, 0) *
                                  Coeffs4(0, 0) * me;
                       // std::cout << y << std::endl;
-                      sum -= y;
                       x[k] -= y;
                     }
                   }
@@ -628,6 +624,10 @@ namespace JT
       }
     }
     // std::cout << "Finish getTensorStrength\n";
+    double sum = 0.0;
+    for (const auto& X : x)
+      sum += std::fabs(X);
+    
     return std::make_pair((std::fabs(sum) < 1e-8), x);
   }
 
