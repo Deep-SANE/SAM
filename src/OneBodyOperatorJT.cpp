@@ -758,13 +758,13 @@ namespace JT
       {
         Gamma.push_back({
           qcx_utils::itou16(tensor.a.n13()),
-          qcx_utils::itou8((tensor.a.n23() == 0) ? 1 : 0),
-          qcx_utils::itou8((tensor.a.n23() == 0) ? 0 : 1),
+          qcx_utils::itou8((tensor.a.n24() == 0) ? 1 : 0),
+          qcx_utils::itou8((tensor.a.n24() == 0) ? 0 : 1),
           {},{},tensor.a,1,1});
         Gamma.push_back({
           qcx_utils::itou16(tensor.b.n13()),
-          qcx_utils::itou8((tensor.b.n23() == 0) ? 1 : 0),
-          qcx_utils::itou8((tensor.b.n23() == 0) ? 0 : 1),
+          qcx_utils::itou8((tensor.b.n24() == 0) ? 1 : 0),
+          qcx_utils::itou8((tensor.b.n24() == 0) ? 0 : 1),
           {},{},tensor.b,1,1});
 
         Omega.emplace_back(1,tensor.t.u3(),1,tensor.t.u4());
