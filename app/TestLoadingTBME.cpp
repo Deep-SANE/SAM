@@ -9,6 +9,7 @@ int main()
   int hw = -1, Nmax = 12, valenceShell = -1, maxShell = 12; // default
 
   HO::TBME_scalar TBME("N2LO_opt_bare", hw, Nmax, valenceShell, maxShell);
+  TBME.read();
   TBME.is();
   std::cout << "Loaded " << TBME.countMEs() << " matrix elements" << std::endl;
 
