@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
   SlepcInitialize(&argc, &argv, NULL, NULL);
 #endif
 
-  int Z, N, Nmax, MMT, JJ, valanceShell;
+  int Z, N, Nmax, MMT, JJ, valanceShell, hw;
 
   std::cout << "Enter number of protons: ";
   std::cin >> Z;
@@ -29,6 +29,8 @@ int main(int argc, char* argv[])
   std::cin >> Nmax;
   std::cout << "Enter JJ: ";
   std::cin >> JJ;
+  std::cout << "Enter hw: ";
+  std::cin >> hw;
 
   U3xU4::ManyNucleonBasis basis(Z, N, Nmax, JJ);
   basis.construct();
@@ -37,7 +39,7 @@ int main(int argc, char* argv[])
   sam::Databases dbs;
 
   // Example 1: the L.L operator
-  
+  /*
   auto irreps = basis.irreps();
   auto labels = basis.decomposition();
   std::vector<double> analyticals;
@@ -57,7 +59,7 @@ int main(int argc, char* argv[])
     }
   }
   
-  int hw = -1, maxShell = valanceShell + Nmax;
+  int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   JT::OneBodyOperator LL1("L.L",hw,maxShell);  
   JT::TwoBodyOperator LL2("L.L", HO_labels, hw, Nmax, valanceShell, maxShell);
@@ -95,7 +97,7 @@ int main(int argc, char* argv[])
       	std::cout << std::endl;
       }
     }
-  
+  */
 
   // Example 2: the L.S operator
   /*
@@ -120,7 +122,7 @@ int main(int argc, char* argv[])
     }
   }
   
-  int hw = -1, maxShell = valanceShell + Nmax;
+  int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   JT::OneBodyOperator LS1("L.S",hw,maxShell);  
   JT::TwoBodyOperator LS2("L.S", HO_labels, hw, Nmax, valanceShell, maxShell);
@@ -161,8 +163,8 @@ int main(int argc, char* argv[])
   */
 
   // Example 3: the CoM number operator
-  /*
-  int hw = -1, maxShell = valanceShell + Nmax;
+  
+  int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   JT::OneBodyOperator CoM1("CoMNumberOp",hw,maxShell);  
   JT::TwoBodyOperator CoM2("CoMNumberOp", HO_labels, hw, Nmax, valanceShell, maxShell);
@@ -190,6 +192,46 @@ int main(int argc, char* argv[])
     for (Eigen::SparseMatrix<double>::InnerIterator it(mat, k); it; ++it) 
     {
       if (std::fabs(it.value()) > 1e-10)
+      {
+        std::cout << it.row() << "\t" << it.col() << "\t"
+                  << std::setprecision(10) << it.value() << std::endl;
+      }
+    }
+  
+
+  // Example 4: 2-body T_rel / (2hw) + 1000 * the CoM number operator
+  /*
+  int maxShell = valanceShell + Nmax;
+  HO::Table_nljmjmt HO_labels(maxShell);
+  JT::OneBodyOperator CoM1("CoMNumberOp",hw,maxShell);  
+  JT::TwoBodyOperator CoM2("CoMNumberOp",HO_labels,hw,Nmax,valanceShell,maxShell);
+  JT::OneBodyOperator KE1("Kinetic",hw,maxShell);  
+  JT::TwoBodyOperator KE2("Kinetic",HO_labels,hw,Nmax,valanceShell,maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  CoM1.is();
+  auto com1 = CoM1.matrix(basis, dbs);
+
+  CoM2.is();
+  auto com2 = CoM2.matrix(basis, dbs);
+
+  KE1.is();
+  auto ke1 = KE1.matrix(basis, dbs);
+
+  KE2.is();
+  auto ke2 = KE2.matrix(basis, dbs);
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  Eigen::SparseMatrix<double> H = (1000 * (com1 + com2) + (Z + N - 1) * ke1 + ke2) / (Z + N);
+  std::cout << "Total Hamiltonian matrix is " << std::endl;
+  for (int k = 0; k < H.outerSize(); ++k) 
+    for (Eigen::SparseMatrix<double>::InnerIterator it(H, k); it; ++it) 
+    {
+      if (std::fabs(it.value()) > 1e-11)
       {
         std::cout << it.row() << "\t" << it.col() << "\t"
                   << std::setprecision(10) << it.value() << std::endl;

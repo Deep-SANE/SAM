@@ -753,6 +753,9 @@ namespace JT
     if (maxShell_ < maxShell)
       throw std::runtime_error("File doesn't reach your model space");
 
+    // Check if there are all possible tensors
+    //if (2 * valenceShell )
+
     // Read number of tensors
     size_t num_tensors;
     s.read(reinterpret_cast<char*>(&num_tensors), sizeof(num_tensors));

@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 
   // Example 3: Two-body part of relative kinetic energy
   /*
-  int hw = 20, valenceShell = 1, Nmax = 2, maxShell = 3;
+  int hw = 20, valenceShell = 0, Nmax = 5, maxShell = 5;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 
   // Example 4: Two-body potential (bare) with N2LO_opt
   /*
-  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  int hw = -1, valenceShell = 0, Nmax = 8, maxShell = 8;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
   // auto tensors = NN.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  // NN.writeBinary(dbs);
+  NN.writeBinary(dbs);
 
   // read from binary
   auto tensors = NN.readBinary();
@@ -168,9 +168,9 @@ int main(int argc, char* argv[])
     std::cout << tensor << std::endl;
   */
 
-  // Example 5: Two-body potential (bare) with N3LO_EMN500
+  // Example 6: Two-body part of the CoM HO operator
   
-  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
   // auto tensors = CoM.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  CoM.writeBinary(dbs);
+  // CoM.writeBinary(dbs);
 
   // read from binary
   auto tensors = CoM.readBinary();
