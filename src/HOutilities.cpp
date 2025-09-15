@@ -8,6 +8,8 @@
 #include <GlobalConstants.h>
 #include <HOutilities.h>
 
+#include <qcx_convert.h>
+
 #define POSITIVE_INFINITY
 //#define POSITIVE_ORIGIN
 
@@ -19,11 +21,11 @@ namespace HO
   Table_nljmjmt::Table_nljmjmt(int maxShell)
   {
     int index = 0;
-    for (int n = 0; n <= maxShell; n++)
-      for (int l = n; l >= 0; l -= 2)
-        for (int jj = 2 * l + 1; jj >= std::abs(2 * l - 1); jj -= 2)
-          for (int mmj = jj; mmj >= -jj; mmj -= 2)
-            for (int mmt = 1; mmt >= -1; mmt -= 2)
+    for (int16_t n = 0; n <= maxShell; n++)
+      for (int16_t l = n; l >= 0; l -= 2)
+        for (int16_t jj = 2 * l + 1; jj >= std::abs(2 * l - 1); jj -= 2)
+          for (int16_t mmj = jj; mmj >= -jj; mmj -= 2)
+            for (int16_t mmt = 1; mmt >= -1; mmt -= 2)
             {
               key_type key = {n, 2 * l, jj, mmj, mmt};
               state_to_index[key] = index;
@@ -36,7 +38,8 @@ namespace HO
   // Get index from quantum numbers
   int Table_nljmjmt::getIndex(int n, int ll, int jj, int mmj, int mmt) const
   {
-    key_type key = {n, ll, jj, mmj, mmt};
+    key_type key = {qcx_utils::ito16(n), qcx_utils::ito16(ll), 
+      qcx_utils::ito16(jj), qcx_utils::ito16(mmj), qcx_utils::ito16(mmt)};
     auto it = state_to_index.find(key);
     if (it == state_to_index.end())
       throw std::out_of_range("Labels not found");
@@ -47,7 +50,7 @@ namespace HO
   std::tuple<int16_t, int16_t, int16_t, int16_t, int16_t>
   Table_nljmjmt::getLabels(int index) const
   {
-    if (index < 0 || index >= static_cast<int>(dim))
+    if (index < 0 || index >= dim)
       throw std::out_of_range("Index out of bounds");
     return index_to_state[index];
   }
@@ -63,12 +66,14 @@ namespace HO
       if (lla == llb + 2)
         return factor * std::sqrt((llb / 2.0 + 1.0) * (nb + llb / 2.0 + 3.0));
       else if (lla == llb - 2)
+      {
 #ifdef POSITIVE_INFINITY
         return -1.0 * factor * std::sqrt((llb / 2.0) * (nb - llb / 2.0 + 2.0));
 #endif
 #ifdef POSITIVE_ORIGIN
         return factor * std::sqrt((llb / 2.0) * (nb - llb / 2.0 + 2.0));
 #endif
+      }
       else
         return 0.0;
     }
@@ -99,12 +104,14 @@ namespace HO
     {
       double factor = 1.0 / std::sqrt(lla + 1.0);
       if (lla == llb + 2)
+      {
 #ifdef POSITIVE_INFINITY
         return factor * std::sqrt((llb / 2.0 + 1.0) * (nb - llb / 2.0));
 #endif
 #ifdef POSITIVE_ORIGIN
         return -1.0 * factor * std::sqrt((llb / 2.0 + 1.0) * (nb - llb / 2.0));
 #endif
+      }
       else if (lla == llb - 2)
         return -1.0 * factor * std::sqrt((llb / 2.0) * (nb + llb / 2.0 + 1.0));
       else
@@ -132,6 +139,13 @@ namespace HO
 
   ////////////// Class Orbit ///////////////
 
+  Orbit::Orbit(int n_, int l_, int jj_, int mmt_) : 
+      n(qcx_utils::ito16(n_)), 
+      l(qcx_utils::ito16(l_)), 
+      jj(qcx_utils::ito16(jj_)), 
+      mmt(qcx_utils::ito16(mmt_))
+    { }
+
   bool Orbit::operator==(const Orbit& other) const
   {
     return other.n == n && other.l == l && other.jj == jj && other.mmt == mmt;
@@ -146,18 +160,18 @@ namespace HO
   //////////// Class OrbitsMap //////////////
 
   // Constructor
-  OrbitsMap::OrbitsMap(uint16_t emax_)
+  OrbitsMap::OrbitsMap(int emax_)
   {
     // It does not take in lmax, it is set to default lmax = emax
-    emax = emax_;
+    emax = qcx_utils::itou16(emax_);
 
     int idx = 1;
-    for (int e = 0; e <= emax; ++e)
+    for (int16_t e = 0; e <= emax; ++e)
     {
-      for (int l = e % 2; l <= e; l += 2)
+      for (int16_t l = e % 2; l <= e; l += 2)
       {
-        int n = (e - l) / 2;
-        for (int jj = abs(2 * l - 1); jj <= 2 * l + 1; jj += 2)
+        int16_t n = (e - l) / 2;
+        for (int16_t jj = abs(2 * l - 1); jj <= 2 * l + 1; jj += 2)
         {
           // add proton
           orbits.push_back({n, l, jj, -1});
@@ -179,7 +193,8 @@ namespace HO
   // whereas e is the shell number
   int OrbitsMap::getIndex(int n, int l, int jj, int mmt) const
   {
-    auto it = index_map.find({n, l, jj, mmt});
+    auto it = index_map.find({qcx_utils::ito16(n), qcx_utils::ito16(l), 
+                          qcx_utils::ito16(jj), qcx_utils::ito16(mmt)});
     if (it != index_map.end())
       return it->second;
     else
@@ -199,17 +214,19 @@ namespace HO
         maxShell(0)
   { }
 
-  TBME_scalar::TBME_scalar(const std::string& name_, int8_t hw_, int8_t Nmax_,
-                           int8_t valenceShell_, int8_t maxShell_)
+  TBME_scalar::TBME_scalar(const std::string& name_, int hw_, int Nmax_,
+                           int valenceShell_, int maxShell_)
   {
     if (maxShell_ > 14)
       throw std::out_of_range(
           "Sorry, we only have maxShell up to 14 at the moment");
 
-    hw = (hw_ >= 0) ? hw_ : 20;
-    Nmax = (Nmax_ >= 0) ? Nmax_ : 14;
-    valenceShell = (valenceShell_ > 0) ? valenceShell_ : 0;
-    maxShell = (maxShell_ >= 0) ? maxShell_ : 14;
+    hw = (hw_ >= 0) ? qcx_utils::ito8(hw_) : qcx_utils::ito8(20);
+    Nmax = (Nmax_ >= 0) ? qcx_utils::ito8(Nmax_) : qcx_utils::ito8(14);
+    valenceShell = (valenceShell_ > 0) ? 
+      qcx_utils::ito8(valenceShell_) : qcx_utils::ito8(0);
+    maxShell = (maxShell_ >= 0) ? 
+      qcx_utils::ito8(maxShell_) : qcx_utils::ito8(14);
 
     orbit_map = OrbitsMap(maxShell_);
 
@@ -218,8 +235,21 @@ namespace HO
         "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare"};
 
     if (known_potentials.count(name_))
-    {
       name = name_;
+    else
+    {
+      throw std::runtime_error(
+          "Name is incorrect or 2-body Hamiltonian is not implemented");
+    }
+  }
+
+  /* Reading method is based on
+         subroutine read_scalar_operator_binary_myg(this, f)
+         in NuHamil-public/src/TwoBody/TwoBodyLabOps.F90
+  */
+  // #define CHECKING_2B_CHANNELS
+  void TBME_scalar::read()
+  {
 #ifdef HAVE_NUHAMIL
       const char* nuhamil_root = std::getenv("NUHAMIL_ROOT");    
       if (!nuhamil_root)
@@ -235,25 +265,17 @@ namespace HO
           std::to_string(static_cast<int>(hw)) + "_emax14_e2max28.myg";
 #endif     
 
+    std::cout << "Start reading matrix elements from file" << std::endl;
 #ifdef READ_FROM_BINARY
       filename += ".bin";
       read_from_binary(filename);
 #else
       read_from_file(filename);
 #endif
-    }
-    else
-    {
-      throw std::runtime_error(
-          "Name is incorrect or 2-body Hamiltonian is not implemented");
-    }
+    std::cout << "Finish reading matrix elements from file" << std::endl;
   }
 
-  /* Reading method is based on
-         subroutine read_scalar_operator_binary_myg(this, f)
-         in NuHamil-public/src/TwoBody/TwoBodyLabOps.F90
-  */
-  // #define CHECKING_2B_CHANNELS
+
   void TBME_scalar::read_from_binary(const std::string& filename)
   {
     std::ifstream infile(filename, std::ios::binary);
@@ -475,8 +497,10 @@ namespace HO
     if (c == d && J % 2 == 1)
       return 0.0;
 
-    const auto &oa = orbit_map.getOrbit(a), ob = orbit_map.getOrbit(b),
-               oc = orbit_map.getOrbit(c), od = orbit_map.getOrbit(d);
+    const auto &oa = orbit_map.getOrbit(static_cast<int>(a)); 
+    const auto &ob = orbit_map.getOrbit(static_cast<int>(b));
+    const auto &oc = orbit_map.getOrbit(static_cast<int>(c)); 
+    const auto &od = orbit_map.getOrbit(static_cast<int>(d));
 
     int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, ec = 2 * oc.n + oc.l,
         ed = 2 * od.n + od.l;

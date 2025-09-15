@@ -61,8 +61,7 @@ namespace HO
 
     // Constructor
     Orbit() { }
-    Orbit(int n_, int l_, int jj_, int mmt_) : n(n_), l(l_), jj(jj_), mmt(mmt_)
-    { }
+    Orbit(int n_, int l_, int jj_, int mmt_);
 
     bool operator==(const Orbit& other) const;
     bool operator<(const Orbit& other) const;
@@ -80,7 +79,7 @@ namespace HO
 
     // Constructor
     OrbitsMap() : emax(0), num_orbits(0), orbits(), index_map() { }
-    OrbitsMap(uint16_t emax_);
+    OrbitsMap(int emax_);
 
     // Get index of the orbit
     // Caution: n = (e - l)/2 is the nodal quantum number
@@ -118,10 +117,11 @@ namespace HO
   public:
     // Constructor
     TBME_scalar(); // Default constructor
-    TBME_scalar(const std::string& name_, int8_t hw_, int8_t Nmax_,
-                int8_t valenceShell_, int8_t maxShell_);
+    TBME_scalar(const std::string& name_, int hw_, int Nmax_,
+                int valenceShell_, int maxShell_);
 
     // Read options during construction
+    void read();
     void read_from_binary(const std::string& filename);
     void read_from_file(const std::string& filename);
 
