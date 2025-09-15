@@ -156,7 +156,7 @@ namespace U3xU4
   inline std::ostream& operator<<(std::ostream& s, const GammaElement& ge)
   {
     if (ge.state() == U3xU4::GammaElement::State::Basis)
-      return s << ge.alphamax() << ge.u3() << ge.u3();
+      return s << ge.alphamax() << ge.u3() << ge.u4();
     else if (ge.state() == U3xU4::GammaElement::State::Tensor)
       return s << ge.rhomax() << ge.u3() << ge.etamax() << ge.u4();
     else
