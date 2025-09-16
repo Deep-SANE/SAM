@@ -68,6 +68,12 @@ namespace U3xU4
     auto TT_opt = tensors[0].TT;
     auto MMT_opt = tensors[0].MMT;
 
+    if (tensors_count == 0)
+    {
+      Eigen::SparseMatrix<double> mat(basis.dim(), basis.dim());
+      return mat;
+    }
+
     // std::cout << "JJ_opt: " << JJ_opt
     //  	  << " MMJ_opt: " << MMJ_opt
     //		  << " TT_opt: " << TT_opt
@@ -210,8 +216,6 @@ namespace U3xU4
               // std::cout << "Start to calculate coupling coeffs" << std::endl;
               for (size_t tensor_id = 0; tensor_id < tensors_count; tensor_id++)
               {
-              	// std::cout << "Tensor: " << tensor << std::endl;
-
                 u3::irrep tensor_u3;
                 u4::irrep tensor_u4;
                 if (tensors[tensor_id].T.Omega.empty())
