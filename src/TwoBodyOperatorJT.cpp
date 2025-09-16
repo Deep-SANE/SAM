@@ -45,7 +45,7 @@ namespace JT
       TT = 0;
       MMT = 0;
       parity = true;
-      //TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
+      TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
       on_the_fly = false;
     }
     else
@@ -503,7 +503,7 @@ namespace JT
     */
 
     if (on_the_fly == false)
-      TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
+      TBME->read();
 
     std::vector<U3xU4::TwoBodyMultiShellTensor> tensors;
 
@@ -772,14 +772,20 @@ namespace JT
       if (tensor.single_shell_tensors.back().shell() > maxShell)
         continue;
 
-      int ab_Nhw = 0, cd_Nhw = 0;
+      int ab_Nhw = 0, cd_Nhw = 0, ads = 0, ats = 0;
       for (const auto& Tadat : tensor.single_shell_tensors)
       {
         ab_Nhw += ((Tadat.shell() - valenceShell) * Tadat.ads);
         cd_Nhw += ((Tadat.shell() - valenceShell) * Tadat.ats);
+
+        ads += Tadat.ads;
+        ats += Tadat.ats;
       }
       if (ab_Nhw > Nmax || cd_Nhw > Nmax)
         continue;
+
+      assert(ads == 2);
+      assert(ats == 2);
 
       tensors.push_back(tensor);
     }
