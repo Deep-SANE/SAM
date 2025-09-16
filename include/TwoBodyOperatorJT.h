@@ -31,8 +31,8 @@ namespace JT
   public:
     // Constructor
     TwoBodyOperator(const std::string& name_, const HO::Table_nljmjmt& labels_,
-                    int8_t hw_, int8_t Nmax_, int8_t valenceShell_,
-                    int8_t maxShell_);
+                    int hw_, int Nmax_, int valenceShell_,
+                    int maxShell_);
 
     void is() const;
     void GetJJ() const

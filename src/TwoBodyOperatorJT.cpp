@@ -5,21 +5,23 @@
 #include <fstream>
 #include <tuple>
 
+#include <qcx_convert.h>
+
 #include <Databases.h>
 #include <TwoBodyOperatorJT.h>
 
 namespace JT
 {
   TwoBodyOperator::TwoBodyOperator(const std::string& name_,
-                                   const HO::Table_nljmjmt& labels_, int8_t hw_,
-                                   int8_t Nmax_, int8_t valenceShell_,
-                                   int8_t maxShell_)
+                                   const HO::Table_nljmjmt& labels_, int hw_,
+                                   int Nmax_, int valenceShell_,
+                                   int maxShell_)
       : labels(labels_)
   {
-    hw = (hw_ >= 0) ? hw_ : 20;
-    Nmax = (Nmax_ >= 0) ? Nmax_ : 14;
-    valenceShell = (valenceShell_ > 0) ? valenceShell_ : 0;
-    maxShell = (maxShell_ >= 0) ? maxShell_ : 14;
+    hw = (hw_ >= 0) ? qcx_utils::ito8(hw_) : qcx_utils::ito8(20);
+    Nmax = (Nmax_ >= 0) ? qcx_utils::ito8(Nmax_) : qcx_utils::ito8(14);
+    valenceShell = (valenceShell_ > 0) ? qcx_utils::ito8(valenceShell_) : 0;
+    maxShell = (maxShell_ >= 0) ? qcx_utils::ito8(maxShell_) : qcx_utils::ito8(14);
 
     const std::unordered_set<std::string> known_scalar_ops = {
         "L.L", "L.S", "CoMNumberOp", "Kinetic", "R.R"};
