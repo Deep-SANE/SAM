@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
   */
 
   // Example 3: the CoM number operator
-  
+  /*
   int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   JT::OneBodyOperator CoM1("CoMNumberOp",hw,maxShell);  
@@ -197,9 +197,9 @@ int main(int argc, char* argv[])
                   << std::setprecision(10) << it.value() << std::endl;
       }
     }
-  
+  */
 
-  // Example 4: 2-body T_rel / (2hw) + 1000 * the CoM number operator
+  // Example 4: 2-body T_rel + 1000 * the CoM number operator
   /*
   int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
@@ -238,6 +238,50 @@ int main(int argc, char* argv[])
       }
     }
   */
+
+  // Example 5: N2LO_opt_bare + 2-body T_rel / (2hw) + 1000 * the CoM number operator
+  
+  int maxShell = valanceShell + Nmax;
+  HO::Table_nljmjmt HO_labels(maxShell);
+  JT::OneBodyOperator CoM1("CoMNumberOp",hw,maxShell);  
+  JT::TwoBodyOperator CoM2("CoMNumberOp",HO_labels,hw,Nmax,valanceShell,maxShell);
+  JT::OneBodyOperator KE1("Kinetic",hw,maxShell);  
+  JT::TwoBodyOperator KE2("Kinetic",HO_labels,hw,Nmax,valanceShell,maxShell);
+  JT::TwoBodyOperator NN("N2LO_opt_bare",HO_labels,hw,Nmax,valanceShell,maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  CoM1.is();
+  auto com1 = CoM1.matrix(basis, dbs);
+
+  CoM2.is();
+  auto com2 = CoM2.matrix(basis, dbs);
+
+  KE1.is();
+  auto ke1 = KE1.matrix(basis, dbs);
+
+  KE2.is();
+  auto ke2 = KE2.matrix(basis, dbs);
+
+  NN.is();
+  auto nn = NN.matrix(basis, dbs);
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  Eigen::SparseMatrix<double> H = nn + (1000 * (com1 + com2) + (Z + N - 1) * ke1 + ke2) / (Z + N);
+  std::cout << "Total Hamiltonian matrix is " << std::endl;
+  for (int k = 0; k < H.outerSize(); ++k) 
+    for (Eigen::SparseMatrix<double>::InnerIterator it(H, k); it; ++it) 
+    {
+      if (std::fabs(it.value()) > 1e-11)
+      {
+        std::cout << it.row() << "\t" << it.col() << "\t"
+                  << std::setprecision(10) << it.value() << std::endl;
+      }
+    }
+  
   
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;
