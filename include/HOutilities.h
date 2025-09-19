@@ -67,6 +67,11 @@ namespace HO
     bool operator<(const Orbit& other) const;
   };
 
+  inline std::ostream& operator<<(std::ostream& s, const Orbit& o)
+  {
+    return s << o.n << "\t" << o.l << "\t" << o.jj << "\t" << o.mmt;
+  }
+
   class OrbitsMap
   {
   public:
@@ -88,6 +93,13 @@ namespace HO
 
     // Get orbit
     Orbit getOrbit(int idx) const { return orbits[idx - 1]; }
+
+    // Print out the list of orbits with there
+    void print() const
+    {
+      for (size_t i = 1; i <= orbits.size(); i++)
+        std::cout << i << "\t" << orbits[i - 1] << std::endl;
+    }
   };
 
   // Two-body matrix elements (TBME) are read in from files computed with
@@ -128,7 +140,7 @@ namespace HO
     // Print out name
     void is() const
     {
-      std::cout << "Two-body Hamiltonian with " << name
+      std::cout << "Two-body potential with " << name
                 << " hw=" << static_cast<int>(hw)
                 << " valenceShell=" << static_cast<int>(valenceShell)
                 << " Nmax=" << static_cast<int>(Nmax)

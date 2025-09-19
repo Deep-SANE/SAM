@@ -228,7 +228,7 @@ namespace HO
     maxShell = (maxShell_ >= 0) ? 
       qcx_utils::ito8(maxShell_) : qcx_utils::ito8(14);
 
-    orbit_map = OrbitsMap(maxShell_);
+    orbit_map = OrbitsMap(14);
 
     const std::unordered_set<std::string> known_potentials = {
         "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
@@ -291,7 +291,6 @@ namespace HO
     std::vector<uint> ia(num_me), ib(num_me), ic(num_me), id(num_me), J(num_me);
     std::vector<double> v(num_me);
 
-    // auto t0 = std::chrono::high_resolution_clock::now();
     // Read data arrays
     infile.read(reinterpret_cast<char*>(ia.data()), num_me * sizeof(uint));
     infile.read(reinterpret_cast<char*>(ib.data()), num_me * sizeof(uint));
@@ -299,7 +298,6 @@ namespace HO
     infile.read(reinterpret_cast<char*>(id.data()), num_me * sizeof(uint));
     infile.read(reinterpret_cast<char*>(J.data()), num_me * sizeof(uint));
     infile.read(reinterpret_cast<char*>(v.data()), num_me * sizeof(double));
-    // auto t1 = std::chrono::high_resolution_clock::now();
 
     if (!infile)
       throw std::runtime_error("Failed to read matrix elements from file: " +
@@ -311,14 +309,31 @@ namespace HO
         double_cnt = 0;
 #endif
     me_map.reserve(num_me);
+    // int cnt_a_even = 0, cnt_b_even = 0, cnt_c_even = 0, cnt_d_even = 0;
     for (int i = 0; i < num_me; ++i)
     {
-      const auto &oa = orbit_map.getOrbit(ia[i]),
-                 ob = orbit_map.getOrbit(ib[i]), oc = orbit_map.getOrbit(ic[i]),
-                 od = orbit_map.getOrbit(id[i]);
+/*
+      if (ia[i] % 2 == 0) cnt_a_even++;
+      if (ib[i] % 2 == 0) cnt_b_even++;
+      if (ic[i] % 2 == 0) cnt_c_even++;
+      if (id[i] % 2 == 0) cnt_d_even++;
+*/
+      const auto &oa = orbit_map.getOrbit(ia[i]);
+      const auto &ob = orbit_map.getOrbit(ib[i]); 
+      const auto &oc = orbit_map.getOrbit(ic[i]);
+      const auto &od = orbit_map.getOrbit(id[i]);
+/*
+      std::cout << "ia: " << ia[i] << "\t" << oa << std::endl;
+      std::cout << "ib: " << ib[i] << "\t" << ob << std::endl;
+      std::cout << "ic: " << ic[i] << "\t" << oc << std::endl;
+      std::cout << "id: " << id[i] << "\t" << od << std::endl;
+*/
+      int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, 
+          ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
 
-      int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, ec = 2 * oc.n + oc.l,
-          ed = 2 * od.n + od.l;
+      assert((oa.mmt + ob.mmt) == (oc.mmt + od.mmt));
+      assert((oa.l + ob.l + oc.l + od.l) % 2 == 0);
+
       if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
         continue;
 
@@ -358,34 +373,49 @@ namespace HO
               static_cast<uint16_t>(J[i])}] = v[i];
 
       /* Comment on the phase: in the subroutine, one sees these lines
-             ph = ms%jpz(ch)%GetPhase(a,b) * ms%jpz(ch)%GetPhase(c,d)
-             this%MatCh(ch,ch)%m(bra,ket) = v * ph
-             Do we need to include this? NO! Why?
-             Checking the initialization of TwoBodyLabPNChan, one realizes:
+         ph = ms%jpz(ch)%GetPhase(a,b) * ms%jpz(ch)%GetPhase(c,d)
+         this%MatCh(ch,ch)%m(bra,ket) = v * ph
+         Do we need to include this? NO! Why?
+         Checking the initialization of TwoBodyLabPNChan, one realizes:
 
-             i) For pp or nn channels, the first index (i1) is always >= the
+         i) For pp or nn channels, the first index (i1) is always >= the
          second index (i2), and there is no interchange when printing out.
-             Hence, there is only phase(i1 >= i2) = 1 when reading back.
+         Hence, there is only phase(i1 >= i2) = 1 when reading back.
 
-             ii) There are no np channels, only pn ones. We can think that i1 is
+         ii) There are no np channels, only pn ones. We can think that i1 is
          ip and i2 is in, thus phase(ip,in) = 1 while phase(in,ip) =
          -(-)^(jp+jn-J). When reading back, there is no np channels, so we
          always have phase 1.
+
+         To see further confirmation, check 
+         subroutine write_scalar_operator_binary_myg(this, f)
+         in NuHamil-public/src/TwoBody/TwoBodyLabOps.F90.
+         Inside the loops for bra and ket:
+         a = ms%jpz(ich)%n2label1(bra)
+         b = ms%jpz(ich)%n2label2(bra)
+         c = ms%jpz(ich)%n2label1(ket)
+         d = ms%jpz(ich)%n2label2(ket)
+
+         Comparing these with subroutine InitTwoBodyLabPNChan in
+         NuHamil-public/src/TwoBody/TwoBodyLabChanPN.F90
+         ii1 = i1
+         ii2 = i2
+         this%n2label1(n_states) = ii1
+         this%n2label2(n_states) = ii2
+         this%iphase(ii1,ii2) = 1
+         this%iphase(ii2,ii1) = -(-1) ** ((j1 + j2) / 2 - j)
+         we can see that the phase for (a,b) or (c,d) that are printed
+         out is always 1. The second phase will be taken when performing
+         permutation.
       */
     }
 
     num_me = me_map.size();
-
-    // auto t2 = std::chrono::high_resolution_clock::now();
-    // Calculate the duration
-    // std::chrono::duration<double> duration1 = t1 - t0;
-    // std::chrono::duration<double> duration2 = t2 - t1;
-    // Output the time in seconds
-    // std::cout << "Reading time: " << duration1.count()/60.0 << " minutes"
-    // 			 << std::endl;
-    // std::cout << "Mapping time: " << duration2.count()/60.0 << " minutes"
-    // 			 << std::endl;
-
+/*
+    std::cout << "There are " << cnt_a_even << " even a, " 
+              << cnt_b_even << " even b, " << cnt_c_even
+              << " even c, " << cnt_d_even << " even d" << std::endl;
+*/
 #ifdef CHECKING_2B_CHANNELS
     std::cout << "There are " << violate_isospin << " isospin violations"
               << std::endl;
@@ -432,9 +462,20 @@ namespace HO
 
     while (infile >> a >> b >> c >> d >> J >> v)
     {
-      const auto &oa = orbit_map.getOrbit(a), ob = orbit_map.getOrbit(b),
-                 oc = orbit_map.getOrbit(c), od = orbit_map.getOrbit(d);
-      int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l;
+      const auto &oa = orbit_map.getOrbit(a);
+      const auto &ob = orbit_map.getOrbit(b);
+      const auto &oc = orbit_map.getOrbit(c); 
+      const auto &od = orbit_map.getOrbit(d);
+
+      assert((oa.mmt + ob.mmt) == (oc.mmt + od.mmt));
+      assert((oa.l + ob.l + oc.l + od.l) % 2 == 0);
+
+      int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l,
+          ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+
+      if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
+        continue;
+
       int ab_Nhw = 0;
       if (ea > valenceShell)
         ab_Nhw += (ea - valenceShell);
@@ -443,7 +484,6 @@ namespace HO
       if (ab_Nhw > Nmax)
         continue;
 
-      int ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
       int cd_Nhw = 0;
       if (ec > valenceShell)
         cd_Nhw += (ec - valenceShell);
@@ -502,8 +542,10 @@ namespace HO
     const auto &oc = orbit_map.getOrbit(static_cast<int>(c)); 
     const auto &od = orbit_map.getOrbit(static_cast<int>(d));
 
-    int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, ec = 2 * oc.n + oc.l,
-        ed = 2 * od.n + od.l;
+    int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, 
+        ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+
+    //// HERE IS FOR CHECKING IF READING WAS CORRECT ////
     if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
       throw std::out_of_range("ME beyond maxShell");
 
@@ -522,13 +564,14 @@ namespace HO
       cd_Nhw += (ed - valenceShell);
     if (cd_Nhw > Nmax)
       throw std::out_of_range("ket channel beyond Nmax");
+    //////////////////////////////////////////////////////
 
     auto it = me_map.find({a, b, c, d, J});
     if (it != me_map.end())
       return it->second;
     it = me_map.find({c, d, a, b, J});
     if (it != me_map.end())
-      return it->second; // if not Hermitian, *= -1
+      return it->second; // if antiHermitian, *= -1
 
     double phase_ab = (((oa.jj + ob.jj) / 2 - J) % 2 == 0) ? -1.0 : 1.0;
     it = me_map.find({b, a, c, d, J});
@@ -553,34 +596,38 @@ namespace HO
     if (it != me_map.end())
       return phase_ab * phase_cd * (it->second);
 
-    return 0.0;
+    //return 0.0;
+    throw std::out_of_range("Cannot find in the map");
   }
 
   // Get ME from quantum numbers
   // Note that these e's are shell numbers, not nodal quantum numbers
   // The reason we have e's here is that this function would be compatible
   // with double TwoBodyOperator::sphericalME_AS(...)
+#define SWITCH_HO_CONVENTION
   double TBME_scalar::getME(int ea, int lla, int jja, int mmja, int mmta,
                             int eb, int llb, int jjb, int mmjb, int mmtb,
                             int ec, int llc, int jjc, int mmjc, int mmtc,
                             int ed, int lld, int jjd, int mmjd, int mmtd,
                             qcx_utils::SO3_CGC& cgcs) const
   {
-    double x = 0.0;
     int MMJab = mmja + mmjb, MMJcd = mmjc + mmjd, MMTab = mmta + mmtb,
         MMTcd = mmtc + mmtd;
-    if ((MMJab != MMJcd) || (MMTab != MMTcd))
-      return x;
+    if ((MMJab != MMJcd) || (MMTab != MMTcd)) // spin or isospin violation
+      return 0.0;
 
     int JJ_min = std::max(abs(jja - jjb), abs(jjc - jjd)),
         JJ_max = std::min(jja + jjb, jjc + jjd);
 
-    if (JJ_min > JJ_max)
-      return x;
+    if (JJ_min > JJ_max) // no coupled J possible
+      return 0.0;
 
     int la = lla / 2, lb = llb / 2, lc = llc / 2, ld = lld / 2,
         na = (ea - la) / 2, nb = (eb - lb) / 2, nc = (ec - lc) / 2,
         nd = (ed - ld) / 2;
+
+    if ((la + lb + lc + ld) % 2 != 0) // parity violation
+      return 0.0;
 
     auto a = orbit_map.getIndex(na, la, jja, mmta),
          b = orbit_map.getIndex(nb, lb, jjb, mmtb),
@@ -589,13 +636,22 @@ namespace HO
 
     double norm_ab = (a == b) ? SQRT2 : 1.0, norm_cd = (c == d) ? SQRT2 : 1.0;
 
+    double x = 0.0;
     for (int JJ = JJ_min; JJ <= JJ_max; JJ += 2)
     {
+      if ((a == b && JJ % 4 != 0) || (c == d && JJ % 4 != 0))
+        continue;
+
       x += cgcs.compute(jja, jjb, JJ, mmja, mmjb, MMJab) *
            cgcs.compute(jjc, jjd, JJ, mmjc, mmjd, MMJab) *
            getME(a, b, c, d, JJ / 2);
     }
 
-    return norm_ab * norm_cd * x;
+#ifdef SWITCH_HO_CONVENTION
+    double phase = ((na + nb + nc + nd) % 2 == 0) ? 1.0 : -1.0;
+    return phase * x * norm_ab * norm_cd;
+#else
+    return x * norm_ab * norm_cd;
+#endif
   }
 } // namespace HO
