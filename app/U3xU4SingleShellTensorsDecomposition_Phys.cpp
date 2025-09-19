@@ -62,13 +62,28 @@ int main(int argc, char* argv[])
   { [[ad x ad]     x ad] x [at x at]         }
              (1,1,0,0) (2,1,0,0)   (1,1,0,0) kappa=1,L=1,SS=1,TT=1=MMT,JJ=1=MMJ
   */
-
+  /*
   U3xU4::irrep T1_0(3, 1, 0, 1, 1, 0, 0), T1(3, 3, 0, 2, 1, 0, 0),
       T2(3, 2, 0, 1, 1, 0, 0), T(4, 1, 0, 1, 0, 0, 0);
   int rhomax = 1, etamax = 1;
   HO::Table_nljmjmt labels(2);
   U3xU4::SingleShellTensor_phys 
     Tadat(2, 3, 2, {T1_0,T1}, {T2}, T, rhomax, etamax, 2, 1, 1, 1, 1, 1, labels);
+  */
+
+  /* Example 5: n = 0
+             (0,0,0)          (0,0,0)   (0,0,0)(0,0,0,0)
+  { [[ad x ad]      x [at x at]         }
+             (1,1,0,0)        (1,1,0,0) kappa=1,L=0,SS=0,TT=0=MMT,JJ=0=MMJ
+  */
+  
+  U3xU4::irrep T1(0, 0, 0, 1, 1, 0, 0),
+      T2(0, 0, 0, 1, 1, 0, 0), T(0, 0, 0, 0, 0, 0, 0);
+  int rhomax = 1, etamax = 1;
+  HO::Table_nljmjmt labels(0);
+  U3xU4::SingleShellTensor_phys 
+    Tadat(0, 2, 2, {T1}, {T2}, T, rhomax, etamax, 0, 0, 0, 0, 0, 0, labels);
+  
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();

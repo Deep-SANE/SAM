@@ -11,6 +11,8 @@
 #include <slepcsys.h>
 #endif
 
+#include <eigensolver.h>
+
 int main(int argc, char* argv[])
 {
 #ifdef SAM_USE_SLEPC
@@ -62,20 +64,16 @@ int main(int argc, char* argv[])
   int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   JT::OneBodyOperator LL1("L.L",hw,maxShell);  
-  JT::TwoBodyOperator LL2("L.L", HO_labels, hw, Nmax, valanceShell, maxShell);
+  JT::TwoBodyOperator LL2("L.L",HO_labels,hw,Nmax,valanceShell,maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
   LL1.is();
   auto mat1 = LL1.matrix(basis, dbs);
-  //std::cout << "Matrix representation is " << std::endl;
-  //std::cout << mat1 << std::endl;
 
   LL2.is();
   auto mat2 = LL2.matrix(basis, dbs);
-  //std::cout << "Matrix representation is " << std::endl;
-  //std::cout << mat2 << std::endl;
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -125,20 +123,16 @@ int main(int argc, char* argv[])
   int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   JT::OneBodyOperator LS1("L.S",hw,maxShell);  
-  JT::TwoBodyOperator LS2("L.S", HO_labels, hw, Nmax, valanceShell, maxShell);
+  JT::TwoBodyOperator LS2("L.S",HO_labels,hw,Nmax,valanceShell,maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
   LS1.is();
   auto mat1 = LS1.matrix(basis, dbs);
-  //std::cout << "Matrix representation is " << std::endl;
-  //std::cout << mat1 << std::endl;
 
   LS2.is();
   auto mat2 = LS2.matrix(basis, dbs);
-  //std::cout << "Matrix representation is " << std::endl;
-  //std::cout << mat2 << std::endl;
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -167,36 +161,30 @@ int main(int argc, char* argv[])
   int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   JT::OneBodyOperator CoM1("CoMNumberOp",hw,maxShell);  
-  JT::TwoBodyOperator CoM2("CoMNumberOp", HO_labels, hw, Nmax, valanceShell, maxShell);
+  JT::TwoBodyOperator CoM2("CoMNumberOp",HO_labels,hw,Nmax,valanceShell,maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
   CoM1.is();
-  auto mat1 = CoM1.matrix(basis, dbs);
-  //std::cout << "Matrix representation is " << std::endl;
-  //std::cout << mat1 << std::endl;
+  auto com1 = CoM1.matrix(basis, dbs);
 
   CoM2.is();
-  auto mat2 = CoM2.matrix(basis, dbs);
-  //std::cout << "Matrix representation is " << std::endl;
-  //std::cout << mat2 << std::endl;
+  auto com2 = CoM2.matrix(basis, dbs);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
   
-  Eigen::SparseMatrix<double> mat = mat1 + mat2;
-  std::cout << "Total matrix representation is " << std::endl;
-  //std::cout << mat << std::endl;
-  for (int k = 0; k < mat.outerSize(); ++k) 
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat, k); it; ++it) 
-    {
-      if (std::fabs(it.value()) > 1e-10)
-      {
-        std::cout << it.row() << "\t" << it.col() << "\t"
-                  << std::setprecision(10) << it.value() << std::endl;
-      }
-    }
+  Eigen::SparseMatrix<double> com = (com1 + com2) / (Z + N);
+  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(com, com.rows());
+  std::cout << "Eigenvalues are" << std::endl;
+  for (auto ev : evals)
+  {
+  	if (std::fabs(ev) < 1e-10)
+  	  std::cout << 0 << std::endl;
+  	else
+      std::cout << std::setprecision(6) << ev << std::endl;
+  }
   */
 
   // Example 4: 2-body T_rel + 1000 * the CoM number operator
@@ -226,17 +214,17 @@ int main(int argc, char* argv[])
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  Eigen::SparseMatrix<double> H = (1000 * (com1 + com2) + (Z + N - 1) * ke1 + ke2) / (Z + N);
-  std::cout << "Total Hamiltonian matrix is " << std::endl;
-  for (int k = 0; k < H.outerSize(); ++k) 
-    for (Eigen::SparseMatrix<double>::InnerIterator it(H, k); it; ++it) 
-    {
-      if (std::fabs(it.value()) > 1e-11)
-      {
-        std::cout << it.row() << "\t" << it.col() << "\t"
-                  << std::setprecision(10) << it.value() << std::endl;
-      }
-    }
+  Eigen::SparseMatrix<double> 
+  	H = (1000 * (com1 + com2) + (Z + N - 1) * ke1 + ke2) / (Z + N);
+  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(H, H.rows());
+  std::cout << "Eigenvalues are" << std::endl;
+  for (auto ev : evals)
+  {
+  	if (std::fabs(ev) < 1e-10)
+  	  std::cout << 0 << std::endl;
+  	else
+      std::cout << std::setprecision(6) << ev << std::endl;
+  }
   */
 
   // Example 5: N2LO_opt_bare + 2-body T_rel / (2hw) + 1000 * the CoM number operator
@@ -270,17 +258,21 @@ int main(int argc, char* argv[])
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  Eigen::SparseMatrix<double> H = nn + (1000 * (com1 + com2) + (Z + N - 1) * ke1 + ke2) / (Z + N);
-  std::cout << "Total Hamiltonian matrix is " << std::endl;
-  for (int k = 0; k < H.outerSize(); ++k) 
-    for (Eigen::SparseMatrix<double>::InnerIterator it(H, k); it; ++it) 
-    {
-      if (std::fabs(it.value()) > 1e-11)
-      {
-        std::cout << it.row() << "\t" << it.col() << "\t"
-                  << std::setprecision(10) << it.value() << std::endl;
-      }
-    }
+  Eigen::SparseMatrix<double> 
+  	H = nn + (1000 * (com1 + com2) + (Z + N - 1) * ke1 + ke2) / (Z + N);
+  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(H, H.rows());
+  std::cout << "Eigenvalues are" << std::endl;
+  for (auto ev : evals)
+  {
+  	if (std::fabs(ev) < 1e-10)
+  	  std::cout << 0 << std::endl;
+  	else
+      std::cout << std::setprecision(8) << ev << std::endl;
+  }
+  std::cout << "G.S. wavefunction:" << std::endl;
+  std::cout << evecs.col(0) << std::endl;
+  
+  
   
   
   // Calculate the duration
