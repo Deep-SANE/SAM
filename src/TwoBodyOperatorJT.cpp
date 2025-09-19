@@ -44,7 +44,7 @@ namespace JT
       name = name_;
       JJ = 0;
       MMJ = 0;
-      TT = 0;
+      TT = -1; //0; 
       MMT = 0;
       parity = true;
       TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
@@ -203,16 +203,20 @@ namespace JT
     auto& cgcs = dbs.cgcs;
 
     if (on_the_fly == true)
+    {
       return (sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
                           nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd,
                           dbs) -
               sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
                           nd, lld, jjd, mmjd, mmtd, nc, llc, jjc, mmjc, mmtc,
-                          dbs)) /
-             4.0;
+                          dbs)) / 4.0;
+    }
     else
-      return TBME->getME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb, nc,
-                         llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd, cgcs);
+    {
+      return TBME->getME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb, 
+                         nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd, 
+                         cgcs) / 4.0;
+    }
   }
 
   // Generate a list of al {na+1, nb+1, -nc-1, -nd-1} combinations such that
@@ -477,7 +481,7 @@ namespace JT
     double norm = 0.0;
     for (int c = 0; c < coeffs_.size(); c++)
     {
-      if (std::fabs(coeffs_[c]) < 1e-10)
+      if (std::fabs(coeffs_[c]) < 1e-12)
       {
         coeffs_[c] = 0.0;
         continue;
@@ -485,7 +489,7 @@ namespace JT
       norm += std::fabs(coeffs_[c]);
     }
 
-    bool ignore = (norm < 1e-10);
+    bool ignore = (norm < 1e-12);
     if (ignore == false)
       tensor.coeffs = coeffs_;
 
@@ -493,6 +497,7 @@ namespace JT
   }
 
 #define RESTRICT_WITH_NMAX
+#define RESTRICT_JJ
   std::vector<U3xU4::TwoBodyMultiShellTensor>
   TwoBodyOperator::expand(sam::Databases& dbs)
   {
@@ -602,8 +607,9 @@ namespace JT
           {
             int zeta0 = pv4s[pv4].zeta, SS0 = pv4s[pv4].SS, TT0 = pv4s[pv4].TT;
 
+#ifdef RESTRICT_JJ
             // couple LL and SS to JJ
-            if (JJ < std::fabs(LL0 - SS0) || JJ > (LL0 + SS0) || TT0 != TT)
+            if (JJ < std::fabs(LL0 - SS0) || JJ > (LL0 + SS0))
               continue;
 
             // no coupled irrep, it collapses into a single-shell tensor
@@ -612,7 +618,7 @@ namespace JT
               Tadat_choices, coupled_irreps, 
               coupled_irreps.empty() ? Tadat_choices[0].rho0max() : Rhomax,
               coupled_irreps.empty() ? Tadat_choices[0].eta0max() : Etamax, 
-              kappa0, LL0, zeta0, SS0, TT, MMT, JJ, MMJ, {}, labels);
+              kappa0, LL0, zeta0, SS0, TT0, MMT, JJ, MMJ, {}, labels);
 
             bool ignore =
                 setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
@@ -624,35 +630,29 @@ namespace JT
               // std::cout << tensor << std::endl;
               tensors.push_back(tensor);
             }
-/*            
-            if (coupled_irreps.empty())
+#else
+            for (int JJ0 = std::fabs(LL0 - SS0); JJ0 <= LL0 + SS0; JJ0 += 2)
             {
+              // no coupled irrep, it collapses into a single-shell tensor
+              // otherwise, it remains a multi-shell tensor
               U3xU4::TwoBodyMultiShellTensor tensor(
-                  Tadat_choices, coupled_irreps, Tadat_choices[0].rho0max,
-                  Tadat_choices[0].eta0max, kappa0, LL0, zeta0, SS0, TT, MMT,
-                  JJ, MMJ, {}, labels);
+                Tadat_choices, coupled_irreps, 
+                coupled_irreps.empty() ? Tadat_choices[0].rho0max() : Rhomax,
+                coupled_irreps.empty() ? Tadat_choices[0].eta0max() : Etamax, 
+                kappa0, LL0, zeta0, SS0, TT0, MMT, JJ0, MMJ, {}, labels);
+
               bool ignore =
-                  setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
+                setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
+
+              //std::cout << (ignore ? "Ignore" : "Accept") << tensor << std::endl;
+
               if (ignore == false)
               {
                 // std::cout << tensor << std::endl;
                 tensors.push_back(tensor);
               }
             }
-            else
-            {
-              U3xU4::TwoBodyMultiShellTensor tensor(
-                  Tadat_choices, coupled_irreps, Rhomax, Etamax, kappa0, LL0,
-                  zeta0, SS0, TT, MMT, JJ, MMJ, {}, labels);
-              bool ignore =
-                  setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
-              if (ignore == false)
-              {
-                // std::cout << tensor << std::endl;
-                tensors.push_back(tensor);
-              }
-            }
-*/
+#endif
           }
         }
       }
@@ -825,12 +825,22 @@ namespace JT
       }
 
       U3xU4::MultiShellTensor T(Gamma,Omega);
+/*      
       U3xU4::MultiShellTensor_phys T_phys(T,
         {{static_cast<unsigned short>(tensor.kappamax),
           static_cast<unsigned short>(tensor.LL),
           static_cast<unsigned short>(tensor.zetamax),
           static_cast<unsigned short>(tensor.SS)}},
           {tensor.coeffs},tensor.TT,tensor.MMT,tensor.JJ,tensor.MMJ);
+*/
+
+      U3xU4::MultiShellTensor_phys T_phys(T,
+        {{static_cast<unsigned short>(tensor.kappamax),
+          static_cast<unsigned short>(tensor.LL),
+          static_cast<unsigned short>(tensor.zetamax),
+          static_cast<unsigned short>(tensor.SS),
+          static_cast<unsigned short>(tensor.TT)}},
+          {tensor.coeffs},tensor.MMT,tensor.JJ,tensor.MMJ);
 
       // std::cout << T_phys << std::endl;
 

@@ -63,9 +63,10 @@ namespace U3xU4
     auto MMT = basis.getMMT();
 
     auto tensors_count = tensors.size();
+    // assume that all tensors have the same J, MJ, MT, but T can vary
     auto JJ_opt = tensors[0].JJ;
     auto MMJ_opt = tensors[0].MMJ;
-    auto TT_opt = tensors[0].TT;
+    //auto TT_opt = tensors[0].TT;
     auto MMT_opt = tensors[0].MMT;
 
     if (tensors_count == 0)
@@ -203,15 +204,16 @@ namespace U3xU4
 
               // std::cout << "TT,MMT: " << ket_TT << "," << TT_opt << "," << bra_TT
               //		<< "," << MMT << "," << MMT_opt << "," << MMT << std::endl;
-              auto cgcT =
-                  cgcs.compute(ket_TT, TT_opt, bra_TT, MMT, MMT_opt, MMT);
+              // auto cgcT =
+              //    cgcs.compute(ket_TT, TT_opt, bra_TT, MMT, MMT_opt, MMT);
               // std::cout << "cgcT: " << cgcT << std::endl;
-              if (std::fabs(cgcT) == 0.0)
-                continue;
+              // if (std::fabs(cgcT) == 0.0)
+              //   continue;
 
               std::vector<std::vector<Eigen::MatrixXd>> Coeffs3(tensors_count),
                   										Coeffs4(tensors_count);
-              std::vector<std::vector<double>> U9js(tensors_count);
+              // std::vector<std::vector<double>> U9js(tensors_count);                        
+              std::vector<std::vector<double>> cgcJ_cgcT_U9js(tensors_count);
 
               // std::cout << "Start to calculate coupling coeffs" << std::endl;
               for (size_t tensor_id = 0; tensor_id < tensors_count; tensor_id++)
@@ -234,7 +236,7 @@ namespace U3xU4
 
                 if (rhomax == 0 || etamax == 0)
                   continue;
-                
+/*                
                 for (auto LLSS : tensors[tensor_id].LLSSs)
                 {
                   U9js[tensor_id].push_back(
@@ -252,7 +254,34 @@ namespace U3xU4
                       wigU4SU2SU2db
                           .get(ket_u4.P1(), ket_u4.P2(), ket_u4.P3(), ket_SS,
                                ket_TT, tensor_u4.P1(), tensor_u4.P2(),
-                               tensor_u4.P3(), LLSS[3], TT_opt,
+                               tensor_u4.P3(), LLSS[3], tensors[tensor_id].TT,//TT_opt,
+                               bra_u4.P1(), bra_u4.P2(), bra_u4.P3(), bra_SS,
+                               bra_TT)
+                          .second);
+                }
+*/
+
+                for (auto LLSSTT : tensors[tensor_id].LLSSTTs)
+                {
+                  auto cgcT = cgcs.compute(ket_TT, LLSSTT[4], bra_TT, MMT, MMT_opt, MMT);
+                  //std::cout << "cgcT: " << cgcT << std::endl;
+
+                  cgcJ_cgcT_U9js[tensor_id].push_back(cgcJ * cgcT *
+                      racah9.compute(ket_LL, ket_SS, JJ, LLSSTT[1], LLSSTT[3],
+                                     JJ_opt, bra_LL, bra_SS, JJ));
+
+                  Coeffs3[tensor_id].push_back(
+                      wigU3SO3db
+                          .get(ket_u3.lam(), ket_u3.mu(), ket_LL / 2,
+                               tensor_u3.lam(), tensor_u3.mu(), LLSSTT[1] / 2,
+                               bra_u3.lam(), bra_u3.mu(), bra_LL / 2)
+                          .second);
+
+                  Coeffs4[tensor_id].push_back(
+                      wigU4SU2SU2db
+                          .get(ket_u4.P1(), ket_u4.P2(), ket_u4.P3(), ket_SS,
+                               ket_TT, tensor_u4.P1(), tensor_u4.P2(),
+                               tensor_u4.P3(), LLSSTT[3], LLSSTT[4],
                                bra_u4.P1(), bra_u4.P2(), bra_u4.P3(), bra_SS,
                                bra_TT)
                           .second);
@@ -300,30 +329,30 @@ namespace U3xU4
                               continue;
 
                             // std::cout << "rhomax = " << rhomax 
-                            // 		   << " etamax = " << etamax << std::endl;
+                            //       << " etamax = " << etamax << std::endl;
 
-                          	// std::cout << "Tensor: " << tensors[tensor_id] << std::endl;
-                            // RMEs[tensor_id].print();
-
+                            //std::cout << "Tensor: " << tensors[tensor_id] << std::endl;
+                            //RMEs[tensor_id].print();
+                        
                             // going through subgroup labels of the tensor
-                            for (size_t ls_id = 0;
-                                 ls_id < tensors[tensor_id].LLSSs.size();
-                                 ls_id++)
+                            for (size_t lst_id = 0;
+                                 lst_id < tensors[tensor_id].LLSSTTs.size();
+                                 lst_id++)
                             {
-                              double U9j = U9js[tensor_id][ls_id];
-                              if (std::fabs(U9j) == 0.0)
+                              double cgcJ_cgcT_U9j = cgcJ_cgcT_U9js[tensor_id][lst_id];
+                              if (std::fabs(cgcJ_cgcT_U9j) == 0.0)
                               	continue;
 
-                              if (Coeffs3[tensor_id][ls_id].size() == 0)
+                              if (Coeffs3[tensor_id][lst_id].size() == 0)
                           	    continue;
 
-                          	  if (Coeffs4[tensor_id][ls_id].size() == 0)
+                          	  if (Coeffs4[tensor_id][lst_id].size() == 0)
                           	  	continue;
 
                               auto kappa0max =
-                                  tensors[tensor_id].LLSSs[ls_id][0];
+                                  tensors[tensor_id].LLSSTTs[lst_id][0];
                               auto zeta0max =
-                                  tensors[tensor_id].LLSSs[ls_id][2];
+                                  tensors[tensor_id].LLSSTTs[lst_id][2];
 
                               size_t tensor_alphamax = 1;
                               for (const auto& Gamma :
@@ -346,9 +375,9 @@ namespace U3xU4
                                   for (size_t zeta0 = 0; zeta0 < zeta0max; zeta0++)
                                   {
                                     double strength = tensors[tensor_id]
-                                      .strengths[ls_id][(tensor_alpha * kappa0max 
+                                      .strengths[lst_id][(tensor_alpha * kappa0max 
                                                         + kappa0) * zeta0max + zeta0];
-                                    // std::cout << "strength: " << strength << std::endl;
+                                    //std::cout << "strength: " << strength << std::endl;
 
                                     auto cgcU4_row = (ket_zeta * zeta0max + zeta0) 
                                            * bra_zetamax + bra_zeta;
@@ -358,21 +387,27 @@ namespace U3xU4
                                     for (size_t rho = 0; rho < rhomax; rho++)
                                     {
                                       double cgcU3 = 
-                                        Coeffs3[tensor_id][ls_id](cgcU3_row,rho);
-                                      // std::cout << "cgcU3: " << cgcU3 << std::endl;
+                                        Coeffs3[tensor_id][lst_id](cgcU3_row,rho);
+                                      //std::cout << "cgcU3: " << cgcU3 << std::endl;
 
                                       for (size_t eta = 0; eta < etamax; eta++)
                                       {
                                         double cgcU4 = 
-                                          Coeffs4[tensor_id][ls_id](cgcU4_row,eta);
-                                        // std::cout << "cgcU4: " << cgcU4 << std::endl;
+                                          Coeffs4[tensor_id][lst_id](cgcU4_row,eta);
+                                        //std::cout << "cgcU4: " << cgcU4 << std::endl;
 
                                   
                                         auto rme = RMEs[tensor_id].get(
                                           bra_alpha, ket_alpha, tensor_alpha, rho, eta);
-                                        // std::cout << "rme: " << rme << std::endl;
+                                        //std::cout << "rme: " << rme << std::endl;
 
-                                        me += (strength * U9j * cgcU3 * cgcU4 * rme);
+                                        double x = strength * cgcJ_cgcT_U9j * cgcU3 * cgcU4 * rme;
+                                        // check if the tensor character contributes to me
+                                        //if (std::fabs(x) > 1e-12)
+                                        //  std::cout << "TT: " << tensors[tensor_id].LLSSTTs[lst_id][4] << std::endl;
+                                        //  std::cout << tensors[tensor_id].getLastIrrep() << std::endl;
+
+                                        me += x;
                                       }
                                     }
                                   }
@@ -380,8 +415,6 @@ namespace U3xU4
                               }
                             }
                           }
-
-                          me *= (cgcJ * cgcT);
 
                           if (std::fabs(me) > 1e-12)
                             ija.emplace_back(i, j, me);

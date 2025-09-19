@@ -770,11 +770,20 @@ namespace JT
         Omega.emplace_back(1,tensor.t.u3(),1,tensor.t.u4());
       }
       U3xU4::MultiShellTensor T(Gamma,Omega);
+/*
       U3xU4::MultiShellTensor_phys T_phys(T,
         {{static_cast<unsigned short>(tensor.kappamax),
           static_cast<unsigned short>(tensor.LL),1,
           static_cast<unsigned short>(tensor.SS)}},
           {tensor.coeffs},tensor.TT,tensor.MMT,tensor.JJ,tensor.MMJ);
+*/
+
+      U3xU4::MultiShellTensor_phys T_phys(T,
+        {{static_cast<unsigned short>(tensor.kappamax),
+          static_cast<unsigned short>(tensor.LL),1,
+          static_cast<unsigned short>(tensor.SS),
+          static_cast<unsigned short>(tensor.TT)}},
+          {tensor.coeffs},tensor.MMT,tensor.JJ,tensor.MMJ);
 
       tensors_new.push_back(T_phys);  
     }

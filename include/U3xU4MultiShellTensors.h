@@ -66,6 +66,8 @@ namespace U3xU4
     // Get specific coefficient
     double coeff(int k) const { return coeffs[k]; }
 
+    U3xU4::irrep getLastIrrep() const { return t; }
+
     // Print
     friend std::ostream& operator<<(std::ostream& s,
                                     const OneBodyMultiShellTensor& x);
@@ -175,6 +177,15 @@ namespace U3xU4
       return coeffs[((r * etamax + e) * kappamax + k) * zetamax + z];
     }
 
+    // Get final tensor characters
+    U3xU4::irrep getLastIrrep() const
+    {
+      if (coupled_irreps.empty())
+        return single_shell_tensors.back().u3u4();
+      else
+        return coupled_irreps.back();
+    }
+
     // Print
     friend std::ostream& operator<<(std::ostream& s,
                                     const TwoBodyMultiShellTensor& x);
@@ -222,6 +233,14 @@ namespace U3xU4
     friend std::ostream& operator<<(std::ostream& s,
                                     const MultiShellTensor& x);
 
+    U3xU4::irrep getLastIrrep() const
+    {
+      if (Omega.empty())
+        return Gamma.back().u3u4();
+      else
+        return Omega.back();
+    }
+
     // This method assumes that everything is already unified, i.e., bra and ket
     // irreps are unified, and identities have been filled in already.
     sam::RME RME(const ManyNucleonBasis::Irrep& bra,
@@ -248,14 +267,15 @@ namespace U3xU4
   class MultiShellTensor_phys
   {
   public:
-    int16_t TT, MMT,    // twice isospin and projection
+    int16_t /*TT,*/ MMT,    // twice isospin and projection
             JJ, MMJ;    // twice total angular momentum and projection
 
     // A multi-shell tensor without subgroup labels
     U3xU4::MultiShellTensor T;
 
     // An array of subgroup labels
-    std::vector<std::array<uint16_t,4>> LLSSs;
+    //std::vector<std::array<uint16_t,4>> LLSSs;
+    std::vector<std::array<uint16_t,5>> LLSSTTs;
 
     // Array to store strengths
     std::vector<std::vector<double>> strengths;
@@ -263,18 +283,30 @@ namespace U3xU4
     // Constructor
     MultiShellTensor_phys(
       const U3xU4::MultiShellTensor& T_,
-      const std::vector<std::array<uint16_t,4>>& LLSSs_,
+      //const std::vector<std::array<uint16_t,4>>& LLSSs_,
+      const std::vector<std::array<uint16_t,5>>& LLSSTTs_,
       const std::vector<std::vector<double>>& strengths_,
-      int16_t TT_, int16_t MMT_, int16_t JJ_, int16_t MMJ_)
-        : T(T_), LLSSs(LLSSs_), strengths(strengths_),
-          TT(TT_), MMT(MMT_), JJ(JJ_), MMJ(MMJ_)
+      //int16_t TT_, 
+      int16_t MMT_, int16_t JJ_, int16_t MMJ_)
+        : T(T_), 
+          //LLSSs(LLSSs_), 
+          LLSSTTs(LLSSTTs_),
+          strengths(strengths_),
+          //TT(TT_), 
+          MMT(MMT_), JJ(JJ_), MMJ(MMJ_)
     { 
-      assert(LLSSs_.size() == strengths_.size());
+      //assert(LLSSs_.size() == strengths_.size());
+      assert(LLSSTTs_.size() == strengths_.size());
     }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s,
                                     const MultiShellTensor_phys& x);
+
+    U3xU4::irrep getLastIrrep() const
+    {
+      return T.getLastIrrep();
+    }
   };
 
   Eigen::SparseMatrix<double> MatrixElements(
