@@ -464,7 +464,15 @@ namespace U3xU4
                           }
 
                           if (std::fabs(me) > 1e-12)
+                          {
                             ija.emplace_back(i, j, me);
+/*                            
+                            if (ket_u3 != bra_u3)
+                              std::cout << "Connect different irreps: " << ket_u3 << bra_u3 << std::endl;
+                            if (ket_u4 != bra_u4)
+                              std::cout << "Connect different irreps: " << ket_u4 << bra_u4 << std::endl;
+*/
+                          }
                         }
                       }
                     }
