@@ -3,7 +3,7 @@
 int main()
 {
   // auto tensors_stats = sam::U4_tensor_analyzer("N2LO_opt_bare");
-  auto tensors_stats = sam::U4_tensor_analyzer("N2LO_opt_srg2.0");
+  auto tensors_stats = sam::U4_tensor_analyzer_write("N4LO_EMN500_srg1.0");
 
   for (const auto& tensor_stat : tensors_stats)
     std::cout << tensor_stat.first << ":\t" << tensor_stat.second << std::endl;

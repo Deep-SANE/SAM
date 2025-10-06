@@ -1,5 +1,6 @@
 #include <chrono>
 #include <iostream>
+#include <tuple>
 
 #include <Databases.h>
 #include <TwoBodyOperatorJT.h>
@@ -7,13 +8,6 @@
 #ifdef SAM_USE_SLEPC
 #include <slepcsys.h>
 #endif
-
-double avg_strength(const std::vector<double>& vs)
-{
-  double sum = 0.0;
-  for (const auto& v : vs) sum += v;
-  return sum / vs.size();
-}
 
 int main(int argc, char* argv[])
 {
@@ -110,7 +104,32 @@ int main(int argc, char* argv[])
   auto t1 = std::chrono::high_resolution_clock::now();
   */
 
-  // Example 4: Two-body potential (bare) with N2LO_opt
+  // Example 4: Two-body part of the CoM HO operator
+  /*
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
+  HO::Table_nljmjmt labels(maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  JT::TwoBodyOperator 
+    CoM("CoMNumberOp", labels, hw, Nmax, valenceShell, maxShell);
+  CoM.is();
+
+  // expand now
+  // auto tensors = CoM.expand(dbs);
+
+  // write to binary, valenceShell must be 0 for future reuse
+  //CoM.writeBinary(dbs);
+
+  // read from binary
+  auto tensors = CoM.readBinary();
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+  */
+
+  // Example 5: Two-body potential (bare) with N2LO_opt_bare
   /*
   int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
@@ -126,7 +145,7 @@ int main(int argc, char* argv[])
   // auto tensors = NN.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  // NN.writeBinary(dbs);
+  //NN.writeBinary(dbs);
 
   // read from binary
   auto tensors = NN.readBinary();
@@ -135,7 +154,34 @@ int main(int argc, char* argv[])
   auto t1 = std::chrono::high_resolution_clock::now();
   */
 
-  // Example 5: Two-body potential (bare) with N3LO_EMN500
+  // Example 6: Two-body potential (bare) with N2LO_opt_srg1.0,2.0,4.0
+  /*
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
+  HO::Table_nljmjmt labels(maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  JT::TwoBodyOperator 
+    NN("N2LO_opt_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N2LO_opt_srg2.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N2LO_opt_srg4.0", labels, hw, Nmax, valenceShell, maxShell);
+  NN.is();
+
+  // expand now
+  // auto tensors = NN.expand(dbs);
+
+  // write to binary, valenceShell must be 0 for future reuse
+  NN.writeBinary(dbs);
+
+  // read from binary
+  auto tensors = NN.readBinary();
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+  */
+
+  // Example 7: Two-body potential (bare) with N3LO_EMN500_bare
   /*
   int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
@@ -151,90 +197,152 @@ int main(int argc, char* argv[])
   // auto tensors = NN.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  // NN.writeBinary(dbs);
+  NN.writeBinary(dbs);
 
   // read from binary
   auto tensors = NN.readBinary();
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-
-  for (auto tensor : tensors)
-    std::cout << tensor << std::endl;
   */
 
-  // Example 6: Two-body part of the CoM HO operator
-  
-  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
+  // Example 8: Two-body potential (bare) with N3LO_EMN500_srg1.0,2.0,4.0
+  /*
+  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
   JT::TwoBodyOperator 
-    CoM("CoMNumberOp", labels, hw, Nmax, valenceShell, maxShell);
-  CoM.is();
+    NN("N3LO_EMN500_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N3LO_EMN500_srg2.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N3LO_EMN500_srg4.0", labels, hw, Nmax, valenceShell, maxShell);
+  NN.is();
 
   // expand now
-  // auto tensors = CoM.expand(dbs);
+  // auto tensors = NN.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  // CoM.writeBinary(dbs);
+  NN.writeBinary(dbs);
 
   // read from binary
-  auto tensors = CoM.readBinary();
+  auto tensors = NN.readBinary();
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+  */
+
+  // Example 9: Two-body potential (bare) with N2LO_sat_bare
+  /*
+  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  HO::Table_nljmjmt labels(maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  JT::TwoBodyOperator 
+    NN("N2LO_sat_bare", labels, hw, Nmax, valenceShell, maxShell);
+  NN.is();
+
+  // expand now
+  // auto tensors = NN.expand(dbs);
+
+  // write to binary, valenceShell must be 0 for future reuse
+  NN.writeBinary(dbs);
+
+  // read from binary
+  auto tensors = NN.readBinary();
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+  */
+
+  // Example 10: Two-body potential (bare) with N2LO_sat_srg1.0,2.0,4.0
+  
+  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  HO::Table_nljmjmt labels(maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  JT::TwoBodyOperator 
+    NN("N2LO_sat_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N2LO_sat_srg2.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N2LO_sat_srg4.0", labels, hw, Nmax, valenceShell, maxShell);
+  NN.is();
+
+  // expand now
+  // auto tensors = NN.expand(dbs);
+
+  // write to binary, valenceShell must be 0 for future reuse
+  NN.writeBinary(dbs);
+
+  // read from binary
+  auto tensors = NN.readBinary();
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
   
   
-  std::vector<std::vector<double>> strengths_U3, strengths_U4;
-  std::vector<u3::irrep> U3s;
-  std::vector<u4::irrep> U4s;
+  // Example 11: Two-body potential (bare) with N4LO_EMN500_bare
+  /*
+  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  HO::Table_nljmjmt labels(maxShell);
 
-  for (auto tensor : tensors)
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  JT::TwoBodyOperator 
+    NN("N4LO_EMN500_bare", labels, hw, Nmax, valenceShell, maxShell);
+  NN.is();
+
+  // expand now
+  // auto tensors = NN.expand(dbs);
+
+  // write to binary, valenceShell must be 0 for future reuse
+  NN.writeBinary(dbs);
+
+  // read from binary
+  auto tensors = NN.readBinary();
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+  */
+
+  // Example 12: Two-body potential (bare) with N4LO_EMN500_srg1.0,2.0,4.0
+  /*
+  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  HO::Table_nljmjmt labels(maxShell);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  JT::TwoBodyOperator 
+    NN("N4LO_EMN500_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N4LO_EMN500_srg2.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N4LO_EMN500_srg4.0", labels, hw, Nmax, valenceShell, maxShell);
+  NN.is();
+
+  // expand now
+  // auto tensors = NN.expand(dbs);
+
+  // write to binary, valenceShell must be 0 for future reuse
+  NN.writeBinary(dbs);
+
+  // read from binary
+  auto tensors = NN.readBinary();
+
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+  */
+
+  std::cout << "There are " << tensors.size() << " tensors" << std::endl;
+  for (const auto& tensor : tensors)
   {
-    // std::cout << tensor << std::endl;
-
-    auto U3 = tensor.getLastIrrep().u3();
-    auto U4 = tensor.getLastIrrep().u4();
-
-    auto it3 = std::find(U3s.begin(), U3s.end(), U3);
-    if (it3 != U3s.end())
-    {
-      size_t index = std::distance(U3s.begin(), it3);
-      for (const auto c : tensor.coeffs) 
-        strengths_U3[index].push_back(c);
-    }
-    else
-    {
-      U3s.push_back(U3);
-      strengths_U3.push_back(tensor.coeffs);
-    }
-
-    auto it4 = std::find(U4s.begin(), U4s.end(), U4);
-    if (it4 != U4s.end())
-    {
-      size_t index = std::distance(U4s.begin(), it4);
-      for (const auto c : tensor.coeffs) 
-        strengths_U4[index].push_back(c);
-    }
-    else
-    {
-      U4s.push_back(U4);
-      strengths_U4.push_back(tensor.coeffs);
-    }
+    std::cout << tensor << std::endl;
   }
   
-  std::cout << "Average strengths for U(3)" << std::endl;
-  for (size_t id = 0; id < U3s.size(); id++)
-    std::cout << U3s[id] << ": " << avg_strength(strengths_U3[id]) << std::endl;
-
-  std::cout << "Average strengths for U(4)" << std::endl;
-  for (size_t id = 0; id < U4s.size(); id++)
-    std::cout << U4s[id] << ": " << avg_strength(strengths_U4[id]) << std::endl;
-  
-
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;
 

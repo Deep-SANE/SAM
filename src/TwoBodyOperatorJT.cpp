@@ -29,6 +29,8 @@ namespace JT
     const std::unordered_set<std::string> known_potentials = {
         "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
         "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
+        "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
+        "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
         "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
         "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
         "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
