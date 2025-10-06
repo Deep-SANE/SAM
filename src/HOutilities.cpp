@@ -232,14 +232,18 @@ namespace HO
 
     const std::unordered_set<std::string> known_potentials = {
         "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
-        "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare"};
+        "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
+        "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
+        "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
+        "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
+        "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"};
 
     if (known_potentials.count(name_))
       name = name_;
     else
     {
       throw std::runtime_error(
-          "Name is incorrect or 2-body Hamiltonian is not implemented");
+          "Name is incorrect or 2-body potential is not implemented");
     }
   }
 
