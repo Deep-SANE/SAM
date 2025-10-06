@@ -28,7 +28,11 @@ namespace JT
 
     const std::unordered_set<std::string> known_potentials = {
         "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
-        "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare"};
+        "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
+        "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
+        "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
+        "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
+        "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"};
 
     if (known_scalar_ops.count(name_))
     {
@@ -44,7 +48,7 @@ namespace JT
       name = name_;
       JJ = 0;
       MMJ = 0;
-      TT = -1; //0; 
+      TT = -1; // Allowing for multiple TT's since potential mixes isospin
       MMT = 0;
       parity = true;
       TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
@@ -606,6 +610,11 @@ namespace JT
           for (int pv4 = 0; pv4 < pv4s.size(); pv4++)
           {
             int zeta0 = pv4s[pv4].zeta, SS0 = pv4s[pv4].SS, TT0 = pv4s[pv4].TT;
+
+            // if the operator has definite isospin assignment
+            if (TT >= 0 && TT != TT0)
+              continue;
+
 
 #ifdef RESTRICT_JJ
             // couple LL and SS to JJ
