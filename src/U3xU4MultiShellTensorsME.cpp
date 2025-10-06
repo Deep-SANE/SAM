@@ -4,6 +4,14 @@
 
 #include <U3xU4MultiShellTensors.h>
 
+std::pair<double,double> sum_mean(const std::vector<double>& vs)
+{
+  double x = 0.0;
+  for (const auto& v : vs)
+    x += v;
+  return std::make_pair(x,vs.empty() ? 0.0 : x / vs.size());
+}
+
 namespace U3xU4
 {
   /* Goal:
@@ -44,6 +52,8 @@ namespace U3xU4
      state_id = irrep_offset + alpha * LST_length 
               + LST_offset + kappa * zetamax + zeta
   */
+
+//#define ANALYZE_ME_CONTRIBUTION
   Eigen::SparseMatrix<double>
   MatrixElements(std::vector<U3xU4::MultiShellTensor_phys>& tensors,
                  U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs)
@@ -58,6 +68,7 @@ namespace U3xU4
 
     auto irreps = basis.irreps();
     auto labels = basis.decomposition();
+    auto dim = basis.dim();
     auto JJ = basis.getJJ();
     int16_t MMJ = (JJ % 2 == 0) ? 0 : 1;
     auto MMT = basis.getMMT();
@@ -71,7 +82,7 @@ namespace U3xU4
 
     if (tensors_count == 0)
     {
-      Eigen::SparseMatrix<double> mat(basis.dim(), basis.dim());
+      Eigen::SparseMatrix<double> mat(dim, dim);
       return mat;
     }
 
@@ -83,6 +94,12 @@ namespace U3xU4
     std::vector<Eigen::Triplet<double>> ija;
 
     auto cgcJ = cgcs.compute(JJ, JJ_opt, JJ, MMJ, MMJ_opt, MMJ);
+
+#ifdef ANALYZE_ME_CONTRIBUTION
+    std::vector<u3::irrep> U3s;
+    std::vector<u4::irrep> U4s;
+    std::vector<std::vector<double>> contribution_U3s, contribution_U4s;
+#endif
 
     if (std::fabs(cgcJ) > 0.0)
     {
@@ -402,11 +419,41 @@ namespace U3xU4
                                         //std::cout << "rme: " << rme << std::endl;
 
                                         double x = strength * cgcJ_cgcT_U9j * cgcU3 * cgcU4 * rme;
+#ifdef ANALYZE_ME_CONTRIBUTION
                                         // check if the tensor character contributes to me
-                                        //if (std::fabs(x) > 1e-12)
-                                        //  std::cout << "TT: " << tensors[tensor_id].LLSSTTs[lst_id][4] << std::endl;
-                                        //  std::cout << tensors[tensor_id].getLastIrrep() << std::endl;
+                                        if (std::fabs(x) > 1e-12)
+                                        {
+                                          //std::cout << tensors[tensor_id].getLastIrrep() << std::endl;
+                                          auto U3 = tensors[tensor_id].getLastIrrep().u3(); 
+                                          auto U4 = tensors[tensor_id].getLastIrrep().u4();
 
+                                          auto it3 = std::find(U3s.begin(), U3s.end(), U3);
+                                          if (it3 != U3s.end())
+                                          {
+                                            size_t index = std::distance(U3s.begin(), it3);
+                                            contribution_U3s[index][i * dim + j] += x;
+                                          }
+                                          else
+                                          {
+                                            U3s.push_back(U3);
+                                            contribution_U3s.push_back(std::vector<double>(dim * dim, 0.0));
+                                            contribution_U3s.back()[i * dim + j] += x;
+                                          }
+
+                                          auto it4 = std::find(U4s.begin(), U4s.end(), U4);
+                                          if (it4 != U4s.end())
+                                          {
+                                            size_t index = std::distance(U4s.begin(), it4);
+                                            contribution_U4s[index][i * dim + j] += x;
+                                          }
+                                          else
+                                          {
+                                            U4s.push_back(U4);
+                                            contribution_U4s.push_back(std::vector<double>(dim * dim, 0.0));
+                                            contribution_U4s.back()[i * dim + j] += x;
+                                          }
+                                        }
+#endif
                                         me += x;
                                       }
                                     }
@@ -431,10 +478,26 @@ namespace U3xU4
       }
     }
 
-    Eigen::SparseMatrix<double> mat(basis.dim(), basis.dim());
-    mat.setFromTriplets(ija.begin(), ija.end());
+#ifdef ANALYZE_ME_CONTRIBUTION
+    std::cout << "Contributions to matrix elements for U(3)" << std::endl;
+    for (size_t i = 0; i < U3s.size(); i++)
+    {
+      auto sm = sum_mean(contribution_U3s[i]);
+      std::cout << U3s[i] << ": sum = " << sm.first << " mean = " << sm.second << std::endl;
+    }
 
+    std::cout << "Contributions to matrix elements for U(4)" << std::endl;
+    for (size_t i = 0; i < U4s.size(); i++)
+    {
+      auto sm = sum_mean(contribution_U4s[i]);
+      std::cout << U4s[i] << ": sum = " << sm.first << " mean = " << sm.second << std::endl;
+    }
+#endif
+
+    Eigen::SparseMatrix<double> mat(dim, dim);
+    mat.setFromTriplets(ija.begin(), ija.end());
     mat.makeCompressed();
+
     return mat;
   }
 } // namespace U3xU4
