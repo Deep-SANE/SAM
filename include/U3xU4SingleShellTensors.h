@@ -730,8 +730,8 @@ public:
   template <typename Context>
   constexpr auto format(const U3xU4::SingleShellTensor& t, Context& ctx) const
   {
-    return format_to(ctx.out(), "{}({},{}){}{}{}{}", t.shell(), t.ads, t.ats,
-                     t.rho0max(), t.u3(), t.eta0max(), t.u4());
+    return fmt::format_to(ctx.out(), "{}({},{}){}{}{}{}", t.shell(), t.ads,
+                          t.ats, t.rho0max(), t.u3(), t.eta0max(), t.u4());
   }
 };
 

@@ -221,11 +221,11 @@ public:
   constexpr auto format(const U3xU4::GammaElement& ge, Context& ctx) const
   {
     if (ge.state() == U3xU4::GammaElement::State::Basis)
-      return format_to(ctx.out(), "{}:{}{}{}", ge.shell(), ge.alphamax(),
-                       ge.u3(), ge.u4());
+      return fmt::format_to(ctx.out(), "{}:{}{}{}", ge.shell(), ge.alphamax(),
+                            ge.u3(), ge.u4());
     else if (ge.state() == U3xU4::GammaElement::State::Tensor)
-      return format_to(ctx.out(), "{}:{}{}{}{}", ge.shell(), ge.rhomax(),
-                       ge.u3(), ge.etamax(), ge.u4());
+      return fmt::format_to(ctx.out(), "{}:{}{}{}{}", ge.shell(), ge.rhomax(),
+                            ge.u3(), ge.etamax(), ge.u4());
     else
       throw std::runtime_error("Invalid state of U3xU4::GammaElement!");
   }
@@ -243,8 +243,8 @@ public:
   template <typename Context>
   constexpr auto format(const U3xU4::OmegaElement& oe, Context& ctx) const
   {
-    return format_to(ctx.out(), "{}{}{}{}", oe.rhomax(), oe.u3(), oe.etamax(),
-                     oe.u4());
+    return fmt::format_to(ctx.out(), "{}{}{}{}", oe.rhomax(), oe.u3(),
+                          oe.etamax(), oe.u4());
   }
 };
 
