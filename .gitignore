@@ -8,6 +8,7 @@
 *.exe
 *.fdb_latexmk
 *.fls
+*.gz
 *.log
 *.o
 *.out
