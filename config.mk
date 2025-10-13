@@ -78,6 +78,11 @@ LDFLAGS += -L$(SAM_DIR)/lib
 endif
 LDFLAGS += -lsam
 
+ifdef FMT_DIR
+LDFLAGS += -L$(FMT_DIR)/lib
+endif
+LDFLAGS += -lfmt
+
 ifdef WIGXJPF_DIR
 LDFLAGS += -L$(WIGXJPF_DIR)/lib 
 endif
