@@ -40,8 +40,11 @@ endif
 
 ifdef HAVE_FMT
 CXXFLAGS += -DHAVE_FMT
-ifdef FMT_ROOT
-CXXFLAGS += -I$(FMT_ROOT)/include
+ifdef FMT_DIR
+CXXFLAGS += -I$(FMT_DIR)/include
+endif
+ifeq ($(FMT_HEADER_ONLY),1)
+CXXFLAGS += -DFMT_HEADER_ONLY
 endif
 endif
 
@@ -78,10 +81,14 @@ LDFLAGS += -L$(SAM_DIR)/lib
 endif
 LDFLAGS += -lsam
 
+ifdef HAVE_FMT
+ifneq ($(FMT_HEADER_ONLY),1)
 ifdef FMT_DIR
 LDFLAGS += -L$(FMT_DIR)/lib
 endif
 LDFLAGS += -lfmt
+endif
+endif
 
 ifdef WIGXJPF_DIR
 LDFLAGS += -L$(WIGXJPF_DIR)/lib 
