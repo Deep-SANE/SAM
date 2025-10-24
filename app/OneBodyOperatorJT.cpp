@@ -4,7 +4,7 @@
 #include <Databases.h>
 #include <OneBodyOperatorJT.h>
 
-#ifdef SAM_USE_SLEPC
+#ifdef USE_SLEPC
 #include <slepcsys.h>
 #endif
 
@@ -17,7 +17,7 @@ double avg_strength(const std::vector<double>& vs)
 
 int main(int argc, char* argv[])
 {
-#ifdef SAM_USE_SLEPC
+#ifdef USE_SLEPC
   SlepcInitialize(&argc, &argv, NULL, NULL);
 #endif
 
@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
-#ifdef SAM_USE_SLEPC
+#ifdef USE_SLEPC
   SlepcFinalize();
 #endif
 

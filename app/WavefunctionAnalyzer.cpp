@@ -1,12 +1,12 @@
 #include <WavefunctionAnalyzer.h>
 
-#ifdef SAM_USE_SLEPC
+#ifdef USE_SLEPC
 #include <slepcsys.h>
 #endif
 
 int main(int argc, char* argv[])
 {
-#ifdef SAM_USE_SLEPC
+#ifdef USE_SLEPC
   SlepcInitialize(&argc, &argv, NULL, NULL);
 #endif
 
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
   for (const auto& subspace : subspaces)
   	std::cout << subspace << std::endl;
 
-#ifdef SAM_USE_SLEPC
+#ifdef USE_SLEPC
   SlepcFinalize();
 #endif
 

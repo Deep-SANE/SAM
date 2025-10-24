@@ -12,7 +12,7 @@ using qcx_utils::print;
 
 int main(int argc, char* argv[])
 {
-#ifdef SAM_USE_SLEPC
+#ifdef USE_SLEPC
   SlepcInitialize(&argc, &argv, NULL, NULL);
 #endif
 
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
   for (size_t i = 0; i < RMEs.size(); i++)
     print("{: .8f}\n", RMEs[i]);
 
-#ifdef SAM_USE_SLEPC
+#ifdef USE_SLEPC
   SlepcFinalize();
 #endif
 }

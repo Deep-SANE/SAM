@@ -11,13 +11,12 @@
 #include <UNtoU3.h>
 
 #include <U3xU4HWSgenerator.h>
-
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
 #include <Eigen/Sparse>
 #endif
 
 #include <nullspace_solver_qr.h>
-#ifdef SAM_USE_SLEPC
+#ifdef USE_SLEPC
 #include <nullspace_solver_slepc.h>
 #endif
 #include <nullspace_error.h>
@@ -104,7 +103,7 @@ namespace U3xU4
 
     std::vector<std::pair<std::size_t, UNxU4::SlaterDeterminant>> opt_SD;
 
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
     std::vector<Eigen::Triplet<double>> ija;
 #else
     std::vector<Eigen::RowVectorXd> mat_temp;
@@ -141,7 +140,7 @@ namespace U3xU4
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
             ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
@@ -153,7 +152,7 @@ namespace U3xU4
           }
           else
           {
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
             ija.emplace_back(std::distance(opt_SD.begin(), it), i,
                              phase * sps3[c].e12());
 #else
@@ -182,7 +181,7 @@ namespace U3xU4
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
             ija.emplace_back(opt_SD.size(), i, phase * sps3[c].e23_12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
@@ -194,7 +193,7 @@ namespace U3xU4
           }
           else
           {
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
             ija.emplace_back(std::distance(opt_SD.begin(), it), i,
                              phase * sps3[c].e23_12());
 #else
@@ -223,7 +222,7 @@ namespace U3xU4
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
             ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
@@ -235,7 +234,7 @@ namespace U3xU4
           }
           else
           {
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
             ija.emplace_back(std::distance(opt_SD.begin(), it), i,
                              phase * sps4[r].e12());
 #else
@@ -264,7 +263,7 @@ namespace U3xU4
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
             ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e23_12());
 #else
             Eigen::RowVectorXd x(SDarr.size());
@@ -276,7 +275,7 @@ namespace U3xU4
           }
           else
           {
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
             ija.emplace_back(std::distance(opt_SD.begin(), it), i,
                              phase * sps4[r].e23_12());
 #else
@@ -305,7 +304,7 @@ namespace U3xU4
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
             ija.emplace_back(opt_SD.size(), i, phase * sps4[r].e34_13());
 #else
             Eigen::RowVectorXd x(SDarr.size());
@@ -317,7 +316,7 @@ namespace U3xU4
           }
           else
           {
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
             ija.emplace_back(std::distance(opt_SD.begin(), it), i,
                              phase * sps4[r].e34_13());
 #else
@@ -329,7 +328,7 @@ namespace U3xU4
       }
     }
 
-#ifdef SAM_SPARSE_MAT
+#ifdef USE_SLEPC
     Eigen::SparseMatrix<double> mat(opt_SD.size(), SDarr.size());
     mat.setFromTriplets(ija.begin(), ija.end());
 #else
@@ -355,7 +354,7 @@ namespace U3xU4
 
     auto mat = RaisingGenerator(SDarr, sps3, sps4);
 
-#ifdef SAM_USE_SLEPC
+#ifdef USE_SLEPC
     untou3::UNtoU3<4> gen;
     gen.set_shell(n);
     gen.reduceU4(x.u4(), N);
