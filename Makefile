@@ -1,4 +1,4 @@
-include $(QCX_CONFIG_DIR)/make.d/*.mk
+include $(QCX_CONFIG_DIR)/config.mk
 
 export
 
