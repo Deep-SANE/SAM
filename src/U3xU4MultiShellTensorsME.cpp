@@ -468,9 +468,13 @@ namespace U3xU4
                             ija.emplace_back(i, j, me);
 /*                            
                             if (ket_u3 != bra_u3)
-                              std::cout << "Connect different irreps: " << ket_u3 << bra_u3 << std::endl;
+                              std::cout << "Connect different irreps:" 
+                                        << " ket: " << ket_id << ket_u3 
+                                        << " bra: " << bra_id << bra_u3 << std::endl;
                             if (ket_u4 != bra_u4)
-                              std::cout << "Connect different irreps: " << ket_u4 << bra_u4 << std::endl;
+                              std::cout << "Connect different irreps:" 
+                                        << " ket: " << ket_id << ket_u4 
+                                        << " bra: " << bra_id << bra_u4 << std::endl;
 */
                           }
                         }
