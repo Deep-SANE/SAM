@@ -57,6 +57,12 @@ namespace U3xU4
     int n23() const { return u3_.n23(); }
     int n33() const { return u3_.n33(); }
 
+    // SU(4) shorthands:
+
+    int P1() const { return u4_.P1(); }
+    int P2() const { return u4_.P2(); }
+    int P3() const { return u4_.P3(); }
+
     // U(4) shorthands:
 
     int n14() const { return u4_.n14(); }
