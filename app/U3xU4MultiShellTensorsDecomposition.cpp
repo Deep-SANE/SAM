@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
   */
 
   // Example 2
-
+  /*
   U3xU4::irrep Gamma1(0, 0, 0, 1, 0, 0, 0), Gamma2(1, 1, 0, 1, 1, 1, 0),
       Omega1(1, 1, 0, 2, 1, 1, 0), Gamma3(2, 2, 0, 1, 1, 1, 0),
       Omega2(3, 3, 0, 3, 2, 2, 0), Gamma4(3, 0, 0, 1, 0, 0, 0),
@@ -59,6 +59,7 @@ int main(int argc, char* argv[])
   U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors, coupled_irreps,
                                           1, 1, 1, 4, 1, 4, 0, 0, 0, 0, {},
                                           labels);
+  */
 
   // Example 3
   /*
@@ -77,6 +78,27 @@ int main(int argc, char* argv[])
                                           1, 1, 1, 2, 1, 2, 0, 0, 0, 0, {},
   labels);
   */
+
+  // Example 4
+  
+  U3xU4::irrep Gamma1(0, 0, 0, 1, 1, 0, 0), 
+               Gamma2(2, 2, 0, 1, 1, 0, 0),
+               Omega1(2, 2, 0, 0, 0, 0, 0);
+
+  U3xU4::SingleShellTensor 
+      tadat1(0, 2, 0, {Gamma1}, {}, Gamma1, 1, 1),
+      tadat2(1, 0, 2, {}, {Gamma2}, Gamma2, 1, 1);
+
+  std::vector<U3xU4::SingleShellTensor> 
+    single_shell_tensors = {tadat1, tadat2};
+
+  std::vector<U3xU4::irrep> coupled_irreps = {Omega1};
+
+  HO::Table_nljmjmt labels(2);
+  U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors, coupled_irreps,
+                                          1, 1, 1, 0, 1, 0, 0, 0, 0, 0, {},
+                                          labels);
+  std::cout << myTensor << std::endl;
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
