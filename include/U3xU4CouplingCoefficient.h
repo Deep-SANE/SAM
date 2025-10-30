@@ -35,14 +35,14 @@ namespace U3xU4
              U9j = racah9.compute(LL1, SS1, JJ1, LL2, SS2, JJ2, LL3, SS3, JJ3),
              factor = cgcJ * cgcT * U9j;
 
-      auto [allowU3, cgcU3] = wigU3SO3db.get(
-          a.u3().lam(), a.u3().mu(), LL1 / 2, b.u3().lam(), b.u3().mu(),
-          LL2 / 2, c.u3().lam(), c.u3().mu(), LL3 / 2);
+      auto [allowU3, cgcU3] = wigU3SO3db.get(a.lam(), a.mu(), LL1 / 2, 
+                                             b.lam(), b.mu(), LL2 / 2, 
+                                             c.lam(), c.mu(), LL3 / 2);
 
       auto [allowU4, cgcU4] =
-          wigU4SU2SU2db.get(a.u4().P1(), a.u4().P2(), a.u4().P3(), SS1, TT1,
-                            b.u4().P1(), b.u4().P2(), b.u4().P3(), SS2, TT2,
-                            c.u4().P1(), c.u4().P2(), c.u4().P3(), SS3, TT3);
+          wigU4SU2SU2db.get(a.P1(), a.P2(), a.P3(), SS1, TT1,
+                            b.P1(), b.P2(), b.P3(), SS2, TT2,
+                            c.P1(), c.P2(), c.P3(), SS3, TT3);
 
       k1max = u3::Kappa(a.u3(), LL1 / 2);
       k2max = u3::Kappa(b.u3(), LL2 / 2);
