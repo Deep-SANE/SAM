@@ -197,16 +197,7 @@ namespace U3xU4
     // Turn it to a by conjugating, this method returns a phase
     // and change mmj to -mmj, mmt to -mmt
     // After this method is executed, tensor is turned to false
-    double turnToAnnihilation()
-    {
-      auto [n, ll, jj, mmj, mmt] = labels.getLabels(index);
-      int phi = (n + ll / 2 + 1 - jj - mmj - mmt) / 2;
-      mmj *= -1;
-      mmt *= -1;
-      tensor = false;
-      index = labels.getIndex(n, ll, jj, mmj, mmt);
-      return (phi % 2 == 0) ? 1.0 : -1.0;
-    }
+    double turnToAnnihilation();
 
     // Check if it is annihilation tensor or annihilation operator
     bool isTensor() const { return tensor; }
