@@ -72,8 +72,8 @@ int main(int argc, char* argv[])
   */
 
   // Example 4: one-body part of the CoM HO Number Operator
-  /*
-  int hw = -1, maxShell = 4;
+  
+  int hw = -1, maxShell = 6;
   JT::OneBodyOperator CoM("CoMNumberOp", hw, maxShell);
   CoM.is();
 
@@ -84,10 +84,10 @@ int main(int argc, char* argv[])
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  */
+  
 
   // Example 5: one-body part of the L.S operator
-  
+  /*
   int hw = -1, maxShell = 4;
   JT::OneBodyOperator LS("L.S",hw,maxShell);
   LS.is();
@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-
+  */
   
   std::vector<std::vector<double>> strengths_U3, strengths_U4;
   std::vector<u3::irrep> U3s;

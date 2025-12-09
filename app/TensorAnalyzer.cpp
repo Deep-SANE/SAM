@@ -2,11 +2,23 @@
 
 int main()
 {
-  // auto tensors_stats = sam::U4_tensor_analyzer("N2LO_opt_bare");
-  auto tensors_stats = sam::U4_tensor_analyzer_write("N4LO_EMN500_srg1.0");
+  /* Choose one:
+    N4LO_EMN500_bare
+    N3LO_EMN500_bare
+    N2LO_opt_bare
+    CoMNumberOp
+    Kinetic
+  */
+  std::string name = "N4LO_EMN500_bare";
+  auto tensors_U3_stats = sam::U3_tensor_analyzer_write(name);
+  std::cout << "U3 tensor characters:" << std::endl;
+  for (const auto& [irrep, strength] : tensors_U3_stats)
+    std::cout << irrep << ":\t" << strength << std::endl;
 
-  for (const auto& tensor_stat : tensors_stats)
-    std::cout << tensor_stat.first << ":\t" << tensor_stat.second << std::endl;
+  auto tensors_U4_stats = sam::U4_tensor_analyzer_write(name);
+  std::cout << "U4 tensor characters:" << std::endl;
+  for (const auto& [irrep, strength] : tensors_U4_stats)
+    std::cout << irrep << ":\t" << strength << std::endl;
 
   return 0;
 }

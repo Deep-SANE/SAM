@@ -2,6 +2,9 @@
 #include <iomanip>
 #include <iostream>
 
+#include <eigensolver.h>
+#include <qcx_readwrite.h>
+
 #include <Databases.h>
 #include <OneBodyOperatorJT.h>
 #include <TwoBodyOperatorJT.h>
@@ -11,15 +14,13 @@
 #include <slepcsys.h>
 #endif
 
-#include <eigensolver.h>
-
 int main(int argc, char* argv[])
 {
 #ifdef USE_SLEPC
   SlepcInitialize(&argc, &argv, NULL, NULL);
 #endif
 
-  int Z, N, Nmax, MMT, JJ, valanceShell, hw;
+  int Z, N, Nmax, JJ, valanceShell, hw;
 
   std::cout << "Enter number of protons: ";
   std::cin >> Z;
@@ -187,7 +188,7 @@ int main(int argc, char* argv[])
   }
   */
 
-  // Example 4: 2-body T_rel + 1000 * the CoM number operator
+  // Example 4: T_rel + 1000 * the CoM number operator
   /*
   int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
@@ -236,6 +237,8 @@ int main(int argc, char* argv[])
   JT::OneBodyOperator KE1("Kinetic",hw,maxShell);  
   JT::TwoBodyOperator KE2("Kinetic",HO_labels,hw,Nmax,valanceShell,maxShell);
   JT::TwoBodyOperator NN("N2LO_opt_bare",HO_labels,hw,Nmax,valanceShell,maxShell);
+  //JT::TwoBodyOperator NN("N3LO_EMN500_bare",HO_labels,hw,Nmax,valanceShell,maxShell);
+  //JT::TwoBodyOperator NN("N4LO_EMN500_bare",HO_labels,hw,Nmax,valanceShell,maxShell);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
@@ -271,9 +274,21 @@ int main(int argc, char* argv[])
   }
   std::cout << "G.S. wavefunction:" << std::endl;
   std::cout << evecs.col(0) << std::endl;
-  
-  
-  
+  /*
+  const char* sam_dir = std::getenv("SAM_DIR");
+  if (!sam_dir)
+    throw std::runtime_error("Environment variable SAM_DIR not set");
+  std::string base_dir = std::string(sam_dir) 
+                       + "/data/OperatorJT/Hamiltonian/Z"
+                       + std::to_string(Z) + "_N"
+                       + std::to_string(N) + "/JJ"
+                       + std::to_string(JJ) + "/Nmax" 
+                       + std::to_string(Nmax);
+  std::filesystem::create_directories(base_dir);
+  std::string filename = base_dir + "/" + "hw" + std::to_string(hw)
+                       + "_N3LO_EMN500_bare";
+  qcx_utils::writeBinary(filename,H);
+  */
   
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;

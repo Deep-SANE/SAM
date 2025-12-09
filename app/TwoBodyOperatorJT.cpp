@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
 
   // Example 3: Two-body part of relative kinetic energy
   /*
-  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
+  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = 6;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
   // auto tensors = KE.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  // KE.writeBinary(dbs);
+  KE.writeBinary(dbs);
 
   // read from binary
   auto tensors = KE.readBinary();
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 
   // Example 4: Two-body part of the CoM HO operator
   /*
-  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
+  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = 6;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
   // auto tensors = CoM.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  //CoM.writeBinary(dbs);
+  CoM.writeBinary(dbs);
 
   // read from binary
   auto tensors = CoM.readBinary();
@@ -129,9 +129,9 @@ int main(int argc, char* argv[])
   auto t1 = std::chrono::high_resolution_clock::now();
   */
 
-  // Example 5: Two-body potential (bare) with N2LO_opt_bare
+  // Example 5: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
   /*
-  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
+  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = 6;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -139,31 +139,7 @@ int main(int argc, char* argv[])
 
   JT::TwoBodyOperator 
     NN("N2LO_opt_bare", labels, hw, Nmax, valenceShell, maxShell);
-  NN.is();
-
-  // expand now
-  // auto tensors = NN.expand(dbs);
-
-  // write to binary, valenceShell must be 0 for future reuse
-  //NN.writeBinary(dbs);
-
-  // read from binary
-  auto tensors = NN.readBinary();
-
-  // End time measurement
-  auto t1 = std::chrono::high_resolution_clock::now();
-  */
-
-  // Example 6: Two-body potential (bare) with N2LO_opt_srg1.0,2.0,4.0
-  /*
-  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
-  HO::Table_nljmjmt labels(maxShell);
-
-  // Start time measurement
-  auto t0 = std::chrono::high_resolution_clock::now();
-
-  JT::TwoBodyOperator 
-    NN("N2LO_opt_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N2LO_opt_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
     //NN("N2LO_opt_srg2.0", labels, hw, Nmax, valenceShell, maxShell);
     //NN("N2LO_opt_srg4.0", labels, hw, Nmax, valenceShell, maxShell);
   NN.is();
@@ -181,9 +157,9 @@ int main(int argc, char* argv[])
   auto t1 = std::chrono::high_resolution_clock::now();
   */
 
-  // Example 7: Two-body potential (bare) with N3LO_EMN500_bare
+  // Example 6: Two-body potential (bare) with N3LO_EMN500_bare,srg1.0,2.0,4.0
   /*
-  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = 6;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -191,31 +167,7 @@ int main(int argc, char* argv[])
 
   JT::TwoBodyOperator 
     NN("N3LO_EMN500_bare", labels, hw, Nmax, valenceShell, maxShell);
-  NN.is();
-
-  // expand now
-  // auto tensors = NN.expand(dbs);
-
-  // write to binary, valenceShell must be 0 for future reuse
-  NN.writeBinary(dbs);
-
-  // read from binary
-  auto tensors = NN.readBinary();
-
-  // End time measurement
-  auto t1 = std::chrono::high_resolution_clock::now();
-  */
-
-  // Example 8: Two-body potential (bare) with N3LO_EMN500_srg1.0,2.0,4.0
-  /*
-  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
-  HO::Table_nljmjmt labels(maxShell);
-
-  // Start time measurement
-  auto t0 = std::chrono::high_resolution_clock::now();
-
-  JT::TwoBodyOperator 
-    NN("N3LO_EMN500_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N3LO_EMN500_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
     //NN("N3LO_EMN500_srg2.0", labels, hw, Nmax, valenceShell, maxShell);
     //NN("N3LO_EMN500_srg4.0", labels, hw, Nmax, valenceShell, maxShell);
   NN.is();
@@ -233,7 +185,7 @@ int main(int argc, char* argv[])
   auto t1 = std::chrono::high_resolution_clock::now();
   */
 
-  // Example 9: Two-body potential (bare) with N2LO_sat_bare
+  // Example 7: Two-body potential (bare) with N2LO_sat_bare,srg1.0,2.0,4.0
   /*
   int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
@@ -243,31 +195,7 @@ int main(int argc, char* argv[])
 
   JT::TwoBodyOperator 
     NN("N2LO_sat_bare", labels, hw, Nmax, valenceShell, maxShell);
-  NN.is();
-
-  // expand now
-  // auto tensors = NN.expand(dbs);
-
-  // write to binary, valenceShell must be 0 for future reuse
-  NN.writeBinary(dbs);
-
-  // read from binary
-  auto tensors = NN.readBinary();
-
-  // End time measurement
-  auto t1 = std::chrono::high_resolution_clock::now();
-  */
-
-  // Example 10: Two-body potential (bare) with N2LO_sat_srg1.0,2.0,4.0
-  
-  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
-  HO::Table_nljmjmt labels(maxShell);
-
-  // Start time measurement
-  auto t0 = std::chrono::high_resolution_clock::now();
-
-  JT::TwoBodyOperator 
-    NN("N2LO_sat_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N2LO_sat_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
     //NN("N2LO_sat_srg2.0", labels, hw, Nmax, valenceShell, maxShell);
     //NN("N2LO_sat_srg4.0", labels, hw, Nmax, valenceShell, maxShell);
   NN.is();
@@ -283,11 +211,11 @@ int main(int argc, char* argv[])
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
+  */
   
+  // Example 8: Two-body potential (bare) with N4LO_EMN500_bare,srg1.0,2.0,4.0
   
-  // Example 11: Two-body potential (bare) with N4LO_EMN500_bare
-  /*
-  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+  int hw = -1, valenceShell = 0, Nmax = 6, maxShell = 6;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -295,31 +223,7 @@ int main(int argc, char* argv[])
 
   JT::TwoBodyOperator 
     NN("N4LO_EMN500_bare", labels, hw, Nmax, valenceShell, maxShell);
-  NN.is();
-
-  // expand now
-  // auto tensors = NN.expand(dbs);
-
-  // write to binary, valenceShell must be 0 for future reuse
-  NN.writeBinary(dbs);
-
-  // read from binary
-  auto tensors = NN.readBinary();
-
-  // End time measurement
-  auto t1 = std::chrono::high_resolution_clock::now();
-  */
-
-  // Example 12: Two-body potential (bare) with N4LO_EMN500_srg1.0,2.0,4.0
-  /*
-  int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
-  HO::Table_nljmjmt labels(maxShell);
-
-  // Start time measurement
-  auto t0 = std::chrono::high_resolution_clock::now();
-
-  JT::TwoBodyOperator 
-    NN("N4LO_EMN500_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
+    //NN("N4LO_EMN500_srg1.0", labels, hw, Nmax, valenceShell, maxShell);
     //NN("N4LO_EMN500_srg2.0", labels, hw, Nmax, valenceShell, maxShell);
     //NN("N4LO_EMN500_srg4.0", labels, hw, Nmax, valenceShell, maxShell);
   NN.is();
@@ -335,7 +239,7 @@ int main(int argc, char* argv[])
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  */
+  
 
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
   for (const auto& tensor : tensors)
