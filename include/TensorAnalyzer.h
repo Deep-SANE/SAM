@@ -59,7 +59,7 @@ namespace sam
   inline std::vector<std::pair<u3::irrep, strength_stats>>
   U3_tensor_analyzer_write(const std::string& name)
   {
-    int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+    int hw = -1, valenceShell = 0, Nmax = 6, maxShell = 6;
     HO::Table_nljmjmt labels(maxShell);
 
     JT::TwoBodyOperator opt(name, labels, hw, Nmax, valenceShell, maxShell);
@@ -132,7 +132,7 @@ namespace sam
   inline std::vector<std::pair<u3::irrep, strength_stats>>
   U3_tensor_analyzer(const std::string& name)
   {
-    int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+    int hw = -1, valenceShell = 0, Nmax = 6, maxShell = 6;
     HO::Table_nljmjmt labels(maxShell);
 
     JT::TwoBodyOperator opt(name, labels, hw, Nmax, valenceShell, maxShell);
@@ -177,7 +177,7 @@ namespace sam
   inline std::vector<std::pair<u4::irrep, strength_stats>>
   U4_tensor_analyzer_write(const std::string& name)
   {
-    int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+    int hw = -1, valenceShell = 0, Nmax = 6, maxShell = 6;
     HO::Table_nljmjmt labels(maxShell);
 
     JT::TwoBodyOperator opt(name, labels, hw, Nmax, valenceShell, maxShell);
@@ -251,7 +251,7 @@ namespace sam
   inline std::vector<std::pair<u4::irrep, strength_stats>>
   U4_tensor_analyzer(const std::string& name)
   {
-    int hw = -1, valenceShell = 0, Nmax = 4, maxShell = 4;
+    int hw = -1, valenceShell = 0, Nmax = 6, maxShell = 6;
     HO::Table_nljmjmt labels(maxShell);
 
     JT::TwoBodyOperator opt(name, labels, hw, Nmax, valenceShell, maxShell);
