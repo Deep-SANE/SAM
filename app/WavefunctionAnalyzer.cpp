@@ -34,8 +34,9 @@ int main(int argc, char* argv[])
                          "/data/OperatorJT/Hamiltonian/Z" + std::to_string(Z) +
                          "_N" + std::to_string(N) + "/JJ" + std::to_string(JJ) +
                          "/Nmax" + std::to_string(Nmax);
+  std::string potential = "N4LO_EMN500_bare"; //"N3LO_EMN500_bare"; //"N2LO_opt_bare";                       
   std::string filename =
-      base_dir + "/" + "hw" + std::to_string(hw) + "_N2LO_opt_bare";
+      base_dir + "/" + "hw" + std::to_string(hw) + "_" + potential;
 
   //auto [evals, subspaces] = sam::U3xU4_wavefunction_analyzer(basis,filename,1);
 
