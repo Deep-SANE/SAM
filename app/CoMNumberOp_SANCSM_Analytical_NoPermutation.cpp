@@ -212,14 +212,14 @@ int main(int argc, char* argv[])
         	  		  	  	  	  for (int jjb = 2*lb + 1; jjb >= abs(2*lb - 1); jjb -= 2)
         	  		  	  	  	  {
       	     		  	  	  	  	//double norm_ab = 1.0;
-      	     		  	   		  	//if (na == nb && la == lb && jja == jjb) norm_ab /= SQRT2;
+      	     		  	   		  	  //if (na == nb && la == lb && jja == jjb) norm_ab /= SQRT2;
 
       	  	  	  	  	  	  	    for (int jjc = 2*lc + 1; jjc >= abs(2*lc - 1); jjc -= 2)
       	  		     	  	  	  	{
       	  		     	  	  	  	  for (int jjd = 2*ld + 1; jjd >= abs(2*ld - 1); jjd -= 2)
       	  		  	     	  	  	  {
       	  		  	  	     	  	  	//double norm_cd = 1.0;
- 										//if (nc == nd && lc == ld && jjc == jjd) norm_cd /= SQRT2;
+ 										                //if (nc == nd && lc == ld && jjc == jjd) norm_cd /= SQRT2;
 
       	  		  	  	  	     	  	for (int JJ = jja + jjb; JJ >= abs(jja - jjb); JJ -= 2)
       	  		  	  	  	  	     	{
@@ -229,8 +229,11 @@ int main(int argc, char* argv[])
 																   nc,2*lc,jjc, nd,2*ld,jjd,
 																   JJ,dbs);
 
-      	  		  	  	  	  	  		  int phase = (nc + nd + lc + ld - jjc - jjd + JJ);
-        	  		  	  	  	  	  	  //if (phase % 2 != 0) print("phase: odd\n");
+#ifdef ADD_SU3LIB_PHASE_U3SO3
+      	  		  	  	  	  	  		  int phase = (2*nc + 2*nd - jjc - jjd + JJ);
+#else
+                                      int phase = (nc + nd + lc + ld - jjc - jjd + JJ);
+#endif                                      
         	  		  	  	  	  	  	  double factor = (phase % 4 == 0) ? 1.0 : -1.0;
         	  		  	  	  	  	  	  rme *= factor * std::sqrt((JJ + 1.0));// norm_ab / norm_cd);
       	     		  	  	  	  	  	  if (std::fabs(rme) < 1e-12) continue;

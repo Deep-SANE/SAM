@@ -286,8 +286,11 @@ int main(int argc, char* argv[])
 												    									                                        JJ,TT, dbs);
   													                        assert(std::fabs(rme - rme_exchange * phase_exchange) < 1e-12);
 
+#ifdef ADD_SU3LIB_PHASE_U3SO3
+                                                    int phase = (2*nc + 2*nd + 2 - jjc - jjd + JJ + TT);
+#else                                                    
         	  		  	  	  	     	  		  	  	  	int phase = (nc + nd + lc + ld + 2 - jjc - jjd + JJ + TT);
-        	  		  	  	  	  	  		  	  	  	  //if (phase % 2 != 0) print("phase: odd\n");
+#endif        	  		  	  	  	  	  		  	  	  	                                                      
         	  		  	  	  	  	  		  	  	  	  double factor = (phase % 4 == 0) ? 1.0 : -1.0;
         	  		  	  	  	  	  		  	  	  	  rme *= (factor * std::sqrt((JJ + 1.0) * (TT + 1.0))
       	     		  	  	  	  	  		  	  	  			     );// norm_ab / norm_cd);
@@ -340,14 +343,6 @@ int main(int argc, char* argv[])
         	  		  	  	  	  	  			  		          {
       	     		  	  	  	  	  				   	            for (int ki = 0; ki < kimax; ki++)
       	     		  	  	  	  	  					              {
-/*      	  		  	  	  	  	  					      	
-      	  		     	  	  	  	  					         	      print("cgcL0: {}, cgcLab: {}, cgcLdc: {}\n",
-      	  	  	  	  	  	  	  					        		      cgcL0((kf * kimax + ki) * k0max + k0,rho0),cgcLab(kf,0),cgcLdc(ki,0));
-      	  		     	  	  	  	  					      	        print("rme: {}\n",rme);
-      	  		  	     	  	  	  					      	        print("racah9_ab: {}, cgcSTab: {}\n",racah9_ab,cgcSTab(0,0));
-      	  		  	  	     	  	  					      	        print("racah9_dc: {}, cgcSTdc: {}\n",racah9_dc,cgcSTdc(0,0));
-      	  		  	  	     	  	  					      	        print("racah9_0: {}, cgcST0: {}\n",racah9_0,cgcST0(z0,eta0));
-*/
       	  	  	  	  	     	  	  					      	      double s = cgcL0((kf * kimax + ki) * k0max + k0,rho0)
       	  		     	  	  	    	  					      			           * cgcLab(kf,0) * cgcLdc(ki,0) * rme 
       	  		     	  	  	     	  					      			           * racah9_ab * cgcSTab(0,0) * racah9_dc * cgcSTdc(0,0)
