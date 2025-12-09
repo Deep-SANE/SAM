@@ -540,8 +540,12 @@ namespace JT
             {
               if (na <= nb)
               {
-                double phase = ((nb + llb / 2 + 2) / 2 % 2 == 0) ? 1.0 : -1.0,
-                       factor = std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) /
+#ifdef ADD_SU3LIB_PHASE_U3SO3
+                double phase = ((nb + 1) % 2 == 0) ? 1.0 : -1.0;
+#else
+                double phase = ((nb + llb / 2 + 2) / 2 % 2 == 0) ? 1.0 : -1.0;
+#endif
+                double factor = std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) /
                                           (TT + 1.0));
                 for (int k = 0; k < kappa0; k++)
                 {
@@ -553,11 +557,17 @@ namespace JT
               }
               else // na > nb
               {
+#ifdef ADD_SU3LIB_PHASE_U3SO3
+                double phase = ((2* nb + jja + jjb - JJ - TT) / 2 % 2 == 0)
+                               ? 1.0
+                               : -1.0;
+#else
                 double phase =
                            ((nb + llb / 2 + jja + jjb - JJ - TT) / 2 % 2 == 0)
                                ? 1.0
-                               : -1.0,
-                       factor = std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) /
+                               : -1.0;
+#endif
+                double factor = std::sqrt(2.0 * (jja + 1.0) / (JJ + 1.0) /
                                           (TT + 1.0));
                 for (int k = 0; k < kappa0; k++)
                 {
@@ -585,11 +595,17 @@ namespace JT
                     continue;
 
                   // phase = (-)^{(nb + lb + 1)/2 - jb + mjb + mtb}
+#ifdef ADD_SU3LIB_PHASE_U3SO3
+                  double phase =
+                      ((2 * nb + 1 - jjb + mmjb + mmtb) / 2 % 2 == 0)
+                          ? 1.0
+                          : -1.0;
+#else
                   double phase =
                       ((nb + llb / 2 + 1 - jjb + mmjb + mmtb) / 2 % 2 == 0)
                           ? 1.0
                           : -1.0;
-
+#endif
                   if (na <= nb)
                   {
                     double cgcJ = cgcs.compute(jja, jjb, JJ, mmja, -mmjb, MMJ),
@@ -685,13 +701,13 @@ namespace JT
 
             for (int pv3 = 0; pv3 < pv3s.size(); pv3++)
             {
-              int lam0 = pv3s[pv3].toprow.lam(), mu0 = pv3s[pv3].toprow.mu(),
+              int lam0 = pv3s[pv3].lam(), mu0 = pv3s[pv3].mu(),
                   kappa0 = pv3s[pv3].kappa, LL0 = 2 * pv3s[pv3].L;
 
               for (int pv4 = 0; pv4 < pv4s.size(); pv4++)
               {
-                int P10 = pv4s[pv4].toprow.P1(), P20 = pv4s[pv4].toprow.P2(),
-                    P30 = pv4s[pv4].toprow.P3(), SS0 = pv4s[pv4].SS,
+                int P10 = pv4s[pv4].P1(), P20 = pv4s[pv4].P2(),
+                    P30 = pv4s[pv4].P3(), SS0 = pv4s[pv4].SS,
                     TT0 = pv4s[pv4].TT;
 
                 // couple LL0 and SS0 to JJ0

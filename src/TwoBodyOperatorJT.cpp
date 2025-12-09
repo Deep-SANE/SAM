@@ -6,6 +6,8 @@
 #include <tuple>
 
 #include <qcx_convert.h>
+#include <qcx_print.h>
+using qcx_utils::print;
 
 #include <Databases.h>
 #include <TwoBodyOperatorJT.h>
@@ -307,7 +309,12 @@ namespace JT
 
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
             auto [sorted_ns, inverse, phase] = sort_shells(ns);
-
+/*
+            print("ns: {}\n", ns);
+            print("sorted ns: {}\n", sorted_ns);
+            print("inverse permutation: {}\n", inverse);
+            print("phase: {}\n", phase);
+*/
             auto it =
                 std::find(na_nb_nc_nds.begin(), na_nb_nc_nds.end(), sorted_ns);
             if (it != na_nb_nc_nds.end())
@@ -451,11 +458,13 @@ namespace JT
         std::visit(
             [&](auto&& o)
             {
+              //std::cout << o << "\t";
               std::tie(ns[j], lls[j], jjs[j], mmjs[j], mmts[j]) = o.getLabels();
             },
             op);
         j++;
       }
+      //std::cout << "\n";
 
       double me = 0.0;
 
@@ -477,7 +486,7 @@ namespace JT
                                         mmjs_orig[2], mmts_orig[2], dbs);
       }
 
-      if (std::fabs(me) < 1e-12)
+      if (std::fabs(me) < 1e-10)
         continue;
 
       for (int c = 0; c < coeffs_.size(); c++)
@@ -487,7 +496,7 @@ namespace JT
     double norm = 0.0;
     for (int c = 0; c < coeffs_.size(); c++)
     {
-      if (std::fabs(coeffs_[c]) < 1e-12)
+      if (std::fabs(coeffs_[c]) < 1e-10)
       {
         coeffs_[c] = 0.0;
         continue;
@@ -495,7 +504,7 @@ namespace JT
       norm += std::fabs(coeffs_[c]);
     }
 
-    bool ignore = (norm < 1e-12);
+    bool ignore = (norm < 1e-10);
     if (ignore == false)
       tensor.coeffs = coeffs_;
 
@@ -687,8 +696,9 @@ namespace JT
     std::string base_dir = std::string(sam_dir) + "/data/TwoBodyTensorExpansion";
     std::filesystem::create_directories(base_dir);
 
-    std::string filename = base_dir + "/" + name + "_hw" 
-                         + std::to_string(static_cast<int>(hw));
+    std::string filename = base_dir + "/" + name 
+                         + "_hw" + std::to_string(static_cast<int>(hw))
+                         + "_Nmax" + std::to_string(static_cast<int>(Nmax));
     std::ofstream s(filename,std::ios::binary);
     if (!s)
       throw std::runtime_error("Failed to open file for writing: " + filename);
@@ -727,8 +737,16 @@ namespace JT
     std::string base_dir = std::string(sam_dir) + "/data/TwoBodyTensorExpansion";
     std::filesystem::create_directories(base_dir);
 
-    std::string filename = base_dir + "/" + name + "_hw" 
-                         + std::to_string(static_cast<int>(hw));
+    std::string filename = base_dir + "/" + name 
+                         + "_hw" + std::to_string(static_cast<int>(hw));
+
+    // this is subject to change later
+    if (name == "N2LO_opt_srg2.0" || name == "N2LO_opt_srg1.0") 
+      filename += "_Nmax6";
+
+    if (name == "CoMNumberOp" || name == "Kinetic" || name == "N2LO_opt_bare"
+        || name == "N3LO_EMN500_bare" || name == "N4LO_EMN500_bare")
+      filename += "_Nmax6";
 
     std::ifstream s(filename, std::ios::binary);
     if (!s)
