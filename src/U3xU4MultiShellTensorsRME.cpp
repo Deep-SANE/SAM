@@ -112,11 +112,11 @@ namespace U3xU4
       assert(T.shell() == f.shell());
       assert(T.shell() == i.shell());
 
-      std::size_t rhomax_temp, etamax_temp; // multi for Wigner-Eckart theorem
-      auto RMEsR = T.RME(f, i, rhomax_temp, etamax_temp, dbs); // right part
+      //std::size_t rhomax_temp, etamax_temp; // multi for Wigner-Eckart theorem
+      //auto RMEsR = T.RME(f, i, rhomax_temp, etamax_temp, dbs); // right part
+      auto RMEsR = T.RME(f, i, dbs); // right part
 
-      if (RMEsR.empty())
-        return {};
+      if (RMEsR.empty()) return {};
 
       // nothing more to do in first iteration:
       if (k == 0)

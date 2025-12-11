@@ -24,12 +24,13 @@ namespace U3xU4
   // class that represents a single gamma element:
   class GammaElement : public U3xU4::irrep
   {
-    uint16_t shell_;    // shell number
+    uint8_t shell_;    // shell number
 
     union
     {
       // basis part:
-      uint16_t alphamax_; // U(N)->U(3) reduction multiplicity
+      uint8_t alphamax_; // U(N)->U(3) reduction multiplicity
+      // PD's note: I don't think it will ever goes beyond 255
 
       // tensor part:
       struct
@@ -50,15 +51,15 @@ namespace U3xU4
     GammaElement(int shell, int alphamax, const u3::irrep& u3,
                  const u4::irrep& u4)
         : U3xU4::irrep(u3, u4),
-          shell_(shell),
-          alphamax_(qcx_utils::itou16(alphamax)),
+          shell_(qcx_utils::itou8(shell)),
+          alphamax_(qcx_utils::itou8(alphamax)),
           state_(State::Basis)
     { }
 
     // constructs a basis gamma element without alphamax:
     GammaElement(int shell, const u3::irrep& u3, const u4::irrep& u4)
         : U3xU4::irrep(u3, u4),
-          shell_(shell),
+          shell_(qcx_utils::itou8(shell)),
           state_(State::Basis)
     { 
       int N = (shell + 1) * (shell + 2) / 2;
@@ -72,7 +73,7 @@ namespace U3xU4
     GammaElement(int shell, int rhomax, const u3::irrep& u3, int etamax,
                  const u4::irrep& u4)
         : U3xU4::irrep(u3, u4),
-          shell_(shell),
+          shell_(qcx_utils::itou8(shell)),
           t_(qcx_utils::itou8(rhomax), qcx_utils::itou8(etamax)),
           state_(State::Tensor)
     { }
@@ -166,8 +167,8 @@ namespace U3xU4
   // class that represents a single omega element:
   class OmegaElement : public U3xU4::irrep
   {
-    uint16_t rhomax_; // U(3) coupling multiplicity
-    uint16_t etamax_; // U(4) coupling multiplicity
+    uint8_t rhomax_; // U(3) coupling multiplicity
+    uint8_t etamax_; // U(4) coupling multiplicity
 
   public:
     OmegaElement() : rhomax_(1), etamax_(1) { }
@@ -175,12 +176,11 @@ namespace U3xU4
     OmegaElement(int rhomax, const u3::irrep& u3, int etamax,
                  const u4::irrep& u4)
         : U3xU4::irrep(u3, u4),
-          rhomax_(qcx_utils::itou16(rhomax)),
-          etamax_(qcx_utils::itou16(etamax))
+          rhomax_(qcx_utils::itou8(rhomax)),
+          etamax_(qcx_utils::itou8(etamax))
     { }
 
     // getters:
-
     int rhomax() const { return rhomax_; }
     int etamax() const { return etamax_; }
 

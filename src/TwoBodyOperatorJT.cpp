@@ -741,12 +741,13 @@ namespace JT
                          + "_hw" + std::to_string(static_cast<int>(hw));
 
     // this is subject to change later
-    if (name == "N2LO_opt_srg2.0" || name == "N2LO_opt_srg1.0") 
+    if (name == "N2LO_opt_srg2.0" || name == "N2LO_opt_srg1.0" || 
+        name == "Kinetic" || name == "N2LO_opt_bare"
+        || name == "N3LO_EMN500_bare" || name == "N4LO_EMN500_bare") 
       filename += "_Nmax6";
 
-    if (name == "CoMNumberOp" || name == "Kinetic" || name == "N2LO_opt_bare"
-        || name == "N3LO_EMN500_bare" || name == "N4LO_EMN500_bare")
-      filename += "_Nmax6";
+    if (name == "CoMNumberOp" )
+      filename += "_Nmax4";
 
     std::ifstream s(filename, std::ios::binary);
     if (!s)

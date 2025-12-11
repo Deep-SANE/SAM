@@ -32,7 +32,7 @@ namespace U3xU4
       // Delegate to single-shell expansion
       const U3xU4::SingleShellTensor& tadat = single_shell_tensors[0];
       U3xU4::SingleShellTensor_phys tadat_phys(
-          tadat.shell(), tadat.ads, tadat.ats, tadat.prod_ads, tadat.prod_ats,
+          tadat.shell(), tadat.ads, tadat.ats, tadat.Omega_ads, tadat.Omega_ats,
           tadat.T(), rhomax, etamax, LL, SS, TT, MMT, JJ, MMJ, labels);
 
       auto [coeffs, ads, ats] = tadat_phys.expand(dbs);
@@ -76,12 +76,12 @@ namespace U3xU4
 
       for (int pv31 = 0; pv31 < pv3s1.size(); pv31++)
       {
-        int lam1 = pv3s1[pv31].toprow.lam(), mu1 = pv3s1[pv31].toprow.mu(),
+        int lam1 = pv3s1[pv31].lam(), mu1 = pv3s1[pv31].mu(),
             kappa1 = pv3s1[pv31].kappa, LL1 = 2 * pv3s1[pv31].L;
 
         for (int pv32 = 0; pv32 < pv3s2.size(); pv32++)
         {
-          int lam2 = pv3s2[pv32].toprow.lam(), mu2 = pv3s2[pv32].toprow.mu(),
+          int lam2 = pv3s2[pv32].lam(), mu2 = pv3s2[pv32].mu(),
               kappa2 = pv3s2[pv32].kappa, LL2 = 2 * pv3s2[pv32].L;
 
           if (std::abs(LL1 - LL2) > LL || (LL1 + LL2) < LL)
@@ -93,14 +93,14 @@ namespace U3xU4
 
           for (int pv41 = 0; pv41 < pv4s1.size(); pv41++)
           {
-            int P11 = pv4s1[pv41].toprow.P1(), P21 = pv4s1[pv41].toprow.P2(),
-                P31 = pv4s1[pv41].toprow.P3(), SS1 = pv4s1[pv41].SS,
+            int P11 = pv4s1[pv41].P1(), P21 = pv4s1[pv41].P2(),
+                P31 = pv4s1[pv41].P3(), SS1 = pv4s1[pv41].SS,
                 TT1 = pv4s1[pv41].TT, zeta1 = pv4s1[pv41].zeta;
 
             for (int pv42 = 0; pv42 < pv4s2.size(); pv42++)
             {
-              int P12 = pv4s2[pv42].toprow.P1(), P22 = pv4s2[pv42].toprow.P2(),
-                  P32 = pv4s2[pv42].toprow.P3(), SS2 = pv4s2[pv42].SS,
+              int P12 = pv4s2[pv42].P1(), P22 = pv4s2[pv42].P2(),
+                  P32 = pv4s2[pv42].P3(), SS2 = pv4s2[pv42].SS,
                   TT2 = pv4s2[pv42].TT, zeta2 = pv4s2[pv42].zeta;
 
               if (std::abs(SS1 - SS2) > SS || (SS1 + SS2) < SS ||
@@ -138,14 +138,14 @@ namespace U3xU4
 
                       U3xU4::SingleShellTensor_phys tadat_phys1(
                           tadat1.shell(), tadat1.ads, tadat1.ats,
-                          tadat1.prod_ads, tadat1.prod_ats, tadat1.T(),
+                          tadat1.Omega_ads, tadat1.Omega_ats, tadat1.T(),
                           tadat1.rho0max(), tadat1.eta0max(), LL1, SS1, TT1,
                           MMT1, JJ1, MMJ1, labels);
                       auto [coeffsArr1, adsArr1, asArr1] = tadat_phys1.expand(dbs);
 
                       U3xU4::SingleShellTensor_phys tadat_phys2(
                           tadat2.shell(), tadat2.ads, tadat2.ats,
-                          tadat2.prod_ads, tadat2.prod_ats, tadat2.T(),
+                          tadat2.Omega_ads, tadat2.Omega_ats, tadat2.T(),
                           tadat2.rho0max(), tadat2.eta0max(), LL2, SS2, TT2,
                           MMT2, JJ2, MMJ2, labels);
                       auto [coeffsArr2, adsArr2, asArr2] = tadat_phys2.expand(dbs);
@@ -247,12 +247,12 @@ namespace U3xU4
 
       for (int pv31 = 0; pv31 < pv3s1.size(); pv31++)
       {
-        int lam1 = pv3s1[pv31].toprow.lam(), mu1 = pv3s1[pv31].toprow.mu(),
+        int lam1 = pv3s1[pv31].lam(), mu1 = pv3s1[pv31].mu(),
             kappa1 = pv3s1[pv31].kappa, LL1 = 2 * pv3s1[pv31].L;
 
         for (int pv32 = 0; pv32 < pv3s2.size(); pv32++)
         {
-          int lam2 = pv3s2[pv32].toprow.lam(), mu2 = pv3s2[pv32].toprow.mu(),
+          int lam2 = pv3s2[pv32].lam(), mu2 = pv3s2[pv32].mu(),
               kappa2 = pv3s2[pv32].kappa, LL2 = 2 * pv3s2[pv32].L;
 
           if (std::abs(LL1 - LL2) > LL || (LL1 + LL2) < LL)
@@ -264,14 +264,14 @@ namespace U3xU4
 
           for (int pv41 = 0; pv41 < pv4s1.size(); pv41++)
           {
-            int P11 = pv4s1[pv41].toprow.P1(), P21 = pv4s1[pv41].toprow.P2(),
-                P31 = pv4s1[pv41].toprow.P3(), SS1 = pv4s1[pv41].SS,
+            int P11 = pv4s1[pv41].P1(), P21 = pv4s1[pv41].P2(),
+                P31 = pv4s1[pv41].P3(), SS1 = pv4s1[pv41].SS,
                 TT1 = pv4s1[pv41].TT, zeta1 = pv4s1[pv41].zeta;
 
             for (int pv42 = 0; pv42 < pv4s2.size(); pv42++)
             {
-              int P12 = pv4s2[pv42].toprow.P1(), P22 = pv4s2[pv42].toprow.P2(),
-                  P32 = pv4s2[pv42].toprow.P3(), SS2 = pv4s2[pv42].SS,
+              int P12 = pv4s2[pv42].P1(), P22 = pv4s2[pv42].P2(),
+                  P32 = pv4s2[pv42].P3(), SS2 = pv4s2[pv42].SS,
                   TT2 = pv4s2[pv42].TT, zeta2 = pv4s2[pv42].zeta;
 
               if (std::abs(SS1 - SS2) > SS || (SS1 + SS2) < SS ||
@@ -321,8 +321,8 @@ namespace U3xU4
                           new_multi_shell_tensor.expand(dbs);
 
                       U3xU4::SingleShellTensor_phys tadat_phys(
-                          tadat.shell(), tadat.ads, tadat.ats, tadat.prod_ads,
-                          tadat.prod_ats, tadat.T(), tadat.rho0max(),
+                          tadat.shell(), tadat.ads, tadat.ats, tadat.Omega_ads,
+                          tadat.Omega_ats, tadat.T(), tadat.rho0max(),
                           tadat.eta0max(), LL2, SS2, TT2, MMT2, JJ2, MMJ2,
                           labels);
                       auto [coeffsArr2, adsArr2, asArr2] =

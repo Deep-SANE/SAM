@@ -158,7 +158,7 @@ int main(int argc, char* argv[])
   */
 
   // Example 3: the CoM number operator
-  /*
+  
   int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   JT::OneBodyOperator CoM1("CoMNumberOp",hw,maxShell);  
@@ -186,7 +186,7 @@ int main(int argc, char* argv[])
   	else
       std::cout << std::setprecision(6) << ev << std::endl;
   }
-  */
+  
 
   // Example 4: T_rel + 1000 * the CoM number operator
   /*
@@ -229,7 +229,7 @@ int main(int argc, char* argv[])
   */
 
   // Example 5: N2LO_opt_bare + 2-body T_rel / (2hw) + 1000 * the CoM number operator
-  
+  /*
   int maxShell = valanceShell + Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   JT::OneBodyOperator CoM1("CoMNumberOp",hw,maxShell);  
@@ -274,7 +274,7 @@ int main(int argc, char* argv[])
   }
   std::cout << "G.S. wavefunction:" << std::endl;
   std::cout << evecs.col(0) << std::endl;
-  /*
+  
   const char* sam_dir = std::getenv("SAM_DIR");
   if (!sam_dir)
     throw std::runtime_error("Environment variable SAM_DIR not set");

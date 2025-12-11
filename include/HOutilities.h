@@ -20,11 +20,16 @@ namespace HO
   {
   private:
     // key = (n, ll, jj, mmj, mmt)
-    using key_type = std::tuple<int16_t, int16_t, int16_t, int16_t, int16_t>;
+    // Assume n = 20 => max(ll) = 40, max(jj) = 41, 
+    // min(mmj) = -41, max(mmj) = 41, mmt = +-1 => Key can be int8: -128 to 127
+    using key_type = std::tuple<int8_t, int8_t, int8_t, int8_t, int8_t>;
 
-    std::unordered_map<key_type, int> state_to_index;
+    // Each shell, dimension is 2(n+1)(n+2)
+    // For n = 0 to 20: total number of single-particle states = 7084 
+    // Thus index can be uint16
+    std::unordered_map<key_type, uint16_t> state_to_index;
     std::vector<key_type> index_to_state;
-    int dim;
+    uint16_t dim;
 
   public:
     // Constructor
@@ -32,36 +37,37 @@ namespace HO
     Table_nljmjmt(int maxShell);
 
     // Get index from quantum numbers
-    int getIndex(int n, int ll, int jj, int mmj, int mmt) const;
+    uint16_t getIndex(int8_t n, int8_t ll, int8_t jj, 
+                        int8_t mmj, int8_t mmt) const;
 
     // Get quantum numbers from index
-    key_type getLabels(int index) const;
+    key_type getLabels(uint16_t index) const;
   };
 
   // < na lla || b+ || nb llb >
-  double bosonCreatorRME(int na, int lla, int nb, int llb);
+  double bosonCreatorRME(int8_t na, int8_t lla, int8_t nb, int8_t llb);
 
   // < na lla jja || b+ || nb llb jjb >
-  double bosonCreatorRME(int na, int lla, int jja, int nb, int llb, int jjb,
-                         qcx_utils::SO3_Racah9& racah9);
+  double bosonCreatorRME(int8_t na, int8_t lla, int8_t jja, int8_t nb, 
+                int8_t llb, int8_t jjb, qcx_utils::SO3_Racah9& racah9);
 
   // < na lla || b- || nb llb >
-  double bosonAnnihilatorRME(int na, int lla, int nb, int llb);
+  double bosonAnnihilatorRME(int8_t na, int8_t lla, int8_t nb, int8_t llb);
 
   // < na lla jja || b- || nb llb jjb >
-  double bosonAnnihilatorRME(int na, int lla, int jja, int nb, int llb, int jjb,
-                             qcx_utils::SO3_Racah9& racah9);
+  double bosonAnnihilatorRME(int8_t na, int8_t lla, int8_t jja, int8_t nb, 
+                int8_t llb, int8_t jjb, qcx_utils::SO3_Racah9& racah9);
 
   struct Orbit
   {
-    int16_t n, // nodal quantum number (!!!not shell number e)
+    int8_t n,  // nodal quantum number (!!!not shell number e)
         l,     // orbital angular momentum
         jj,    // twice total angular momentum
         mmt;   // twice isospin projection: +1 for neutron, -1 for proton
 
     // Constructor
     Orbit() { }
-    Orbit(int n_, int l_, int jj_, int mmt_);
+    Orbit(int8_t n_, int8_t l_, int8_t jj_, int8_t mmt_);
 
     bool operator==(const Orbit& other) const;
     bool operator<(const Orbit& other) const;
@@ -69,18 +75,21 @@ namespace HO
 
   inline std::ostream& operator<<(std::ostream& s, const Orbit& o)
   {
-    return s << o.n << "\t" << o.l << "\t" << o.jj << "\t" << o.mmt;
+    return s << static_cast<int>(o.n) << "\t" 
+             << static_cast<int>(o.l) << "\t" 
+             << static_cast<int>(o.jj) << "\t" 
+             << static_cast<int>(o.mmt);
   }
 
   class OrbitsMap
   {
   public:
-    uint16_t emax, // e is the shell number
-        num_orbits;
+    uint8_t emax; // e is the shell number
+    uint16_t num_orbits;
 
     // All orbits
     std::vector<Orbit> orbits;
-    std::map<Orbit, int> index_map;
+    std::map<Orbit, uint16_t> index_map;
 
     // Constructor
     OrbitsMap() : emax(0), num_orbits(0), orbits(), index_map() { }
@@ -89,7 +98,7 @@ namespace HO
     // Get index of the orbit
     // Caution: n = (e - l)/2 is the nodal quantum number
     // whereas e is the shell number
-    int getIndex(int n, int l, int jj, int mmt) const;
+    int getIndex(int8_t n, int8_t l, int8_t jj, int8_t mmt) const;
 
     // Get orbit
     Orbit getOrbit(int idx) const { return orbits[idx - 1]; }
@@ -115,7 +124,6 @@ namespace HO
   {
   private:
     // key: a b c d J
-    // using key_type = std::tuple<uint, uint, uint, uint, uint>;
     using key_type =
         std::tuple<uint16_t, uint16_t, uint16_t, uint16_t, uint16_t>;
 
@@ -155,9 +163,11 @@ namespace HO
                  uint16_t J) const;
 
     // Get ME from quantum numbers
-    double getME(int ea, int lla, int jja, int mmja, int mmta, int eb, int llb,
-                 int jjb, int mmjb, int mmtb, int ec, int llc, int jjc,
-                 int mmjc, int mmtc, int ed, int lld, int jjd, int mmjd,
-                 int mmtd, qcx_utils::SO3_CGC& cgcs) const;
+    double getME(
+      int8_t ea, int8_t lla, int8_t jja, int8_t mmja, int8_t mmta, 
+      int8_t eb, int8_t llb, int8_t jjb, int8_t mmjb, int8_t mmtb, 
+      int8_t ec, int8_t llc, int8_t jjc, int8_t mmjc, int8_t mmtc, 
+      int8_t ed, int8_t lld, int8_t jjd, int8_t mmjd, int8_t mmtd, 
+      qcx_utils::SO3_CGC& cgcs) const;
   };
 } // namespace HO

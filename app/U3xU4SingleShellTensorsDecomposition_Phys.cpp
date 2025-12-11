@@ -18,17 +18,28 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
+  int8_t n = 0, ads = 0, ats = 0, 
+         LL = 0, SS = 0, TT = 0, MMT = 0, JJ = 0, MMJ = 0;
+  std::vector<U3xU4::irrep> Omega_ads, Omega_ats;
+
   /* Example 1: n = 2
                (3,2,0)(1,1,0,0)  (5,4,0)(1,0,0,0)
       [[at x at]             x at]
                                  kappa=1,L=1,SS=1,TT=1=MMT,JJ=3=MMJ
   */
   /*
-  U3xU4::irrep T2_0(3,2,0, 1,1,0,0), T2(5,4,0, 1,0,0,0);
-  int rhomax = 1, etamax = 1;
-  HO::Table_nljmjmt labels(2);
-  U3xU4::SingleShellTensor_phys
-    Tadat(2,0,3,{},{T2_0,T2},T2,rhomax,etamax,2,1,1,1,3,3,labels);
+  n = 2;
+  ats = 3;
+  U3xU4::irrep T1(0,0,0, 0,0,0,0), T2_0(3,2,0, 1,1,0,0), T2(5,4,0, 1,0,0,0);
+  Omega_ats.push_back(T2_0);
+  Omega_ats.push_back(T2);
+
+  LL = 2;
+  SS = 1;
+  TT = 1;
+  MMT = 1;
+  JJ = 3;
+  MMJ = 3;
   */
 
   /* Example 2: n = 5
@@ -37,11 +48,14 @@ int main(int argc, char* argv[])
               kappa=2,L=5,SS=2,TT=0=MMT,JJ=10,MMJ=0
   */
   /*
-  U3xU4::irrep T1(7,3,0, 1,1,0,0);
-  int rhomax = 1, etamax = 1;
-  HO::Table_nljmjmt labels(5);
-  U3xU4::SingleShellTensor_phys
-    Tadat(5,2,0,{T1},{},T1,rhomax,etamax,10,2,0,0,10,0,labels);
+  n = 5;
+  ads = 2;
+  U3xU4::irrep T1(7,3,0, 1,1,0,0), T2(0,0,0, 0,0,0,0), T(7,3,0, 1,1,0,0);
+  Omega_ads.push_back(T1);
+
+  LL = 10;
+  SS = 2;
+  JJ = 10;
   */
 
   /* Example 3: n = 1
@@ -50,11 +64,10 @@ int main(int argc, char* argv[])
               kappa=1,L=0,SS=0,TT=0=MMT,JJ=0=MMJ
   */
   /*
-  U3xU4::irrep T(0,0,0, 0,0,0,0);
-  int rhomax = 1, etamax = 1;
-  HO::Table_nljmjmt labels(1);
-  U3xU4::SingleShellTensor_phys
-  Tadat(1,1,1,{},{},T,rhomax,etamax,0,0,0,0,0,0,labels);
+  n = 1;
+  ads = 1;
+  ats = 1;
+  U3xU4::irrep T1(1,0,0, 1,0,0,0), T2(1,1,0, 1,1,1,0), T(0,0,0, 0,0,0,0);
   */
 
   /* Example 4: n = 2
@@ -63,12 +76,21 @@ int main(int argc, char* argv[])
              (1,1,0,0) (2,1,0,0)   (1,1,0,0) kappa=1,L=1,SS=1,TT=1=MMT,JJ=1=MMJ
   */
   /*
-  U3xU4::irrep T1_0(3, 1, 0, 1, 1, 0, 0), T1(3, 3, 0, 2, 1, 0, 0),
-      T2(3, 2, 0, 1, 1, 0, 0), T(4, 1, 0, 1, 0, 0, 0);
-  int rhomax = 1, etamax = 1;
-  HO::Table_nljmjmt labels(2);
-  U3xU4::SingleShellTensor_phys 
-    Tadat(2, 3, 2, {T1_0,T1}, {T2}, T, rhomax, etamax, 2, 1, 1, 1, 1, 1, labels);
+  n = 2;
+  ads = 3;
+  ats = 2;
+  U3xU4::irrep T1_0(3,1,0, 1,1,0,0), T1(3,3,0, 2,1,0,0),
+               T2(3,2,0, 1,1,0,0), T(4,1,0, 1,0,0,0);
+  Omega_ads.push_back(T1_0);
+  Omega_ads.push_back(T1);
+  Omega_ats.push_back(T2);
+
+  LL = 2; 
+  SS = 1;
+  TT = 1;
+  MMT = 1;
+  JJ = 1;
+  MMJ = 1;
   */
 
   /* Example 5: n = 0
@@ -77,14 +99,22 @@ int main(int argc, char* argv[])
              (1,1,0,0)        (1,1,0,0) kappa=1,L=0,SS=0,TT=0=MMT,JJ=0=MMJ
   */
   
-  U3xU4::irrep T1(0, 0, 0, 1, 1, 0, 0),
-      T2(0, 0, 0, 1, 1, 0, 0), T(0, 0, 0, 0, 0, 0, 0);
-  int rhomax = 1, etamax = 1;
-  HO::Table_nljmjmt labels(0);
-  U3xU4::SingleShellTensor_phys 
-    Tadat(0, 2, 2, {T1}, {T2}, T, rhomax, etamax, 0, 0, 0, 0, 0, 0, labels);
+  n = 0;
+  ads = 2;
+  ats = 2;
+  U3xU4::irrep T1(0,0,0, 1,1,0,0), T2(0,0,0, 1,1,0,0), T(0,0,0, 0,0,0,0);
+  Omega_ads.push_back(T1);
+  Omega_ats.push_back(T2);
   
 
+
+  // Multiplicities of the final tensor
+  auto [rhomax, etamax] = U3xU4::RhoEta(T1, T2, T);
+
+  HO::Table_nljmjmt labels(n);
+  U3xU4::SingleShellTensor_phys Tadat(n, ads, ats, Omega_ads, Omega_ats, 
+    T, rhomax, etamax, LL, SS, TT, MMT, JJ, MMJ, labels);
+  
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 

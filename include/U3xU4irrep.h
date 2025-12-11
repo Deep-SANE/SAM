@@ -3,6 +3,7 @@
 #include <istream>
 #include <ostream>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include <U3irrep.h>
@@ -124,7 +125,17 @@ namespace U3xU4
         etamaxs.push_back(multi4s[j]);
       }
 
-    return std::make_tuple(u3u4s, rhomaxs, etamaxs);
+    return std::make_tuple(std::move(u3u4s), 
+              std::move(rhomaxs), std::move(etamaxs));
+  }
+
+  // Get multiplicities
+  inline auto RhoEta(
+    const U3xU4::irrep& a, const U3xU4::irrep& b, const U3xU4::irrep& c)
+  {
+    int rhomax = u3::Rho(a.u3(), b.u3(), c.u3());
+    int etamax = u4::Eta(a.u4(), b.u4(), c.u4());
+    return std::make_pair(rhomax, etamax);
   }
 
 } // namespace U3xU4

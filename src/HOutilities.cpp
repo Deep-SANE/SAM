@@ -9,6 +9,7 @@
 #include <HOutilities.h>
 
 #include <qcx_convert.h>
+#include <qcx_readwrite.h>
 
 #define POSITIVE_INFINITY
 //#define POSITIVE_ORIGIN
@@ -20,12 +21,12 @@ namespace HO
   // Constructor
   Table_nljmjmt::Table_nljmjmt(int maxShell)
   {
-    int index = 0;
-    for (int16_t n = 0; n <= maxShell; n++)
-      for (int16_t l = n; l >= 0; l -= 2)
-        for (int16_t jj = 2 * l + 1; jj >= std::abs(2 * l - 1); jj -= 2)
-          for (int16_t mmj = jj; mmj >= -jj; mmj -= 2)
-            for (int16_t mmt = 1; mmt >= -1; mmt -= 2)
+    uint16_t index = 0;
+    for (int8_t n = 0; n <= maxShell; n++)
+      for (int8_t l = n; l >= 0; l -= 2)
+        for (int8_t jj = 2 * l + 1; jj >= std::abs(2 * l - 1); jj -= 2)
+          for (int8_t mmj = jj; mmj >= -jj; mmj -= 2)
+            for (int8_t mmt = 1; mmt >= -1; mmt -= 2)
             {
               key_type key = {n, 2 * l, jj, mmj, mmt};
               state_to_index[key] = index;
@@ -36,10 +37,10 @@ namespace HO
   }
 
   // Get index from quantum numbers
-  int Table_nljmjmt::getIndex(int n, int ll, int jj, int mmj, int mmt) const
+  uint16_t Table_nljmjmt::getIndex(int8_t n, int8_t ll, int8_t jj, 
+                                      int8_t mmj, int8_t mmt) const
   {
-    key_type key = {qcx_utils::ito16(n), qcx_utils::ito16(ll), 
-      qcx_utils::ito16(jj), qcx_utils::ito16(mmj), qcx_utils::ito16(mmt)};
+    key_type key = {n, ll, jj, mmj, mmt};
     auto it = state_to_index.find(key);
     if (it == state_to_index.end())
       throw std::out_of_range("Labels not found");
@@ -47,8 +48,8 @@ namespace HO
   }
 
   // Get quantum numbers from index
-  std::tuple<int16_t, int16_t, int16_t, int16_t, int16_t>
-  Table_nljmjmt::getLabels(int index) const
+  std::tuple<int8_t, int8_t, int8_t, int8_t, int8_t>
+  Table_nljmjmt::getLabels(uint16_t index) const
   {
     if (index < 0 || index >= dim)
       throw std::out_of_range("Index out of bounds");
@@ -58,7 +59,7 @@ namespace HO
   /////////////// Reduced matrix elements of boson operators ///////////////
 
   // < na lla || b+ || nb llb >
-  double bosonCreatorRME(int na, int lla, int nb, int llb)
+  double bosonCreatorRME(int8_t na, int8_t lla, int8_t nb, int8_t llb)
   {
     if (na == nb + 1)
     {
@@ -82,8 +83,8 @@ namespace HO
   }
 
   // < na lla jja || b+ || nb llb jjb >
-  double bosonCreatorRME(int na, int lla, int jja, int nb, int llb, int jjb,
-                         qcx_utils::SO3_Racah9& racah9)
+  double bosonCreatorRME(int8_t na, int8_t lla, int8_t jja, int8_t nb, 
+                      int8_t llb, int8_t jjb, qcx_utils::SO3_Racah9& racah9)
   {
     if (na == nb + 1)
     {
@@ -98,7 +99,7 @@ namespace HO
   }
 
   // < na lla || b- || nb llb >
-  double bosonAnnihilatorRME(int na, int lla, int nb, int llb)
+  double bosonAnnihilatorRME(int8_t na, int8_t lla, int8_t nb, int8_t llb)
   {
     if (na == nb - 1)
     {
@@ -122,8 +123,8 @@ namespace HO
   }
 
   // < na lla jja || b- || nb llb jjb >
-  double bosonAnnihilatorRME(int na, int lla, int jja, int nb, int llb, int jjb,
-                             qcx_utils::SO3_Racah9& racah9)
+  double bosonAnnihilatorRME(int8_t na, int8_t lla, int8_t jja, int8_t nb, 
+                      int8_t llb, int8_t jjb, qcx_utils::SO3_Racah9& racah9)
   {
     if (na == nb - 1)
     {
@@ -139,12 +140,9 @@ namespace HO
 
   ////////////// Class Orbit ///////////////
 
-  Orbit::Orbit(int n_, int l_, int jj_, int mmt_) : 
-      n(qcx_utils::ito16(n_)), 
-      l(qcx_utils::ito16(l_)), 
-      jj(qcx_utils::ito16(jj_)), 
-      mmt(qcx_utils::ito16(mmt_))
-    { }
+  Orbit::Orbit(int8_t n_, int8_t l_, int8_t jj_, int8_t mmt_) : 
+      n(n_), l(l_), jj(jj_), mmt(mmt_)
+  { }
 
   bool Orbit::operator==(const Orbit& other) const
   {
@@ -163,15 +161,15 @@ namespace HO
   OrbitsMap::OrbitsMap(int emax_)
   {
     // It does not take in lmax, it is set to default lmax = emax
-    emax = qcx_utils::itou16(emax_);
+    emax = qcx_utils::itou8(emax_);
 
-    int idx = 1;
-    for (int16_t e = 0; e <= emax; ++e)
+    uint16_t idx = 1;
+    for (int8_t e = 0; e <= emax; ++e)
     {
-      for (int16_t l = e % 2; l <= e; l += 2)
+      for (int8_t l = e % 2; l <= e; l += 2)
       {
-        int16_t n = (e - l) / 2;
-        for (int16_t jj = abs(2 * l - 1); jj <= 2 * l + 1; jj += 2)
+        int8_t n = (e - l) / 2;
+        for (int8_t jj = abs(2 * l - 1); jj <= 2 * l + 1; jj += 2)
         {
           // add proton
           orbits.push_back({n, l, jj, -1});
@@ -191,12 +189,11 @@ namespace HO
   // Get index of the orbit
   // Caution: n = (e - l)/2 is the nodal quantum number
   // whereas e is the shell number
-  int OrbitsMap::getIndex(int n, int l, int jj, int mmt) const
+  int OrbitsMap::getIndex(int8_t n, int8_t l, int8_t jj, int8_t mmt) const
   {
-    auto it = index_map.find({qcx_utils::ito16(n), qcx_utils::ito16(l), 
-                          qcx_utils::ito16(jj), qcx_utils::ito16(mmt)});
+    auto it = index_map.find({n, l, jj, mmt});
     if (it != index_map.end())
-      return it->second;
+      return static_cast<int>(it->second);
     else
       throw std::runtime_error("Orbit not found");
   }
@@ -253,7 +250,7 @@ namespace HO
          subroutine read_scalar_operator_binary_myg(this, f)
          in NuHamil-public/src/TwoBody/TwoBodyLabOps.F90
   */
-  // #define CHECKING_2B_CHANNELS
+// #define CHECKING_2B_CHANNELS
   void TBME_scalar::read()
   {
 #ifdef HAVE_NUHAMIL
@@ -287,7 +284,7 @@ namespace HO
     std::ifstream infile(filename, std::ios::binary);
     if (!infile)
       throw std::runtime_error("Failed to open binary file: " + filename);
-
+/*
     // Read number of matrix elements
     infile.read(reinterpret_cast<char*>(&num_me), sizeof(int));
     if (!infile)
@@ -304,6 +301,24 @@ namespace HO
     infile.read(reinterpret_cast<char*>(id.data()), num_me * sizeof(uint));
     infile.read(reinterpret_cast<char*>(J.data()), num_me * sizeof(uint));
     infile.read(reinterpret_cast<char*>(v.data()), num_me * sizeof(double));
+*/
+
+    // Read number of matrix elements
+    qcx_utils::readBinary(infile, num_me);
+    if (!infile)
+      throw std::runtime_error("Failed to read count from file: " + filename);
+
+    // Allocate temporary buffers
+    std::vector<uint> ia(num_me), ib(num_me), ic(num_me), id(num_me), J(num_me);
+    std::vector<double> v(num_me);
+
+    // Read data arrays
+    qcx_utils::readBinary(infile, ia);
+    qcx_utils::readBinary(infile, ib);
+    qcx_utils::readBinary(infile, ic);
+    qcx_utils::readBinary(infile, id);
+    qcx_utils::readBinary(infile, J);
+    qcx_utils::readBinary(infile, v);
 
     if (!infile)
       throw std::runtime_error("Failed to read matrix elements from file: " +
@@ -334,8 +349,8 @@ namespace HO
       std::cout << "ic: " << ic[i] << "\t" << oc << std::endl;
       std::cout << "id: " << id[i] << "\t" << od << std::endl;
 */
-      int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, 
-          ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+      int8_t ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, 
+             ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
 
       assert((oa.mmt + ob.mmt) == (oc.mmt + od.mmt));
       assert((oa.l + ob.l + oc.l + od.l) % 2 == 0);
@@ -343,7 +358,7 @@ namespace HO
       if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
         continue;
 
-      int ab_Nhw = 0;
+      int8_t ab_Nhw = 0;
       if (ea > valenceShell)
         ab_Nhw += (ea - valenceShell);
       if (eb > valenceShell)
@@ -351,7 +366,7 @@ namespace HO
       if (ab_Nhw > Nmax)
         continue;
 
-      int cd_Nhw = 0;
+      int8_t cd_Nhw = 0;
       if (ec > valenceShell)
         cd_Nhw += (ec - valenceShell);
       if (ed > valenceShell)
@@ -476,13 +491,13 @@ namespace HO
       assert((oa.mmt + ob.mmt) == (oc.mmt + od.mmt));
       assert((oa.l + ob.l + oc.l + od.l) % 2 == 0);
 
-      int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l,
-          ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+      int8_t ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l,
+             ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
 
       if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
         continue;
 
-      int ab_Nhw = 0;
+      int8_t ab_Nhw = 0;
       if (ea > valenceShell)
         ab_Nhw += (ea - valenceShell);
       if (eb > valenceShell)
@@ -490,7 +505,7 @@ namespace HO
       if (ab_Nhw > Nmax)
         continue;
 
-      int cd_Nhw = 0;
+      int8_t cd_Nhw = 0;
       if (ec > valenceShell)
         cd_Nhw += (ec - valenceShell);
       if (ed > valenceShell)
@@ -548,14 +563,14 @@ namespace HO
     const auto &oc = orbit_map.getOrbit(static_cast<int>(c)); 
     const auto &od = orbit_map.getOrbit(static_cast<int>(d));
 
-    int ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, 
-        ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+    int8_t ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, 
+           ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
 
     //// HERE IS FOR CHECKING IF READING WAS CORRECT ////
     if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
       throw std::out_of_range("ME beyond maxShell");
 
-    int ab_Nhw = 0;
+    int8_t ab_Nhw = 0;
     if (ea > valenceShell)
       ab_Nhw += (ea - valenceShell);
     if (eb > valenceShell)
@@ -563,7 +578,7 @@ namespace HO
     if (ab_Nhw > Nmax)
       throw std::out_of_range("bra channel beyond Nmax");
 
-    int cd_Nhw = 0;
+    int8_t cd_Nhw = 0;
     if (ec > valenceShell)
       cd_Nhw += (ec - valenceShell);
     if (ed > valenceShell)
@@ -611,26 +626,27 @@ namespace HO
   // The reason we have e's here is that this function would be compatible
   // with double TwoBodyOperator::sphericalME_AS(...)
 #define SWITCH_HO_CONVENTION
-  double TBME_scalar::getME(int ea, int lla, int jja, int mmja, int mmta,
-                            int eb, int llb, int jjb, int mmjb, int mmtb,
-                            int ec, int llc, int jjc, int mmjc, int mmtc,
-                            int ed, int lld, int jjd, int mmjd, int mmtd,
-                            qcx_utils::SO3_CGC& cgcs) const
+  double TBME_scalar::getME(
+    int8_t ea, int8_t lla, int8_t jja, int8_t mmja, int8_t mmta,
+    int8_t eb, int8_t llb, int8_t jjb, int8_t mmjb, int8_t mmtb,
+    int8_t ec, int8_t llc, int8_t jjc, int8_t mmjc, int8_t mmtc,
+    int8_t ed, int8_t lld, int8_t jjd, int8_t mmjd, int8_t mmtd,
+    qcx_utils::SO3_CGC& cgcs) const
   {
-    int MMJab = mmja + mmjb, MMJcd = mmjc + mmjd, MMTab = mmta + mmtb,
-        MMTcd = mmtc + mmtd;
+    int8_t MMJab = mmja + mmjb, MMJcd = mmjc + mmjd, 
+           MMTab = mmta + mmtb, MMTcd = mmtc + mmtd;
     if ((MMJab != MMJcd) || (MMTab != MMTcd)) // spin or isospin violation
       return 0.0;
 
-    int JJ_min = std::max(abs(jja - jjb), abs(jjc - jjd)),
-        JJ_max = std::min(jja + jjb, jjc + jjd);
+    int8_t JJ_min = std::max(abs(jja - jjb), abs(jjc - jjd)),
+           JJ_max = std::min(jja + jjb, jjc + jjd);
 
     if (JJ_min > JJ_max) // no coupled J possible
       return 0.0;
 
-    int la = lla / 2, lb = llb / 2, lc = llc / 2, ld = lld / 2,
-        na = (ea - la) / 2, nb = (eb - lb) / 2, nc = (ec - lc) / 2,
-        nd = (ed - ld) / 2;
+    int8_t la = lla / 2, lb = llb / 2, lc = llc / 2, ld = lld / 2,
+           na = (ea - la) / 2, nb = (eb - lb) / 2, nc = (ec - lc) / 2,
+           nd = (ed - ld) / 2;
 
     if ((la + lb + lc + ld) % 2 != 0) // parity violation
       return 0.0;
@@ -643,13 +659,17 @@ namespace HO
     double norm_ab = (a == b) ? SQRT2 : 1.0, norm_cd = (c == d) ? SQRT2 : 1.0;
 
     double x = 0.0;
-    for (int JJ = JJ_min; JJ <= JJ_max; JJ += 2)
+    for (int8_t JJ = JJ_min; JJ <= JJ_max; JJ += 2)
     {
       if ((a == b && JJ % 4 != 0) || (c == d && JJ % 4 != 0))
         continue;
 
-      x += cgcs.compute(jja, jjb, JJ, mmja, mmjb, MMJab) *
-           cgcs.compute(jjc, jjd, JJ, mmjc, mmjd, MMJab) *
+      x += cgcs.compute(static_cast<int>(jja), static_cast<int>(jjb), 
+                        static_cast<int>(JJ), static_cast<int>(mmja), 
+                        static_cast<int>(mmjb), static_cast<int>(MMJab)) *
+           cgcs.compute(static_cast<int>(jjc), static_cast<int>(jjd), 
+                        static_cast<int>(JJ), static_cast<int>(mmjc), 
+                        static_cast<int>(mmjd), static_cast<int>(MMJab)) *
            getME(a, b, c, d, JJ / 2);
     }
 

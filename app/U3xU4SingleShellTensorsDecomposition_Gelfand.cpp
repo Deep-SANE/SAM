@@ -20,7 +20,8 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
-  std::vector<U3xU4::irrep> prod_ads, prod_ats;
+  int8_t n = 0, ads = 0, ats = 0;
+  std::vector<U3xU4::irrep> Omega_ads, Omega_ats;
 
   /* Example 1: n = 2
                   (3,1,0)       (3,3,0)             (3,2,0)    (4,1,0; 4,0; 2)
@@ -29,16 +30,17 @@ int main(int argc, char* argv[])
      1,0; 0)
   */
   /*
-  std::size_t n = 2, ads = 3, ats = 2;
-
+  n = 2;
+  ads = 3;
+  ats = 2;
   U3xU4::irrep T1_0(3,1,0, 1,1,0,0), T1(3,3,0, 2,1,0,0),
                T2(3,2,0, 1,1,0,0), T(4,1,0, 1,0,0,0);
-  u3::gelfand b(4,1,0, 4,0, 2);
-  u4::gelfand p(1,0,0,0, 1,0,0, 1,0, 0);
+  Omega_ads.push_back(T1_0);
+  Omega_ads.push_back(T1);
+  Omega_ats.push_back(T2);
 
-  prod_ads.push_back(T1_0);
-  prod_ads.push_back(T1);
-  prod_ats.push_back(T2);
+  u3::gelfand g3(4,1,0, 4,0, 2);
+  u4::gelfand g4(1,0,0,0, 1,0,0, 1,0, 0);
   */
 
   /* Example 2: n = 1
@@ -47,12 +49,12 @@ int main(int argc, char* argv[])
         (1,0,0,0)     (1,1,1,0)  (0,0,0,0; 0,0,0; 0,0; 0)
   */
 
-  std::size_t n = 1, ads = 1, ats = 1;
-
-  U3xU4::irrep T1(1, 0, 0, 1, 0, 0, 0), T2(1, 1, 0, 1, 1, 1, 0),
-      T(0, 0, 0, 0, 0, 0, 0);
-  u3::gelfand b(0, 0, 0, 0, 0, 0);
-  u4::gelfand p(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  n = 1;
+  ads = 1;
+  ats = 1;
+  U3xU4::irrep T1(1,0,0, 1,0,0,0), T2(1,1,0, 1,1,1,0), T(0,0,0, 0,0,0,0);
+  u3::gelfand g3(0,0,0, 0,0, 0);
+  u4::gelfand g4(0,0,0,0, 0,0,0, 0,0, 0);
 
   /* Example 3: n = 3
         (3,0,0)              (3,0,0)   (6,0,0; 6,0; 3)
@@ -60,14 +62,17 @@ int main(int argc, char* argv[])
         (1,0,0,0)            (1,1,0,0) (2,1,0,0; 1,1,0; 1,0; 0)
   */
   /*
-  std::size_t n = 3, ads = 1, ats = 2;
-
+  n = 3;
+  ads = 1;
+  ats = 2;
   U3xU4::irrep T1(3,0,0, 1,0,0,0), T2(3,0,0, 1,1,0,0), T(6,0,0, 2,1,0,0);
-  u3::gelfand b(6, 0, 0, 6, 0, 3);
-  u4::gelfand p(2, 1, 0, 0, 1, 1, 0, 1, 0, 0);
+  Omega_ats.push_back(T2);
 
-  prod_ats.push_back(T2);
+  u3::gelfand g3(6,0,0, 6,0, 3);
+  u4::gelfand g4(2,1,0,0, 1,1,0, 1,0, 0);  
   */
+
+  ////////////////// DON'T EDIT BELOW /////////////////////
 
   // Construct single particle states
   u3::irrep x(n, 0, 0), x_conj(n, n, 0);
@@ -79,12 +84,11 @@ int main(int argc, char* argv[])
                            sps4_conj = u4::gelfandBasis(y_conj);
 
   // Multiplicities of the final tensor
-  auto rhomax = u3::Rho(T1.u3(), T2.u3(), T.u3());
-  auto etamax = u4::Eta(T1.u4(), T2.u4(), T.u4());
+  auto [rhomax, etamax] = U3xU4::RhoEta(T1, T2, T);
 
   U3xU4::SingleShellTensor_gelfand 
-    Tadat(n, sps3, sps3_conj, sps4, sps4_conj, ads, ats, 
-          prod_ads, prod_ats, T, rhomax, etamax, b, p);
+    Tadat(n, sps3, sps3_conj, sps4, sps4_conj, ads, ats,
+          Omega_ads, Omega_ats, T, rhomax, etamax, g3, g4);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();

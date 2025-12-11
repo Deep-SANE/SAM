@@ -105,8 +105,8 @@ int main(int argc, char* argv[])
   */
 
   // Example 4: Two-body part of the CoM HO operator
-  /*
-  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = 6;
+  
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = 4;
   HO::Table_nljmjmt labels(maxShell);
 
   // Start time measurement
@@ -120,14 +120,14 @@ int main(int argc, char* argv[])
   // auto tensors = CoM.expand(dbs);
 
   // write to binary, valenceShell must be 0 for future reuse
-  CoM.writeBinary(dbs);
+  // CoM.writeBinary(dbs);
 
   // read from binary
   auto tensors = CoM.readBinary();
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  */
+  
 
   // Example 5: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
   /*
@@ -214,7 +214,7 @@ int main(int argc, char* argv[])
   */
   
   // Example 8: Two-body potential (bare) with N4LO_EMN500_bare,srg1.0,2.0,4.0
-  
+  /*
   int hw = -1, valenceShell = 0, Nmax = 6, maxShell = 6;
   HO::Table_nljmjmt labels(maxShell);
 
@@ -239,7 +239,9 @@ int main(int argc, char* argv[])
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  
+  */
+
+  ////////////// DON'T EDIT BELOW //////////////
 
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
   for (const auto& tensor : tensors)

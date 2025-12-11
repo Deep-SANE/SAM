@@ -14,8 +14,11 @@ namespace U3xU4
   std::ostream& operator<<(std::ostream& s, const ad_phys& x)
   {
     auto [n, ll, jj, mmj, mmt] = x.getLabels();
-    return s << "ad(" << n << "," << ll << "," << jj << "," << mmj << "," << mmt
-             << ")";
+    return s << "ad(" << static_cast<int>(n) << "," 
+             << static_cast<int>(ll) << "," 
+             << static_cast<int>(jj) << "," 
+             << static_cast<int>(mmj) << "," 
+             << static_cast<int>(mmt) << ")";
   }
 
   std::ostream& operator<<(std::ostream& s, const at_gelfand& x)
@@ -30,11 +33,17 @@ namespace U3xU4
   {
     auto [n, ll, jj, mmj, mmt] = x.getLabels();
     if (x.tensor)
-      return s << "at(" << n << "," << ll << "," << jj << "," << mmj << ","
-               << mmt << ")";
+      return s << "at(" << static_cast<int>(n) << "," 
+               << static_cast<int>(ll) << "," 
+               << static_cast<int>(jj) << "," 
+               << static_cast<int>(mmj) << ","
+               << static_cast<int>(mmt) << ")";
     else
-      return s << "a(" << n << "," << ll << "," << jj << "," << mmj << ","
-               << mmt << ")";
+      return s << "a(" << static_cast<int>(n) << "," 
+               << static_cast<int>(ll) << "," 
+               << static_cast<int>(jj) << "," 
+               << static_cast<int>(mmj) << ","
+               << static_cast<int>(mmt) << ")";
   }
 
   std::ostream& operator<<(std::ostream& s, const SingleShellTensor& x)
@@ -43,19 +52,15 @@ namespace U3xU4
     if (x.ads > 0)
     {
       s << static_cast<int>(x.ads) << "ads ";
-      for (auto ad : x.prod_ads)
-        s << ad << " ";
-      if (x.ats > 0)
-        s << "x ";
+      for (auto ad : x.Omega_ads) s << ad << " ";
+      if (x.ats > 0) s << "x ";
     }
     if (x.ats > 0)
     {
       s << static_cast<int>(x.ats) << "ats ";
-      for (auto at : x.prod_ats)
-        s << at << " ";
+      for (auto at : x.Omega_ats) s << at << " ";
     }
-    s << "] rho0max" << static_cast<int>(x.rho0max()) << " eta0max"
-      << static_cast<int>(x.eta0max()) << x.T();
+    s << "] rho0max" << x.rho0max() << " eta0max" << x.eta0max() << x.T();
     return s;
   }
 
@@ -64,17 +69,15 @@ namespace U3xU4
     U3xU4::GammaElement::writeBinary(s);
     qcx_utils::writeBinary(s, ads);
     qcx_utils::writeBinary(s, ats);
+
     //s.write(reinterpret_cast<const char*>(&n), sizeof(n));
     //s.write(reinterpret_cast<const char*>(&ads), sizeof(ads));
     //s.write(reinterpret_cast<const char*>(&ats), sizeof(ats));
     //s.write(reinterpret_cast<const char*>(&rho0max), sizeof(rho0max));
     //s.write(reinterpret_cast<const char*>(&eta0max), sizeof(eta0max));
 
-    for (const auto& ir : prod_ads)
-      ir.writeBinary(s);
-
-    for (const auto& ir : prod_ats)
-      ir.writeBinary(s);
+    for (const auto& ir : Omega_ads) ir.writeBinary(s);
+    for (const auto& ir : Omega_ats) ir.writeBinary(s);
 
     //T.writeBinary(s);
   }
@@ -84,19 +87,18 @@ namespace U3xU4
     U3xU4::GammaElement::readBinary(s);
     qcx_utils::readBinary(s, ads);
     qcx_utils::readBinary(s, ats);
+
     //s.read(reinterpret_cast<char*>(&n), sizeof(n));
     //s.read(reinterpret_cast<char*>(&ads), sizeof(ads));
     //s.read(reinterpret_cast<char*>(&ats), sizeof(ats));
     //s.read(reinterpret_cast<char*>(&rho0max), sizeof(rho0max));
     //s.read(reinterpret_cast<char*>(&eta0max), sizeof(eta0max));
 
-    prod_ads.resize(std::max(0, static_cast<int>(ads) - 1));
-    for (auto& ir : prod_ads)
-      ir.readBinary(s);
+    Omega_ads.resize(std::max(0, static_cast<int>(ads) - 1));
+    for (auto& ir : Omega_ads) ir.readBinary(s);
 
-    prod_ats.resize(std::max(0, static_cast<int>(ats) - 1));
-    for (auto& ir : prod_ats)
-      ir.readBinary(s);
+    Omega_ats.resize(std::max(0, static_cast<int>(ats) - 1));
+    for (auto& ir : Omega_ats) ir.readBinary(s);
 
     //T.readBinary(s);
   }
