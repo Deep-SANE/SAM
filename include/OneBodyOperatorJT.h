@@ -4,6 +4,9 @@
 #include <string>
 #include <utility>
 
+#include <Databases.h>
+#include <HOutilities.h>
+#include <TensorAnalyzer.h>
 #include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4MultiShellTensors.h>
 
@@ -18,57 +21,111 @@ namespace JT
   class OneBodyOperator
   {
   private:
-    int8_t JJ, MMJ, // twice angular momentum and projection
-        TT, MMT;    // twice isospin and projection
+    const HO::Table_nljmjmt& labels_;
 
-    bool parity; // parity, true = +1, false = -1
+    HO::qn_t JJ_, MMJ_, TT_, MMT_, parity_,
+             hw_, Nmax_, valenceShell_, maxShell_;
 
-    bool USE_ONEBODY_SPHERICAL_RME = true;
+    std::string name_;
 
-    std::string name;
-    int8_t hw, maxShell;
+    const std::unordered_set<std::string> known_scalar_ops = {
+        "NumberOp", "L.L", "L.S", "CoMNumberOp", "Kinetic", "R.R"};
 
   public:
     // Constructor
-    OneBodyOperator(const std::string& name_, int8_t hw_, int8_t maxShell_);
+    OneBodyOperator(const std::string& name, int hw, int Nmax, 
+      int valenceShell, int maxShell, const HO::Table_nljmjmt& labels);
 
+    // Getters
+    int JJ() const { return static_cast<int>(JJ_); }
+    int MMJ() const { return static_cast<int>(MMJ_); }
+    int TT() const { return static_cast<int>(TT_); }
+    int MMT() const { return static_cast<int>(MMT_); }
+    int parity() const { return static_cast<int>(parity_); }
+
+    // Print
     void is() const;
-    void GetJJ() const
-    {
-      std::cout << "2J=" << JJ << ", 2MJ=" << MMJ << std::endl;
-    }
-    void GetTT() const
-    {
-      std::cout << "2T=" << TT << ", 2MT=" << MMT << std::endl;
-    }
-    void GetParity() const
-    {
-      std::cout << "P=" << ((parity == true) ? 1 : -1) << std::endl;
-    }
+    friend std::ostream& operator<<(std::ostream& s,
+                                    const OneBodyOperator& x);
 
+  private:
     // ME: < na lla jja mmja mmta | O | nb llb jjb mmjb mmtb >
+    // recommended, since I haven't implemented RME for all operators
     double sphericalME(int na, int lla, int jja, int mmja, int mmta, int nb,
                        int llb, int jjb, int mmjb, int mmtb,
                        sam::Databases& dbs) const;
-
+  
     // RME:             < na lla jja || O || nb llb jjb >
     // = ME / ( < jb mjb ; J MJ | ja mja > * < 1/2 mtb ; T MT | 1/2 mta > )
     double sphericalRME(int na, int lla, int jja, int nb, int llb, int jjb,
                         sam::Databases& dbs) const;
 
-    // compute the coefficients in the sum
-    std::pair<bool, std::vector<double>> getTensorStrength(
+    // get strengths for U3xU4::OneBodyMultiShellTensor
+    std::pair<bool, std::vector<double>> getTensorStrength_ME(
         int lam0, int mu0, int P10, int P20, int P30, int kappa0, int LL0,
         int SS0, int na, int nb,
         sam::Databases& dbs) const;
 
-    // expand into a sum of multi-shell one-body tensors
-    std::vector<U3xU4::OneBodyMultiShellTensor>
-    expand(sam::Databases& dbs) const;
+    std::pair<bool, std::vector<double>> getTensorStrength_RME(
+        int lam0, int mu0, int P10, int P20, int P30, int kappa0, int LL0,
+        int SS0, int na, int nb,
+        sam::Databases& dbs) const;
 
-    // matrix representation
+    // set strengths for U3xU4::MultiShellTensor_phys, use ME
+    void setTensorStrength(U3xU4::MultiShellTensor_phys& tensor,
+                           int na, int nb, sam::Databases& dbs) const;
+
+    // selection rule
+    bool LLselection(const int& LL) const;
+    bool SSselection(const int& SS) const;
+    bool U3selection(const u3::irrep& irr) const;
+    bool U4selection(const u4::irrep& irr) const;
+
+  public:
+    // Expand into a sum of U3xU4::OneBodyMultiShellTensor
+    U3xU4::OneBodyMultiShellTensors expand_old(sam::Databases& dbs) const;
+
+    // Expand into a sum of U3xU4::MultiShellTensor_phys
+    U3xU4::MultiShellTensors_phys expand_new(sam::Databases& dbs) const;
+    U3xU4::MultiShellTensors_phys expand(sam::Databases& dbs);
+
+    // Write to binary file
+    void writeBinary(const std::string& filename, 
+                     const U3xU4::MultiShellTensors_phys& tensors) const;
+
+    // Read from binary file
+    U3xU4::MultiShellTensors_phys readBinary(
+      const std::string& filename, sam::Databases& dbs);
+
+    // Matrix representation
+    // symmetric
     Eigen::SparseMatrix<double>
-    matrix(U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs) const;
+    matrix(const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
+    // rectangular
+    Eigen::SparseMatrix<double>
+    matrix(const U3xU4::ManyNucleonBasis& bras, 
+           const U3xU4::ManyNucleonBasis& kets, sam::Databases& dbs);
+
+    // Tensor Analyzers
+    std::vector<std::pair<u3::irrep, sam::strength_stats>>
+      U3_tensor_analyzer_write(sam::Databases& dbs);
+    std::vector<std::pair<u3::irrep, sam::strength_stats>>
+      U3_tensor_analyzer(sam::Databases& dbs);
+
+    std::vector<std::pair<u4::irrep, sam::strength_stats>>
+      U4_tensor_analyzer_write(sam::Databases& dbs);
+    std::vector<std::pair<u4::irrep, sam::strength_stats>>
+      U4_tensor_analyzer(sam::Databases& dbs);
+
+    std::vector<std::pair<int, sam::strength_stats>>
+      LL_tensor_analyzer_write(sam::Databases& dbs);
+    std::vector<std::pair<int, sam::strength_stats>>
+      LL_tensor_analyzer(sam::Databases& dbs);
+
+    std::vector<std::pair<int, sam::strength_stats>>
+      SS_tensor_analyzer_write(sam::Databases& dbs);
+    std::vector<std::pair<int, sam::strength_stats>>
+      SS_tensor_analyzer(sam::Databases& dbs);
   };
 
 } // namespace JT
