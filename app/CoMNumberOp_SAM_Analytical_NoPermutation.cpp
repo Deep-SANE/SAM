@@ -70,10 +70,10 @@ double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
               cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
               cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
     x = cgc *
-        (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
-         HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9) +
-         HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
-          HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9));
+        (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+         HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
+         HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+          HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs));
   }
 
   return x;
@@ -198,12 +198,12 @@ int main(int argc, char* argv[])
       	  		
         	  		for (const auto& k0L0 : k0L0s)
         	  		{
-      	    		  int L0 = k0L0.L, k0max = k0L0.kappa;
+      	    		  int L0 = k0L0.L(), k0max = k0L0.kappa();
 
         	  		  for (const auto& z0SS0TT0 : z0SS0TT0s)
         	  		  {
-        	  		  	if (z0SS0TT0.TT != 0) continue;
-        	  		  	int SS0 = z0SS0TT0.SS, z0max = z0SS0TT0.zeta;
+        	  		  	if (z0SS0TT0.TT() != 0) continue;
+        	  		  	int SS0 = z0SS0TT0.SS(), z0max = z0SS0TT0.zeta();
 
       	    		  	for (int rho0 = 0; rho0 < rhomax0; rho0++)
       	     		  	{
@@ -224,11 +224,11 @@ int main(int argc, char* argv[])
 
       	  		  	  	  	  for (const auto& kfLf : kfLfs)
       	  		  	  	  	  {
-      	  		  	  	  	    int kfmax = kfLf.kappa, Lf = kfLf.L;
+      	  		  	  	  	    int kfmax = kfLf.kappa(), Lf = kfLf.L();
 
       	  		  	  	  	    for (const auto& kiLi : kiLis)
       	  		  	  	  	    {
-      	  		  	  	  	  	  int kimax = kiLi.kappa, Li = kiLi.L;
+      	  		  	  	  	  	  int kimax = kiLi.kappa(), Li = kiLi.L();
 
         	  		  	  	  	  	auto [allowL0, cgcL0] = wigU3SO3db.get(
                       	  		  	  	  	  		u3f.lam(), u3f.mu(), Lf,
@@ -299,9 +299,9 @@ int main(int argc, char* argv[])
 
         	  	  	  	  	  	  	  		  	  	  	for (const auto& zfSSfTTf : zfSSfTTfs)
         	  		     	  	  	  	  		  	  	  	{
-        	  		     	  	  	  	  		  	  	  	  assert(zfSSfTTf.zeta == 1);
-        	  		  	     	  	  	  		  	  	  	  if (zfSSfTTf.TT != TT) continue;
-      	     		  	  	     	  	  		  	  	  	  int SSf = zfSSfTTf.SS;
+        	  		     	  	  	  	  		  	  	  	  assert(zfSSfTTf.zeta() == 1);
+        	  		  	     	  	  	  		  	  	  	  if (zfSSfTTf.TT() != TT) continue;
+      	     		  	  	     	  	  		  	  	  	  int SSf = zfSSfTTf.SS();
 
       	     		  	  	     	  	  		  	  	  	  auto [allowSTab, cgcSTab] = wigU4SU2SU2db.get(
       	  	  	  	  	  	     	  		  				      1,0,0,1,1, 1,0,0,1,1, u4f.P1(),u4f.P2(),u4f.P3(),SSf,TT);
@@ -315,9 +315,9 @@ int main(int argc, char* argv[])
 
       	  		  	  	  	     	  				   	        for (const auto& ziSSiTTi : ziSSiTTis)
       	  		  	  	  	  	     					          {
-        	  		  	  	  	  	    					  	      assert(ziSSiTTi.zeta == 1);
-        	  		  	  	  	  	     					  	      if (ziSSiTTi.TT != TT) continue;
-        	  		  	  	  	  	  	  				  	      int SSi = ziSSiTTi.SS;
+        	  		  	  	  	  	    					  	      assert(ziSSiTTi.zeta() == 1);
+        	  		  	  	  	  	     					  	      if (ziSSiTTi.TT() != TT) continue;
+        	  		  	  	  	  	  	  				  	      int SSi = ziSSiTTi.SS();
 
         	  		  	  	  	  	  		   			  	      auto [allowSTdc, cgcSTdc] = wigU4SU2SU2db.get(
       	     		  	  	  	  	  		    				        0,0,1,1,1, 0,0,1,1,1, u4i.P1(),u4i.P2(),u4i.P3(),SSi,TT);
@@ -365,149 +365,6 @@ int main(int argc, char* argv[])
       	  		  	  	  	  	  }
       	  		  	  	  	    }
       	  		  	  	  	  }
-
-                            // The block of commented code below is another method of expansion
-/*
-                            for (const auto& kfLf : kfLfs)
-                            {
-                              int kfmax = kfLf.kappa, Lf = kfLf.L;
-                            
-                              for (const auto& zfSSfTTf : zfSSfTTfs)
-                              {
-                                assert(zfSSfTTf.zeta == 1);
-                                int SSf = zfSSfTTf.SS, TT = zfSSfTTf.TT;
-                                assert(SSf == 0 || SSf == 2);
-                                assert(TT == 0 || TT == 2);
-
-                                for (int JJ = 2*Lf + SSf; JJ >= abs(2*Lf - SSf); JJ -= 2)
-                                {
-                                  //print("JJ:{}\n",JJ);
-                                  for (int MMJ = JJ; MMJ >= -JJ; MMJ -= 2)
-                                  {
-                                    //print("MMJ:{}\n TT:{}\n",MMJ,TT);
-
-                                    for (int MMT = TT; MMT >= -TT; MMT -= 2)
-                                    {
-                                      //print("MMT:{}\n",MMT);
-
-                                      for (const auto& kiLi : kiLis)
-                                      {
-                                        int kimax = kiLi.kappa, Li = kiLi.L;
-                                        if (L0 > (Li + Lf) || L0 < abs(Li - Lf)) continue;
-
-                                        for (const auto& ziSSiTTi : ziSSiTTis)
-                                        {
-                                          assert(ziSSiTTi.zeta == 1);
-                                          int SSi = ziSSiTTi.SS; 
-                                          assert(SSi == 0 || SSi == 2);
-                                          if (TT != ziSSiTTi.TT) continue;
-                                          if (SS0 > (SSi + SSf) || SS0 < abs(SSi - SSf)) continue;
-                                          if (JJ > (2*Li + SSi) || JJ < abs(2*Li - SSi)) continue;
-
-                                          U3xU4::CouplingCoefficient coeff0(
-                                            U3xU4::irrep(u3f,u4f), 2*Lf, SSf, TT, MMT, JJ, MMJ, 
-                                            U3xU4::irrep(u3i,u4i), 2*Li, SSi, TT, -MMT, JJ, -MMJ,
-                                            U3xU4::irrep(u30,u40), 2*L0, SS0, 0, 0, 0, 0, dbs);
-                                          if (!coeff0.exist()) continue;
-
-                                          for (int la = na; la >= 0; la -= 2)
-                                          {
-                                            for (int jja = 2*la + 1; jja >= abs(2*la - 1); jja -= 2)
-                                            {
-                                              for (int mmja = jja; mmja >= -jja; mmja -= 2)
-                                              {
-                                                int mmjb = MMJ - mmja;
-
-                                                for (int mmta = 1; mmta >= -1; mmta -= 2)
-                                                {
-                                                  int mmtb = MMT - mmta;
-
-                                                  for (int lb = nb; lb >= 0; lb -= 2)
-                                                  {
-                                                    if (Lf > (la + lb) || Lf < abs(la - lb)) continue;
-
-                                                    for (int jjb = 2*lb + 1; jjb >= abs(2*lb - 1); jjb -= 2)
-                                                    {
-                                                      if (JJ > (jja + jjb) || JJ < abs(jja - jjb)) continue;
-
-                                                      U3xU4::CouplingCoefficient coeff_f(
-                                                        U3xU4::irrep(u3a,create), 2*la, 1, 1, mmta, jja, mmja, 
-                                                        U3xU4::irrep(u3b,create), 2*lb, 1, 1, mmtb, jjb, mmjb,
-                                                        U3xU4::irrep(u3f,u4f), 2*Lf, SSf, TT, MMT, JJ, MMJ, dbs);
-                                                      if (!coeff_f.exist()) continue;
-
-                                                      for (int ld = nd; ld >= 0; ld -= 2)
-                                                      {
-                                                        for (int jjd = 2*ld + 1; jjd >= abs(2*ld - 1); jjd -= 2)
-                                                        {
-                                                          for (int mmjd = jjd; mmjd >= -jjd; mmjd -= 2)
-                                                          {
-                                                            int mmjc = (-MMJ) - mmjd;
-    
-                                                            for (int mmtd = 1; mmtd >= -1; mmtd -= 2)
-                                                            {
-                                                              int mmtc = (-MMT) - mmtd;
-
-                                                              int phid = (nd + ld + 1 - jjd - mmjd - mmtd) / 2;
-                                                              double phased = (phid % 2 == 0) ? 1.0 : -1.0;
-
-                                                              for (int lc = nc; lc >= 0; lc -= 2)
-                                                              {
-                                                                if (Li > (lc + ld) || Li < abs(lc - ld)) continue;
-
-                                                                for (int jjc = 2*lc + 1; jjc >= abs(2*lc - 1); jjc -= 2)
-                                                                {
-                                                                  if (JJ > (jjc + jjd) || JJ < abs(jjc - jjd)) continue;
-
-                                                                  int phic = (nc + lc + 1 - jjc - mmjc - mmtc) / 2;
-                                                                  double phasec = (phic % 2 == 0) ? 1.0 : -1.0;
-
-                                                                  U3xU4::CouplingCoefficient coeff_i(
-                                                                    U3xU4::irrep(u3d,destroy), 2*ld, 1, 1, mmtd, jjd, mmjd, 
-                                                                    U3xU4::irrep(u3c,destroy), 2*lc, 1, 1, mmtc, jjc, mmjc,
-                                                                    U3xU4::irrep(u3i,u4i), 2*Li, SSi, TT, -MMT, JJ, -MMJ, dbs);
-                                                                  if (!coeff_i.exist()) continue; 
-
-                                                                  double me = ME_CoM_2B_AS(na,2*la,jja,mmja,mmta, 
-                                                                                           nb,2*lb,jjb,mmjb,mmtb, 
-                                                                                           nc,2*lc,jjc,-mmjc,-mmtc, 
-                                                                                           nd,2*ld,jjd,-mmjd,-mmtd, dbs);
-                                                                  //print("me: {}\n", me);
-                                                                  if (std::fabs(me) < 1e-12) continue;
-
-                                                                  double expansion = 0.0;
-                                                                  for (int kf = 0; kf < kfmax; kf++)
-                                                                  {
-                                                                    for (int ki = 0; ki < kimax; ki++)
-                                                                    {
-                                                                      expansion += (coeff0.get(kf,ki,k0,0,0,z0,rho0,eta0)
-                                                                                  * coeff_f.get(0,0,kf,0,0,0,0,0)
-                                                                                  * coeff_i.get(0,0,ki,0,0,0,0,0));
-                                                                    }
-                                                                  }
-                                                                  expansion *= (phasec * phased);
-                                                                  //print("{}\n",expansion);
-                                                                  strength += (me * expansion);
-                                                                }
-                                                              } 
-                                                            }
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-*/                          
 
       	     		  	  	  	if (std::fabs(strength) > 1e-12)
       	  	  	  	  	  	{

@@ -17,43 +17,40 @@ int main(int argc, char* argv[])
   SlepcInitialize(&argc, &argv, NULL, NULL);
 #endif
 
-  int n13, n23, n33;
-  std::cout << "Enter U(3) irrep: ";
-  std::cin >> n13 >> n23 >> n33;
-  u3::irrep b(n13, n23, n33);
-  if ((n13 < n23) || (n23 < n33))
-    throw std::out_of_range("Invalid irrep");
+  std::cout << "This program expands the HWS of a non-vacuum irrep"
+            << " into Slater Determinants" << std::endl;
 
-  int n14, n24, n34, n44;
-  std::cout << "Enter U(4) irrep: ";
-  std::cin >> n14 >> n24 >> n34 >> n44;
-  u4::irrep p(n14, n24, n34, n44);
-  if ((n14 < n24) || (n24 < n34) || (n34 < n44))
-    throw std::out_of_range("Invalid irrep");
-
-  int A = p.quanta(),        // total number of nucleons
-      N_quanta = b.quanta(); // total number of quanta
-
-  assert(N_quanta % A == 0);
-
-  int n = N_quanta / A; // shell number
+  int n;
+  std::cout << "Enter shell number (<= 20): ";
+  std::cin >> n;
 
   u3::irrep x(n, 0, 0);
-  std::vector<u3::gelfand> sps3 = u3::gelfandBasis(x);
+  auto sps3 = u3::gelfandBasis(x);
   u4::irrep y(1, 0, 0, 0);
-  std::vector<u4::gelfand> sps4 = u4::gelfandBasis(y);
+  auto sps4 = u4::gelfandBasis(y);
+
+  int n13, n23, n33;
+  std::cout << "Enter U(3) irrep n13 >= n23 >= n33: ";
+  std::cin >> n13 >> n23 >> n33;
+  u3::irrep b(n13, n23, n33);
+
+  int n14, n24, n34, n44;
+  std::cout << "Enter U(4) irrep n14 >= n24 >= n34 >= n44: ";
+  std::cin >> n14 >> n24 >> n34 >> n44;
+  u4::irrep p(n14, n24, n34, n44);
+
+  U3xU4::GammaElement G(n, b, p);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  std::filesystem::path path =
-      U3xU4::get_HWS_file(A, n, U3xU4::irrep(b, p), sps3, sps4);
+  std::filesystem::path path = U3xU4::get_HWS_file(G, sps3, sps4);
   auto [SDarr, coeffs] = U3xU4::read_HWS_data(path);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  std::cout << "Outer multiplicity is " << coeffs[0].cols() << std::endl;
+  std::cout << "Outer multiplicity is " << coeffs.cols() << std::endl;
 
   bool print;
   std::cout << "Want to print the results? (1 yes, 0 no) ";
@@ -62,10 +59,10 @@ int main(int argc, char* argv[])
   {
     std::cout << "Slater Determinants are: " << std::endl;
 
-    for (std::size_t i = 0; i < SDarr.size(); i++)
+    for (size_t i = 0; i < SDarr.size(); i++)
     {
       // SDarr[i].print();
-      std::cout << SDarr[i] << "--> " << coeffs[i] << std::endl;
+      std::cout << SDarr[i] << "--> " << coeffs.row(i) << std::endl;
     }
   }
 

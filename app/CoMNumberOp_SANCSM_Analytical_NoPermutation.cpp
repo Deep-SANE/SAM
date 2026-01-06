@@ -67,10 +67,10 @@ double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
               cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
               cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
     x = cgc *
-        (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
-         HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9) +
-         HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
-          HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9));
+        (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+         HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
+         HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+          HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs));
   }
 
   return x;
@@ -169,7 +169,7 @@ int main(int argc, char* argv[])
       	  	{
       	  	  for (const auto& k0L0 : k0L0s)
       	  	  {
-      	    	int L0 = k0L0.L, k0max = k0L0.kappa;
+      	    	int L0 = k0L0.L(), k0max = k0L0.kappa();
 
       	    	for (int rho0 = 0; rho0 < rhomax0; rho0++)
       	    	{
@@ -179,11 +179,11 @@ int main(int argc, char* argv[])
 
       	    	  	for (const auto& kfLf : kfLfs)
       	  		  	{
-      	  		  	  int kfmax = kfLf.kappa, Lf = kfLf.L;
+      	  		  	  int kfmax = kfLf.kappa(), Lf = kfLf.L();
 
       	  		  	  for (const auto& kiLi : kiLis)
       	  		  	  {
-      	  		  	  	int kimax = kiLi.kappa, Li = kiLi.L;
+      	  		  	  	int kimax = kiLi.kappa(), Li = kiLi.L();
 
       	  		  	  	auto [allowL0, cgcL0] = wigU3SO3db.get(
       	  		  	  	  	  		u3f.lam(), u3f.mu(), Lf,
@@ -214,7 +214,7 @@ int main(int argc, char* argv[])
       	     		  	  	  	  	//double norm_ab = 1.0;
       	     		  	   		  	  //if (na == nb && la == lb && jja == jjb) norm_ab /= SQRT2;
 
-      	  	  	  	  	  	  	    for (int jjc = 2*lc + 1; jjc >= abs(2*lc - 1); jjc -= 2)
+      	  	  	  	  	  	  	for (int jjc = 2*lc + 1; jjc >= abs(2*lc - 1); jjc -= 2)
       	  		     	  	  	  	{
       	  		     	  	  	  	  for (int jjd = 2*ld + 1; jjd >= abs(2*ld - 1); jjd -= 2)
       	  		  	     	  	  	  {
