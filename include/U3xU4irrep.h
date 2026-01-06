@@ -34,7 +34,7 @@ namespace U3xU4
     irrep(const u3::irrep& u3, const u4::irrep& u4) : u3_(u3), u4_(u4) { }
 
     irrep(int n13, int n23, int n33, int n14, int n24, int n34, int n44)
-        : u3_(n13, n23, n33), u4_(n14, n24, n34, n44)
+      : u3_(n13, n23, n33), u4_(n14, n24, n34, n44) // implicit conversion check
     { }
 
     // comparison:
@@ -71,12 +71,6 @@ namespace U3xU4
     int n34() const { return u4_.n34(); }
     int n44() const { return u4_.n44(); }
 
-    // total quanta:
-    int quanta() const { return u3_.quanta(); }
-
-    // total particles:
-    int particles() const { return u4_.quanta(); }
-
     // is vacuum?
     bool vacuum() const { return u3_.zero() && u4_.zero(); }
 
@@ -94,6 +88,7 @@ namespace U3xU4
       u4_.readBinary(s);
     }
   };
+  using irreps = std::vector<U3xU4::irrep>;
 
   // print U3xU4::irrep:
   inline std::ostream& operator<<(std::ostream& s, const irrep& x)

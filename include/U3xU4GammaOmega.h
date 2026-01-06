@@ -29,14 +29,13 @@ namespace U3xU4
     union
     {
       // basis part:
-      uint8_t alphamax_; // U(N)->U(3) reduction multiplicity
-      // PD's note: I don't think it will ever goes beyond 255
+      uint16_t alphamax_; // U(N)->U(3) reduction multiplicity
 
       // tensor part:
       struct
       {
-        uint8_t rhomax; // rho(0)max
-        uint8_t etamax; // eta(0)max
+        uint8_t rhomax_; // rho(0)max
+        uint8_t etamax_; // eta(0)max
       } t_;
     };
 
@@ -52,7 +51,7 @@ namespace U3xU4
                  const u4::irrep& u4)
         : U3xU4::irrep(u3, u4),
           shell_(qcx_utils::itou8(shell)),
-          alphamax_(qcx_utils::itou8(alphamax)),
+          alphamax_(qcx_utils::itou16(alphamax)),
           state_(State::Basis)
     { }
 
@@ -66,7 +65,7 @@ namespace U3xU4
       untou3::UNtoU3<4> gen;
       gen.set_shell(shell);
       gen.reduceU4(u4, N);
-      alphamax_ = gen.multiplicity(u3);
+      alphamax_ = qcx_utils::itou16(gen.multiplicity(u3));
     }
 
     // constructs a tensor gamma element:
@@ -80,30 +79,59 @@ namespace U3xU4
 
     // getters:
 
-    int shell() const { return shell_; }
+    int shell() const { return static_cast<int>(shell_); }
 
     int alphamax() const
     {
       assert(state_ == State::Basis);
-      return alphamax_;
+      return static_cast<int>(alphamax_);
+    }
+
+    // total quanta:
+    int quanta() const 
+    { 
+      assert(state_ == State::Basis);
+      return u3().quanta(); 
+    }
+
+    // total particles:
+    int particles() const 
+    { 
+      assert(state_ == State::Basis);
+      return u4().quanta(); 
     }
 
     int rhomax() const
     {
       assert(state_ == State::Tensor);
-      return t_.rhomax;
+      return static_cast<int>(t_.rhomax_);
     }
 
     int etamax() const
     {
       assert(state_ == State::Tensor);
-      return t_.etamax;
+      return static_cast<int>(t_.etamax_);
     }
 
     const U3xU4::irrep& u3u4() const { return *this; }
 
     // state:
     State state() const { return state_; }
+
+    // comparison:
+    auto operator==(const GammaElement& x) const
+    {
+      bool flag = false;
+      if (u3u4() == x.u3u4() && shell_ == x.shell_ && state_ == x.state_)
+      {
+        if (state_ == State::Basis && alphamax() == x.alphamax()) 
+          flag = true;
+        else if (state_ == State::Tensor && rhomax() == x.rhomax() &&
+                 etamax() == x.etamax()) 
+          flag = true;
+      }
+      return flag;
+    }
 
     // checks for vacuum/identity:
 
@@ -129,8 +157,8 @@ namespace U3xU4
         qcx_utils::writeBinary(s, alphamax_);
       else if (state_ == State::Tensor)
       {
-        qcx_utils::writeBinary(s, t_.rhomax);
-        qcx_utils::writeBinary(s, t_.etamax);
+        qcx_utils::writeBinary(s, t_.rhomax_);
+        qcx_utils::writeBinary(s, t_.etamax_);
       }
       else
         throw std::runtime_error("Invalid state of U3xU4::GammaElement!");
@@ -146,13 +174,14 @@ namespace U3xU4
         qcx_utils::readBinary(s, alphamax_);
       else if (state_ == State::Tensor)
       {
-        qcx_utils::readBinary(s, t_.rhomax);
-        qcx_utils::readBinary(s, t_.etamax);
+        qcx_utils::readBinary(s, t_.rhomax_);
+        qcx_utils::readBinary(s, t_.etamax_);
       }
       else
         throw std::runtime_error("Invalid state of U3xU4::GammaElement!");
     }
   };
+  using GammaElements = std::vector<U3xU4::GammaElement>;
 
   inline std::ostream& operator<<(std::ostream& s, const GammaElement& ge)
   {
@@ -180,12 +209,32 @@ namespace U3xU4
           etamax_(qcx_utils::itou8(etamax))
     { }
 
+    // comparison:
+    auto operator<=>(const OmegaElement&) const = default;
+
     // getters:
-    int rhomax() const { return rhomax_; }
-    int etamax() const { return etamax_; }
+    int rhomax() const { return static_cast<int>(rhomax_); }
+    int etamax() const { return static_cast<int>(etamax_); }
 
     const U3xU4::irrep& u3u4() const { return *this; }
+
+    // write to binary file
+    void writeBinary(std::ostream& s) const
+    {
+      U3xU4::irrep::writeBinary(s);
+      qcx_utils::writeBinary(s, rhomax_);
+      qcx_utils::writeBinary(s, etamax_);
+    }
+
+    // read from binary file
+    void readBinary(std::istream& s)
+    {
+      U3xU4::irrep::readBinary(s);
+      qcx_utils::readBinary(s, rhomax_);
+      qcx_utils::readBinary(s, etamax_);
+    }
   };
+  using OmegaElements = std::vector<U3xU4::OmegaElement>;
 
   inline std::ostream& operator<<(std::ostream& s, const OmegaElement& oe)
   {
