@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
-  int8_t n = 0, ads = 0, ats = 0;
+  int n = 0, ads = 0, ats = 0;
   std::vector<U3xU4::irrep> Omega_ads, Omega_ats;
 
   /* Example 1: n = 2
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
   Eigen::RowVectorXd norm(rhomax * etamax);
   norm.setZero();
 
-  for (std::size_t i = 0; i < coeffs.size(); i++)
+  for (size_t i = 0; i < coeffs.size(); i++)
   {
     std::cout << coeffs[i] << "\t";
     norm = norm + coeffs[i].cwiseProduct(coeffs[i]);

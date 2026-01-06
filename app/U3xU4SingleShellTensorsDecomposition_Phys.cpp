@@ -18,9 +18,10 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
-  int8_t n = 0, ads = 0, ats = 0, 
-         LL = 0, SS = 0, TT = 0, MMT = 0, JJ = 0, MMJ = 0;
-  std::vector<U3xU4::irrep> Omega_ads, Omega_ats;
+  int n = 0, ads = 0, ats = 0, 
+      LL = 0, SS = 0, TT = 0, MMT = 0, JJ = 0, MMJ = 0;
+  
+  U3xU4::irreps Omega_ads, Omega_ats;
 
   /* Example 1: n = 2
                (3,2,0)(1,1,0,0)  (5,4,0)(1,0,0,0)
@@ -31,8 +32,7 @@ int main(int argc, char* argv[])
   n = 2;
   ats = 3;
   U3xU4::irrep T1(0,0,0, 0,0,0,0), T2_0(3,2,0, 1,1,0,0), T2(5,4,0, 1,0,0,0);
-  Omega_ats.push_back(T2_0);
-  Omega_ats.push_back(T2);
+  Omega_ats = {T2_0, T2};
 
   LL = 2;
   SS = 1;
@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
   n = 5;
   ads = 2;
   U3xU4::irrep T1(7,3,0, 1,1,0,0), T2(0,0,0, 0,0,0,0), T(7,3,0, 1,1,0,0);
-  Omega_ads.push_back(T1);
+  Omega_ads = {T1};
 
   LL = 10;
   SS = 2;
@@ -81,9 +81,8 @@ int main(int argc, char* argv[])
   ats = 2;
   U3xU4::irrep T1_0(3,1,0, 1,1,0,0), T1(3,3,0, 2,1,0,0),
                T2(3,2,0, 1,1,0,0), T(4,1,0, 1,0,0,0);
-  Omega_ads.push_back(T1_0);
-  Omega_ads.push_back(T1);
-  Omega_ats.push_back(T2);
+  Omega_ads = {T1_0, T1};
+  Omega_ats = {T2};
 
   LL = 2; 
   SS = 1;
@@ -103,10 +102,11 @@ int main(int argc, char* argv[])
   ads = 2;
   ats = 2;
   U3xU4::irrep T1(0,0,0, 1,1,0,0), T2(0,0,0, 1,1,0,0), T(0,0,0, 0,0,0,0);
-  Omega_ads.push_back(T1);
-  Omega_ats.push_back(T2);
+  Omega_ads = {T1};
+  Omega_ats = {T2};
   
 
+  ////////////////// DO NOT EDIT ANYTHING BELOW ///////////////////
 
   // Multiplicities of the final tensor
   auto [rhomax, etamax] = U3xU4::RhoEta(T1, T2, T);
@@ -123,23 +123,29 @@ int main(int argc, char* argv[])
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  Eigen::RowVectorXd norm(rhomax * etamax * Tadat.kappamax * Tadat.zetamax);
+  Eigen::RowVectorXd norm(rhomax * etamax * Tadat.kappamax() * Tadat.zetamax());
   norm.setZero();
 
-  for (std::size_t i = 0; i < coeffsArr.size(); i++)
+  bool print;
+  std::cout << "Finish expanding with " << coeffsArr.size() << " terms."
+            << " Do you want to print the results? (1 yes, 0 no) ";
+  std::cin >> print;
+
+  for (size_t i = 0; i < coeffsArr.size(); i++)
   {
-    std::cout << coeffsArr[i] << "\t";
+    if (print)
+    {
+      std::cout << coeffsArr[i] << "\t";
+    
+      if (!adsArr.empty())
+        for (auto ad : adsArr[i]) std::cout << ad << "\t";
+
+      if (!atsArr.empty())
+        for (auto at : atsArr[i]) std::cout << at << "\t";
+
+      std::cout << std::endl;
+    }
     norm = norm + coeffsArr[i].cwiseProduct(coeffsArr[i]);
-
-    if (!adsArr.empty())
-      for (auto ad : adsArr[i])
-        std::cout << ad << "\t";
-
-    if (!atsArr.empty())
-      for (auto at : atsArr[i])
-        std::cout << at << "\t";
-
-    std::cout << std::endl;
   }
 
   std::cout << "Normalization: " << norm << std::endl;

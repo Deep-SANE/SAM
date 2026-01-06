@@ -6,10 +6,10 @@ namespace U3xU4
 {
   // Find all single-shell tensors composed of
   // num_ads creation tensors and num_ats annihilation tensors
-  std::vector<U3xU4::SingleShellTensor> 
+  U3xU4::SingleShellTensors 
     GenerateSingleShellTensors(int n, int num_ads, int num_ats)
   {
-    std::vector<std::vector<U3xU4::irrep>> coupled_ads, coupled_ats;
+    std::vector<U3xU4::irreps> coupled_ads, coupled_ats;
 
     U3xU4::irrep d(n,0,0, 1,0,0,0), t(n,n,0, 1,1,1,0);
 
@@ -29,7 +29,7 @@ namespace U3xU4
           auto [irreps2, rhomaxs2, etamaxs2] = U3xU4::decomposition(irr1, d);
           for (auto irr2 : irreps2)
           {
-            std::vector<U3xU4::irrep> adxadxad = {irr1, irr2};
+            U3xU4::irreps adxadxad = {irr1, irr2};
             coupled_ads.push_back(std::move(adxadxad));
           }
         }
@@ -52,7 +52,7 @@ namespace U3xU4
           auto [irreps2, rhomaxs2, etamaxs2] = U3xU4::decomposition(irr1, t);
           for (auto irr2 : irreps2)
           {
-            std::vector<U3xU4::irrep> atxatxat = {irr1, irr2};
+            U3xU4::irreps atxatxat = {irr1, irr2};
             coupled_ats.push_back(std::move(atxatxat));
           }
         }
@@ -63,7 +63,7 @@ namespace U3xU4
     // std::cout << "coupled ats: " << coupled_ats.size() << std::endl;
 
     // Now couple to the final tensor
-    std::vector<U3xU4::SingleShellTensor> final;
+    U3xU4::SingleShellTensors final;
 
     if (num_ats == 0) // only ad's
     {

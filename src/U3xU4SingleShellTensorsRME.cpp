@@ -9,10 +9,42 @@
 #include <U3xU4SingleShellTensors.h>
 #include <RME.h>
 
-#include <qcx_convert.h>
-
 namespace U3xU4
 {
+  bool SingleShellTensor::RME_exist(const U3xU4::GammaElement& f, 
+                                    const U3xU4::GammaElement& i) const
+  {
+    int A_i = i.particles(), N_quanta_i = i.quanta(), 
+        A_f = f.particles(), N_quanta_f = f.quanta(),
+        n = shell();
+
+    // std::cout << "A_i:" << A_i << " A_f:" << A_f
+    //           << " ads:" << num_ads() << " ats:" << num_ats() << std::endl;
+
+    if (A_i > 0) assert(n == N_quanta_i / A_i);
+    if (A_f > 0) assert(n == N_quanta_f / A_f);
+
+    // Number of particles is not conserved
+    if ((A_i - num_ats() + num_ads()) != A_f) return false;
+
+    // Destroying more particles available is not allowed
+    if (A_i < num_ats()) return false;
+
+    // Vacuum on both side can only be connected by an identity
+    // if (A_i == 0 && A_f == 0 && !identity()) return false;
+    // This is already taken care of by the previous two conditions:
+    // Starting with A_i == 0 && A_f == 0, 
+    // case 1: ats = 0 => first condition imposes ads equal to Af,
+    //                    which is 0, thus the tensor is an identity
+    // case 2: ats > 0 => second condition
+
+    auto [rhomax, etamax] = U3xU4::RhoEta(i, T(), f);
+    if (rhomax == 0 || etamax == 0) return false;  
+
+    // std::cout << "Single-shell RME exists" << std::endl;
+    return true;
+  }
+
   sam::RME SingleShellTensor::RME(const U3xU4::GammaElement& f,
                                   const U3xU4::GammaElement& i,
                                   sam::Databases& dbs) const
@@ -21,23 +53,17 @@ namespace U3xU4
     auto& wigU3U2db = dbs.wigU3U2db;
     auto& wigU4U3db = dbs.wigU4U3db;
 
-    uint8_t A_i = qcx_utils::itou8(i.particles()), 
-            N_quanta_i = qcx_utils::itou8(i.quanta()), 
-            A_f = qcx_utils::itou8(f.particles()), 
-            N_quanta_f = qcx_utils::itou8(f.quanta()),
-            n = shell(); 
-
-    // number of particles is not conserved
-    if ((A_i - ats + ads) != A_f) return {};
+    if (RME_exist(f, i) == false) return {};
 
     auto ai_max = i.alphamax();
     auto af_max = f.alphamax();
 
     // If this is an identity tensor
-    if (ads == 0 && ats == 0)
+    // if (ads_ == 0 && ats_ == 0)
+    if (identity())
     {
-      assert(Omega_ads.empty());
-      assert(Omega_ats.empty());
+      assert(Omega_ads_.empty());
+      assert(Omega_ats_.empty());
       assert(T() == U3xU4::irrep(0,0,0, 0,0,0,0));
       assert(rho0max() == 1);
       assert(eta0max() == 1);
@@ -46,8 +72,8 @@ namespace U3xU4
       {
         // Now calculate RMEs
         std::vector<double> rmes;
-        for (size_t af = 0; af < af_max; af++)
-          for (size_t ai = 0; ai < ai_max; ai++)
+        for (int af = 0; af < af_max; af++)
+          for (int ai = 0; ai < ai_max; ai++)
             rmes.push_back((ai == af) ? 1.0 : 0.0);
 
         return {std::move(rmes),
@@ -61,93 +87,79 @@ namespace U3xU4
         return {};
     }
 
-    // Vacuum on both side can only be connected by an identity
-    if (A_i == 0 && A_f == 0) return {};
+    // If this is not an identity tensor
 
-    if (A_i > 0 && n != N_quanta_i / A_i) return {};
-
-    if (A_f > 0 && n != N_quanta_f / A_f) return {};
+    int A_i = i.particles(), N_quanta_i = i.quanta(), 
+        A_f = f.particles(), N_quanta_f = f.quanta(),
+        n = shell();
 
     // Get outer multiplicities due to Wigner-Eckart theorem
-    auto multis = U3xU4::RhoEta(i, T(), f);
-    uint8_t rhomax = multis.first, etamax = multis.second;
-    if (rhomax == 0 || etamax == 0) return {};
+    auto [rhomax, etamax] = U3xU4::RhoEta(i, T(), f);
 
     // Building single-particle states
     u3::irrep x(n, 0, 0), x_conj(n, n, 0);
-    std::vector<u3::gelfand> sps3 = u3::gelfandBasis(x),
-                             sps3_conj = u3::gelfandBasis(x_conj);
+    u3::gelfands sps3 = u3::gelfandBasis(x), 
+                 sps3_conj = u3::gelfandBasis(x_conj);
 
     u4::irrep y(1, 0, 0, 0), y_conj(1, 1, 1, 0);
-    std::vector<u4::gelfand> sps4 = u4::gelfandBasis(y),
-                             sps4_conj = u4::gelfandBasis(y_conj);
+    u4::gelfands sps4 = u4::gelfandBasis(y),
+                 sps4_conj = u4::gelfandBasis(y_conj);
 
     // Generate HWS for the ket irrep
     u3::gelfand i3hws(i.n13(), i.n23(), i.n33(), i.n13(), i.n23(), i.n13());
     u4::gelfand i4hws(i.n14(), i.n24(), i.n34(), i.n44(),
                       i.n14(), i.n24(), i.n34(), i.n14(), i.n24(), i.n14());
-    std::vector<UNxU4::SlaterDeterminant> SDarr_i;
-    std::vector<Eigen::RowVectorXd> coeffs_i;
+    UNxU4::SlaterDeterminants SDarr_i;
+    Eigen::MatrixXd coeffs_i(1, 1);
     if (A_i == 0) // vacuum
     {
-      const boost::dynamic_bitset<> bits(2 * (n + 1) * (n + 2), 0);
-      UNxU4::SlaterDeterminant SDi(bits);
-      SDarr_i.push_back(SDi);
-      Eigen::RowVectorXd c = Eigen::RowVectorXd::Constant(1, 1.0);
-      coeffs_i.push_back(c);
+      UNxU4::SlaterDeterminant SDi(n);
+      SDarr_i.push_back(std::move(SDi));
+      coeffs_i(0, 0) = 1.0;
     }
     else
     {
-      std::filesystem::path path_i =
-          U3xU4::get_HWS_file(A_i, n, i, sps3, sps4);
+      auto path_i = U3xU4::get_HWS_file(i, sps3, sps4);
       std::tie(SDarr_i, coeffs_i) = U3xU4::read_HWS_data(path_i);
     }
     // Check pre-calculated multiplicity is correct
-    assert(ai_max == coeffs_i[0].cols());
-    // std::cout << "coeffs_i:" << std::endl;
-    // for (int i = 0; i < coeffs_i.size(); i++)
-    //     std::cout << coeffs_i[i] << std::endl;
+    assert(ai_max == coeffs_i.cols());
+    // std::cout << "coeffs_i:" << coeffs_i << std::endl;
 
     // Generate HWS for the bra irrep
     u3::gelfand f3hws(f.n13(), f.n23(), f.n33(), f.n13(), f.n23(), f.n13());
     u4::gelfand f4hws(f.n14(), f.n24(), f.n34(), f.n44(),
                       f.n14(), f.n24(), f.n34(), f.n14(), f.n24(), f.n14());
-    std::vector<UNxU4::SlaterDeterminant> SDarr_f;
-    std::vector<Eigen::RowVectorXd> coeffs_f;
+    UNxU4::SlaterDeterminants SDarr_f;
+    Eigen::MatrixXd coeffs_f(1, 1);
     if (A_f == 0) // vacuum
     {
-      const boost::dynamic_bitset<> bits(2 * (n + 1) * (n + 2), 0);
-      UNxU4::SlaterDeterminant SDf(bits);
-      SDarr_f.push_back(SDf);
-      Eigen::RowVectorXd c = Eigen::RowVectorXd::Constant(1, 1.0);
-      coeffs_f.push_back(c);
+      UNxU4::SlaterDeterminant SDf(n);
+      SDarr_f.push_back(std::move(SDf));
+      coeffs_f(0, 0) = 1.0;
     }
     else
     {
-      std::filesystem::path path_f =
-          U3xU4::get_HWS_file(A_f, shell(), f, sps3, sps4);
+      auto path_f = U3xU4::get_HWS_file(f, sps3, sps4);
       std::tie(SDarr_f, coeffs_f) = U3xU4::read_HWS_data(path_f);
     }
     // Check pre-calculated multiplicity is correct
-    assert(af_max == coeffs_f[0].cols());
-    // std::cout << "coeffs_f:" << std::endl;
-    // for (int i = 0; i < coeffs_f.size(); i++)
-    //     std::cout << coeffs_f[i] << std::endl;
+    assert(af_max == coeffs_f.cols());
+    // std::cout << "coeffs_f:" << coeffs_f << std::endl;
 
     // Generate tensor components of the tensor
-    std::vector<u3::gelfand> g3Arr = u3::gelfandBasis(T().u3());
-    std::vector<std::size_t> g3Arr0;
-    int missing3 = (N_quanta_i + T().quanta() - N_quanta_f) / 3;
-    for (std::size_t i = 0; i < g3Arr.size(); i++)
+    u3::gelfands g3Arr = u3::gelfandBasis(T().u3());
+    std::vector<size_t> g3Arr0;
+    int missing3 = (N_quanta_i + T().u3().quanta() - N_quanta_f) / 3;
+    for (size_t i = 0; i < g3Arr.size(); i++)
       if ((i3hws.e22() + g3Arr[i].e22()) == (f3hws.e22() + missing3) &&
           (i3hws.e11() + g3Arr[i].e11()) == (f3hws.e11() + missing3))
         g3Arr0.push_back(i);
 
-    std::vector<u4::gelfand> g4Arr = u4::gelfandBasis(T().u4());
-    std::vector<std::size_t> g4Arr0;
-    int missing4 = (A_i + T().particles() - A_f) / 4;
-
-    for (std::size_t i = 0; i < g4Arr.size(); i++)
+    u4::gelfands g4Arr = u4::gelfandBasis(T().u4());
+    std::vector<size_t> g4Arr0;
+    int missing4 = (A_i + T().u4().quanta() - A_f) / 4;
+    for (size_t i = 0; i < g4Arr.size(); i++)
       if ((i4hws.e33() + g4Arr[i].e33()) == (f4hws.e33() + missing4) &&
           (i4hws.e22() + g4Arr[i].e22()) == (f4hws.e22() + missing4) &&
           (i4hws.e11() + g4Arr[i].e11()) == (f4hws.e11() + missing4))
@@ -165,11 +177,10 @@ namespace U3xU4
     // Array of matricies containing full matrix elements:
     // index = alpha_i * max(alpha_f) + alpha_f
     std::vector<Eigen::MatrixXd> FMEs;
-    for (size_t ai = 0; ai < ai_max; ai++)
+    for (int ai = 0; ai < ai_max; ai++)
     {
-      for (size_t af = 0; af < af_max; af++)
+      for (int af = 0; af < af_max; af++)
       {
-        //Eigen::MatrixXd fme(rhomax * etamax, rho0max() * eta0max());
         Eigen::MatrixXd fme(g3Arr0.size() * g4Arr0.size(), rho0max() * eta0max());
         fme.setZero();
         FMEs.push_back(fme);
@@ -226,21 +237,21 @@ namespace U3xU4
         Eigen::RowVectorXd cgcU4(etamax);
         cgcU4.setZero();
 
-        for (size_t e = 0; e < etamax; e++)
-          for (size_t r = 0; r < accU4.rows(); r++)
+        for (int e = 0; e < etamax; e++)
+          for (int r = 0; r < accU4.rows(); r++)
             cgcU4(e) += accU4(r, e) * accU3_4(r) * cgc4;
 
         // std::cout << "cgcU4 " << cgcU4 << std::endl;
 
         // Elements of CGCs
-        for (size_t r = 0; r < rhomax; r++)
-          for (size_t e = 0; e < etamax; e++)
+        for (int r = 0; r < rhomax; r++)
+          for (int e = 0; e < etamax; e++)
             CGCs(row, r * etamax + e) = cgcU3(r) * cgcU4(e);
 
         // Expand tensor into ad's and a's
         U3xU4::SingleShellTensor_gelfand Tadat(
-            n, sps3, sps3_conj, sps4, sps4_conj, ads, ats, 
-            Omega_ads, Omega_ats, T(), rho0max(), eta0max(), gt3, gt4);
+            n, sps3, sps3_conj, sps4, sps4_conj, ads_, ats_, 
+            Omega_ads_, Omega_ats_, T(), rho0max(), eta0max(), gt3, gt4);
 
         auto [coeffs, adArr, aArr] = Tadat.expand(dbs);
         /*
@@ -249,11 +260,11 @@ namespace U3xU4
           std::cout << coeffs[t] << "\t";
 
           if (!adArr.empty())
-            for (std::size_t j = 0; j < adArr[t].size(); j++)
+            for (size_t j = 0; j < adArr[t].size(); j++)
               std::cout << adArr[t][j] << "\t";
 
           if (!aArr.empty())
-            for (std::size_t j = 0; j < aArr[t].size(); j++)
+            for (size_t j = 0; j < aArr[t].size(); j++)
               std::cout << aArr[t][j] << "\t";
 
           std::cout << std::endl;
@@ -272,9 +283,9 @@ namespace U3xU4
             double phase = 1;
 
             // Action of a's from right to left
-            for (int a = ats - 1; a >= 0 && !annihilated; a--)
+            for (int a = num_ats() - 1; a >= 0 && !annihilated; a--)
             {
-              auto [p, b] = aArr[t][a].getTensorCharacters();
+              auto [p, b] = aArr[t][a].getSDLabels();
               if (SDi.is_occupied(p, b))
               {
                 // std::cout << "a: " << p << " " << b << std::endl;
@@ -286,9 +297,9 @@ namespace U3xU4
             }
 
             // Action of ad's from right to left
-            for (int ad = ads - 1; ad >= 0 && !annihilated; ad--)
+            for (int ad = num_ads() - 1; ad >= 0 && !annihilated; ad--)
             {
-              auto [p, b] = adArr[t][ad].getTensorCharacters();
+              auto [p, b] = adArr[t][ad].getSDLabels();
               if (!SDi.is_occupied(p, b))
               {
                 // std::cout << "ad: " << p << " " << b << std::endl;
@@ -307,12 +318,12 @@ namespace U3xU4
                 auto SDf = SDarr_f[f];
                 if (SDi == SDf)
                 {
-                  for (size_t ai = 0; ai < ai_max; ai++)
+                  for (int ai = 0; ai < ai_max; ai++)
                   {
-                    for (size_t af = 0; af < af_max; af++)
+                    for (int af = 0; af < af_max; af++)
                     {
-                      FMEs[ai * af_max + af].row(row) +=
-                        phase * coeffs_i[i](ai) * coeffs[t] * coeffs_f[f](af);
+                      FMEs[ai * af_max + af].row(row) += phase 
+                        * coeffs_i(i, ai) * coeffs[t] * coeffs_f(f, af);
                     }
                   }
                 }
@@ -320,7 +331,6 @@ namespace U3xU4
             }
           }
         }
-
         row++;
       }
     }
@@ -339,8 +349,8 @@ namespace U3xU4
     }
 
     std::vector<double> rmes;
-    for (size_t af = 0; af < af_max; af++)
-      for (size_t ai = 0; ai < ai_max; ai++)
+    for (int af = 0; af < af_max; af++)
+      for (int ai = 0; ai < ai_max; ai++)
         for (int rho0 = 0; rho0 < rho0max(); rho0++)
           for (int eta0 = 0; eta0 < eta0max(); eta0++)
             for (int rho = 0; rho < rhomax; rho++)
@@ -357,7 +367,7 @@ namespace U3xU4
             static_cast<size_t>(af_max),
             static_cast<size_t>(ai_max),
             aT_max,
-            rhomax,
-            etamax};
+            static_cast<size_t>(rhomax),
+            static_cast<size_t>(etamax)};
   }
 } // namespace U3xU4

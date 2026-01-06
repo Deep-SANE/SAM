@@ -20,8 +20,8 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
-  std::vector<U3xU4::irrep> Omega_ads, Omega_ats;
-  uint8_t n = 0, ads = 0, ats = 0;
+  U3xU4::irreps Omega_ads, Omega_ats;
+  int n = 0, ads = 0, ats = 0;
 
   /* Example 1:
     < alpha_i (4,3,1) (3,1,0,0) |||
@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
                         RMEs.rhomax(), RMEs.etamax());
 
   std::vector<size_t> multi(6);
-  for (std::size_t i = 0; i < RMEs.size(); i++)
+  for (size_t i = 0; i < RMEs.size(); i++)
   {
     multis.to_multi(i, multi);
     std::cout << multi[0] + 1 << "\t" << multi[1] + 1 << "\t"

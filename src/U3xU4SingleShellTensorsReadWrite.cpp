@@ -8,7 +8,7 @@ namespace U3xU4
 {
   std::ostream& operator<<(std::ostream& s, const ad_gelfand& x)
   {
-    return s << "ad[" << x.sps3[x.c] << "][" << x.sps4[x.r] << "]";
+    return s << "ad(" << x.sps3_[x.c_] << " ; " << x.sps4_[x.r_] << ")";
   }
 
   std::ostream& operator<<(std::ostream& s, const ad_phys& x)
@@ -23,10 +23,11 @@ namespace U3xU4
 
   std::ostream& operator<<(std::ostream& s, const at_gelfand& x)
   {
-    if (x.tensor == true)
-      return s << "at[" << x.sps3_conj[x.c] << "][" << x.sps4_conj[x.r] << "]";
+    if (x.tensor)
+      return s << "at(" << x.sps3_conj_[x.c_] 
+               << " ; " << x.sps4_conj_[x.r_] << ")";
     else
-      return s << "a[" << x.sps3[x.c] << "][" << x.sps4[x.r] << "]";
+      return s << "a(" << x.sps3_[x.c_] << " ; " << x.sps4_[x.r_] << ")";
   }
 
   std::ostream& operator<<(std::ostream& s, const at_phys& x)
@@ -49,16 +50,16 @@ namespace U3xU4
   std::ostream& operator<<(std::ostream& s, const SingleShellTensor& x)
   {
     s << "[ (n=" << x.shell() << ") ";
-    if (x.ads > 0)
+    if (x.ads_ > 0)
     {
-      s << static_cast<int>(x.ads) << "ads ";
-      for (auto ad : x.Omega_ads) s << ad << " ";
-      if (x.ats > 0) s << "x ";
+      s << static_cast<int>(x.ads_) << "ads ";
+      for (const auto& ad : x.Omega_ads_) s << ad << " ";
+      if (x.ats_ > 0) s << "x ";
     }
-    if (x.ats > 0)
+    if (x.ats_ > 0)
     {
-      s << static_cast<int>(x.ats) << "ats ";
-      for (auto at : x.Omega_ats) s << at << " ";
+      s << static_cast<int>(x.ats_) << "ats ";
+      for (const auto& at : x.Omega_ats_) s << at << " ";
     }
     s << "] rho0max" << x.rho0max() << " eta0max" << x.eta0max() << x.T();
     return s;
@@ -66,40 +67,65 @@ namespace U3xU4
 
   void SingleShellTensor::writeBinary(std::ostream& s) const
   {
-    U3xU4::GammaElement::writeBinary(s);
-    qcx_utils::writeBinary(s, ads);
-    qcx_utils::writeBinary(s, ats);
+    U3xU4::GammaElement::writeBinary(s); // T, shell, rho0max, eta0max
+    qcx_utils::writeBinary(s, ads_);
+    qcx_utils::writeBinary(s, ats_);
 
-    //s.write(reinterpret_cast<const char*>(&n), sizeof(n));
-    //s.write(reinterpret_cast<const char*>(&ads), sizeof(ads));
-    //s.write(reinterpret_cast<const char*>(&ats), sizeof(ats));
-    //s.write(reinterpret_cast<const char*>(&rho0max), sizeof(rho0max));
-    //s.write(reinterpret_cast<const char*>(&eta0max), sizeof(eta0max));
-
-    for (const auto& ir : Omega_ads) ir.writeBinary(s);
-    for (const auto& ir : Omega_ats) ir.writeBinary(s);
-
-    //T.writeBinary(s);
+    for (const auto& ir : Omega_ads_) ir.writeBinary(s);
+    for (const auto& ir : Omega_ats_) ir.writeBinary(s);
   }
 
   void SingleShellTensor::readBinary(std::istream& s)
   {
-    U3xU4::GammaElement::readBinary(s);
-    qcx_utils::readBinary(s, ads);
-    qcx_utils::readBinary(s, ats);
+    U3xU4::GammaElement::readBinary(s); // T, shell, rho0max, eta0max
+    qcx_utils::readBinary(s, ads_);
+    qcx_utils::readBinary(s, ats_);
 
-    //s.read(reinterpret_cast<char*>(&n), sizeof(n));
-    //s.read(reinterpret_cast<char*>(&ads), sizeof(ads));
-    //s.read(reinterpret_cast<char*>(&ats), sizeof(ats));
-    //s.read(reinterpret_cast<char*>(&rho0max), sizeof(rho0max));
-    //s.read(reinterpret_cast<char*>(&eta0max), sizeof(eta0max));
+    Omega_ads_.resize(std::max(0, static_cast<int>(ads_) - 1));
+    for (auto& ir : Omega_ads_) ir.readBinary(s);
 
-    Omega_ads.resize(std::max(0, static_cast<int>(ads) - 1));
-    for (auto& ir : Omega_ads) ir.readBinary(s);
+    Omega_ats_.resize(std::max(0, static_cast<int>(ats_) - 1));
+    for (auto& ir : Omega_ats_) ir.readBinary(s);
+  }
 
-    Omega_ats.resize(std::max(0, static_cast<int>(ats) - 1));
-    for (auto& ir : Omega_ats) ir.readBinary(s);
+  std::ostream& operator<<(std::ostream& s, const SingleShellTensor_gelfand& x)
+  {
+    s << "[ (n=" << x.shell() << ") ";
+    if (x.num_ads() > 0)
+    {
+      s << x.num_ads() << "ads ";
+      for (const auto& ad : x.Omega_ads()) s << ad << " ";
+      if (x.num_ats() > 0) s << "x ";
+    }
+    if (x.num_ats() > 0)
+    {
+      s << static_cast<int>(x.num_ats()) << "ats ";
+      for (const auto& at : x.Omega_ats()) s << at << " ";
+    }
+    s << "] rho0max" << x.rho0max() << " eta0max" << x.eta0max()
+      << x.T() << x.g3_ << " ; " << x.g4_;
+    return s;
+  }
 
-    //T.readBinary(s);
+  std::ostream& operator<<(std::ostream& s, const SingleShellTensor_phys& x)
+  {
+    s << "[ (n=" << x.shell() << ") ";
+    if (x.num_ads() > 0)
+    {
+      s << x.num_ads() << "ads ";
+      for (const auto& ad : x.Omega_ads()) s << ad << " ";
+      if (x.num_ats() > 0) s << "x ";
+    }
+    if (x.num_ats() > 0)
+    {
+      s << x.num_ats() << "ats ";
+      for (const auto& at : x.Omega_ats()) s << at << " ";
+    }
+    s << "] rho0max" << x.rho0max() << " eta0max" << x.eta0max()
+      << x.T() << " kappamax" << x.kappamax() << " LL" << x.LL()
+      << " zetamax" << x.zetamax() << " SS" << x.SS()
+      << " TT" << x.TT() << " MMT" << x.MMT() 
+      << " JJ" << x.JJ() << " MMJ" << x.MMJ();
+    return s;
   }
 } // namespace U3xU4

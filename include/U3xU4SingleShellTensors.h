@@ -15,6 +15,7 @@
 #include <RME.h>
 
 #include <qcx_convert.h>
+#include <qcx_Int.h>
 
 #ifdef HAVE_FMT
 #include <fmt/format.h>
@@ -43,32 +44,33 @@ namespace U3xU4
   class ad_gelfand
   {
   private:
-    uint8_t r, // U(4) Gelfand for [1,0,0,0]
-            c; // U(3) gelfand for [n,0,0]
+    uint8_t r_, // U(4) Gelfand for [1,0,0,0]
+            c_; // U(3) gelfand for [n,0,0]
 
-    const std::vector<u3::gelfand>& sps3; // Gelfand array for [n,0,0]
-    const std::vector<u4::gelfand>& sps4; // Gelfand array for [1,0,0,0]
+    const u3::gelfands& sps3_; // Gelfand array for [n,0,0]
+    const u4::gelfands& sps4_; // Gelfand array for [1,0,0,0]
 
   public:
     // Constructor
-    ad_gelfand(int c_, int r_,
-               const std::vector<u3::gelfand>& sps3_,
-               const std::vector<u4::gelfand>& sps4_)
-        : c(qcx_utils::itou8(c_)), 
-          r(qcx_utils::itou8(r_)), 
-          sps3(sps3_), sps4(sps4_)
-    { }
-
-    // Get tensor characters
-    std::pair<uint8_t, uint8_t> getTensorCharacters() const
+    ad_gelfand(qcx_utils::UInt8 c, qcx_utils::UInt8 r,
+               const u3::gelfands& sps3,
+               const u4::gelfands& sps4)
+        : c_(c), r_(r), sps3_(sps3), sps4_(sps4)
     {
-      return std::make_pair(r, c);
+      assert(r < 4);
+    }
+
+    // Get bit position in Slater Determinant
+    std::pair<size_t, size_t> getSDLabels() const
+    {
+      return std::make_pair(static_cast<size_t>(r_), 
+                            static_cast<size_t>(c_));
     }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s, const ad_gelfand& x);
   };
-  using ads_gelfand = std::vector<U3xU4::ad_gelfand>;
+  using ads_gelfand = std::vector<ad_gelfand>;
 
   /* Class for defining creation operator a^dagger
      with tensor components given by
@@ -85,29 +87,30 @@ namespace U3xU4
   {
   private:
     // A lookup table for the labels and location in the table
-    const HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels_;
     uint16_t index;
 
   public:
     // Constructor
     
-    ad_phys(int8_t n_,                // shell number
-            int8_t ll_,               // twice orbital angular momentum
-            int8_t jj_, int8_t mmj_,  // twice total angular momentum
-            int8_t mmt_,              // twice isospin projection
-            const HO::Table_nljmjmt& labels_)
-        : labels(labels_)
+    ad_phys(qcx_utils::Int8 n,   // shell number
+            qcx_utils::Int8 ll,  // twice orbital angular momentum
+            qcx_utils::Int8 jj,  // twice total angular momentum
+            qcx_utils::Int8 mmj, // twice total angular momentum projection
+            qcx_utils::Int8 mmt, // twice isospin projection
+            const HO::Table_nljmjmt& labels)
+        : labels_(labels)
     {
-      index = labels.getIndex(n_, ll_, jj_, mmj_, mmt_);
+      index = labels_.getIndex(n, ll, jj, mmj, mmt);
     }
 
     // Get labels
-    auto getLabels() const { return labels.getLabels(index); }
+    auto getLabels() const { return labels_.getLabels(index); }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s, const ad_phys& x);
   };
-  using ads_phys = std::vector<U3xU4::ad_phys>;
+  using ads_phys = std::vector<ad_phys>;
 
   /////////////////// ANNIHILATION OPERATOR/TENSOR /////////////////
 
@@ -125,38 +128,35 @@ namespace U3xU4
   class at_gelfand
   {
   private:
-    uint8_t r, // U(4) Gelfand for [1,1,1,0]
-            c; // U(3) gelfand for [n,n,0]
+    uint8_t r_, // U(4) Gelfand for [1,1,1,0]
+            c_; // U(3) gelfand for [n,n,0]
 
-    const std::vector<u3::gelfand>& sps3;      // Gelfand array for [n,0,0]
-    const std::vector<u3::gelfand>& sps3_conj; // Gelfand array for [n,n,0]
+    const u3::gelfands& sps3_;      // Gelfand array for [n,0,0]
+    const u3::gelfands& sps3_conj_; // Gelfand array for [n,n,0]
 
-    const std::vector<u4::gelfand>& sps4;      // Gelfand array for [1,0,0,0]
-    const std::vector<u4::gelfand>& sps4_conj; // Gelfand array for [1,1,1,0]
+    const u4::gelfands& sps4_;      // Gelfand array for [1,0,0,0]
+    const u4::gelfands& sps4_conj_; // Gelfand array for [1,1,1,0]
 
     bool tensor = true; // flag indicating if this object is tensor or operator
 
   public:
     // Constructor
-    at_gelfand(int c_, int r_,
-               const std::vector<u3::gelfand>& sps3_,
-               const std::vector<u3::gelfand>& sps3_conj_,
-               const std::vector<u4::gelfand>& sps4_,
-               const std::vector<u4::gelfand>& sps4_conj_)
-        : c(qcx_utils::itou8(c_)),
-          r(qcx_utils::itou8(r_)),
-          sps3(sps3_),
-          sps3_conj(sps3_conj_),
-          sps4(sps4_),
-          sps4_conj(sps4_conj_)
+    at_gelfand(qcx_utils::UInt8 c, qcx_utils::UInt8 r,
+               const u3::gelfands& sps3, const u3::gelfands& sps3_conj,
+               const u4::gelfands& sps4, const u4::gelfands& sps4_conj)
+        : c_(c), r_(r),
+          sps3_(sps3), sps3_conj_(sps3_conj),
+          sps4_(sps4), sps4_conj_(sps4_conj)
     { 
-      assert(c_ < 256);
+      assert(r < 4);
     }
 
-    // Get tensor characters
-    std::pair<uint8_t, uint8_t> getTensorCharacters() const
+    // Get bit position in Slater Determinant
+    std::pair<size_t, size_t> getSDLabels() const
     {
-      return std::make_pair(r, c);
+      assert(!tensor);
+      return std::make_pair(static_cast<size_t>(r_), 
+                            static_cast<size_t>(c_));
     }
 
     // Turn it to a by conjugating, this method returns a phase
@@ -172,7 +172,7 @@ namespace U3xU4
     // sps3 and sps4 must the the conjugate Gelfand arrays
     friend std::ostream& operator<<(std::ostream& s, const at_gelfand& x);
   };
-  using ats_gelfand = std::vector<U3xU4::at_gelfand>;
+  using ats_gelfand = std::vector<at_gelfand>;
 
   /* Class for defining annihilation tensor a^tilde
      with tensor components given by Gelfand patterns
@@ -192,23 +192,24 @@ namespace U3xU4
     bool tensor = true;
 
     // A lookup table for the labels and location in the table
-    const HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels_;
     uint16_t index;
 
   public:
     // Constructor
-    at_phys(int8_t n_,                // shell number
-            int8_t ll_,               // twice orbital angular momentum
-            int8_t jj_, int8_t mmj_,  // twice total angular momentum
-            int8_t mmt_,              // twice isospin projection
-            const HO::Table_nljmjmt& labels_)
-        : labels(labels_)
+    at_phys(qcx_utils::Int8 n,   // shell number
+            qcx_utils::Int8 ll,  // twice orbital angular momentum
+            qcx_utils::Int8 jj,  // twice total angular momentum
+            qcx_utils::Int8 mmj, // twice total angular momentum projection
+            qcx_utils::Int8 mmt, // twice isospin projection
+            const HO::Table_nljmjmt& labels)
+        : labels_(labels)
     {
-      index = labels.getIndex(n_, ll_, jj_, mmj_, mmt_);
+      index = labels_.getIndex(n, ll, jj, mmj, mmt);
     }
 
     // Get labels
-    auto getLabels() const { return labels.getLabels(index); }
+    auto getLabels() const { return labels_.getLabels(index); }
 
     // Turn it to a by conjugating, this method returns a phase
     // and change mmj to -mmj, mmt to -mmt
@@ -221,7 +222,7 @@ namespace U3xU4
     // Print
     friend std::ostream& operator<<(std::ostream& s, const at_phys& x);
   };
-  using ats_phys = std::vector<U3xU4::at_phys>;
+  using ats_phys = std::vector<at_phys>;
 
   /////////////// PRODUCT OF CREATION OPERATORS/TENSORS /////////////////
 
@@ -233,41 +234,45 @@ namespace U3xU4
   {
   private:
     // tensor character of ad [n,0,0] x [1,0,0,0]
-    int8_t n;
+    HO::qn_t n_;
 
-    const std::vector<u3::gelfand>& sps3; // Gelfand array for [n,0,0]
-    const std::vector<u4::gelfand>& sps4; // Gelfand array for [1,0,0,0]
+    const u3::gelfands& sps3_; // Gelfand array for [n,0,0]
+    const u4::gelfands& sps4_; // Gelfand array for [1,0,0,0]
 
     // coupled tensor characters
     // 0 element for ad
     // 1 element for [ad x ad](U3 x U4)
     // 2 elements for [[ad x ad](U30 x U40) x ad](U3 x U4)
-    std::vector<U3xU4::irrep> Omegas;
+    U3xU4::irreps Omegas_;
 
     // tensor component represented by two Gelfand patterns
     // which is associated with the last element of prod_characters
-    u3::gelfand g3;
-    u4::gelfand g4;
+    u3::gelfand g3_;
+    u4::gelfand g4_;
 
   public:
     // Constructor
-    Tad_gelfand(int8_t n_, const std::vector<u3::gelfand>& sps3_,
-                const std::vector<u4::gelfand>& sps4_,
-                const std::vector<U3xU4::irrep>& Omegas_, 
-                const u3::gelfand& g3_, const u4::gelfand& g4_)
-        : n(n_), sps3(sps3_), sps4(sps4_), Omegas(Omegas_), g3(g3_), g4(g4_)
+    Tad_gelfand(qcx_utils::Int8 n, 
+                const u3::gelfands& sps3, const u4::gelfands& sps4,
+                const U3xU4::irreps& Omegas, 
+                const u3::gelfand& g3, const u4::gelfand& g4)
+        : n_(n), sps3_(sps3), sps4_(sps4), Omegas_(Omegas), g3_(g3), g4_(g4)
     { }
 
-    // Get the number of ad's
-    uint8_t num_ads() const { return Omegas.size() + 1; }
+    // Getters
+    int shell() const { return static_cast<int>(n_); }
+    const auto& Omegas() const { return Omegas_; }
+    const auto& g3() const { return g3_; }
+    const auto& g4() const { return g4_; }
 
-    // Get shell number
-    int8_t shell() const { return n; }
+    // Get the number of ad's
+    int num_ads() const { return Omegas_.size() + 1; }
 
     // Expand in terms of uncoupled products of ad's
     std::pair<std::vector<double>, std::vector<U3xU4::ads_gelfand>>
     expand(sam::Databases& dbs) const;
   };
+  using Tads_gelfand = std::vector<Tad_gelfand>;
 
   /* Class for holding coupled products of ad's, it can have up to 3 ad's
      ad, [ad x ad], [[ad x ad] x ad]
@@ -277,40 +282,51 @@ namespace U3xU4
   {
   private:
     // A lookup table for the labels
-    const HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels_;
 
-  public:
     // tensor character of ad [n,0,0] x [1,0,0,0]
-    int8_t n;
+    HO::qn_t n_;
 
     // coupled tensor characters
     // 0 element for ad
     // 1 element for [ad x ad](U3 x U4)
     // 2 elements for [[ad x ad](U30 x U40) x ad](U3 x U4)
-    std::vector<U3xU4::irrep> Omegas;
+    U3xU4::irreps Omegas_;
 
     // tensor components
-    int8_t kappamax, LL, SS, TT, MMT, JJ, MMJ;
+    uint8_t kappamax_;
+    HO::qn_t LL_, SS_, TT_, MMT_, JJ_, MMJ_;
 
+  public:
     // Constructor
-    Tad_phys(int8_t n_, const std::vector<U3xU4::irrep>& Omegas_, int8_t LL_,
-             int8_t SS_, int8_t TT_, int8_t MMT_, int8_t JJ_, int8_t MMJ_,
-             const HO::Table_nljmjmt& labels_)
-        : n(n_), Omegas(Omegas_), LL(LL_), SS(SS_), TT(TT_),
-          MMT(MMT_), JJ(JJ_), MMJ(MMJ_), labels(labels_)
+    Tad_phys(qcx_utils::Int8 n, const U3xU4::irreps& Omegas, 
+             qcx_utils::Int8 LL, qcx_utils::Int8 SS, 
+             qcx_utils::Int8 TT, qcx_utils::Int8 MMT, 
+             qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ,
+             const HO::Table_nljmjmt& labels)
+        : n_(n), Omegas_(Omegas), LL_(LL), SS_(SS), TT_(TT),
+          MMT_(MMT), JJ_(JJ), MMJ_(MMJ), labels_(labels)
     {
-      if (Omegas.empty())
-        kappamax = 1;
+      if (Omegas_.empty())
+        kappamax_ = 1;
       else
-        kappamax = qcx_utils::ito8(
-                   u3::Kappa(Omegas.back().u3(), static_cast<int>(LL) / 2));
+        kappamax_ = qcx_utils::itou8(
+                   u3::Kappa(Omegas_.back().u3(), static_cast<int>(LL_) / 2));
     }
 
-    // Get the number of ad's
-    uint8_t num_ads() const { return Omegas.size() + 1; }
+    // Getters
+    int shell() const { return static_cast<int>(n_); }
+    const auto& Omegas() const { return Omegas_; }
+    int kappamax() const { return static_cast<int>(kappamax_); }
+    int LL() const { return static_cast<int>(LL_); }
+    int SS() const { return static_cast<int>(SS_); }
+    int TT() const { return static_cast<int>(TT_); }
+    int MMT() const { return static_cast<int>(MMT_); }
+    int JJ() const { return static_cast<int>(JJ_); }
+    int MMJ() const { return static_cast<int>(MMJ_); }
 
-    // Get shell number
-    int8_t shell() const { return n; }
+    // Get the number of ad's
+    int num_ads() const { return Omegas_.size() + 1; }
 
     // Expand in terms of uncoupled products of ad's
     std::pair<std::vector<Eigen::RowVectorXd>, // each element has size ==
@@ -318,6 +334,7 @@ namespace U3xU4
               std::vector<U3xU4::ads_phys>>
     expand(sam::Databases& dbs) const;
   };
+  using Tads_phys = std::vector<Tad_phys>;
 
   /////////////// PRODUCT OF ANNIHILATION OPERATORS/TENSORS ///////////////
 
@@ -329,47 +346,52 @@ namespace U3xU4
   {
   private:
     // tensor character of at [n,n,0] x [1,1,1,0]
-    int8_t n;
+    HO::qn_t n_;
 
-    const std::vector<u3::gelfand>& sps3;      // Gelfand array for [n,0,0]
-    const std::vector<u3::gelfand>& sps3_conj; // Gelfand array for [n,n,0]
+    const u3::gelfands& sps3_;      // Gelfand array for [n,0,0]
+    const u3::gelfands& sps3_conj_; // Gelfand array for [n,n,0]
 
-    const std::vector<u4::gelfand>& sps4;      // Gelfand array for [1,0,0,0]
-    const std::vector<u4::gelfand>& sps4_conj; // Gelfand array for [1,1,1,0]
+    const u4::gelfands& sps4_;      // Gelfand array for [1,0,0,0]
+    const u4::gelfands& sps4_conj_; // Gelfand array for [1,1,1,0]
 
     // coupled tensor characters
     // 0 element for at
     // 1 element for [at x at](U3 x U4)
     // 2 elements for [[at x at](U30 x U40) x at](U3 x U4)
-    std::vector<U3xU4::irrep> Omegas;
+    U3xU4::irreps Omegas_;
 
     // tensor component represented by two Gelfand patterns
-    u3::gelfand g3;
-    u4::gelfand g4;
+    u3::gelfand g3_;
+    u4::gelfand g4_;
 
   public:
     // Constructor
-    Tat_gelfand(int8_t n_, const std::vector<u3::gelfand>& sps3_,
-                const std::vector<u3::gelfand>& sps3_conj_,
-                const std::vector<u4::gelfand>& sps4_,
-                const std::vector<u4::gelfand>& sps4_conj_,
-                const std::vector<U3xU4::irrep>& Omegas_, 
-                const u3::gelfand& g3_, const u4::gelfand& g4_)
-        : n(n_), sps3(sps3_), sps3_conj(sps3_conj_), sps4(sps4_), 
-          sps4_conj(sps4_conj_), Omegas(Omegas_), g3(g3_), g4(g4_)
+    Tat_gelfand(qcx_utils::Int8 n,
+                const u3::gelfands& sps3, const u3::gelfands& sps3_conj,
+                const u4::gelfands& sps4, const u4::gelfands& sps4_conj,
+                const U3xU4::irreps& Omegas, 
+                const u3::gelfand& g3, const u4::gelfand& g4)
+        : n_(n), 
+          sps3_(sps3), sps3_conj_(sps3_conj),
+          sps4_(sps4), sps4_conj_(sps4_conj),
+          Omegas_(Omegas), g3_(g3), g4_(g4)
     { }
 
-    // Get the number of at's
-    uint8_t num_ats() const { return Omegas.size() + 1; }
+    // Getters
+    int shell() const { return static_cast<int>(n_); }
+    const auto& Omegas() const { return Omegas_; }
+    const auto& g3() const { return g3_; }
+    const auto& g4() const { return g4_; }
 
-    // Get shell number
-    int8_t shell() const { return n; }
+    // Get the number of at's
+    int num_ats() const { return Omegas_.size() + 1; }
 
     // Expand in terms of uncoupled products of a's
     // (not at's because a phase is added)
     std::pair<std::vector<double>, std::vector<U3xU4::ats_gelfand>>
     expand(sam::Databases& dbs) const;
   };
+  using Tats_gelfand = std::vector<Tat_gelfand>;
 
   /* Class for holding coupled products of at's, it can have up to 3 at's
      at, [at x at], [[at x at] x at]
@@ -379,40 +401,51 @@ namespace U3xU4
   {
   private:
     // A lookup table for the labels
-    const HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels_;
 
-  public:
     // tensor character of at [n,n,0] x [1,1,1,0]
-    int8_t n;
+    HO::qn_t n_;
 
     // coupled tensor characters
     // 0 element for at
     // 1 element for [at x at](U3 x U4)
     // 2 elements for [[at x at](U30 x U40) x at](U3 x U4)
-    std::vector<U3xU4::irrep> Omegas;
+    U3xU4::irreps Omegas_;
 
     // tensor components
-    int8_t kappamax, LL, SS, TT, MMT, JJ, MMJ;
+    uint8_t kappamax_;
+    HO::qn_t LL_, SS_, TT_, MMT_, JJ_, MMJ_;
 
+  public:
     // Constructor
-    Tat_phys(int8_t n_, const std::vector<U3xU4::irrep>& Omegas_, int8_t LL_,
-             int8_t SS_, int8_t TT_, int8_t MMT_, int8_t JJ_, int8_t MMJ_,
-             const HO::Table_nljmjmt& labels_)
-        : n(n_), Omegas(Omegas_), LL(LL_), SS(SS_), TT(TT_),
-          MMT(MMT_), JJ(JJ_), MMJ(MMJ_), labels(labels_)
+    Tat_phys(qcx_utils::Int8 n, const U3xU4::irreps& Omegas, 
+             qcx_utils::Int8 LL, qcx_utils::Int8 SS, 
+             qcx_utils::Int8 TT, qcx_utils::Int8 MMT, 
+             qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ,
+             const HO::Table_nljmjmt& labels)
+        : n_(n), Omegas_(Omegas), LL_(LL), SS_(SS), TT_(TT),
+          MMT_(MMT), JJ_(JJ), MMJ_(MMJ), labels_(labels)
     {
-      if (Omegas.empty())
-        kappamax = 1;
+      if (Omegas_.empty())
+        kappamax_ = 1;
       else
-        kappamax = qcx_utils::ito8(
-                   u3::Kappa(Omegas.back().u3(), static_cast<int>(LL) / 2));
+        kappamax_ = qcx_utils::itou8(
+                   u3::Kappa(Omegas_.back().u3(), static_cast<int>(LL_) / 2));
     }
 
-    // Get the number of at's
-    uint8_t num_ats() const { return Omegas.size() + 1; }
+    // Getters
+    int shell() const { return static_cast<int>(n_); }
+    const auto& Omegas() const { return Omegas_; }
+    int kappamax() const { return static_cast<int>(kappamax_); }
+    int LL() const { return static_cast<int>(LL_); }
+    int SS() const { return static_cast<int>(SS_); }
+    int TT() const { return static_cast<int>(TT_); }
+    int MMT() const { return static_cast<int>(MMT_); }
+    int JJ() const { return static_cast<int>(JJ_); }
+    int MMJ() const { return static_cast<int>(MMJ_); }
 
-    // Get shell number
-    int8_t shell() const { return n; }
+    // Get the number of at's
+    int num_ats() const { return Omegas_.size() + 1; }
 
     // Expand in terms of uncoupled products of at's
     std::pair<std::vector<Eigen::RowVectorXd>, // each element has size ==
@@ -420,6 +453,7 @@ namespace U3xU4
               std::vector<U3xU4::ats_phys>>
     expand(sam::Databases& dbs) const;
   };
+  using Tats_phys = std::vector<Tat_phys>;
 
   ////// PRODUCT OF CREATION AND ANNIHILATION OPERATORS/TENSORS ///////
 
@@ -429,51 +463,58 @@ namespace U3xU4
   */
   class SingleShellTensor : public U3xU4::GammaElement
   {
-  public:
-    // tensor character of ad [n,0,0] x [1,0,0,0]
-    // tensor character of at [n,n,0] x [1,1,1,0]
-
+  private:
     // coupled tensor characters
     // 0 element for ad
     // 1 element for [ad x ad](U3 x U4)
     // 2 elements for [[ad x ad](U3 x U4) x ad](U3_1 x U4_1)
-    std::vector<U3xU4::irrep> Omega_ads;
+    U3xU4::irreps Omega_ads_;
     // number of ad's
-    uint8_t ads;
+    uint8_t ads_;
 
     // coupled tensor characters
     // 0 element for at
     // 1 element for [at x at](U3 x U4)
     // 2 elements for [[at x at](U3 x U4) x at](U3_2 x U4_2)
-    std::vector<U3xU4::irrep> Omega_ats;
+    U3xU4::irreps Omega_ats_;
     // number of at's
-    uint8_t ats;
+    uint8_t ats_;
 
     // final tensor coupling stored in GammaElement base class
 
+  public:
     // Constructor
     SingleShellTensor() : U3xU4::GammaElement(0, 0, {}, 0, {})
     { }
 
-    SingleShellTensor(uint8_t n_, uint8_t ads_, uint8_t ats_,
-                      const std::vector<U3xU4::irrep>& Omega_ads_,
-                      const std::vector<U3xU4::irrep>& Omega_ats_,
-                      const U3xU4::irrep& T_, uint8_t rho0max_, uint8_t eta0max_)
-        : U3xU4::GammaElement(n_, rho0max_, T_.u3(), eta0max_, T_.u4()),
-          ads(ads_),
-          ats(ats_),
-          Omega_ads(Omega_ads_),
-          Omega_ats(Omega_ats_)
+    SingleShellTensor(qcx_utils::UInt8 n,
+                      qcx_utils::UInt8 ads, qcx_utils::UInt8 ats,
+                      const U3xU4::irreps& Omega_ads,
+                      const U3xU4::irreps& Omega_ats,
+                      const U3xU4::irrep& T, 
+                      qcx_utils::UInt8 rho0max, qcx_utils::UInt8 eta0max)
+        : U3xU4::GammaElement(n, rho0max, T.u3(), eta0max, T.u4()),
+          ads_(ads),
+          ats_(ats),
+          Omega_ads_(Omega_ads),
+          Omega_ats_(Omega_ats)
     { }
 
+    // comparison:
+    auto operator<=>(const SingleShellTensor&) const = default;
+
+    // Getters
+    const auto& Omega_ads() const { return Omega_ads_; }
+    const auto& Omega_ats() const { return Omega_ats_; }
+
     // Get the number of ad's
-    uint8_t num_ads() const { return ads; }
+    int num_ads() const { return static_cast<int>(ads_); }
 
     // Get the number of at's
-    uint8_t num_ats() const { return ats; }
+    int num_ats() const { return static_cast<int>(ats_); }
 
     // Check if it's identity
-    bool identity() const { return (ads == 0) && (ats == 0); }
+    bool identity() const { return (ads_ == 0) && (ats_ == 0); }
 
     const U3xU4::irrep& T() const { return *this; }
 
@@ -502,9 +543,17 @@ namespace U3xU4
       Outputs:
       RMEs are stored in an array via a sam::RME object
     */
+    bool RME_exist(const U3xU4::GammaElement& f, const U3xU4::GammaElement& i) const;
+
     sam::RME RME(const U3xU4::GammaElement& f, const U3xU4::GammaElement& i,
                  sam::Databases& dbs) const;
   };
+  using SingleShellTensors = std::vector<SingleShellTensor>;
+
+  // Find all single-shell tensors composed of
+  // num_ads creation tensors and num_ats annihilation tensors
+  SingleShellTensors
+    GenerateSingleShellTensors(int n, int num_ads, int num_ats);
 
   /* Class for holding single-shell tensors, which are coupled products
      of ad's and at's. It can have up to 3 ad's and 3 at's
@@ -513,36 +562,38 @@ namespace U3xU4
   class SingleShellTensor_gelfand : public U3xU4::SingleShellTensor
   {
   private:
-    const std::vector<u3::gelfand>& sps3;      // Gelfand array for [n,0,0]
-    const std::vector<u3::gelfand>& sps3_conj; // Gelfand array for [n,n,0]
+    const u3::gelfands& sps3_;      // Gelfand array for [n,0,0]
+    const u3::gelfands& sps3_conj_; // Gelfand array for [n,n,0]
 
-    const std::vector<u4::gelfand>& sps4;      // Gelfand array for [1,0,0,0]
-    const std::vector<u4::gelfand>& sps4_conj; // Gelfand array for [1,1,1,0]
+    const u4::gelfands& sps4_;      // Gelfand array for [1,0,0,0]
+    const u4::gelfands& sps4_conj_; // Gelfand array for [1,1,1,0]
 
     // tensor component represented by two Gelfand patterns
-    u3::gelfand g3; // associated with T.u3
-    u4::gelfand g4; // associated with T.u4
+    u3::gelfand g3_; // associated with T.u3
+    u4::gelfand g4_; // associated with T.u4
 
   public:
     // Constructor
     SingleShellTensor_gelfand(
-      uint8_t n_, 
-      const std::vector<u3::gelfand>& sps3_,
-      const std::vector<u3::gelfand>& sps3_conj_,
-      const std::vector<u4::gelfand>& sps4_,
-      const std::vector<u4::gelfand>& sps4_conj_, 
-      uint8_t ads_, uint8_t ats_,
-      const std::vector<U3xU4::irrep>& Omega_ads_,
-      const std::vector<U3xU4::irrep>& Omega_ats_,
-      const U3xU4::irrep& T_, uint8_t rho0max_, uint8_t eta0max_,
-      const u3::gelfand& g3_, const u4::gelfand& g4_)
-        : SingleShellTensor(n_, ads_, ats_, Omega_ads_, Omega_ats_, 
-                                            T_, rho0max_, eta0max_),
-          sps3(sps3_), sps3_conj(sps3_conj_),
-          sps4(sps4_), sps4_conj(sps4_conj_),
-          g3(g3_),
-          g4(g4_)
+      qcx_utils::UInt8 n, 
+      const u3::gelfands& sps3, const u3::gelfands& sps3_conj,
+      const u4::gelfands& sps4, const u4::gelfands& sps4_conj, 
+      qcx_utils::UInt8 ads, qcx_utils::UInt8 ats,
+      const U3xU4::irreps& Omega_ads,
+      const U3xU4::irreps& Omega_ats,
+      const U3xU4::irrep& T, 
+      qcx_utils::UInt8 rho0max, qcx_utils::UInt8 eta0max,
+      const u3::gelfand& g3, const u4::gelfand& g4)
+        : SingleShellTensor(n, ads, ats, Omega_ads, Omega_ats, 
+                                            T, rho0max, eta0max),
+          sps3_(sps3), sps3_conj_(sps3_conj),
+          sps4_(sps4), sps4_conj_(sps4_conj),
+          g3_(g3),
+          g4_(g4)
     { }
+
+    // Print
+    friend std::ostream& operator<<(std::ostream& s, const SingleShellTensor_gelfand& x);
 
     // Expand in terms of uncoupled products of ad's and a's
     // (not at's because a phase is added)
@@ -553,6 +604,7 @@ namespace U3xU4
                std::vector<U3xU4::ats_gelfand>> // a's
     expand(sam::Databases& dbs) const;
   };
+  using SingleShellTensors_gelfand = std::vector<SingleShellTensor_gelfand>;
 
   /* Class for holding single-shell tensors, which are coupled products
      of ad's and at's. It can have up to 3 ad's and 3 at's
@@ -562,52 +614,84 @@ namespace U3xU4
   {
   private:
     // A lookup table for the labels
-    const HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels_;
+
+    // tensor components
+    uint8_t kappamax_, zetamax_;
+    HO::qn_t LL_, SS_, TT_, MMT_, JJ_, MMJ_;
 
   public:
-    // tensor components
-    int8_t kappamax, LL, zetamax, SS, TT, MMT, JJ, MMJ;
-
     // Constructor
-    SingleShellTensor_phys(
-      uint8_t n_, uint8_t ads_, uint8_t ats_,
-      const std::vector<U3xU4::irrep>& Omega_ads_,
-      const std::vector<U3xU4::irrep>& Omega_ats_,
-      const U3xU4::irrep& T_, uint8_t rho0max_, uint8_t eta0max_,
-      int8_t LL_, int8_t SS_, int8_t TT_, int8_t MMT_, int8_t JJ_,
-      int8_t MMJ_, const HO::Table_nljmjmt& labels_)
-        : SingleShellTensor(n_, ads_, ats_, Omega_ads_, Omega_ats_, 
-                                            T_, rho0max_, eta0max_),
-          LL(LL_),
-          SS(SS_),
-          TT(TT_),
-          MMT(MMT_),
-          JJ(JJ_),
-          MMJ(MMJ_),
-          labels(labels_)
+    SingleShellTensor_phys(const U3xU4::SingleShellTensor& T,
+      qcx_utils::Int8 LL, qcx_utils::Int8 SS,
+      qcx_utils::Int8 TT, qcx_utils::Int8 MMT,
+      qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ,
+      const HO::Table_nljmjmt& labels)
+        : SingleShellTensor(T),
+          LL_(LL),
+          SS_(SS),
+          TT_(TT),
+          MMT_(MMT),
+          JJ_(JJ),
+          MMJ_(MMJ),
+          labels_(labels)
     {
-      kappamax = qcx_utils::ito8(u3::Kappa(u3(), LL / 2));
-      zetamax = qcx_utils::ito8(u4::Zeta(u4(), SS, TT));
+      kappamax_ = qcx_utils::itou8(u3::Kappa(u3(), LL_ / 2));
+      zetamax_ = qcx_utils::itou8(u4::Zeta(u4(), SS_, TT_));
     }
+    SingleShellTensor_phys(
+      qcx_utils::UInt8 n, 
+      qcx_utils::UInt8 ads, qcx_utils::UInt8 ats,
+      const U3xU4::irreps& Omega_ads,
+      const U3xU4::irreps& Omega_ats,
+      const U3xU4::irrep& T, 
+      qcx_utils::UInt8 rho0max, qcx_utils::UInt8 eta0max,
+      qcx_utils::Int8 LL, qcx_utils::Int8 SS,
+      qcx_utils::Int8 TT, qcx_utils::Int8 MMT,
+      qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ,
+      const HO::Table_nljmjmt& labels)
+        : SingleShellTensor(n, ads, ats, Omega_ads, Omega_ats, 
+                                            T, rho0max, eta0max),
+          LL_(LL),
+          SS_(SS),
+          TT_(TT),
+          MMT_(MMT),
+          JJ_(JJ),
+          MMJ_(MMJ),
+          labels_(labels)
+    {
+      kappamax_ = qcx_utils::itou8(u3::Kappa(u3(), LL_ / 2));
+      zetamax_ = qcx_utils::itou8(u4::Zeta(u4(), SS_, TT_));
+    }
+
+    // Getters
+    int kappamax() const { return static_cast<int>(kappamax_); }
+    int zetamax() const { return static_cast<int>(zetamax_); }
+    int LL() const { return static_cast<int>(LL_); }
+    int SS() const { return static_cast<int>(SS_); }
+    int TT() const { return static_cast<int>(TT_); }
+    int MMT() const { return static_cast<int>(MMT_); }
+    int JJ() const { return static_cast<int>(JJ_); }
+    int MMJ() const { return static_cast<int>(MMJ_); }
+
+    // Print
+    friend std::ostream& operator<<(std::ostream& s, const SingleShellTensor_phys& x);
 
     // Expand in terms of uncoupled products of ad's and a's
     // (not at's because a phase is added)
     // coeffs have rhomax x etamax x kappamax x zetamax columns, index of each
     // column is
     // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
+    // OR, if we switch index: alphamax = rhomax x etamax, then index of each
+    // column is
+    // (alpha * kappamax + kappa) * zetamax + zeta
     std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
                std::vector<U3xU4::ads_phys>,    // ad's
                std::vector<U3xU4::ats_phys>>    // a's
     expand(sam::Databases& dbs) const;
   };
-  using SingleShellTensors_phys = std::vector<U3xU4::SingleShellTensor_phys>;
-  using ads_ats_phys =
-      std::vector<std::variant<U3xU4::ad_phys, U3xU4::at_phys>>;
-
-  // Find all single-shell tensors composed of
-  // num_ads creation tensors and num_ats annihilation tensors
-  std::vector<U3xU4::SingleShellTensor> 
-    GenerateSingleShellTensors(int n, int num_ads, int num_ats);
+  using SingleShellTensors_phys = std::vector<SingleShellTensor_phys>;
+  using ads_ats_phys = std::vector<std::variant<ad_phys, at_phys>>;
 
 } // namespace U3xU4
 
@@ -624,8 +708,8 @@ public:
   template <typename Context>
   constexpr auto format(const U3xU4::SingleShellTensor& t, Context& ctx) const
   {
-    return fmt::format_to(ctx.out(), "{}({},{}){}{}{}{}", t.shell(), t.ads,
-                          t.ats, t.rho0max(), t.u3(), t.eta0max(), t.u4());
+    return fmt::format_to(ctx.out(), "{}({},{}){}{}{}{}", t.shell(), t.num_ads(),
+                          t.num_ats(), t.rho0max(), t.u3(), t.eta0max(), t.u4());
   }
 };
 
