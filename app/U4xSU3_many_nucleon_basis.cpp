@@ -356,10 +356,10 @@ int computeDim(int lm, int mu, const u4::irrep& u4, int MMT, int JJ)
   auto u4_basis = u4::physicalBasis(u4);
   for (auto const& labels : u4_basis)
   {
-    if (labels.TT >= MMT)
+    if (labels.TT() >= MMT)
     {
-      int mult = labels.zeta;
-      int SS = labels.SS;
+      int mult = labels.zeta();
+      int SS = labels.SS();
       dim += mult * computeDim(lm, mu, SS, JJ);
     }
   }

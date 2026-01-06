@@ -34,6 +34,14 @@ namespace U3xU4
     {
       std::vector<U3xU4::GammaElement> gamma;
       std::vector<U3xU4::OmegaElement> omega;
+
+      size_t alphamax() const
+      {
+        size_t res = 1;
+        for (const auto& g : gamma) res *= g.alphamax();
+        for (const auto& o : omega) res *= (o.rhomax() * o.etamax());
+        return res;
+      }
     };
 
     /**
@@ -397,13 +405,14 @@ namespace U3xU4
   
   public:
     // get twice angular momentum
-    auto getJJ() const { return JJ_; }
+    int JJ() const { return static_cast<int>(JJ_); }
 
     // get twice isospin projection
-    auto getMMT() const { return MMT_; }
+    int MMT() const { return static_cast<int>(MMT_); }
 
     // perform decomposition to LL,SS,TT
     std::vector<std::vector<std::array<int,6>>> decomposition() const;
+    std::vector<std::array<int,6>> decomposition(const Irrep& irr) const;
   };
 
   // class for unifying 2 irreps wrt to their shells:
