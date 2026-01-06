@@ -8,53 +8,40 @@
 #include <qcx_convert.h>
 #include <qcx_print.h>
 using qcx_utils::print;
+#include <so3Coeffs/SO3_CGC.h>
 
 #include <Databases.h>
 #include <TwoBodyOperatorJT.h>
 
 namespace JT
 {
-  TwoBodyOperator::TwoBodyOperator(const std::string& name_,
-                                   const HO::Table_nljmjmt& labels_, int hw_,
-                                   int Nmax_, int valenceShell_,
-                                   int maxShell_)
-      : labels(labels_)
+  TwoBodyOperator::TwoBodyOperator(const std::string& name, int hw, int Nmax, 
+      int valenceShell, int maxShell, const HO::Table_nljmjmt& labels)
+      : labels_(labels)
   {
-    hw = (hw_ >= 0) ? qcx_utils::ito8(hw_) : qcx_utils::ito8(20);
-    Nmax = (Nmax_ >= 0) ? qcx_utils::ito8(Nmax_) : qcx_utils::ito8(14);
-    valenceShell = (valenceShell_ > 0) ? qcx_utils::ito8(valenceShell_) : 0;
-    maxShell = (maxShell_ >= 0) ? qcx_utils::ito8(maxShell_) : qcx_utils::ito8(14);
+    if (maxShell > 14)
+      throw std::out_of_range(
+          "Sorry, we only have maxShell up to 14 at the moment");
 
-    const std::unordered_set<std::string> known_scalar_ops = {
-        "L.L", "L.S", "CoMNumberOp", "Kinetic", "R.R"};
+    hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
+    Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
+    valenceShell_ = (valenceShell > 0) ? qcx_utils::ito8(valenceShell) : 0;
+    maxShell_ = (maxShell >= 0) ? qcx_utils::ito8(maxShell) : 14;
 
-    const std::unordered_set<std::string> known_potentials = {
-        "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
-        "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
-        "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
-        "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
-        "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
-        "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
-        "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
-        "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"};
+    name_ = name;
+    JJ_ = 0;
+    MMJ_ = 0;
+    TT_ = 0;
+    MMT_ = 0;
+    parity_ = 1;
 
-    if (known_scalar_ops.count(name_))
+    if (known_scalar_ops.count(name)) 
     {
-      name = name_;
-      JJ = 0;
-      MMJ = 0;
-      TT = 0;
-      MMT = 0;
-      parity = true;
+      on_the_fly = true;
     }
-    else if (known_potentials.count(name_))
+    else if (known_potentials.count(name))
     {
-      name = name_;
-      JJ = 0;
-      MMJ = 0;
-      TT = -1; // Allowing for multiple TT's since potential mixes isospin
-      MMT = 0;
-      parity = true;
+      TT_ = -1;
       TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
       on_the_fly = false;
     }
@@ -65,24 +52,46 @@ namespace JT
 
   void TwoBodyOperator::is() const
   {
-    if (name == "L.L")
+    if (name_ == "L.L")
       std::cout << "Two-body part of L.L" << std::endl;
-    else if (name == "L.S")
+    else if (name_ == "L.S")
       std::cout << "Two-body part of L.S" << std::endl;
-    else if (name == "CoMNumberOp")
+    else if (name_ == "CoMNumberOp")
       std::cout << "Two-body part of CoM number operator without 1/A"
                 << std::endl;
-    else if (name == "Kinetic")
+    else if (name_ == "Kinetic")
       std::cout << "Two-body part of the relative kinetic energy without 1/A"
                 << std::endl;
-    else if (name == "R.R")
+    else if (name_ == "R.R")
       std::cout
           << "Two-body part of the intrinsic mass radius squared without -1/A"
           << std::endl;
     else if (on_the_fly == false)
-      TBME->is();
+      std::cout << "Two-body potential with" << name_ << std::endl;
+      //TBME->is();
     else
       throw std::invalid_argument("This operator has not been implemented");
+  }
+
+  std::ostream& operator<<(std::ostream& s, const TwoBodyOperator& x)
+  {
+    if (x.name_ == "L.L")
+      s << "Two-body part of L.L";
+    else if (x.name_ == "L.S")
+      s << "Two-body part of L.S";
+    else if (x.name_ == "CoMNumberOp")
+      s << "Two-body part of CoM number operator without 1/A";
+    else if (x.name_ == "Kinetic")
+      s << "Two-body part of the relative kinetic energy without 1/A";
+    else if (x.name_ == "R.R")
+      s << "Two-body part of the intrinsic mass radius squared without -1/A";
+    else if (x.on_the_fly == false)
+      s << "Two-body potential with " << x.name_;
+      //TBME->is();
+    else
+      throw std::invalid_argument("This operator has not been implemented");
+
+    return s;
   }
 
   // ME: / na lla jja mmja mmta | O | nc llc jjc mmjc mmtc \
@@ -100,7 +109,7 @@ namespace JT
 
     double x = 0.0;
 
-    if (name == "L.L") // Two-body part of L.L
+    if (name_ == "L.L") // Two-body part of L.L
     {
       if (na == nc && nb == nd && lla == llc && llb == lld && mmta == mmtc &&
           mmtb == mmtd)
@@ -116,7 +125,7 @@ namespace JT
         x = 2 * phase * factor * U1 * U2 * cgc;
       }
     }
-    else if (name == "L.S") // Two-body part of L.S
+    else if (name_ == "L.S") // Two-body part of L.S
     {
       if (na == nc && nb == nd && lla == llc && llb == lld && mmta == mmtc &&
           mmtb == mmtd)
@@ -138,7 +147,7 @@ namespace JT
         x = std::sqrt(0.75) * cgc * factor;
       }
     }
-    else if (name ==
+    else if (name_ ==
              "CoMNumberOp") // Two-body part of CoM number operator without 1/A
     {
       if (mmta == mmtc && mmtb == mmtd)
@@ -149,13 +158,13 @@ namespace JT
                  cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
                  cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
         x = cgc *
-            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
-                 HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9) +
-             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
-                 HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9));
+            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+                 HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
+             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+                 HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs));
       }
     }
-    else if (name == "Kinetic") // Two-body part of the relative kinetic energy
+    else if (name_ == "Kinetic") // Two-body part of the relative kinetic energy
                                 // without 1/A
     {
       if (mmta == mmtc && mmtb == mmtd)
@@ -165,17 +174,17 @@ namespace JT
           cgc += (mu == 0 ? 1.0 : -1.0) *
                  cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
                  cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
-        x = static_cast<double>(hw) * cgc *
-            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
-                 (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9) -
-                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9)) +
-             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
-                 (HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9) -
-                  HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9))) /
+        x = static_cast<double>(hw_) * cgc *
+            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+                 (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs) -
+                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs)) +
+             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+                 (HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) -
+                  HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs))) /
             2.0;
       }
     }
-    else if (name == "R.R") // Two-body part of the intrinsic mass radius
+    else if (name_ == "R.R") // Two-body part of the intrinsic mass radius
                             // squared without -1/A
     {
       if (mmta == mmtc && mmtb == mmtd)
@@ -186,12 +195,12 @@ namespace JT
                  cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
                  cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
         x = 2.0 * cgc *
-            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, racah9) *
-                 (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9) +
-                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9)) +
-             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, racah9) *
-                 (HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, racah9) +
-                  HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, racah9)));
+            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+                 (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
+                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs)) +
+             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+                 (HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
+                  HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs)));
       }
     }
     else
@@ -208,8 +217,6 @@ namespace JT
                                          int lld, int jjd, int mmjd, int mmtd,
                                          sam::Databases& dbs) const
   {
-    auto& cgcs = dbs.cgcs;
-
     if (on_the_fly == true)
     {
       return (sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
@@ -223,7 +230,7 @@ namespace JT
     {
       return TBME->getME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb, 
                          nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd, 
-                         cgcs) / 4.0;
+                         dbs) / 4.0;
     }
   }
 
@@ -418,21 +425,13 @@ namespace JT
     return groups;
   }
 
-  // Set coefficient for two-body multi-shell tensor.
-  // It returns a flag, which indicate whether this tensor can be ignored.
+  // Set strengths for U3xU4::TwoBodyMultiShellTensor
+    // It returns a flag, which indicate whether this tensor can be ignored.
   bool TwoBodyOperator::setTensorStrength(
       U3xU4::TwoBodyMultiShellTensor& tensor,
       const std::vector<std::vector<int>>& inverse,
       const std::vector<int>& phase, sam::Databases& dbs) const
   {
-    /*
-    auto& cgcs = dbs.cgcs;
-    auto& racah = dbs.racah;
-    auto& racah9 = dbs.racah9;
-    auto& wigU3SO3db = dbs.wigU3SO3db;
-    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
-    */
-
     /* Coefficients in the expansion of two-body JT-coupled operator.
        The size of this array is equal to rhomax * etamax * kappamax * zetamax.
        To access the elements:
@@ -443,12 +442,12 @@ namespace JT
                index = ((r * etamax + e) * kappamax + k) * zetamax + z;
     */
 
-    std::vector<double> coeffs_(
-        tensor.rhomax * tensor.etamax * tensor.kappamax * tensor.zetamax, 0.0);
+    std::vector<double> coeffs(tensor.rhomax() * tensor.etamax() * 
+                                tensor.kappamax() * tensor.zetamax(), 0.0);
 
     auto [coeffsArr, opsArr] = tensor.expand(dbs);
 
-    for (int i = 0; i < coeffsArr.size(); i++)
+    for (size_t i = 0; i < coeffsArr.size(); i++)
     {
       std::array<int, 4> ns, lls, jjs, mmjs, mmts;
 
@@ -486,57 +485,213 @@ namespace JT
                                         mmjs_orig[2], mmts_orig[2], dbs);
       }
 
-      if (std::fabs(me) < 1e-10)
-        continue;
+      if (std::fabs(me) < 1e-10) continue;
 
-      for (int c = 0; c < coeffs_.size(); c++)
-        coeffs_[c] += me * coeffsArr[i][c];
+      for (int c = 0; c < coeffs.size(); c++)
+        coeffs[c] += me * coeffsArr[i][c];
     }
 
     double norm = 0.0;
-    for (int c = 0; c < coeffs_.size(); c++)
+    for (int c = 0; c < coeffs.size(); c++)
     {
-      if (std::fabs(coeffs_[c]) < 1e-10)
+      if (std::fabs(coeffs[c]) < 1e-10)
       {
-        coeffs_[c] = 0.0;
+        coeffs[c] = 0.0;
         continue;
       }
-      norm += std::fabs(coeffs_[c]);
+      norm += std::fabs(coeffs[c]);
     }
 
     bool ignore = (norm < 1e-10);
-    if (ignore == false)
-      tensor.coeffs = coeffs_;
+    if (ignore == false) tensor.setCoeffs(coeffs);
 
     return ignore;
   }
 
+  // Selection rules
+  bool TwoBodyOperator::LLselection(const int& LL) const
+  {
+    bool flag = true;
+
+    if (name_ == "L.L" || name_ == "L.S" ||
+        name_ == "CoMNumberOp" || name_ == "Kinetic")
+    {
+      if (LL != 0) flag = false;
+    }
+    
+    return flag;
+  }
+  
+  bool TwoBodyOperator::SSselection(const int& SS) const
+  {
+    bool flag = true;
+
+    if (name_ == "L.L" || name_ == "L.S" ||
+        name_ == "CoMNumberOp" || name_ == "Kinetic")
+    {
+      if (SS != 0) flag = false;
+    }
+    
+    return flag;
+  }
+
+  bool TwoBodyOperator::U3selection(const u3::irrep& irr) const
+  {
+    bool flag = true;
+
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "CoMNumberOp")
+    {
+      if (irr != u3::irrep(0, 0, 0)) flag = false;
+    }
+    else if (name_ == "Kinetic")
+    {
+      if (irr != u3::irrep(0, 0, 0) &&
+          irr != u3::irrep(2, 0, 0) &&
+          irr != u3::irrep(2, 2, 0)) 
+        flag = false;
+    }
+    else if (known_potentials.count(name_))
+    {
+      if (irr.n13() % 2 != 0) flag = false;
+    }
+    
+    return flag;
+  }
+
+  bool TwoBodyOperator::U4selection(const u4::irrep& irr) const
+  {
+    bool flag = true;
+
+    if (name_ == "L.L" || name_ == "L.S" ||
+        name_ == "CoMNumberOp" || name_ == "Kinetic")
+    {
+      if (irr != u4::irrep(0, 0, 0, 0)) flag = false;
+    }
+    
+    return flag;
+  }
+
+  // Set strengths for U3xU4::MultiShellTensor_phys
+  void TwoBodyOperator::setTensorStrength(
+      U3xU4::MultiShellTensor_phys& tensor,
+      const std::vector<std::vector<int>>& inverse,
+      const std::vector<int>& phase, sam::Databases& dbs) const
+  {
+    std::vector<std::tuple<uint8_t,              // kappamax
+                           HO::qn_t,             // LL
+                           uint8_t,              // zetamax
+                           HO::qn_t,             // SS
+                           HO::qn_t,             // TT
+                           std::vector<double>>> LLSSTTstrengths;
+
+    // decompose into L
+    u3::physicalvectors pv3s = u3::physicalBasis(tensor.getLastIrrep().u3());
+
+    // decompose into 2S and 2T
+    u4::physicalvectors pv4s = u4::physicalBasis(tensor.getLastIrrep().u4());
+
+    for (const auto& pv3 : pv3s)
+    {
+      int kappa0 = pv3.kappa(), LL0 = 2 * pv3.L();
+
+      if (LLselection(LL0) == false) continue;
+
+      for (const auto& pv4 : pv4s)
+      {
+        int zeta0 = pv4.zeta(), SS0 = pv4.SS(), TT0 = pv4.TT();
+
+        if (SSselection(SS0) == false) continue;
+
+        // if the operator has definite isospin assignment
+        if (TT() >= 0 && TT() != TT0) continue;
+
+        // couple LL and SS to JJ
+        // if (JJ() < std::fabs(LL0 - SS0) || JJ() > (LL0 + SS0)) continue;
+        if (u2::mult(LL0, SS0, JJ()) == 0) continue;
+
+        std::vector<double> strengths(tensor.alphamax() * kappa0 * zeta0, 0.0);
+
+        auto [coeffsArr, opsArr] = tensor.expand(LL0, SS0, TT0, dbs);
+
+        for (size_t i = 0; i < coeffsArr.size(); i++)
+        {
+          assert(opsArr[i].size() == 4);
+
+          std::array<int, 4> ns, lls, jjs, mmjs, mmts;
+
+          int j = 0;
+          for (const auto& op : opsArr[i])
+          {
+            std::visit([&](auto&& o)
+            {
+              std::tie(ns[j], lls[j], jjs[j], mmjs[j], mmts[j]) = o.getLabels();
+            }, op);
+            j++;
+          }
+
+          double me = 0.0;
+
+          for (int k = 0; k < inverse.size(); k++)
+          {
+            std::array<int, 4> ns_orig = inverse_permutation(ns, inverse[k]),
+                               lls_orig = inverse_permutation(lls, inverse[k]),
+                               jjs_orig = inverse_permutation(jjs, inverse[k]),
+                               mmjs_orig = inverse_permutation(mmjs, inverse[k]),
+                               mmts_orig = inverse_permutation(mmts, inverse[k]);
+
+            // me needs computing with normal ordering
+            me += phase[k] * sphericalME_AS(ns_orig[0], lls_orig[0], jjs_orig[0],
+                                        mmjs_orig[0], mmts_orig[0], ns_orig[1],
+                                        lls_orig[1], jjs_orig[1], mmjs_orig[1],
+                                        mmts_orig[1], ns_orig[3], lls_orig[3],
+                                        jjs_orig[3], mmjs_orig[3], mmts_orig[3],
+                                        ns_orig[2], lls_orig[2], jjs_orig[2],
+                                        mmjs_orig[2], mmts_orig[2], dbs);
+          }
+
+          if (std::fabs(me) < 1e-10) continue;
+
+          for (int c = 0; c < strengths.size(); c++)
+            strengths[c] += me * coeffsArr[i][c];
+        }
+
+        double norm = 0.0;
+        for (auto& s : strengths)
+        {
+          if (std::fabs(s) < 1e-10)
+          {
+            s = 0.0;
+            continue;
+          }
+          norm += std::fabs(s);
+        }
+
+        if (std::fabs(norm) > 1e-8)
+          LLSSTTstrengths.emplace_back(kappa0, LL0, zeta0, SS0, TT0, strengths);
+      }
+    }
+
+    tensor.setLLSSTTstrengths(LLSSTTstrengths);
+  }
+
 #define RESTRICT_WITH_NMAX
 #define RESTRICT_JJ
-  std::vector<U3xU4::TwoBodyMultiShellTensor>
-  TwoBodyOperator::expand(sam::Databases& dbs)
+  U3xU4::TwoBodyMultiShellTensors 
+    TwoBodyOperator::expand_old(sam::Databases& dbs)
   {
-    /*
-    auto& cgcs = dbs.cgcs;
-    auto& racah = dbs.racah;
-    auto& racah9 = dbs.racah9;
-    auto& wigU3SO3db = dbs.wigU3SO3db;
-    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
-    */
-
     if (on_the_fly == false)
       TBME->read();
 
-    std::vector<U3xU4::TwoBodyMultiShellTensor> tensors;
+    U3xU4::TwoBodyMultiShellTensors tensors;
 
 #ifdef RESTRICT_WITH_NMAX
     auto [all_na_nb_nc_nd, all_inverse, all_phase] =
-        GenerateAllCombinationsHOShells(Nmax, valenceShell, maxShell);
+        GenerateAllCombinationsHOShells(Nmax_, valenceShell_, maxShell_);
 #else
-    auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell);
+    auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
 #endif
 
-    for (int i = 0; i < all_na_nb_nc_nd.size(); i++)
+    for (size_t i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
 /*      
       for (auto sorted_n : all_na_nb_nc_nd[i])
@@ -549,48 +704,44 @@ namespace JT
 
       // auto groups_ns = group_same_shell(sorted_ns);
       auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
-      std::vector<std::vector<U3xU4::SingleShellTensor>> Tadat_lists;
-      for (auto group : groups_ns)
+      std::vector<U3xU4::SingleShellTensors> Gammas_lists;
+      for (const auto& g : groups_ns)
       {
-        Tadat_lists.push_back(U3xU4::GenerateSingleShellTensors(
-            std::get<0>(group), std::get<1>(group), std::get<2>(group)));
+        auto Gammas = U3xU4::GenerateSingleShellTensors(
+            std::get<0>(g), std::get<1>(g), std::get<2>(g));
+        Gammas_lists.push_back(std::move(Gammas));
       }
 
       std::vector<U3xU4::CouplingPath> all_results;
-      U3xU4::CoupleSingShellTensors(Tadat_lists, 0, {}, {}, {}, {},
-                                    all_results);
+      U3xU4::GenerateMultiShellTensors(
+        Gammas_lists, 0, {}, {}, {}, {}, all_results);
 
-      for (const auto& [Tadat_choices, coupling_info_list] : all_results)
+      for (const auto& [Gammas, Omegas] : all_results)
       {
         
-        if (Tadat_choices.size() > 1)
+        if (Gammas.size() > 1)
         {
-          for (const auto& tadat : Tadat_choices)
+          for (const auto& Gamma : Gammas)
           {
-            // std::cout << tadat << "\t";
+            // std::cout << Gamma << "\t";
 
             // Assert that if there are more than 1 single-shell tensor,
             // they must be all free of multiplicity.
-            assert(tadat.rho0max() == 1 && tadat.eta0max() == 1);
+            assert(Gamma.rho0max() == 1 && Gamma.eta0max() == 1);
           }
           //std::cout << std::endl;
         }
 
-        std::vector<U3xU4::irrep> coupled_irreps;
+        U3xU4::irreps coupled_irreps;
         int Rhomax, Etamax;
-        for (auto coupling_info = coupling_info_list.begin(); 
-             coupling_info != coupling_info_list.end(); coupling_info++)
+        for (const auto& Omega : Omegas)
         {
-          U3xU4::irrep irr(coupling_info->u3(), coupling_info->u4());
-          auto rhomax = coupling_info->rhomax(), etamax = coupling_info->etamax();
-          //const auto& [irr, rhomax, etamax] = *coupling_info;
-
-          // std::cout << irr << "," << rhomax << "," << etamax << "\t";
-
-          // Assert that the intershell coupling is free of multiplicity,
-          // except for the last one.
-          if (std::next(coupling_info) != coupling_info_list.end()) 
-            assert(rhomax == 1 && etamax == 1);
+          //U3xU4::irrep irr(Omega.u3(), Omega.u4());
+          auto irr = Omega.u3u4();
+          auto rhomax = Omega.rhomax(); 
+          auto etamax = Omega.etamax();
+          
+          // std::cout << Omega << "\t";
           
           coupled_irreps.push_back(irr);
           Rhomax = rhomax;
@@ -599,46 +750,42 @@ namespace JT
         // std::cout << std::endl;
 
         // decompose into L
-        std::vector<u3::physicalvector> pv3s;
+        u3::physicalvectors pv3s;
         // decompose into 2S and 2T
-        std::vector<u4::physicalvector> pv4s;
+        u4::physicalvectors pv4s;
 
-        if (coupled_irreps.empty()) // Tadat_choices has one element only
+        if (coupled_irreps.empty()) // Gammas has one element only
         {
-          pv3s = u3::physicalBasis(Tadat_choices[0].T().u3());
-          pv4s = u4::physicalBasis(Tadat_choices[0].T().u4());
+          pv3s = std::move(u3::physicalBasis(Gammas[0].u3()));
+          pv4s = std::move(u4::physicalBasis(Gammas[0].u4()));
         }
         else
         {
-          pv3s = u3::physicalBasis(coupled_irreps.back().u3());
-          pv4s = u4::physicalBasis(coupled_irreps.back().u4());
+          pv3s = std::move(u3::physicalBasis(coupled_irreps.back().u3()));
+          pv4s = std::move(u4::physicalBasis(coupled_irreps.back().u4()));
         }
 
-        for (int pv3 = 0; pv3 < pv3s.size(); pv3++)
+        for (const auto& pv3 : pv3s)
         {
-          int kappa0 = pv3s[pv3].kappa, LL0 = 2 * pv3s[pv3].L;
+          int kappa0 = pv3.kappa(), LL0 = 2 * pv3.L();
 
-          for (int pv4 = 0; pv4 < pv4s.size(); pv4++)
+          for (const auto& pv4 : pv4s)
           {
-            int zeta0 = pv4s[pv4].zeta, SS0 = pv4s[pv4].SS, TT0 = pv4s[pv4].TT;
+            int zeta0 = pv4.zeta(), SS0 = pv4.SS(), TT0 = pv4.TT();
 
             // if the operator has definite isospin assignment
-            if (TT >= 0 && TT != TT0)
-              continue;
-
+            if (TT() >= 0 && TT() != TT0) continue;
 
 #ifdef RESTRICT_JJ
             // couple LL and SS to JJ
-            if (JJ < std::fabs(LL0 - SS0) || JJ > (LL0 + SS0))
+            if (JJ() < std::fabs(LL0 - SS0) || JJ() > (LL0 + SS0))
               continue;
 
-            // no coupled irrep, it collapses into a single-shell tensor
-            // otherwise, it remains a multi-shell tensor
             U3xU4::TwoBodyMultiShellTensor tensor(
-              Tadat_choices, coupled_irreps, 
-              coupled_irreps.empty() ? Tadat_choices[0].rho0max() : Rhomax,
-              coupled_irreps.empty() ? Tadat_choices[0].eta0max() : Etamax, 
-              kappa0, LL0, zeta0, SS0, TT0, MMT, JJ, MMJ, {}, labels);
+              Gammas, coupled_irreps, 
+              coupled_irreps.empty() ? Gammas[0].rho0max() : Rhomax,
+              coupled_irreps.empty() ? Gammas[0].eta0max() : Etamax, 
+              kappa0, LL0, zeta0, SS0, TT0, MMT_, JJ_, MMJ_, {}, labels_);
 
             bool ignore =
                 setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
@@ -648,18 +795,16 @@ namespace JT
             if (ignore == false)
             {
               // std::cout << tensor << std::endl;
-              tensors.push_back(tensor);
+              tensors.push_back(std::move(tensor));
             }
 #else
-            for (int JJ0 = std::fabs(LL0 - SS0); JJ0 <= LL0 + SS0; JJ0 += 2)
+            for (int JJ0 = abs(LL0 - SS0); JJ0 <= LL0 + SS0; JJ0 += 2)
             {
-              // no coupled irrep, it collapses into a single-shell tensor
-              // otherwise, it remains a multi-shell tensor
               U3xU4::TwoBodyMultiShellTensor tensor(
-                Tadat_choices, coupled_irreps, 
-                coupled_irreps.empty() ? Tadat_choices[0].rho0max() : Rhomax,
-                coupled_irreps.empty() ? Tadat_choices[0].eta0max() : Etamax, 
-                kappa0, LL0, zeta0, SS0, TT0, MMT, JJ0, MMJ, {}, labels);
+                Gammas, coupled_irreps, 
+                coupled_irreps.empty() ? Gammas[0].rho0max() : Rhomax,
+                coupled_irreps.empty() ? Gammas[0].eta0max() : Etamax, 
+                kappa0, LL0, zeta0, SS0, TT0, MMT_, JJ0, MMJ_, {}, labels_);
 
               bool ignore =
                 setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
@@ -669,7 +814,7 @@ namespace JT
               if (ignore == false)
               {
                 // std::cout << tensor << std::endl;
-                tensors.push_back(tensor);
+                tensors.push_back(std::move(tensor));
               }
             }
 #endif
@@ -681,204 +826,270 @@ namespace JT
     return tensors;
   }
 
-  // Write to binary file
-  void TwoBodyOperator::writeBinary(sam::Databases& dbs)
+  U3xU4::MultiShellTensors_phys 
+    TwoBodyOperator::expand_new(sam::Databases& dbs)
   {
-    if (valenceShell > 0)
-      throw std::runtime_error("Set valenceShell to 0 for reusability");
+    if (on_the_fly == false)
+      TBME->read();
 
-    auto tensors = expand(dbs);
+    U3xU4::MultiShellTensors_phys tensors;
 
+#ifdef RESTRICT_WITH_NMAX
+    auto [all_na_nb_nc_nd, all_inverse, all_phase] =
+        GenerateAllCombinationsHOShells(Nmax_, valenceShell_, maxShell_);
+#else
+    auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
+#endif
+
+    for (size_t i = 0; i < all_na_nb_nc_nd.size(); i++)
+    {
+      // auto groups_ns = group_same_shell(sorted_ns);
+      auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
+      std::vector<U3xU4::SingleShellTensors> Gammas_lists;
+      for (const auto& g : groups_ns)
+      {
+        auto Gammas = U3xU4::GenerateSingleShellTensors(
+            std::get<0>(g), std::get<1>(g), std::get<2>(g));
+        Gammas_lists.push_back(std::move(Gammas));
+      }
+
+      std::vector<U3xU4::CouplingPath> all_results;
+      U3xU4::GenerateMultiShellTensors(
+        Gammas_lists, 0, {}, {}, {}, {}, all_results);
+
+      for (const auto& [Gammas, Omegas] : all_results)
+      {
+        U3xU4::MultiShellTensor_phys tensor(Gammas, Omegas, 
+                                            MMT_, JJ_, MMJ_, labels_);
+
+        if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
+        if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
+
+        setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
+
+        if (!tensor.LLSSTTstrengths().empty())
+          tensors.push_back(std::move(tensor));
+      }
+    }
+
+    return tensors;
+  }
+
+  U3xU4::MultiShellTensors_phys 
+    TwoBodyOperator::expand(sam::Databases& dbs)
+  {
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
       throw std::runtime_error("Environment variable SAM_DIR not set");
 
-    std::string base_dir = std::string(sam_dir) + "/data/TwoBodyTensorExpansion";
+    std::string base_dir = std::string(sam_dir) + "/data/TwoBodyOperatorExpansion";
     std::filesystem::create_directories(base_dir);
 
-    std::string filename = base_dir + "/" + name 
-                         + "_hw" + std::to_string(static_cast<int>(hw))
-                         + "_Nmax" + std::to_string(static_cast<int>(Nmax));
+    std::string filename = base_dir + "/" + name_ 
+                         + "_hw" + std::to_string(static_cast<int>(hw_));
+
+    // if this file exists, returns immediately
+    if (std::filesystem::exists(filename))
+    {
+      return readBinary(filename, dbs);
+    }
+    else
+    {
+      auto tensors = expand_new(dbs);
+      writeBinary(filename, tensors);
+      return tensors;
+    }
+  }
+
+  // Write to binary file
+  void TwoBodyOperator::writeBinary(const std::string& filename, 
+                     const U3xU4::MultiShellTensors_phys& tensors) const
+  {
+    std::cout << "Start writing " << name_ << " to binary file" << std::endl;
+
+    if (valenceShell_ > 0)
+      throw std::runtime_error("Set valenceShell to 0 for reusability");
+
+    if (Nmax_ != maxShell_)
+      throw std::runtime_error("Set Nmax and maxShell equal");
+
     std::ofstream s(filename,std::ios::binary);
     if (!s)
       throw std::runtime_error("Failed to open file for writing: " + filename);
 
-    // Write metadata
-    // Angular momentum and isospin
-    s.write(reinterpret_cast<const char*>(&JJ), sizeof(int8_t));
-    s.write(reinterpret_cast<const char*>(&MMJ), sizeof(int8_t));
-    s.write(reinterpret_cast<const char*>(&TT), sizeof(int8_t));
-    s.write(reinterpret_cast<const char*>(&MMT), sizeof(int8_t));
-
-    // Parity
-    s.write(reinterpret_cast<const char*>(&parity), sizeof(bool));
-
-    // Configuration parameters
-    s.write(reinterpret_cast<const char*>(&hw), sizeof(int8_t));
-    s.write(reinterpret_cast<const char*>(&Nmax), sizeof(int8_t));
-    s.write(reinterpret_cast<const char*>(&valenceShell), sizeof(int8_t));
-    s.write(reinterpret_cast<const char*>(&maxShell), sizeof(int8_t));
+    qcx_utils::writeBinary(s, maxShell_);
 
     // Number of tensors
-    size_t num_tensors = tensors.size();
-    s.write(reinterpret_cast<const char*>(&num_tensors), sizeof(num_tensors));
+    size_t n_tensors = tensors.size();
+    qcx_utils::writeBinary(s, n_tensors);
 
-    for (auto tensor : tensors)
-      tensor.writeBinary(s);
+    for (const auto& tensor : tensors) tensor.writeBinary(s);
+
+    std::cout << "Finish writing to binary file" << std::endl;
   }
 
   // Read from binary file
-  std::vector<U3xU4::TwoBodyMultiShellTensor> TwoBodyOperator::readBinary()
+  U3xU4::MultiShellTensors_phys TwoBodyOperator::readBinary(
+    const std::string& filename, sam::Databases& dbs)
+  {
+    std::ifstream s(filename, std::ios::binary);
+    if (!s)
+      throw std::runtime_error("Failed to open file for reading: " + filename);
+
+    HO::qn_t maxShell;
+    qcx_utils::readBinary(s, maxShell);
+
+    std::cout << "Start reading " << name_ 
+              << " from binary file with capacity maxShell = " 
+              << static_cast<int>(maxShell) << std::endl;
+    
+    if (maxShell_ - 2 * valenceShell_ > maxShell /* Nmax */)
+    {
+      std::cout << "File doesn't reach your Nmax, so it will be expanded now"
+                << std::endl;
+      valenceShell_ = 0;
+      Nmax_ = maxShell_;
+
+      auto tensors = expand_new(dbs);
+      writeBinary(filename, tensors);
+      return tensors;
+    }
+
+    // Read number of tensors
+    size_t n_tensors;
+    qcx_utils::readBinary(s, n_tensors);
+
+    U3xU4::MultiShellTensors_phys tensors;
+    tensors.reserve(n_tensors);
+
+    for (size_t i = 0; i < n_tensors; ++i)
+    { 
+      U3xU4::MultiShellTensor_phys tensor(labels_);
+      tensor.readBinary(s);
+
+      int ab_Nhw = 0, cd_Nhw = 0, ads = 0, ats = 0;
+      for (const auto& G : tensor.Gammas())
+      {
+        ab_Nhw += ((G.shell() - valenceShell_) * G.num_ads());
+        cd_Nhw += ((G.shell() - valenceShell_) * G.num_ats());
+
+        ads += G.num_ads();
+        ats += G.num_ats();
+      }
+      if (ab_Nhw > Nmax_ || cd_Nhw > Nmax_) continue;
+
+      assert(ads == 2);
+      assert(ats == 2);
+
+      tensors.push_back(std::move(tensor));
+    }
+
+    std::cout << "Finish reading from binary file" << std::endl;
+
+    return tensors;
+  }
+
+  // Matrix representation
+  Eigen::SparseMatrix<double> TwoBodyOperator::matrix(
+    const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs)
+  {
+    auto tensors = expand(dbs);
+    return U3xU4::MatrixElements(tensors, basis, dbs);
+  }
+  Eigen::SparseMatrix<double> TwoBodyOperator::matrix(
+    const U3xU4::ManyNucleonBasis& bras, 
+    const U3xU4::ManyNucleonBasis& kets, sam::Databases& dbs)
+  {
+    auto tensors = expand(dbs);
+    return U3xU4::MatrixElements(tensors, bras, kets, dbs);
+  }
+
+  // Tensor Analyzers
+  static std::string analysis_dir()
   {
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
       throw std::runtime_error("Environment variable SAM_DIR not set");
 
-    std::string base_dir = std::string(sam_dir) + "/data/TwoBodyTensorExpansion";
+    std::string base_dir = std::string(sam_dir) 
+                         + "/data/TwoBodyOperatorExpansion/Analysis";
     std::filesystem::create_directories(base_dir);
-
-    std::string filename = base_dir + "/" + name 
-                         + "_hw" + std::to_string(static_cast<int>(hw));
-
-    // this is subject to change later
-    if (name == "N2LO_opt_srg2.0" || name == "N2LO_opt_srg1.0" || 
-        name == "Kinetic" || name == "N2LO_opt_bare"
-        || name == "N3LO_EMN500_bare" || name == "N4LO_EMN500_bare") 
-      filename += "_Nmax6";
-
-    if (name == "CoMNumberOp" )
-      filename += "_Nmax4";
-
-    std::ifstream s(filename, std::ios::binary);
-    if (!s)
-      throw std::runtime_error("Failed to open file for reading: " + filename);
-
-    // Angular momentum and isospin
-    int8_t JJ_, MMJ_, TT_, MMT_;
-    s.read(reinterpret_cast<char*>(&JJ_), sizeof(int8_t));
-    s.read(reinterpret_cast<char*>(&MMJ_), sizeof(int8_t));
-    if (JJ_ != JJ || MMJ_ != MMJ)
-      throw std::runtime_error("Angular momentum incorrect");
-    s.read(reinterpret_cast<char*>(&TT_), sizeof(int8_t));
-    s.read(reinterpret_cast<char*>(&MMT_), sizeof(int8_t));
-    if (TT_ != TT || MMT_ != MMT)
-      throw std::runtime_error("Isospin incorrect");
-
-    // Parity
-    bool parity_;
-    s.read(reinterpret_cast<char*>(&parity_), sizeof(bool));
-    if (parity_ != parity)
-      throw std::runtime_error("Parity incorrect");
-
-    // Configuration parameters
-    int8_t hw_, Nmax_, valenceShell_, maxShell_;
-    s.read(reinterpret_cast<char*>(&hw_), sizeof(int8_t));
-    if (hw_ != hw)
-      throw std::runtime_error("hw incorrect");
-    s.read(reinterpret_cast<char*>(&Nmax_), sizeof(int8_t));
-    if (Nmax_ < Nmax)
-      throw std::runtime_error("File doesn't reach your Nmax");
-    s.read(reinterpret_cast<char*>(&valenceShell_), sizeof(int8_t));
-    if (valenceShell_ > 0)
-      throw std::runtime_error("File doesn't start from the s-shell");
-    s.read(reinterpret_cast<char*>(&maxShell_), sizeof(int8_t));
-    if (maxShell_ < maxShell)
-      throw std::runtime_error("File doesn't reach your model space");
-
-    // Check if there are all possible tensors
-    //if (2 * valenceShell )
-
-    // Read number of tensors
-    size_t num_tensors;
-    s.read(reinterpret_cast<char*>(&num_tensors), sizeof(num_tensors));
-
-    std::vector<U3xU4::TwoBodyMultiShellTensor> tensors;
-    tensors.clear();
-    tensors.reserve(num_tensors);
-
-    for (size_t i = 0; i < num_tensors; ++i)
-    { 
-      U3xU4::TwoBodyMultiShellTensor tensor(labels);
-      tensor.readBinary(s);
-
-      if (tensor.single_shell_tensors.back().shell() > maxShell)
-        continue;
-
-      int ab_Nhw = 0, cd_Nhw = 0, ads = 0, ats = 0;
-      for (const auto& Tadat : tensor.single_shell_tensors)
-      {
-        ab_Nhw += ((Tadat.shell() - valenceShell) * Tadat.ads);
-        cd_Nhw += ((Tadat.shell() - valenceShell) * Tadat.ats);
-
-        ads += Tadat.ads;
-        ats += Tadat.ats;
-      }
-      if (ab_Nhw > Nmax || cd_Nhw > Nmax)
-        continue;
-
-      assert(ads == 2);
-      assert(ats == 2);
-
-      tensors.push_back(tensor);
-    }
-    return tensors;
+    return base_dir;
   }
 
-  Eigen::SparseMatrix<double> TwoBodyOperator::matrix(
-    U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs)
+  std::vector<std::pair<u3::irrep, sam::strength_stats>>
+    TwoBodyOperator::U3_tensor_analyzer_write(sam::Databases& dbs)
   {
-    // expand now
-    // auto tensors = expand(dbs);
+    std::string filename = analysis_dir() + "/" + name_ 
+                         + "_hw" + std::to_string(static_cast<int>(hw_))
+                         + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
+                         + "_U3.dat";
 
-    // write to binary, valenceShell must be 0 for future reuse
-    // writeBinary(dbs);
-
-    // read from binary
-    auto tensors = readBinary();
-    //std::cout << "Expand successfully" << std::endl;
-
-    std::vector<U3xU4::MultiShellTensor_phys> tensors_new;
-    // std::cout << "Start converting to MultiShellTensor_phys" << std::endl;
-    for (auto tensor : tensors)
-    {
-      std::vector<U3xU4::SingleShellTensor> 
-              Gamma = tensor.single_shell_tensors;
-      std::vector<U3xU4::OmegaElement> Omega;
-      if (!tensor.coupled_irreps.empty())
-      {
-        for (size_t irr_id = 0; 
-             irr_id < tensor.coupled_irreps.size() - 1; irr_id++)
-          Omega.push_back({1,tensor.coupled_irreps[irr_id].u3(),
-                           1,tensor.coupled_irreps[irr_id].u4()});
-        Omega.push_back({tensor.rhomax,tensor.coupled_irreps.back().u3(),
-                         tensor.etamax,tensor.coupled_irreps.back().u4()});
-      }
-
-      U3xU4::MultiShellTensor T(Gamma,Omega);
-/*      
-      U3xU4::MultiShellTensor_phys T_phys(T,
-        {{static_cast<unsigned short>(tensor.kappamax),
-          static_cast<unsigned short>(tensor.LL),
-          static_cast<unsigned short>(tensor.zetamax),
-          static_cast<unsigned short>(tensor.SS)}},
-          {tensor.coeffs},tensor.TT,tensor.MMT,tensor.JJ,tensor.MMJ);
-*/
-
-      U3xU4::MultiShellTensor_phys T_phys(T,
-        {{static_cast<unsigned short>(tensor.kappamax),
-          static_cast<unsigned short>(tensor.LL),
-          static_cast<unsigned short>(tensor.zetamax),
-          static_cast<unsigned short>(tensor.SS),
-          static_cast<unsigned short>(tensor.TT)}},
-          {tensor.coeffs},tensor.MMT,tensor.JJ,tensor.MMJ);
-
-      // std::cout << T_phys << std::endl;
-
-      tensors_new.push_back(T_phys);  
-    }
-    // std::cout << "Finish converting to MultiShellTensor_phys" << std::endl;
-
-    return U3xU4::MatrixElements(tensors_new,basis,dbs);
+    auto tensors = expand(dbs);
+    return sam::U3_tensor_analyzer(tensors, filename);
+  }
+  
+  std::vector<std::pair<u3::irrep, sam::strength_stats>>
+    TwoBodyOperator::U3_tensor_analyzer(sam::Databases& dbs)
+  {
+    auto tensors = expand(dbs);
+    return sam::U3_tensor_analyzer(tensors);
   }
 
+  std::vector<std::pair<u4::irrep, sam::strength_stats>>
+    TwoBodyOperator::U4_tensor_analyzer_write(sam::Databases& dbs)
+  {
+    std::string filename = analysis_dir() + "/" + name_ 
+                         + "_hw" + std::to_string(static_cast<int>(hw_))
+                         + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
+                         + "_U4.dat";
+
+    auto tensors = expand(dbs);
+    return sam::U4_tensor_analyzer(tensors, filename);
+  }
+  
+  std::vector<std::pair<u4::irrep, sam::strength_stats>>
+    TwoBodyOperator::U4_tensor_analyzer(sam::Databases& dbs)
+  {
+    auto tensors = expand(dbs);
+    return sam::U4_tensor_analyzer(tensors);
+  }
+
+  std::vector<std::pair<int, sam::strength_stats>>
+    TwoBodyOperator::LL_tensor_analyzer_write(sam::Databases& dbs)
+  {
+    std::string filename = analysis_dir() + "/" + name_ 
+                         + "_hw" + std::to_string(static_cast<int>(hw_))
+                         + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
+                         + "_LL.dat";
+
+    auto tensors = expand(dbs);
+    return sam::LL_tensor_analyzer(tensors, filename);
+  }
+
+  std::vector<std::pair<int, sam::strength_stats>>
+    TwoBodyOperator::LL_tensor_analyzer(sam::Databases& dbs)
+  {
+    auto tensors = expand(dbs);
+    return sam::LL_tensor_analyzer(tensors);
+  }
+
+  std::vector<std::pair<int, sam::strength_stats>>
+    TwoBodyOperator::SS_tensor_analyzer_write(sam::Databases& dbs)
+  {
+    std::string filename = analysis_dir() + "/" + name_ 
+                         + "_hw" + std::to_string(static_cast<int>(hw_))
+                         + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
+                         + "_SS.dat";
+
+    auto tensors = expand(dbs);
+    return sam::SS_tensor_analyzer(tensors, filename);
+  }
+
+  std::vector<std::pair<int, sam::strength_stats>>
+    TwoBodyOperator::SS_tensor_analyzer(sam::Databases& dbs)
+  {
+    auto tensors = expand(dbs);
+    return sam::SS_tensor_analyzer(tensors);
+  }
 } // namespace JT

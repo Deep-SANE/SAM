@@ -8,6 +8,8 @@
 
 #include <Databases.h>
 #include <HOutilities.h>
+#include <TensorAnalyzer.h>
+#include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4MultiShellTensors.h>
 
 namespace JT
@@ -15,39 +17,50 @@ namespace JT
   class TwoBodyOperator
   {
   private:
-    int8_t JJ, MMJ, // twice angular momentum and projection
-        TT, MMT;    // twice isospin and projection
+    const HO::Table_nljmjmt& labels_;
 
-    bool parity; // parity, true = +1, false = -1
+    HO::qn_t JJ_, MMJ_, TT_, MMT_, parity_,
+             hw_, Nmax_, valenceShell_, maxShell_;
+    // Note that nuclear potentials mix isospin, thus we assign TT = -1
 
-    std::string name;
-    int8_t hw, Nmax, valenceShell, maxShell;
-    bool on_the_fly = true;
+    std::string name_;
 
-    std::optional<HO::TBME_scalar> TBME; // only read input file during
+    bool on_the_fly;
+
+    std::optional<HO::TwBME_scalar> TBME; // only read input file during
                                          // expand() or writeBinary()
-    const HO::Table_nljmjmt& labels;
+
+    const std::unordered_set<std::string> known_scalar_ops = {
+                        "L.L", "L.S", "CoMNumberOp", "Kinetic", "R.R"};
+
+    const std::unordered_set<std::string> known_potentials = {
+        "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
+        "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
+        "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
+        "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
+        "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
+        "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
+        "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
+        "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"};
 
   public:
     // Constructor
-    TwoBodyOperator(const std::string& name_, const HO::Table_nljmjmt& labels_,
-                    int hw_, int Nmax_, int valenceShell_,
-                    int maxShell_);
+    TwoBodyOperator(const std::string& name, int hw, int Nmax, 
+      int valenceShell, int maxShell, const HO::Table_nljmjmt& labels);
 
+    // Getters
+    int JJ() const { return static_cast<int>(JJ_); }
+    int MMJ() const { return static_cast<int>(MMJ_); }
+    int TT() const { return static_cast<int>(TT_); }
+    int MMT() const { return static_cast<int>(MMT_); }
+    int parity() const { return static_cast<int>(parity_); }
+
+    // Print
     void is() const;
-    void GetJJ() const
-    {
-      std::cout << "2J=" << JJ << ", 2MJ=" << MMJ << std::endl;
-    }
-    void GetTT() const
-    {
-      std::cout << "2T=" << TT << ", 2MT=" << MMT << std::endl;
-    }
-    void GetParity() const
-    {
-      std::cout << "P=" << ((parity == true) ? 1 : -1) << std::endl;
-    }
+    friend std::ostream& operator<<(std::ostream& s,
+                                    const TwoBodyOperator& x);
 
+  private:
     // ME: / na lla jja mmja mmta | O | nc llc jjc mmjc mmtc \
     // 	   \ nb llb jjb mmjb mmtb |	  | nd lld jjb mmjd mmtd /
     double sphericalME(int na, int lla, int jja, int mmja, int mmta, int nb,
@@ -80,27 +93,7 @@ namespace JT
     // methods only return permuted combinations together with their phases
     // and arrays for the purpose of inverting the permutations.
 
-    // Set coefficients for two-body multi-shell tensor.
-    // It returns a flag, which indicate whether this tensor can be ignored.
-    bool setTensorStrength(U3xU4::TwoBodyMultiShellTensor& tensor,
-                           const std::vector<std::vector<int>>& inverse,
-                           const std::vector<int>& phase,
-                           sam::Databases& dbs) const;
 
-    // Expand into a sum of multi-shell two-body tensors
-    std::vector<U3xU4::TwoBodyMultiShellTensor> expand(sam::Databases& dbs);
-
-    // Write to binary file
-    void writeBinary(sam::Databases& db);
-
-    // Read from binary file
-    std::vector<U3xU4::TwoBodyMultiShellTensor> readBinary();
-
-    // Matrix representation
-    Eigen::SparseMatrix<double>
-    matrix(U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
-
-  private:
     // Perform permutation of tensor in increasing shell.
     // For tensors of the same shell, ad's are in the front of at's.
     // Exchange of 2 tensors always incurs a phase of -1.0.
@@ -120,6 +113,71 @@ namespace JT
     // thrid: number of at's
     std::vector<std::array<int, 3>>
     group_same_shell(const std::array<int, 4>& sorted) const;
+
+    // Set strengths for U3xU4::TwoBodyMultiShellTensor
+    // It returns a flag, which indicate whether this tensor can be ignored.
+    bool setTensorStrength(U3xU4::TwoBodyMultiShellTensor& tensor,
+                           const std::vector<std::vector<int>>& inverse,
+                           const std::vector<int>& phase,
+                           sam::Databases& dbs) const;
+
+    // Set strengths for U3xU4::MultiShellTensor_phys
+    void setTensorStrength(U3xU4::MultiShellTensor_phys& tensor,
+                           const std::vector<std::vector<int>>& inverse,
+                           const std::vector<int>& phase,
+                           sam::Databases& dbs) const;
+
+    // selection rule
+    bool LLselection(const int& LL) const;
+    bool SSselection(const int& SS) const;
+    bool U3selection(const u3::irrep& irr) const;
+    bool U4selection(const u4::irrep& irr) const;
+
+  public:
+    // Expand into a sum of U3xU4::TwoBodyMultiShellTensors
+    U3xU4::TwoBodyMultiShellTensors expand_old(sam::Databases& dbs);
+
+    // expand into a sum of U3xU4::MultiShellTensor_phys
+    U3xU4::MultiShellTensors_phys expand_new(sam::Databases& dbs);
+    U3xU4::MultiShellTensors_phys expand(sam::Databases& dbs);
+
+    // Write to binary file
+    void writeBinary(const std::string& filename, 
+                     const U3xU4::MultiShellTensors_phys& tensors) const;
+
+    // Read from binary file
+    U3xU4::MultiShellTensors_phys readBinary(
+      const std::string& filename, sam::Databases& dbs);
+
+    // Matrix representation
+    // symmetric
+    Eigen::SparseMatrix<double>
+    matrix(const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
+    // rectangular
+    Eigen::SparseMatrix<double>
+    matrix(const U3xU4::ManyNucleonBasis& bras, 
+           const U3xU4::ManyNucleonBasis& kets, sam::Databases& dbs);
+
+    // Tensor Analyzers
+    std::vector<std::pair<u3::irrep, sam::strength_stats>>
+      U3_tensor_analyzer_write(sam::Databases& dbs);
+    std::vector<std::pair<u3::irrep, sam::strength_stats>>
+      U3_tensor_analyzer(sam::Databases& dbs);
+
+    std::vector<std::pair<u4::irrep, sam::strength_stats>>
+      U4_tensor_analyzer_write(sam::Databases& dbs);
+    std::vector<std::pair<u4::irrep, sam::strength_stats>>
+      U4_tensor_analyzer(sam::Databases& dbs);
+
+    std::vector<std::pair<int, sam::strength_stats>>
+      LL_tensor_analyzer_write(sam::Databases& dbs);
+    std::vector<std::pair<int, sam::strength_stats>>
+      LL_tensor_analyzer(sam::Databases& dbs);
+
+    std::vector<std::pair<int, sam::strength_stats>>
+      SS_tensor_analyzer_write(sam::Databases& dbs);
+    std::vector<std::pair<int, sam::strength_stats>>
+      SS_tensor_analyzer(sam::Databases& dbs);
   };
 
 } // namespace JT
