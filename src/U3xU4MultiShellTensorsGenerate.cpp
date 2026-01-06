@@ -8,21 +8,21 @@ namespace U3xU4
   // tensors std::vector<OmegaElement>;  // list of all
   // coupled (irrep,rhomax,etamax)
 
-  void CoupleSingShellTensors(
-      const std::vector<std::vector<U3xU4::SingleShellTensor>>&
-          Tadat_lists,                          // list of lists of Tadat
-      std::size_t depth,                        // recursion depth
-      std::vector<U3xU4::SingleShellTensor> Tadat_choices,  // current choices
-      std::vector<U3xU4::irrep> coupled_irreps, // current coupled irreps
-      std::vector<int> rhomax_list,             // rhomax values
-      std::vector<int> etamax_list,             // etamax values
-      std::vector<CouplingPath>& all_results)   // final results
+  void GenerateMultiShellTensors(
+      const std::vector<U3xU4::SingleShellTensors>&
+                                        Tadat_lists,// list of lists of Tadat
+      size_t depth,                                 // recursion depth
+      U3xU4::SingleShellTensors Tadat_choices,      // current choices
+      U3xU4::irreps coupled_irreps,                 // current coupled irreps
+      std::vector<int> rhomax_list,                 // rhomax values
+      std::vector<int> etamax_list,                 // etamax values
+      std::vector<CouplingPath>& all_results)       // final results
   {
     // If we've chosen one Tadat from every list, we stop and store the path
     if (depth == Tadat_lists.size())
     {
-      std::vector<U3xU4::OmegaElement> coupling_data;
-      for (std::size_t i = 0; i < coupled_irreps.size(); ++i)
+      U3xU4::OmegaElements coupling_data;
+      for (size_t i = 0; i < coupled_irreps.size(); ++i)
         coupling_data.push_back(U3xU4::OmegaElement(
                       rhomax_list[i], coupled_irreps[i].u3(),
                       etamax_list[i], coupled_irreps[i].u4()));
@@ -38,8 +38,8 @@ namespace U3xU4
     if (Tadat_choices.empty())
     {
       for (const auto& Tadat : current_list)
-        CoupleSingShellTensors(Tadat_lists, depth + 1, {Tadat}, {}, {}, {},
-                               all_results);
+        GenerateMultiShellTensors(Tadat_lists, depth + 1, {Tadat}, {}, {}, {},
+                                  all_results);
     }
     else
     {
@@ -55,7 +55,7 @@ namespace U3xU4
         auto [new_irreps, rhomaxs, etamaxs] =
             U3xU4::decomposition(prev_irrep, Tadat.T());
 
-        for (std::size_t i = 0; i < new_irreps.size(); i++)
+        for (size_t i = 0; i < new_irreps.size(); i++)
         {
           auto new_Tadat_choices = Tadat_choices;
           auto new_coupled_irreps = coupled_irreps;
@@ -67,9 +67,9 @@ namespace U3xU4
           new_rhomax_list.push_back(prev_rhomax * rhomaxs[i]);
           new_etamax_list.push_back(prev_etamax * etamaxs[i]);
 
-          CoupleSingShellTensors(Tadat_lists, depth + 1, new_Tadat_choices,
-                                 new_coupled_irreps, new_rhomax_list,
-                                 new_etamax_list, all_results);
+          GenerateMultiShellTensors(Tadat_lists, depth + 1, new_Tadat_choices,
+                                    new_coupled_irreps, new_rhomax_list,
+                                    new_etamax_list, all_results);
         }
       }
     }

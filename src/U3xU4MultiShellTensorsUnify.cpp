@@ -14,10 +14,15 @@ namespace U3xU4
   std::optional<MultiShellTensor>
   unify_tensor(const MultiShellTensor& T, const ManyNucleonBasis::Irrep& irrep)
   {
+    // std::cout << "\nTensor before unifying: " << T << std::endl;
+
     // (1) setup:
 
-    const auto& Gamma = T.Gamma;
-    const auto& Omega = T.Omega;
+    const auto& Gamma = T.Gammas();
+    const auto& Omega = T.Omegas();
+
+    // std::cout << "Before unifying Gamma:" << std::endl;
+    // for (const auto& G : Gamma) std::cout << G << std::endl;
 
     assert(Omega.size() + 1 == Gamma.size());
 
@@ -40,8 +45,8 @@ namespace U3xU4
 
     // (3) setup continued:
 
-    std::vector<U3xU4::SingleShellTensor> oGamma;
-    std::vector<U3xU4::OmegaElement> oOmega;
+    U3xU4::SingleShellTensors oGamma;
+    U3xU4::OmegaElements oOmega;
 
     oGamma.reserve(gamma.size());
     oOmega.reserve(omega.size());
@@ -63,6 +68,10 @@ namespace U3xU4
       {
         // (1) there is a corresponding tensor Gamma element:
         oGamma.push_back(Gamma[i_Gamma]);
+
+        // std::cout << "Gamma[i_Gamma]: " << Gamma[i_Gamma] << std::endl;
+        // std::cout << "back of oGamma: " << oGamma.back() << std::endl;
+
         // added.push_back(false);
         i_Gamma++;
       }
@@ -77,6 +86,9 @@ namespace U3xU4
     }
 
     assert(oGamma.size() == gamma.size());
+
+    // std::cout << "After unifying Gamma:" << std::endl;
+    // for (const auto& G : oGamma) std::cout << G << std::endl;
 
     // (5) reconstruct tensor omega:
 

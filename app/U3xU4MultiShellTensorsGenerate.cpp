@@ -16,7 +16,7 @@ int main()
   }
 
   std::vector<U3xU4::CouplingPath> all_results;
-  U3xU4::CoupleSingShellTensors(Tadat_lists, 0, {}, {}, {}, {}, all_results);
+  U3xU4::GenerateMultiShellTensors(Tadat_lists, 0, {}, {}, {}, {}, all_results);
 
   for (const auto& [Tadat_choices, coupling_info_list] : all_results)
   {

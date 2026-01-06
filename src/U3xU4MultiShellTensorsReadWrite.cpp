@@ -1,131 +1,217 @@
 #include <iostream>
 
+#include <qcx_readwrite.h>
+
 #include <U3xU4MultiShellTensors.h>
 
 namespace U3xU4
 {
   std::ostream& operator<<(std::ostream& s, const OneBodyMultiShellTensor& x)
   {
-    s << "[ T" << x.a << " x T" << x.b << " ]" << x.t << "kappaMax"
-      << x.kappamax << "LL" << x.LL << "SS" << x.SS << "TT" << x.TT << "MMT"
-      << x.MMT << "JJ" << x.JJ << "MMJ" << x.MMJ;
-    for (auto coeff : x.coeffs)
-      s << "\t" << coeff;
+    s << "[ T" << x.a_ << " x T" << x.b_ << " ]" << x.t_ << "kappamax"
+      << x.kappamax() << " LL" << x.LL() << " SS" << x.SS() << " TT" << x.TT() 
+      << " MMT" << x.MMT() << " JJ" << x.JJ() << " MMJ" << x.MMJ();
+
+    for (auto coeff : x.coeffs_) s << "\t" << coeff;
+    
     return s;
+  }
+
+  void OneBodyMultiShellTensor::writeBinary(std::ostream& s) const
+  {
+    a_.writeBinary(s);
+    b_.writeBinary(s);
+    t_.writeBinary(s);
+    qcx_utils::writeBinary(s, kappamax_);
+    qcx_utils::writeBinary(s, LL_);
+    qcx_utils::writeBinary(s, SS_);
+    qcx_utils::writeBinary(s, TT_);
+    qcx_utils::writeBinary(s, MMT_);
+    qcx_utils::writeBinary(s, JJ_);
+    qcx_utils::writeBinary(s, MMJ_);
+    qcx_utils::writeBinary(s, coeffs_);
+  }
+
+  void OneBodyMultiShellTensor::readBinary(std::istream& s)
+  {
+    a_.readBinary(s);
+    b_.readBinary(s);
+    t_.readBinary(s);
+    qcx_utils::readBinary(s, kappamax_);
+    qcx_utils::readBinary(s, LL_);
+    qcx_utils::readBinary(s, SS_);
+    qcx_utils::readBinary(s, TT_);
+    qcx_utils::readBinary(s, MMT_);
+    qcx_utils::readBinary(s, JJ_);
+    qcx_utils::readBinary(s, MMJ_);
+    coeffs_.resize(static_cast<size_t>(kappamax_));
+    qcx_utils::readBinary(s, coeffs_);
   }
 
   std::ostream& operator<<(std::ostream& s, const TwoBodyMultiShellTensor& x)
   {
-    s << x.single_shell_tensors[0];
-    if (x.coupled_irreps.size() > 0)
-      for (int i = 0; i < x.coupled_irreps.size(); i++)
-        s << " x " << x.single_shell_tensors[i + 1] << " ] "
-          << x.coupled_irreps[i];
+    s << x.Gammas_[0];
+    if (x.Omegas_.size() > 0)
+      for (int i = 0; i < x.Omegas_.size(); i++)
+        s << " x " << x.Gammas_[i + 1] << " ] " << x.Omegas_[i];
 
-    s << "rhoMax" << x.rhomax << "etaMax" << x.etamax << "kappaMax"
-      << x.kappamax << "LL" << x.LL << "zetaMax" << x.zetamax << "SS" << x.SS
-      << "TT" << x.TT << "MMT" << x.MMT << "JJ" << x.JJ << "MMJ" << x.MMJ;
-    for (auto coeff : x.coeffs)
-      s << "\t" << coeff;
+    s << " rhomax" << x.rhomax() << " etamax" << x.etamax() << " kappaMax"
+      << x.kappamax() << " LL" << x.LL() << " zetamax" << x.zetamax() 
+      << " SS" << x.SS() << " TT" << x.TT() << " MMT" << x.MMT() << " JJ" 
+      << x.JJ() << " MMJ" << x.MMJ();
+    
+    for (auto coeff : x.coeffs_) s << "\t" << coeff;
+    
     return s;
   }
 
   void TwoBodyMultiShellTensor::writeBinary(std::ostream& s) const
   {
-    uint32_t n_tensors = single_shell_tensors.size();
-    s.write(reinterpret_cast<const char*>(&n_tensors), sizeof(n_tensors));
-    for (const auto& t : single_shell_tensors)
-      t.writeBinary(s);
+    size_t n_tensors = Gammas_.size();
+    qcx_utils::writeBinary(s, n_tensors);
 
-    for (const auto& ir : coupled_irreps)
-      ir.writeBinary(s);
+    for (const auto& t : Gammas_) t.writeBinary(s);
 
-    s.write(reinterpret_cast<const char*>(&rhomax), sizeof(rhomax));
-    s.write(reinterpret_cast<const char*>(&etamax), sizeof(etamax));
-    s.write(reinterpret_cast<const char*>(&kappamax), sizeof(kappamax));
-    s.write(reinterpret_cast<const char*>(&LL), sizeof(LL));
-    s.write(reinterpret_cast<const char*>(&zetamax), sizeof(zetamax));
-    s.write(reinterpret_cast<const char*>(&SS), sizeof(SS));
-    s.write(reinterpret_cast<const char*>(&TT), sizeof(TT));
-    s.write(reinterpret_cast<const char*>(&MMT), sizeof(MMT));
-    s.write(reinterpret_cast<const char*>(&JJ), sizeof(JJ));
-    s.write(reinterpret_cast<const char*>(&MMJ), sizeof(MMJ));
+    for (const auto& ir : Omegas_) ir.writeBinary(s);
 
-    s.write(reinterpret_cast<const char*>(coeffs.data()),
-            coeffs.size() * sizeof(double));
+    qcx_utils::writeBinary(s, rhomax_);
+    qcx_utils::writeBinary(s, etamax_);
+    qcx_utils::writeBinary(s, kappamax_);
+    qcx_utils::writeBinary(s, zetamax_);
+    qcx_utils::writeBinary(s, LL_);
+    qcx_utils::writeBinary(s, SS_);
+    qcx_utils::writeBinary(s, TT_);
+    qcx_utils::writeBinary(s, MMT_);
+    qcx_utils::writeBinary(s, JJ_);
+    qcx_utils::writeBinary(s, MMJ_);
+    qcx_utils::writeBinary(s, coeffs_);
   }
 
   void TwoBodyMultiShellTensor::readBinary(std::istream& s)
   {
-    uint32_t n_tensors;
-    s.read(reinterpret_cast<char*>(&n_tensors), sizeof(n_tensors));
+    size_t n_tensors;
+    qcx_utils::readBinary(s, n_tensors);
 
-    single_shell_tensors.resize(n_tensors);
-    for (auto& t : single_shell_tensors)
-      t.readBinary(s);
+    Gammas_.resize(n_tensors);
+    for (auto& t : Gammas_) t.readBinary(s);
 
-    uint32_t n_irreps = std::max(uint32_t(0), n_tensors - 1);
-    coupled_irreps.resize(n_irreps);
-    for (auto& ir : coupled_irreps)
-      ir.readBinary(s);
+    assert(n_tensors > 0);
+    Omegas_.resize(n_tensors - 1);
+    for (auto& ir : Omegas_) ir.readBinary(s);
 
-    s.read(reinterpret_cast<char*>(&rhomax), sizeof(rhomax));
-    s.read(reinterpret_cast<char*>(&etamax), sizeof(etamax));
-    s.read(reinterpret_cast<char*>(&kappamax), sizeof(kappamax));
-    s.read(reinterpret_cast<char*>(&LL), sizeof(LL));
-    s.read(reinterpret_cast<char*>(&zetamax), sizeof(zetamax));
-    s.read(reinterpret_cast<char*>(&SS), sizeof(SS));
-    s.read(reinterpret_cast<char*>(&TT), sizeof(TT));
-    s.read(reinterpret_cast<char*>(&MMT), sizeof(MMT));
-    s.read(reinterpret_cast<char*>(&JJ), sizeof(JJ));
-    s.read(reinterpret_cast<char*>(&MMJ), sizeof(MMJ));
+    qcx_utils::readBinary(s, rhomax_);
+    qcx_utils::readBinary(s, etamax_);
+    qcx_utils::readBinary(s, kappamax_);
+    qcx_utils::readBinary(s, zetamax_);
+    qcx_utils::readBinary(s, LL_);
+    qcx_utils::readBinary(s, SS_);
+    qcx_utils::readBinary(s, TT_);
+    qcx_utils::readBinary(s, MMT_);
+    qcx_utils::readBinary(s, JJ_);
+    qcx_utils::readBinary(s, MMJ_);
 
-    size_t n_coeffs = static_cast<size_t>(rhomax * etamax * kappamax * zetamax);
-    coeffs.resize(n_coeffs);
-    s.read(reinterpret_cast<char*>(coeffs.data()), n_coeffs * sizeof(double));
+    size_t n_coeffs = static_cast<size_t>(rhomax_ * etamax_ * kappamax_ * zetamax_);
+    coeffs_.resize(n_coeffs);
+    qcx_utils::readBinary(s, coeffs_);
   }
 
   std::ostream& operator<<(std::ostream& s, const MultiShellTensor& x)
   {
-    s << x.Gamma[0];
-    if (!x.Omega.empty())
-      for (size_t i = 0; i < x.Omega.size(); i++)
-        s << " x " << x.Gamma[i + 1] << " ] " << x.Omega[i];
+    s << x.Gammas_[0];
+    if (!x.Omegas_.empty())
+      for (size_t i = 0; i < x.Omegas_.size(); i++)
+        s << " x " << x.Gammas_[i + 1] << " ] " << x.Omegas_[i];
 
     return s;
   }
 
+  void MultiShellTensor::writeBinary(std::ostream& s) const
+  {
+    size_t n_Gammas = Gammas_.size();
+    qcx_utils::writeBinary(s, n_Gammas);
+    for (const auto& Gamma : Gammas_) Gamma.writeBinary(s);
+
+    size_t n_Omegas = Omegas_.size();
+    qcx_utils::writeBinary(s, n_Omegas);
+    for (const auto& Omega : Omegas_) Omega.writeBinary(s);
+  }
+
+  void MultiShellTensor::readBinary(std::istream& s)
+  {
+    size_t n_Gammas;
+    qcx_utils::readBinary(s, n_Gammas);
+    Gammas_.resize(n_Gammas);
+    for (auto& Gamma : Gammas_) Gamma.readBinary(s);
+
+    size_t n_Omegas;
+    qcx_utils::readBinary(s, n_Omegas);
+    Omegas_.resize(n_Omegas);
+    for (auto& Omega : Omegas_) Omega.readBinary(s);
+  }
+
   std::ostream& operator<<(std::ostream& s, const MultiShellTensor_phys& x)
   {
-    s << x.T << "\n";
-/*
-    for (size_t ls_id = 0; ls_id < x.LLSSs.size(); ls_id++)
+    s << x.T();
+
+    for (const auto& [kappamax, LL, zetamax, SS, TT, strengths] : x.LLSSTTstrengths_)
     {
-      s << "kappamax:" << x.LLSSs[ls_id][0] 
-        << " LL:" << x.LLSSs[ls_id][1] 
-        << " zetamax:" << x.LLSSs[ls_id][2]
-        << " SS:" << x.LLSSs[ls_id][3] 
+      s << "\n kappamax:" << static_cast<int>(kappamax)
+        << " LL:" << static_cast<int>(LL)
+        << " zetamax:" << static_cast<int>(zetamax)
+        << " SS:" << static_cast<int>(SS)
+        << " TT:" << static_cast<int>(TT)
         << " strengths:";
-      for (auto c : x.strengths[ls_id])
-        s << c << " ";
+      for (const auto& c : strengths) s << c << " ";
     }
-    s << "TT:" << x.TT << " MMT:" << x.MMT 
-      << " JJ:" << x.JJ << " MMJ:" << x.MMJ;
-*/
-    for (size_t lst_id = 0; lst_id < x.LLSSTTs.size(); lst_id++)
-    {
-      s << "kappamax:" << x.LLSSTTs[lst_id][0] 
-        << " LL:" << x.LLSSTTs[lst_id][1] 
-        << " zetamax:" << x.LLSSTTs[lst_id][2]
-        << " SS:" << x.LLSSTTs[lst_id][3] 
-        << " TT:" << x.LLSSTTs[lst_id][4]
-        << " strengths:";
-      for (auto c : x.strengths[lst_id])
-        s << c << " ";
-    }
-    s << "MMT:" << x.MMT 
-      << " JJ:" << x.JJ << " MMJ:" << x.MMJ;
+    s << "\n MMT:" << x.MMT() << " JJ:" << x.JJ() << " MMJ:" << x.MMJ();
 
     return s;
+  }
+
+  void MultiShellTensor_phys::writeBinary(std::ostream& s) const
+  {
+    MultiShellTensor::writeBinary(s);
+    qcx_utils::writeBinary(s, MMT_);
+    qcx_utils::writeBinary(s, JJ_);
+    qcx_utils::writeBinary(s, MMJ_);
+
+    size_t cnt = LLSSTTstrengths_.size();
+    qcx_utils::writeBinary(s, cnt);
+
+    for (const auto& [kappamax, LL, zetamax, SS, TT, strengths] : LLSSTTstrengths_)
+    {
+      qcx_utils::writeBinary(s, kappamax);
+      qcx_utils::writeBinary(s, LL);
+      qcx_utils::writeBinary(s, zetamax);
+      qcx_utils::writeBinary(s, SS);
+      qcx_utils::writeBinary(s, TT);
+      size_t cnt_strength = strengths.size();
+      qcx_utils::writeBinary(s, cnt_strength);
+      for (const auto& c : strengths) qcx_utils::writeBinary(s, c);
+    }
+  }
+
+  void MultiShellTensor_phys::readBinary(std::istream& s)
+  {
+    MultiShellTensor::readBinary(s);
+    qcx_utils::readBinary(s, MMT_);
+    qcx_utils::readBinary(s, JJ_);
+    qcx_utils::readBinary(s, MMJ_);
+
+    size_t cnt;
+    qcx_utils::readBinary(s, cnt);
+    LLSSTTstrengths_.resize(cnt);
+    for (auto& [kappamax, LL, zetamax, SS, TT, strengths] : LLSSTTstrengths_)
+    {
+      qcx_utils::readBinary(s, kappamax);
+      qcx_utils::readBinary(s, LL);
+      qcx_utils::readBinary(s, zetamax);
+      qcx_utils::readBinary(s, SS);
+      qcx_utils::readBinary(s, TT);
+      size_t cnt_strength;
+      qcx_utils::readBinary(s, cnt_strength);
+      strengths.resize(cnt_strength);
+      for (auto& c : strengths) qcx_utils::readBinary(s, c);
+    }
   }
 } // namespace U3xU4

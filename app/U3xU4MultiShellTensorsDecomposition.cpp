@@ -2,6 +2,8 @@
 #include <iostream>
 #include <utility>
 
+#include <qcx_convert.h>
+
 #include <Databases.h>
 #include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
@@ -18,31 +20,37 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
+  int maxShell, LL = 0, SS = 0, TT = 0, MMT = 0, JJ = 0, MMJ = 0;
+  U3xU4::SingleShellTensors Gammas;
+  U3xU4::OmegaElements Omegas;
+
   // Example 1
   /*
-  U3xU4::irrep Gamma1(2,1,0, 2,1,1,0), Gamma2(2,2,0, 1,1,1,0),
-        Gamma3(3,0,0, 1,0,0,0), Omega1(4,3,0, 3,2,2,0), Omega2(7,3,0, 4,2,2,0);
+  U3xU4::irrep Gamma1(2,1,0, 2,1,1,0), 
+               Gamma2(2,2,0, 1,1,1,0),
+               Gamma3(3,0,0, 1,0,0,0);
 
   U3xU4::SingleShellTensor tadat1(1,1,1,{},{},Gamma1,1,1),
                            tadat2(2,0,1,{},{},Gamma2,1,1),
                            tadat3(3,1,0,{},{},Gamma3,1,1);
 
-  std::vector<U3xU4::SingleShellTensor> 
-    single_shell_tensors = {tadat1,tadat2,tadat3};
+  U3xU4::OmegaElement Omega1(1, {4,3,0}, 1, {3,2,2,0}), 
+                      Omega2(1, {7,3,0}, 1, {4,2,2,0});
 
-  std::vector<U3xU4::irrep> coupled_irreps = {Omega1,Omega2};
+  Gammas = {tadat1,tadat2,tadat3};
+  Omegas = {Omega1,Omega2};
 
-  HO::Table_nljmjmt labels(3);
-  U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors,
-    coupled_irreps,1,1,1,4,1,4,0,0,0,0,{},labels);
+  maxShell = 3;
+  LL = 4;
+  SS = 4;
   */
 
   // Example 2
   /*
-  U3xU4::irrep Gamma1(0, 0, 0, 1, 0, 0, 0), Gamma2(1, 1, 0, 1, 1, 1, 0),
-      Omega1(1, 1, 0, 2, 1, 1, 0), Gamma3(2, 2, 0, 1, 1, 1, 0),
-      Omega2(3, 3, 0, 3, 2, 2, 0), Gamma4(3, 0, 0, 1, 0, 0, 0),
-      Omega3(6, 3, 0, 4, 2, 2, 0);
+  U3xU4::irrep Gamma1(0, 0, 0, 1, 0, 0, 0), 
+               Gamma2(1, 1, 0, 1, 1, 1, 0),
+               Gamma3(2, 2, 0, 1, 1, 1, 0),
+               Gamma4(3, 0, 0, 1, 0, 0, 0);
 
   U3xU4::SingleShellTensor 
       tadat1(0, 1, 0, {}, {}, Gamma1, 1, 1),
@@ -50,77 +58,182 @@ int main(int argc, char* argv[])
       tadat3(2, 0, 1, {}, {}, Gamma3, 1, 1),
       tadat4(3, 1, 0, {}, {}, Gamma4, 1, 1);
 
-  std::vector<U3xU4::SingleShellTensor> 
-    single_shell_tensors = {tadat1, tadat2, tadat3, tadat4};
+  U3xU4::OmegaElement Omega1(1, {1,1,0}, 1, {2,1,1,0}), 
+                      Omega2(1, {3,3,0}, 1, {3,2,2,0}), 
+                      Omega3(1, {6,3,0}, 1, {4,2,2,0});
 
-  std::vector<U3xU4::irrep> coupled_irreps = {Omega1, Omega2, Omega3};
+  Gammas = {tadat1, tadat2, tadat3, tadat4};
+  Omegas = {Omega1, Omega2, Omega3};
 
-  HO::Table_nljmjmt labels(3);
-  U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors, coupled_irreps,
-                                          1, 1, 1, 4, 1, 4, 0, 0, 0, 0, {},
-                                          labels);
+  maxShell = 3;
+  LL = 4;
+  SS = 4;
   */
 
   // Example 3
   /*
-  U3xU4::irrep Gamma1(0, 0, 0, 3, 1, 1, 0), Gamma2(1, 1, 0, 1, 1, 1, 0),
-      Omega1(1, 1, 0, 3, 1, 0, 0);
+  U3xU4::irrep Gamma1_ad(0, 0, 0, 2, 0, 0, 0),
+               Gamma1(0, 0, 0, 3, 1, 1, 0),
+               Gamma2(1, 1, 0, 1, 1, 1, 0);
+
   U3xU4::SingleShellTensor 
-    tadat1(0, 2, 1, {U3xU4::irrep(0, 0, 0, 2, 0, 0, 0)}, {}, Gamma1, 1, 1),
+    tadat1(0, 2, 1, {Gamma1_ad}, {}, Gamma1, 1, 1),
     tadat2(1, 0, 1, {}, {}, Gamma2, 1, 1);
 
-  std::vector<U3xU4::SingleShellTensor> single_shell_tensors = {tadat1, tadat2};
+  U3xU4::OmegaElement Omega1(1, {1,1,0}, 1, {3,1,0,0});
 
-  std::vector<U3xU4::irrep> coupled_irreps = {Omega1};
+  Gammas = {tadat1, tadat2};
+  Omegas = {Omega1};
 
-  HO::Table_nljmjmt labels(1);
-  U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors, coupled_irreps,
-                                          1, 1, 1, 2, 1, 2, 0, 0, 0, 0, {},
-  labels);
+  maxShell = 1;
+  LL = 2;
+  SS = 2;
   */
 
   // Example 4
-  
+  /*
   U3xU4::irrep Gamma1(0, 0, 0, 1, 1, 0, 0), 
-               Gamma2(2, 2, 0, 1, 1, 0, 0),
-               Omega1(2, 2, 0, 0, 0, 0, 0);
+               Gamma2(2, 2, 0, 1, 1, 0, 0);
 
   U3xU4::SingleShellTensor 
       tadat1(0, 2, 0, {Gamma1}, {}, Gamma1, 1, 1),
       tadat2(1, 0, 2, {}, {Gamma2}, Gamma2, 1, 1);
 
-  std::vector<U3xU4::SingleShellTensor> 
-    single_shell_tensors = {tadat1, tadat2};
+  U3xU4::OmegaElement Omega1(1, {2,2,0}, 1, {0,0,0,0});
 
-  std::vector<U3xU4::irrep> coupled_irreps = {Omega1};
+  Gammas = {tadat1, tadat2};
+  Omegas = {Omega1};
+  maxShell = 1;
+  */
 
-  HO::Table_nljmjmt labels(2);
-  U3xU4::TwoBodyMultiShellTensor myTensor(single_shell_tensors, coupled_irreps,
-                                          1, 1, 1, 0, 1, 0, 0, 0, 0, 0, {},
-                                          labels);
-  std::cout << myTensor << std::endl;
+  // Example 5
+  /*
+  U3xU4::irrep Gamma1(2, 1, 0, 0, 0, 0, 0),
+               Gamma2_ad(3, 1, 0, 1, 1, 0, 0),
+               Gamma2_at(3, 2, 0, 1, 1, 0, 0),
+               Gamma2(2, 1, 0, 0, 0, 0, 0);
+
+  U3xU4::SingleShellTensor 
+      tadat1(1, 1, 1, {}, {}, Gamma1, 1, 1),
+      tadat2(2, 2, 2, {Gamma2_ad}, {Gamma2_at}, Gamma2, 2, 1);
+
+  U3xU4::OmegaElement Omega1(2, {2,1,0}, 1, {0,0,0,0});
+
+  Gammas = {tadat1, tadat2};
+  Omegas = {Omega1};
+  maxShell = 2;
+  LL = 2;
+  JJ = 2;
+  */
+
+  // Example 6
+  /*
+  U3xU4::irrep Gamma(2, 1, 0, 0, 0, 0, 0);
+
+  U3xU4::SingleShellTensor 
+      tadat1(1, 1, 1, {}, {}, Gamma, 1, 1),
+      tadat2(2, 1, 1, {}, {}, Gamma, 1, 1),
+      tadat3(3, 1, 1, {}, {}, Gamma, 1, 1);
+
+  U3xU4::OmegaElement Omega(2, {2,1,0}, 1, {0,0,0,0});
+
+  Gammas = {tadat1, tadat2, tadat3};
+  Omegas = {Omega, Omega};
+  maxShell = 3;
+  LL = 2;
+  JJ = 2;
+  */
+
+  // Example 7
+  /*
+  U3xU4::irrep Gamma1_ad(2, 0, 0, 1, 1, 0, 0),
+               Gamma1_at(2, 2, 0, 1, 1, 0, 0),
+               Gamma(2, 1, 0, 0, 0, 0, 0);
+
+  U3xU4::SingleShellTensor 
+      tadat1(1, 2, 2, {Gamma1_ad}, {Gamma1_at}, Gamma, 1, 1),
+      tadat2(3, 1, 1, {}, {}, Gamma, 1, 1);
+
+  U3xU4::OmegaElement Omega(2, {2,1,0}, 1, {0,0,0,0});
+
+  Gammas = {tadat1, tadat2};
+  Omegas = {Omega};
+  maxShell = 3;
+  LL = 2;
+  JJ = 2;
+  */
+  
+  // Example 8
+  
+  U3xU4::irrep Gamma1(0, 0, 0, 1, 0, 0, 0), 
+               Gamma2(2, 2, 0, 1, 1, 1, 0),
+               Gamma3(3, 3, 0, 1, 1, 1, 0),
+               Gamma4(4, 0, 0, 1, 0, 0, 0),
+               Gamma5(4, 2, 0, 0, 0, 0, 0);
+
+  U3xU4::SingleShellTensor 
+      tadat1(0, 1, 0, {}, {}, Gamma1, 1, 1),
+      tadat2(2, 0, 1, {}, {}, Gamma2, 1, 1),
+      tadat3(3, 0, 1, {}, {}, Gamma3, 1, 1),
+      tadat4(4, 1, 0, {}, {}, Gamma4, 1, 1),
+      tadat5(6, 1, 1, {}, {}, Gamma5, 1, 1);
+
+  U3xU4::OmegaElement Omega1(1, {2,2,0}, 1, {0,0,0,0}), 
+                      Omega2(1, {5,5,0}, 1, {1,1,1,0}), 
+                      Omega3(1, {1,1,0}, 1, {0,0,0,0}),
+                      Omega4(1, {3,2,0}, 1, {0,0,0,0});
+
+  Gammas = {tadat1, tadat2, tadat3, tadat4, tadat5};
+  Omegas = {Omega1, Omega2, Omega3, Omega4};
+
+  maxShell = 6;
+  LL = 2;
+  JJ = 2;
+  
+
+  ////////////////// DO NOT EDIT ANYTHING BELOW ///////////////////
+  
+  HO::Table_nljmjmt labels(maxShell);
+  U3xU4::MultiShellTensor_phys T(Gammas, Omegas, MMT, JJ, MMJ, labels);
+
+  int kappamax = u3::Kappa(T.getLastIrrep().u3(), LL / 2);
+  int zetamax = u4::Zeta(T.getLastIrrep().u4(), SS, TT);
+
+  T.setLLSSTTstrengths({{qcx_utils::itou8(kappamax), 
+                         qcx_utils::ito8(LL), 
+                         qcx_utils::itou8(zetamax), 
+                         qcx_utils::ito8(SS), 
+                         qcx_utils::ito8(TT), {}}});
+  
+  std::cout << T << std::endl;
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [coeffsArr, opsArr] = myTensor.expand(dbs);
+  auto [coeffsArr, opsArr] = T.expand(LL, SS, TT, dbs);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  Eigen::RowVectorXd norm(myTensor.rhomax * myTensor.etamax *
-                          myTensor.kappamax * myTensor.zetamax);
+  Eigen::RowVectorXd norm(coeffsArr[0].size());
   norm.setZero();
+
+  bool print;
+  std::cout << "Finish expanding with " << coeffsArr.size() << " terms."
+            << " Do you want to print the results? (1 yes, 0 no) ";
+  std::cin >> print;
 
   for (std::size_t i = 0; i < coeffsArr.size(); i++)
   {
-    std::cout << coeffsArr[i] << "\t";
-    norm = norm + coeffsArr[i].cwiseProduct(coeffsArr[i]);
-
-    for (const auto& op : opsArr[i])
+    if (print)
+    {
+      std::cout << coeffsArr[i] << "\t";
+      for (const auto& op : opsArr[i])
       std::visit([](auto&& o) { std::cout << o << "\t"; }, op);
 
-    std::cout << std::endl;
+      std::cout << std::endl;
+    }
+    norm = norm + coeffsArr[i].cwiseProduct(coeffsArr[i]);
   }
 
   std::cout << "Normalization: " << norm << std::endl;

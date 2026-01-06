@@ -262,6 +262,8 @@ int main(int argc, char* argv[])
   U3xU4::MultiShellTensor tensor({tadat0,tadat1,tadat2,tadat3},{irr0,irr1,irr2});
   
 
+  /////////////////// DO NOT EDIT ANYTHING BELOW ///////////////////
+  
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 

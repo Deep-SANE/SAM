@@ -20,7 +20,8 @@ namespace U3xU4
     if (bra.omega.empty())
       return 1;
 
-    int G1 = Gamma[0].ads + Gamma[0].ats, G2 = Gamma[1].ads + Gamma[1].ats,
+    int G1 = Gammas_[0].num_ads() + Gammas_[0].num_ats(),
+        G2 = Gammas_[1].num_ads() + Gammas_[1].num_ats(),
         g1_ket = ket.gamma[0].particles(), g2_ket = ket.gamma[1].particles(),
         g1_bra = bra.gamma[0].particles(), g2_bra = bra.gamma[1].particles();
 
@@ -40,7 +41,7 @@ namespace U3xU4
       g1_ket += g2_ket;
 
       g2_bra = bra.gamma[i].particles();
-      G2 = Gamma[i].ads + Gamma[i].ats;
+      G2 = Gammas_[i].num_ads() + Gammas_[i].num_ats();
       g2_ket = ket.gamma[i].particles();
 
 #ifdef FRONT_CREATE
@@ -78,19 +79,46 @@ namespace U3xU4
     return res;
   }
 
-  sam::RME MultiShellTensor::RME(const U3xU4::ManyNucleonBasis::Irrep& bra,
-                                 const U3xU4::ManyNucleonBasis::Irrep& ket,
-                                 sam::Databases& dbs) const
+  bool MultiShellTensor::RME_exist(const ManyNucleonBasis::Irrep& bra,
+                                   const ManyNucleonBasis::Irrep& ket) const
   {
     // (1) everything must already be unified:
 
     assert(bra.gamma.size() == ket.gamma.size());
-    assert(Gamma.size() == ket.gamma.size());
+    assert(Gammas_.size() == ket.gamma.size());
 
     assert(bra.omega.size() == ket.omega.size());
-    assert(Omega.size() == bra.omega.size());
+    assert(Omegas_.size() == bra.omega.size());
 
     assert(ket.gamma.size() == ket.omega.size() + 1);
+
+    // (2) check if ALL single-shell RMEs exist
+
+    for (size_t k = 0; k < ket.gamma.size(); k++)
+    {
+      const U3xU4::SingleShellTensor& T = Gammas_[k];
+      const auto& f = bra.gamma[k];
+      const auto& i = ket.gamma[k];
+
+      // check unified shells:
+      assert(T.shell() == f.shell());
+      assert(T.shell() == i.shell());
+
+      // if one of them doesn't exist, it returns immediately
+      if (T.RME_exist(f, i) == false) return false;
+    }
+
+    // std::cout << "Multi-shell RME exists" << std::endl;
+    return true;
+  }
+
+  sam::RME MultiShellTensor::RME(const U3xU4::ManyNucleonBasis::Irrep& bra,
+                                 const U3xU4::ManyNucleonBasis::Irrep& ket,
+                                 sam::Databases& dbs) const
+  {
+    // (1) check if RMEs exist
+
+    if (RME_exist(bra, ket) == false) return {};
 
     // (2) calculate phase:
 
@@ -104,13 +132,13 @@ namespace U3xU4
     {
       // (I) next single-shell RMEs:
 
-      const U3xU4::SingleShellTensor& T = Gamma[k];
+      const U3xU4::SingleShellTensor& T = Gammas_[k];
       const auto& f = bra.gamma[k];
       const auto& i = ket.gamma[k];
 
       // check unified shells:
-      assert(T.shell() == f.shell());
-      assert(T.shell() == i.shell());
+      // assert(T.shell() == f.shell());
+      // assert(T.shell() == i.shell());
 
       //std::size_t rhomax_temp, etamax_temp; // multi for Wigner-Eckart theorem
       //auto RMEsR = T.RME(f, i, rhomax_temp, etamax_temp, dbs); // right part
@@ -129,7 +157,8 @@ namespace U3xU4
 
       const U3xU4::irrep& A =
           (k > 1) ? ket.omega[k - 2].u3u4() : ket.gamma[0].u3u4();
-      const U3xU4::irrep& B = (k > 1) ? Omega[k - 2].u3u4() : Gamma[0].u3u4();
+      const U3xU4::irrep& B = 
+          (k > 1) ? Omegas_[k - 2].u3u4() : Gammas_[0].u3u4();
       const U3xU4::irrep& AB =
           (k > 1) ? bra.omega[k - 2].u3u4() : bra.gamma[0].u3u4();
 
@@ -138,13 +167,13 @@ namespace U3xU4
       const U3xU4::irrep& CD = f;
 
       const U3xU4::irrep& AC = ket.omega[k - 1];
-      const U3xU4::irrep& BD = Omega[k - 1];
+      const U3xU4::irrep& BD = Omegas_[k - 1];
       const U3xU4::irrep& ABCD = bra.omega[k - 1];
 
       // 9-U(3) recoupling coefficients:
 
       auto rhoACmax = ket.omega[k - 1].rhomax();
-      auto rhoBDmax = Omega[k - 1].rhomax();
+      auto rhoBDmax = Omegas_[k - 1].rhomax();
       auto rhoABCDmax = bra.omega[k - 1].rhomax();
       auto rhoABmax = RMEsL.rhomax();
       auto rhoCDmax = RMEsR.rhomax();
@@ -167,7 +196,7 @@ namespace U3xU4
       // 9-U(4) recoupling coefficients:
 
       auto etaACmax = ket.omega[k - 1].etamax();
-      auto etaBDmax = Omega[k - 1].etamax();
+      auto etaBDmax = Omegas_[k - 1].etamax();
       auto etaABCDmax = bra.omega[k - 1].etamax();
       auto etaABmax = RMEsL.etamax();
       auto etaCDmax = RMEsR.etamax();
@@ -261,7 +290,7 @@ namespace U3xU4
     // check multiplicities:
     assert(RMEsL.afmax() == alphamax(bra.gamma, bra.omega));
     assert(RMEsL.aimax() == alphamax(ket.gamma, ket.omega));
-    assert(RMEsL.a0max() == alphamax(Gamma, Omega));
+    assert(RMEsL.a0max() == alphamax(Gammas_, Omegas_));
 
     // apply phase factor:
     RMEsL.phase(phase);

@@ -12,11 +12,14 @@
 #include <Eigen/Sparse>
 
 #include <Databases.h>
+#include <HOutilities.h>
 #include <RME.h>
 #include <U3xU4GammaOmega.h>
 #include <U3xU4irrep.h>
 #include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4SingleShellTensors.h>
+
+#include <qcx_Int.h>
 
 namespace U3xU4
 {
@@ -30,48 +33,64 @@ namespace U3xU4
   */
   class OneBodyMultiShellTensor
   {
-  public:
-    U3xU4::irrep a, // first tensor
-        b,          // second tensor
-        t;          // coupled tensor
+  private:
+    U3xU4::irrep a_, // first tensor
+                 b_, // second tensor
+                 t_; // coupled tensor
 
-    int16_t kappamax, // multiplicity of LL
-        LL,           // twice orbital angular momentum
-        SS,           // twice spin
-        TT, MMT,      // twice isospin and projection
-        JJ, MMJ;      // twice total angular momentum and projection
+    uint8_t kappamax_;
+    HO::qn_t LL_, SS_, TT_, MMT_, JJ_, MMJ_;
 
     // Store coefficients in the expansion of one-body JT-coupled operator.
     // The size of this array is equal to kappamax.
-    std::vector<double> coeffs;
+    std::vector<double> coeffs_;
 
+  public:
     // Constructor
-    OneBodyMultiShellTensor(const U3xU4::irrep& a_, const U3xU4::irrep& b_,
-                            const U3xU4::irrep& t_, int kappa_, int LL_,
-                            int SS_, int TT_, int MMT_, int JJ_, int MMJ_,
-                            const std::vector<double>& coeffs_)
-        : a(a_),
-          b(b_),
-          t(t_),
-          kappamax(kappa_),
-          LL(LL_),
-          SS(SS_),
-          TT(TT_),
-          MMT(MMT_),
-          JJ(JJ_),
-          MMJ(MMJ_),
-          coeffs(coeffs_)
+    OneBodyMultiShellTensor(
+      const U3xU4::irrep& a, const U3xU4::irrep& b, const U3xU4::irrep& t, 
+      qcx_utils::UInt8 kappamax, qcx_utils::Int8 LL, qcx_utils::Int8 SS, 
+      qcx_utils::Int8 TT, qcx_utils::Int8 MMT, qcx_utils::Int8 JJ,
+      qcx_utils::Int8 MMJ, const std::vector<double>& coeffs)
+        : a_(a),
+          b_(b),
+          t_(t),
+          kappamax_(kappamax),
+          LL_(LL),
+          SS_(SS),
+          TT_(TT),
+          MMT_(MMT),
+          JJ_(JJ),
+          MMJ_(MMJ),
+          coeffs_(coeffs)
     { }
 
-    // Get specific coefficient
-    double coeff(int k) const { return coeffs[k]; }
+    // Getters
+    const auto& a() const { return a_; }
+    const auto& b() const { return b_; }
+    const auto& t() const { return t_; }
+    const auto& getLastIrrep() const { return t_; }
+    int kappamax() const { return static_cast<int>(kappamax_); }
+    int LL() const { return static_cast<int>(LL_); }
+    int SS() const { return static_cast<int>(SS_); }
+    int TT() const { return static_cast<int>(TT_); }
+    int MMT() const { return static_cast<int>(MMT_); }
+    int JJ() const { return static_cast<int>(JJ_); }
+    int MMJ() const { return static_cast<int>(MMJ_); }
+    const auto& coeffs() const { return coeffs_; }
 
-    U3xU4::irrep getLastIrrep() const { return t; }
+    // Get specific coefficient
+    double coeff(int k) const { return coeffs_[k]; }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s,
                                     const OneBodyMultiShellTensor& x);
+
+    // binary writing and reading
+    void writeBinary(std::ostream& s) const;
+    void readBinary(std::istream& s);
   };
+  using OneBodyMultiShellTensors = std::vector<OneBodyMultiShellTensor>;
 
   /* Class for holding two-body multi-shell tensors
          rho(n13 n23 n33) eta(n14 n24 n34 n44)
@@ -110,25 +129,18 @@ namespace U3xU4
   class TwoBodyMultiShellTensor
   {
   private:
-    const HO::Table_nljmjmt& labels;
+    const HO::Table_nljmjmt& labels_;
 
-  public:
     // List of single-shell tensors, each corresponds to Gamma in the document.
-    std::vector<U3xU4::SingleShellTensor> single_shell_tensors;
+    U3xU4::SingleShellTensors Gammas_;
 
     // The coupled irreps, each corresponds to Omega in the document.
     // This list has one less element than the single_shell_tensors list.
-    std::vector<U3xU4::irrep> coupled_irreps;
+    U3xU4::irreps Omegas_;
 
     // The last element of coupled_irreps will dictate the following:
-    int16_t rhomax, // U(3) multiplicity
-        etamax,     // U(4) multiplicity
-        kappamax,   // multiplicity of LL
-        LL,         // twice orbital angular momentum
-        zetamax,    // multiplicity of (SS,TT)
-        SS,         // twice spin
-        TT, MMT,    // twice isospin and projection
-        JJ, MMJ;    // twice total angular momentum and projection
+    uint8_t rhomax_, etamax_,  kappamax_, zetamax_; 
+    HO::qn_t LL_, SS_, TT_, MMT_, JJ_, MMJ_;
 
     /* Store coefficients in the expansion of two-body JT-coupled operator.
        The size of this array is equal to rhomax * etamax * kappamax * zetamax.
@@ -139,51 +151,71 @@ namespace U3xU4
              for (int z = 0; z < zeta; z++)
                index = ((r * etamax + e) * kappamax + k) * zetamax + z;
     */
-    std::vector<double> coeffs;
+    std::vector<double> coeffs_;
 
+  public:
     // Constructor
-    TwoBodyMultiShellTensor(const HO::Table_nljmjmt& labels_)
-        : labels(labels_), rhomax(0), etamax(0), kappamax(0), LL(0),
-          zetamax(0), SS(0), TT(0), MMT(0), JJ(0), MMJ(0)
+    TwoBodyMultiShellTensor(const HO::Table_nljmjmt& labels)
+        : labels_(labels), rhomax_(0), etamax_(0), kappamax_(0), 
+          LL_(0), zetamax_(0), SS_(0), TT_(0), MMT_(0), JJ_(0), MMJ_(0)
     {}
     TwoBodyMultiShellTensor(
-        const std::vector<U3xU4::SingleShellTensor>& single_shell_tensors_,
-        const std::vector<U3xU4::irrep>& coupled_irreps_, int rho_, int eta_,
-        int kappa_, int LL_, int zeta_, int SS_, int TT_, int MMT_, int JJ_,
-        int MMJ_, const std::vector<double>& coeffs_,
-        const HO::Table_nljmjmt& labels_)
-        : single_shell_tensors(single_shell_tensors_),
-          coupled_irreps(coupled_irreps_),
-          rhomax(rho_),
-          etamax(eta_),
-          kappamax(kappa_),
-          LL(LL_),
-          zetamax(zeta_),
-          SS(SS_),
-          TT(TT_),
-          MMT(MMT_),
-          JJ(JJ_),
-          MMJ(MMJ_),
-          coeffs(coeffs_),
-          labels(labels_)
+      const U3xU4::SingleShellTensors& Gammas, const U3xU4::irreps& Omegas, 
+      qcx_utils::UInt8 rhomax, qcx_utils::UInt8 etamax,
+      qcx_utils::UInt8 kappamax, qcx_utils::Int8 LL, 
+      qcx_utils::UInt8 zetamax, qcx_utils::Int8 SS, qcx_utils::Int8 TT, 
+      qcx_utils::Int8 MMT, qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ, 
+      const std::vector<double>& coeffs, const HO::Table_nljmjmt& labels)
+        : Gammas_(Gammas),
+          Omegas_(Omegas),
+          rhomax_(rhomax),
+          etamax_(etamax),
+          kappamax_(kappamax),
+          LL_(LL),
+          zetamax_(zetamax),
+          SS_(SS),
+          TT_(TT),
+          MMT_(MMT),
+          JJ_(JJ),
+          MMJ_(MMJ),
+          coeffs_(coeffs),
+          labels_(labels)
     {
-      assert(single_shell_tensors_.size() > 0);
-      assert(single_shell_tensors_.size() == coupled_irreps_.size() + 1);
+      assert(Gammas_.size() > 0 && Gammas_.size() == Omegas_.size() + 1);
+    }
+
+    // Getters
+    const auto& Gammas() const { return Gammas_; }
+    const auto& Omegas() const { return Omegas_; }
+    const U3xU4::irrep& getLastIrrep() const 
+    { 
+      if (Omegas_.empty())
+        return Gammas_.back().u3u4();
+      else
+        return Omegas_.back();
+    }
+    int rhomax() const { return static_cast<int>(rhomax_); }
+    int etamax() const { return static_cast<int>(etamax_); }
+    int kappamax() const { return static_cast<int>(kappamax_); }
+    int zetamax() const { return static_cast<int>(zetamax_); }
+    int LL() const { return static_cast<int>(LL_); }
+    int SS() const { return static_cast<int>(SS_); }
+    int TT() const { return static_cast<int>(TT_); }
+    int MMT() const { return static_cast<int>(MMT_); }
+    int JJ() const { return static_cast<int>(JJ_); }
+    int MMJ() const { return static_cast<int>(MMJ_); }
+    const auto& coeffs() const { return coeffs_; }
+
+    // Setter
+    void setCoeffs(const std::vector<double>& coeffs)
+    {
+      coeffs_ = std::move(coeffs);
     }
 
     // Get specific coefficient
     double coeff(int r, int e, int k, int z)
     {
-      return coeffs[((r * etamax + e) * kappamax + k) * zetamax + z];
-    }
-
-    // Get final tensor characters
-    U3xU4::irrep getLastIrrep() const
-    {
-      if (coupled_irreps.empty())
-        return single_shell_tensors.back().u3u4();
-      else
-        return coupled_irreps.back();
+      return coeffs_[((r * etamax() + e) * kappamax() + k) * zetamax() + z];
     }
 
     // Print
@@ -205,6 +237,7 @@ namespace U3xU4
               std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
     expand(sam::Databases& dbs) const;
   };
+  using TwoBodyMultiShellTensors = std::vector<TwoBodyMultiShellTensor>;
 
   /* Class for holding a general U3xU4 multi-shell tensor.
      It has an array of single-shell tensors U3xU4::SingleShellTensor
@@ -214,35 +247,53 @@ namespace U3xU4
   */
   class MultiShellTensor
   {
-  public:
+  private:
     // List of single-shell tensors, each corresponds to Gamma in the document.
-    std::vector<U3xU4::SingleShellTensor> Gamma;
+    U3xU4::SingleShellTensors Gammas_;
 
     // The coupled (irrep, rhomax, etamax)'s, each corresponds to Omega in the document.
     // This list has one less element than the single_shell_tensors list.
-    std::vector<U3xU4::OmegaElement> Omega;
+    U3xU4::OmegaElements Omegas_;
 
+  public:
     // Constructor
-    MultiShellTensor(
-      const std::vector<U3xU4::SingleShellTensor>& Gamma_,
-      const std::vector<U3xU4::OmegaElement>& Omega_)
-        : Gamma(Gamma_), Omega(Omega_)
-    { }
+    MultiShellTensor() = default;
+    MultiShellTensor(const U3xU4::SingleShellTensors& Gammas,
+                     const U3xU4::OmegaElements& Omegas)
+        : Gammas_(Gammas), Omegas_(Omegas)
+    { 
+      assert(Gammas.size() == Omegas.size() + 1);
+    }
+
+    // Getters
+    const auto& Gammas() const { return Gammas_; }
+    const auto& Omegas() const { return Omegas_; }
+    const U3xU4::irrep& getLastIrrep() const
+    {
+      if (Omegas_.empty())
+        return Gammas_.back().u3u4();
+      else
+        return Omegas_.back();
+    }
+
+    // comparison:
+    bool operator==(const MultiShellTensor&) const = default;
 
     // Print
     friend std::ostream& operator<<(std::ostream& s,
                                     const MultiShellTensor& x);
 
-    U3xU4::irrep getLastIrrep() const
-    {
-      if (Omega.empty())
-        return Gamma.back().u3u4();
-      else
-        return Omega.back();
-    }
+    // Write to binary file
+    void writeBinary(std::ostream& s) const;
+
+    // Read from binary file
+    void readBinary(std::istream& s);
 
     // This method assumes that everything is already unified, i.e., bra and ket
     // irreps are unified, and identities have been filled in already.
+    bool RME_exist(const ManyNucleonBasis::Irrep& bra,
+                   const ManyNucleonBasis::Irrep& ket) const;
+
     sam::RME RME(const ManyNucleonBasis::Irrep& bra,
                  const ManyNucleonBasis::Irrep& ket, sam::Databases& dbs) const;
 
@@ -251,6 +302,7 @@ namespace U3xU4
     int8_t uncoupling_phase(const ManyNucleonBasis::Irrep& bra,
                             const ManyNucleonBasis::Irrep& ket) const;
   };
+  using MultiShellTensors = std::vector<MultiShellTensor>;
 
   /* Class for holding a general U3xU4 multi-shell tensor with physical labels.
      It has total spin (JJ,MMJ) and isospin (TT,MMT) quantum numbers, 
@@ -264,69 +316,134 @@ namespace U3xU4
        intershell couplings, kappamax and zetamax. All of these can be extracted
        easily using qcx_utils::NDIndex object. 
   */
-  class MultiShellTensor_phys
+  class MultiShellTensor_phys : public U3xU4::MultiShellTensor
   {
+  private:
+    const HO::Table_nljmjmt& labels_;
+
+    HO::qn_t MMT_, JJ_, MMJ_;
+
+    using labels_type = std::tuple<uint8_t,              // kappamax
+                                   HO::qn_t,             // LL
+                                   uint8_t,              // zetamax
+                                   HO::qn_t,             // SS
+                                   HO::qn_t,             // TT
+                                   std::vector<double>>; // strengths
+
+    std::vector<labels_type> LLSSTTstrengths_;
+
   public:
-    int16_t /*TT,*/ MMT,    // twice isospin and projection
-            JJ, MMJ;    // twice total angular momentum and projection
-
-    // A multi-shell tensor without subgroup labels
-    U3xU4::MultiShellTensor T;
-
-    // An array of subgroup labels
-    //std::vector<std::array<uint16_t,4>> LLSSs;
-    std::vector<std::array<uint16_t,5>> LLSSTTs;
-
-    // Array to store strengths
-    std::vector<std::vector<double>> strengths;
-
     // Constructor
+    MultiShellTensor_phys(const HO::Table_nljmjmt& labels)
+      : labels_(labels), MMT_(0), JJ_(0), MMJ_(0)
+    {}
     MultiShellTensor_phys(
-      const U3xU4::MultiShellTensor& T_,
-      //const std::vector<std::array<uint16_t,4>>& LLSSs_,
-      const std::vector<std::array<uint16_t,5>>& LLSSTTs_,
-      const std::vector<std::vector<double>>& strengths_,
-      //int16_t TT_, 
-      int16_t MMT_, int16_t JJ_, int16_t MMJ_)
-        : T(T_), 
-          //LLSSs(LLSSs_), 
-          LLSSTTs(LLSSTTs_),
-          strengths(strengths_),
-          //TT(TT_), 
-          MMT(MMT_), JJ(JJ_), MMJ(MMJ_)
-    { 
-      //assert(LLSSs_.size() == strengths_.size());
-      assert(LLSSTTs_.size() == strengths_.size());
+      const U3xU4::SingleShellTensors& Gammas,
+      const U3xU4::OmegaElements& Omegas,
+      qcx_utils::Int8 MMT, qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ,
+      const HO::Table_nljmjmt& labels)
+        : U3xU4::MultiShellTensor(Gammas, Omegas),
+          MMT_(MMT), JJ_(JJ), MMJ_(MMJ), labels_(labels)
+    { }
+
+    // Getters
+    const U3xU4::MultiShellTensor& T() const { return *this; }
+    int MMT() const { return static_cast<int>(MMT_); }
+    int JJ() const { return static_cast<int>(JJ_); }
+    int MMJ() const { return static_cast<int>(MMJ_); }
+    const auto& LLSSTTstrengths() const { return LLSSTTstrengths_; }
+
+    // comparison:
+    bool operator==(const MultiShellTensor_phys& x) const
+    {
+      return T() == x.T() && MMT_ == x.MMT_ && JJ_ == x.JJ_ && MMJ_ == x.MMJ_;
+    }
+
+    // Calculate multiplicities
+    size_t alphamax() const
+    {
+      size_t res = 1;
+      for (const auto& G : Gammas()) res *= G.rho0max() * G.eta0max();
+      for (const auto& O : Omegas()) res *= O.rhomax() * O.etamax();
+      return res;
     }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s,
                                     const MultiShellTensor_phys& x);
 
-    U3xU4::irrep getLastIrrep() const
+    // Write to binary file
+    void writeBinary(std::ostream& s) const;
+
+    // Read from binary file
+    void readBinary(std::istream& s);
+
+    // Expand into uncoupled products of creation operators (ad)
+    // and annihilation operators (a)
+    std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
+              std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
+              expand(int LL, int SS, int TT, sam::Databases& dbs) const;
+
+    // Setter: done after expanding and computing strengths
+    void setLLSSTTstrengths(const std::vector<labels_type>& LLSSTTstrengths)
     {
-      return T.getLastIrrep();
+      LLSSTTstrengths_ = std::move(LLSSTTstrengths);
+    }
+
+    // Add to existing strengths
+    void addLLSSTTstrengths(const std::vector<labels_type>& LLSSTTstrengths)
+    {
+      for (const auto& [k, LL, z, SS, TT, strengths] : LLSSTTstrengths)
+      {
+        for (auto& [k_, LL_, z_, SS_, TT_, strengths_] : LLSSTTstrengths_)
+        {
+          if (k == k_ && LL == LL_ && z == z_ && SS == SS_ && TT == TT_)
+          {
+            assert(strengths.size() == strengths_.size());
+            for (size_t i = 0; i < strengths.size(); i++)
+              strengths_[i] += strengths[i];
+            break;
+          }
+          else
+          {
+            LLSSTTstrengths_.push_back({k, LL, z, SS, TT, strengths});
+          }
+        }
+      }
+    }
+
+    // Multiply the strengths with a number
+    void enhanceStrengths(double x)
+    {
+      for (auto& [k, LL, z, SS, TT, strengths] : LLSSTTstrengths_)
+        for (auto& s : strengths) s *= x;
     }
   };
+  using MultiShellTensors_phys = std::vector<MultiShellTensor_phys>;
 
-  Eigen::SparseMatrix<double> MatrixElements(
-    std::vector<MultiShellTensor_phys>& tensors,
-    U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
+  // Symmetric matrix
+  Eigen::SparseMatrix<double> MatrixElements(const MultiShellTensors_phys& tensors, 
+    const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
+
+  // Rectangular matrix
+  Eigen::SparseMatrix<double> MatrixElements(const MultiShellTensors_phys& tensors, 
+    const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets, 
+    sam::Databases& dbs);
 
   // A function to couple single-shell tensors into multi-shell tensors
-  using CouplingPath = std::pair<
-    std::vector<U3xU4::SingleShellTensor>, // list of selected single-shell tensors
-    std::vector<U3xU4::OmegaElement>>;     // list of all coupled (irrep,rhomax,etamax)
+  using CouplingPath = 
+    std::pair<U3xU4::SingleShellTensors, // list of selected single-shell tensors
+              U3xU4::OmegaElements>;     // list of all coupled (irrep,rhomax,etamax)
 
-  void CoupleSingShellTensors(
-      const std::vector<std::vector<U3xU4::SingleShellTensor>>&
-          Tadat_lists,                          // list of lists of Tadat
-      std::size_t depth,                        // recursion depth
-      std::vector<U3xU4::SingleShellTensor> Tadat_choices,  // current choices
-      std::vector<U3xU4::irrep> coupled_irreps, // current coupled irreps
-      std::vector<int> rhomax_list,             // rhomax values
-      std::vector<int> etamax_list,             // etamax values
-      std::vector<CouplingPath>& all_results);  // final results
+  void GenerateMultiShellTensors(
+      const std::vector<U3xU4::SingleShellTensors>&
+                                        Tadat_lists,// list of lists of Tadat
+      size_t depth,                                 // recursion depth
+      U3xU4::SingleShellTensors Tadat_choices,      // current choices
+      U3xU4::irreps coupled_irreps,                 // current coupled irreps
+      std::vector<int> rhomax_list,                 // rhomax values
+      std::vector<int> etamax_list,                 // etamax values
+      std::vector<CouplingPath>& all_results);      // final results
 
   /**
    * Unification of a multi-shell tensor with a basis irrep.

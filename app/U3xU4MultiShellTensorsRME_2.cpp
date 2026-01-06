@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
     T({Gamma1, Gamma2, Gamma3}, {Omega12, Omega123});
 
 
-  print("\nTensor: Gamma = {}, Omaga = {}\n", T.Gamma, T.Omega);
+  print("\nTensor: Gamma = {}, Omaga = {}\n", T.Gammas(), T.Omegas());
 
   // (5) unify tensor with irreps:
 
@@ -158,7 +158,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  print("\nUnified tensor: Gamma = {}, Omega = {} \n", uT->Gamma, uT->Omega);
+  print("\nUnified tensor: Gamma = {}, Omega = {} \n", uT->Gammas(), uT->Omegas());
 
   // (6) calculate RMEs:
 
