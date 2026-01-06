@@ -16,50 +16,10 @@
 
 namespace HO
 {
-  //////////// Class Table_nljmjmt /////////////
-
-  // Constructor
-  Table_nljmjmt::Table_nljmjmt(int maxShell)
-  {
-    uint16_t index = 0;
-    for (int8_t n = 0; n <= maxShell; n++)
-      for (int8_t l = n; l >= 0; l -= 2)
-        for (int8_t jj = 2 * l + 1; jj >= std::abs(2 * l - 1); jj -= 2)
-          for (int8_t mmj = jj; mmj >= -jj; mmj -= 2)
-            for (int8_t mmt = 1; mmt >= -1; mmt -= 2)
-            {
-              key_type key = {n, 2 * l, jj, mmj, mmt};
-              state_to_index[key] = index;
-              index_to_state.push_back(key);
-              index++;
-            }
-    dim = index_to_state.size();
-  }
-
-  // Get index from quantum numbers
-  uint16_t Table_nljmjmt::getIndex(int8_t n, int8_t ll, int8_t jj, 
-                                      int8_t mmj, int8_t mmt) const
-  {
-    key_type key = {n, ll, jj, mmj, mmt};
-    auto it = state_to_index.find(key);
-    if (it == state_to_index.end())
-      throw std::out_of_range("Labels not found");
-    return it->second;
-  }
-
-  // Get quantum numbers from index
-  std::tuple<int8_t, int8_t, int8_t, int8_t, int8_t>
-  Table_nljmjmt::getLabels(uint16_t index) const
-  {
-    if (index < 0 || index >= dim)
-      throw std::out_of_range("Index out of bounds");
-    return index_to_state[index];
-  }
-
-  /////////////// Reduced matrix elements of boson operators ///////////////
+  /////////////// RME OF BOSON OPERATORS ///////////////
 
   // < na lla || b+ || nb llb >
-  double bosonCreatorRME(int8_t na, int8_t lla, int8_t nb, int8_t llb)
+  double bosonCreatorRME(int na, int lla, int nb, int llb)
   {
     if (na == nb + 1)
     {
@@ -83,15 +43,15 @@ namespace HO
   }
 
   // < na lla jja || b+ || nb llb jjb >
-  double bosonCreatorRME(int8_t na, int8_t lla, int8_t jja, int8_t nb, 
-                      int8_t llb, int8_t jjb, qcx_utils::SO3_Racah9& racah9)
+  double bosonCreatorRME(int na, int lla, int jja, 
+    int nb, int llb, int jjb, sam::Databases& db)
   {
     if (na == nb + 1)
     {
       // double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0;
       // double factor = phase * racah.compute(llb,1,2,jja,jjb,lla) /
       // std::sqrt(lla + 1.0);
-      double factor = racah9.compute(llb, 2, lla, 1, 0, 1, jjb, 2, jja);
+      double factor = db.racah9.compute(llb, 2, lla, 1, 0, 1, jjb, 2, jja);
       return factor * bosonCreatorRME(na, lla, nb, llb);
     }
     else
@@ -99,7 +59,7 @@ namespace HO
   }
 
   // < na lla || b- || nb llb >
-  double bosonAnnihilatorRME(int8_t na, int8_t lla, int8_t nb, int8_t llb)
+  double bosonAnnihilatorRME(int na, int lla, int nb, int llb)
   {
     if (na == nb - 1)
     {
@@ -123,53 +83,89 @@ namespace HO
   }
 
   // < na lla jja || b- || nb llb jjb >
-  double bosonAnnihilatorRME(int8_t na, int8_t lla, int8_t jja, int8_t nb, 
-                      int8_t llb, int8_t jjb, qcx_utils::SO3_Racah9& racah9)
+  double bosonAnnihilatorRME(int na, int lla, int jja, 
+    int nb, int llb, int jjb, sam::Databases& db)
   {
     if (na == nb - 1)
     {
       // double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0;
       // double factor = phase * racah.compute(llb,1,2,jja,jjb,lla) /
       // std::sqrt(lla + 1.0);
-      double factor = racah9.compute(llb, 2, lla, 1, 0, 1, jjb, 2, jja);
+      double factor = db.racah9.compute(llb, 2, lla, 1, 0, 1, jjb, 2, jja);
       return factor * bosonAnnihilatorRME(na, lla, nb, llb);
     }
     else
       return 0;
   }
 
-  ////////////// Class Orbit ///////////////
+  //////////// CLASS Table_nljmjmt /////////////
 
-  Orbit::Orbit(int8_t n_, int8_t l_, int8_t jj_, int8_t mmt_) : 
-      n(n_), l(l_), jj(jj_), mmt(mmt_)
-  { }
+  // Constructor
+  Table_nljmjmt::Table_nljmjmt(int maxShell)
+  {
+    assert(maxShell <= 44);
+    uint16_t index = 0;
+    for (qn_t n = 0; n <= maxShell; n++)
+      for (qn_t l = n; l >= 0; l -= 2)
+        for (qn_t jj = 2 * l + 1; jj >= std::abs(2 * l - 1); jj -= 2)
+          for (qn_t mmj = jj; mmj >= -jj; mmj -= 2)
+            for (qn_t mmt = 1; mmt >= -1; mmt -= 2)
+            {
+              key_type key = {n, 2 * l, jj, mmj, mmt};
+              state_to_index[key] = index;
+              index_to_state.push_back(key);
+              index++;
+            }
+  }
+
+  // Get index from quantum numbers
+  uint16_t Table_nljmjmt::getIndex(qn_t n, qn_t ll, 
+                        qn_t jj, qn_t mmj, qn_t mmt) const
+  {
+    key_type key = {n, ll, jj, mmj, mmt};
+    auto it = state_to_index.find(key);
+    if (it == state_to_index.end())
+      throw std::out_of_range("Labels not found");
+    return it->second;
+  }
+
+  // Get quantum numbers from index
+  std::tuple<qn_t, qn_t, qn_t, qn_t, qn_t>
+  Table_nljmjmt::getLabels(uint16_t index) const
+  {
+    return index_to_state[index];
+  }
+
+  ////////////// CLASS Orbit ///////////////
 
   bool Orbit::operator==(const Orbit& other) const
   {
-    return other.n == n && other.l == l && other.jj == jj && other.mmt == mmt;
+    return other.n_ == n_ && other.l_ == l_ && 
+           other.jj_ == jj_ && other.mmt_ == mmt_;
   }
 
   bool Orbit::operator<(const Orbit& other) const
   {
-    return std::tie(n, l, jj, mmt) <
-           std::tie(other.n, other.l, other.jj, other.mmt);
+    return std::tie(n_, l_, jj_, mmt_) <
+           std::tie(other.n_, other.l_, other.jj_, other.mmt_);
   }
 
-  //////////// Class OrbitsMap //////////////
+  //////////// CLASS OrbitsMap //////////////
 
   // Constructor
-  OrbitsMap::OrbitsMap(int emax_)
+  OrbitsMap::OrbitsMap(int emax)
   {
+    assert(emax <= 44);
     // It does not take in lmax, it is set to default lmax = emax
-    emax = qcx_utils::itou8(emax_);
+    emax_ = qcx_utils::ito8(emax);
 
     uint16_t idx = 1;
-    for (int8_t e = 0; e <= emax; ++e)
+    for (qn_t e = 0; e <= emax; ++e)
     {
-      for (int8_t l = e % 2; l <= e; l += 2)
+      for (qn_t l = e % 2; l <= e; l += 2)
       {
-        int8_t n = (e - l) / 2;
-        for (int8_t jj = abs(2 * l - 1); jj <= 2 * l + 1; jj += 2)
+        qn_t n = (e - l) / 2;
+        for (qn_t jj = abs(2 * l - 1); jj <= 2 * l + 1; jj += 2)
         {
           // add proton
           orbits.push_back({n, l, jj, -1});
@@ -183,62 +179,57 @@ namespace HO
         }
       }
     }
-    num_orbits = orbits.size();
   }
 
   // Get index of the orbit
   // Caution: n = (e - l)/2 is the nodal quantum number
   // whereas e is the shell number
-  int OrbitsMap::getIndex(int8_t n, int8_t l, int8_t jj, int8_t mmt) const
+  uint16_t OrbitsMap::getIndex(qn_t n, qn_t l, qn_t jj, qn_t mmt) const
   {
     auto it = index_map.find({n, l, jj, mmt});
     if (it != index_map.end())
-      return static_cast<int>(it->second);
+      return it->second;
     else
       throw std::runtime_error("Orbit not found");
   }
 
-  //////////// Class TBME_scalar /////////////
-
-  TBME_scalar::TBME_scalar()
+  //////////// Class TwBME_scalar /////////////
+  TwBME_scalar::TwBME_scalar()
       : me_map(),
         orbit_map(),
-        num_me(0),
-        name(""),
-        hw(0),
-        Nmax(0),
-        valenceShell(0),
-        maxShell(0)
+        name_(""),
+        hw_(0),
+        Nmax_(0),
+        valenceShell_(0),
+        maxShell_(0)
   { }
 
-  TBME_scalar::TBME_scalar(const std::string& name_, int hw_, int Nmax_,
-                           int valenceShell_, int maxShell_)
+  TwBME_scalar::TwBME_scalar(const std::string& name, 
+    int hw, int Nmax, int valenceShell, int maxShell)
   {
-    if (maxShell_ > 14)
+    if (maxShell > 14)
       throw std::out_of_range(
           "Sorry, we only have maxShell up to 14 at the moment");
 
-    hw = (hw_ >= 0) ? qcx_utils::ito8(hw_) : qcx_utils::ito8(20);
-    Nmax = (Nmax_ >= 0) ? qcx_utils::ito8(Nmax_) : qcx_utils::ito8(14);
-    valenceShell = (valenceShell_ > 0) ? 
-      qcx_utils::ito8(valenceShell_) : qcx_utils::ito8(0);
-    maxShell = (maxShell_ >= 0) ? 
-      qcx_utils::ito8(maxShell_) : qcx_utils::ito8(14);
+    hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
+    Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
+    valenceShell_ = (valenceShell > 0) ? qcx_utils::ito8(valenceShell) : 0;
+    maxShell_ = (maxShell >= 0) ? qcx_utils::ito8(maxShell) : 14;
 
     orbit_map = OrbitsMap(14);
 
-    const std::unordered_set<std::string> known_potentials = {
-        "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
-        "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
-        "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
-        "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
-        "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
-        "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
-        "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
-        "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"};
+    static const std::unordered_set<std::string> known_potentials = {
+      "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
+      "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
+      "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
+      "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
+      "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
+      "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
+      "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
+      "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"};
 
-    if (known_potentials.count(name_))
-      name = name_;
+    if (known_potentials.count(name))
+      name_ = name;
     else
     {
       throw std::runtime_error(
@@ -246,12 +237,32 @@ namespace HO
     }
   }
 
+  void TwBME_scalar::is() const
+  {
+    std::cout << "Two-body potential with " << name_
+              << " hw=" << static_cast<int>(hw_)
+              << " valenceShell=" << static_cast<int>(valenceShell_)
+              << " Nmax=" << static_cast<int>(Nmax_)
+              << " maxShell=" << static_cast<int>(maxShell_) << std::endl;
+  }
+
+  std::ostream& operator<<(std::ostream& s, const TwBME_scalar& x)
+  {
+    s << "Two-body potential with " << x.name_
+      << " hw=" << static_cast<int>(x.hw_)
+      << " valenceShell=" << static_cast<int>(x.valenceShell_)
+      << " Nmax=" << static_cast<int>(x.Nmax_)
+      << " maxShell=" << static_cast<int>(x.maxShell_);
+
+    return s;
+  }
+
   /* Reading method is based on
          subroutine read_scalar_operator_binary_myg(this, f)
          in NuHamil-public/src/TwoBody/TwoBodyLabOps.F90
   */
 // #define CHECKING_2B_CHANNELS
-  void TBME_scalar::read()
+  void TwBME_scalar::read()
   {
 #ifdef HAVE_NUHAMIL
       const char* nuhamil_root = std::getenv("NUHAMIL_ROOT");    
@@ -260,16 +271,16 @@ namespace HO
           "Environment variable NUHAMIL_ROOT is not set");
 
       std::string filename = std::string(nuhamil_root) + 
-          "/exe/TwBME-HO_NN-only_" + name + "_hw" +
-          std::to_string(static_cast<int>(hw)) + "_emax14_e2max28.myg";
+          "/exe/TwBME-HO_NN-only_" + name_ + "_hw" +
+          std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
 #else
       std::string filename =
-          "data/Ab-initio_Interactions/TwBME-HO_NN-only_" + name + "_hw" +
-          std::to_string(static_cast<int>(hw)) + "_emax14_e2max28.myg";
+          "data/Ab-initio_Interactions/TwBME-HO_NN-only_" + name_ + "_hw" +
+          std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
 #endif     
 
     std::cout << "Start reading matrix elements from file" << std::endl;
-#ifdef READ_FROM_BINARY
+#ifdef READ_TWBME_FROM_BINARY
       filename += ".bin";
       read_from_binary(filename);
 #else
@@ -279,34 +290,17 @@ namespace HO
   }
 
 
-  void TBME_scalar::read_from_binary(const std::string& filename)
+  void TwBME_scalar::read_from_binary(const std::string& filename)
   {
     std::ifstream infile(filename, std::ios::binary);
     if (!infile)
-      throw std::runtime_error("Failed to open binary file: " + filename);
-/*
-    // Read number of matrix elements
-    infile.read(reinterpret_cast<char*>(&num_me), sizeof(int));
-    if (!infile)
-      throw std::runtime_error("Failed to read count from file: " + filename);
-
-    // Allocate temporary buffers
-    std::vector<uint> ia(num_me), ib(num_me), ic(num_me), id(num_me), J(num_me);
-    std::vector<double> v(num_me);
-
-    // Read data arrays
-    infile.read(reinterpret_cast<char*>(ia.data()), num_me * sizeof(uint));
-    infile.read(reinterpret_cast<char*>(ib.data()), num_me * sizeof(uint));
-    infile.read(reinterpret_cast<char*>(ic.data()), num_me * sizeof(uint));
-    infile.read(reinterpret_cast<char*>(id.data()), num_me * sizeof(uint));
-    infile.read(reinterpret_cast<char*>(J.data()), num_me * sizeof(uint));
-    infile.read(reinterpret_cast<char*>(v.data()), num_me * sizeof(double));
-*/
+      throw std::runtime_error("Failed to open: " + filename);
 
     // Read number of matrix elements
+    int num_me;
     qcx_utils::readBinary(infile, num_me);
     if (!infile)
-      throw std::runtime_error("Failed to read count from file: " + filename);
+      throw std::runtime_error("Failed to read count from: " + filename);
 
     // Allocate temporary buffers
     std::vector<uint> ia(num_me), ib(num_me), ic(num_me), id(num_me), J(num_me);
@@ -321,7 +315,7 @@ namespace HO
     qcx_utils::readBinary(infile, v);
 
     if (!infile)
-      throw std::runtime_error("Failed to read matrix elements from file: " +
+      throw std::runtime_error("Failed to read matrix elements from: " +
                                filename);
 
     // Populate the map
@@ -330,15 +324,8 @@ namespace HO
         double_cnt = 0;
 #endif
     me_map.reserve(num_me);
-    // int cnt_a_even = 0, cnt_b_even = 0, cnt_c_even = 0, cnt_d_even = 0;
     for (int i = 0; i < num_me; ++i)
     {
-/*
-      if (ia[i] % 2 == 0) cnt_a_even++;
-      if (ib[i] % 2 == 0) cnt_b_even++;
-      if (ic[i] % 2 == 0) cnt_c_even++;
-      if (id[i] % 2 == 0) cnt_d_even++;
-*/
       const auto &oa = orbit_map.getOrbit(ia[i]);
       const auto &ob = orbit_map.getOrbit(ib[i]); 
       const auto &oc = orbit_map.getOrbit(ic[i]);
@@ -349,30 +336,23 @@ namespace HO
       std::cout << "ic: " << ic[i] << "\t" << oc << std::endl;
       std::cout << "id: " << id[i] << "\t" << od << std::endl;
 */
-      int8_t ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, 
-             ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+      qn_t ea = oa.shell(), eb = ob.shell(), ec = oc.shell(), ed = od.shell();
 
-      assert((oa.mmt + ob.mmt) == (oc.mmt + od.mmt));
-      assert((oa.l + ob.l + oc.l + od.l) % 2 == 0);
+      assert((oa.mmt_ + ob.mmt_) == (oc.mmt_ + od.mmt_));
+      assert((oa.l_ + ob.l_ + oc.l_ + od.l_) % 2 == 0);
 
-      if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
+      if (ea > maxShell_ || eb > maxShell_ || ec > maxShell_ || ed > maxShell_)
         continue;
 
-      int8_t ab_Nhw = 0;
-      if (ea > valenceShell)
-        ab_Nhw += (ea - valenceShell);
-      if (eb > valenceShell)
-        ab_Nhw += (eb - valenceShell);
-      if (ab_Nhw > Nmax)
-        continue;
+      qn_t ab_Nhw = 0;
+      if (ea > valenceShell_) ab_Nhw += (ea - valenceShell_);
+      if (eb > valenceShell_) ab_Nhw += (eb - valenceShell_);
+      if (ab_Nhw > Nmax_) continue;
 
-      int8_t cd_Nhw = 0;
-      if (ec > valenceShell)
-        cd_Nhw += (ec - valenceShell);
-      if (ed > valenceShell)
-        cd_Nhw += (ed - valenceShell);
-      if (cd_Nhw > Nmax)
-        continue;
+      qn_t cd_Nhw = 0;
+      if (ec > valenceShell_) cd_Nhw += (ec - valenceShell_);
+      if (ed > valenceShell_) cd_Nhw += (ed - valenceShell_);
+      if (cd_Nhw > Nmax_) continue;
 
 #ifdef CHECKING_2B_CHANNELS
       if (oa.mmt + ob.mmt != oc.mmt + od.mmt)
@@ -391,7 +371,7 @@ namespace HO
 
       me_map[{static_cast<uint16_t>(ia[i]), static_cast<uint16_t>(ib[i]),
               static_cast<uint16_t>(ic[i]), static_cast<uint16_t>(id[i]),
-              static_cast<uint16_t>(J[i])}] = v[i];
+              static_cast<qn_t>(J[i])}] = v[i];
 
       /* Comment on the phase: in the subroutine, one sees these lines
          ph = ms%jpz(ch)%GetPhase(a,b) * ms%jpz(ch)%GetPhase(c,d)
@@ -431,12 +411,6 @@ namespace HO
       */
     }
 
-    num_me = me_map.size();
-/*
-    std::cout << "There are " << cnt_a_even << " even a, " 
-              << cnt_b_even << " even b, " << cnt_c_even
-              << " even c, " << cnt_d_even << " even d" << std::endl;
-*/
 #ifdef CHECKING_2B_CHANNELS
     std::cout << "There are " << violate_isospin << " isospin violations"
               << std::endl;
@@ -452,7 +426,7 @@ namespace HO
     return;
   }
 
-  void TBME_scalar::read_from_file(const std::string& filename)
+  void TwBME_scalar::read_from_file(const std::string& filename)
   {
     std::ifstream infile(filename);
     if (!infile)
@@ -464,6 +438,7 @@ namespace HO
     std::getline(infile, line);
 
     // Get number of matrix elements
+    int num_me;
     infile >> num_me;
     me_map.reserve(num_me);
     // Skip the rest of that line
@@ -488,30 +463,23 @@ namespace HO
       const auto &oc = orbit_map.getOrbit(c); 
       const auto &od = orbit_map.getOrbit(d);
 
-      assert((oa.mmt + ob.mmt) == (oc.mmt + od.mmt));
-      assert((oa.l + ob.l + oc.l + od.l) % 2 == 0);
+      assert((oa.mmt_ + ob.mmt_) == (oc.mmt_ + od.mmt_));
+      assert((oa.l_ + ob.l_ + oc.l_ + od.l_) % 2 == 0);
 
-      int8_t ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l,
-             ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+      qn_t ea = oa.shell(), eb = ob.shell(), ec = oc.shell(), ed = od.shell();
 
-      if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
+      if (ea > maxShell_ || eb > maxShell_ || ec > maxShell_ || ed > maxShell_)
         continue;
 
-      int8_t ab_Nhw = 0;
-      if (ea > valenceShell)
-        ab_Nhw += (ea - valenceShell);
-      if (eb > valenceShell)
-        ab_Nhw += (eb - valenceShell);
-      if (ab_Nhw > Nmax)
-        continue;
+      qn_t ab_Nhw = 0;
+      if (ea > valenceShell_) ab_Nhw += (ea - valenceShell_);
+      if (eb > valenceShell_) ab_Nhw += (eb - valenceShell_);
+      if (ab_Nhw > Nmax_) continue;
 
-      int8_t cd_Nhw = 0;
-      if (ec > valenceShell)
-        cd_Nhw += (ec - valenceShell);
-      if (ed > valenceShell)
-        cd_Nhw += (ed - valenceShell);
-      if (cd_Nhw > Nmax)
-        continue;
+      qn_t cd_Nhw = 0;
+      if (ec > valenceShell_) cd_Nhw += (ec - valenceShell_);
+      if (ed > valenceShell_) cd_Nhw += (ed - valenceShell_);
+      if (cd_Nhw > Nmax_) continue;
 
 #ifdef CHECKING_2B_CHANNELS
       if (oa.mmt + ob.mmt != oc.mmt + od.mmt)
@@ -529,10 +497,8 @@ namespace HO
 
       me_map[{static_cast<uint16_t>(a), static_cast<uint16_t>(b),
               static_cast<uint16_t>(c), static_cast<uint16_t>(d),
-              static_cast<uint16_t>(J)}] = v;
+              static_cast<qn_t>(J)}] = v;
     }
-
-    num_me = me_map.size();
 
 #ifdef CHECKING_2B_CHANNELS
     std::cout << "There are " << violate_isospin << " isospin violations"
@@ -550,72 +516,59 @@ namespace HO
   }
 
   // Get ME from channels
-  double TBME_scalar::getME(uint16_t a, uint16_t b, uint16_t c, uint16_t d,
-                            uint16_t J) const
+  double TwBME_scalar::getME(uint16_t a, uint16_t b, uint16_t c, uint16_t d,
+                             qn_t J) const
   {
-    if (a == b && J % 2 == 1)
-      return 0.0;
-    if (c == d && J % 2 == 1)
-      return 0.0;
+    if (a == b && J % 2 == 1) return 0.0;
+    if (c == d && J % 2 == 1) return 0.0;
 
     const auto &oa = orbit_map.getOrbit(static_cast<int>(a)); 
     const auto &ob = orbit_map.getOrbit(static_cast<int>(b));
     const auto &oc = orbit_map.getOrbit(static_cast<int>(c)); 
     const auto &od = orbit_map.getOrbit(static_cast<int>(d));
 
-    int8_t ea = 2 * oa.n + oa.l, eb = 2 * ob.n + ob.l, 
-           ec = 2 * oc.n + oc.l, ed = 2 * od.n + od.l;
+    qn_t ea = oa.shell(), eb = ob.shell(), ec = oc.shell(), ed = od.shell();
 
     //// HERE IS FOR CHECKING IF READING WAS CORRECT ////
-    if (ea > maxShell || eb > maxShell || ec > maxShell || ed > maxShell)
+    /*
+    if (ea > maxShell_ || eb > maxShell_ || ec > maxShell_ || ed > maxShell_)
       throw std::out_of_range("ME beyond maxShell");
 
-    int8_t ab_Nhw = 0;
-    if (ea > valenceShell)
-      ab_Nhw += (ea - valenceShell);
-    if (eb > valenceShell)
-      ab_Nhw += (eb - valenceShell);
-    if (ab_Nhw > Nmax)
+    qn_t ab_Nhw = 0;
+    if (ea > valenceShell_) ab_Nhw += (ea - valenceShell_);
+    if (eb > valenceShell_) ab_Nhw += (eb - valenceShell_);
+    if (ab_Nhw > Nmax_)
       throw std::out_of_range("bra channel beyond Nmax");
 
-    int8_t cd_Nhw = 0;
-    if (ec > valenceShell)
-      cd_Nhw += (ec - valenceShell);
-    if (ed > valenceShell)
-      cd_Nhw += (ed - valenceShell);
-    if (cd_Nhw > Nmax)
+    qn_t cd_Nhw = 0;
+    if (ec > valenceShell_) cd_Nhw += (ec - valenceShell_);
+    if (ed > valenceShell_) cd_Nhw += (ed - valenceShell_);
+    if (cd_Nhw > Nmax_)
       throw std::out_of_range("ket channel beyond Nmax");
+    */
     //////////////////////////////////////////////////////
 
     auto it = me_map.find({a, b, c, d, J});
-    if (it != me_map.end())
-      return it->second;
+    if (it != me_map.end()) return it->second;
     it = me_map.find({c, d, a, b, J});
-    if (it != me_map.end())
-      return it->second; // if antiHermitian, *= -1
+    if (it != me_map.end()) return it->second; // if antiHermitian, *= -1
 
-    double phase_ab = (((oa.jj + ob.jj) / 2 - J) % 2 == 0) ? -1.0 : 1.0;
+    double phase_ab = (((oa.jj_ + ob.jj_) / 2 - J) % 2 == 0) ? -1.0 : 1.0;
     it = me_map.find({b, a, c, d, J});
-    if (it != me_map.end())
-      return phase_ab * (it->second);
+    if (it != me_map.end()) return phase_ab * (it->second);
     it = me_map.find({c, d, b, a, J});
-    if (it != me_map.end())
-      return phase_ab * (it->second);
+    if (it != me_map.end()) return phase_ab * (it->second);
 
-    double phase_cd = (((oc.jj + od.jj) / 2 - J) % 2 == 0) ? -1.0 : 1.0;
+    double phase_cd = (((oc.jj_ + od.jj_) / 2 - J) % 2 == 0) ? -1.0 : 1.0;
     it = me_map.find({a, b, d, c, J});
-    if (it != me_map.end())
-      return phase_cd * (it->second);
+    if (it != me_map.end()) return phase_cd * (it->second);
     it = me_map.find({d, c, a, b, J});
-    if (it != me_map.end())
-      return phase_cd * (it->second);
+    if (it != me_map.end()) return phase_cd * (it->second);
 
     it = me_map.find({b, a, d, c, J});
-    if (it != me_map.end())
-      return phase_ab * phase_cd * (it->second);
+    if (it != me_map.end()) return phase_ab * phase_cd * (it->second);
     it = me_map.find({d, c, b, a, J});
-    if (it != me_map.end())
-      return phase_ab * phase_cd * (it->second);
+    if (it != me_map.end()) return phase_ab * phase_cd * (it->second);
 
     //return 0.0;
     throw std::out_of_range("Cannot find in the map");
@@ -626,27 +579,27 @@ namespace HO
   // The reason we have e's here is that this function would be compatible
   // with double TwoBodyOperator::sphericalME_AS(...)
 #define SWITCH_HO_CONVENTION
-  double TBME_scalar::getME(
-    int8_t ea, int8_t lla, int8_t jja, int8_t mmja, int8_t mmta,
-    int8_t eb, int8_t llb, int8_t jjb, int8_t mmjb, int8_t mmtb,
-    int8_t ec, int8_t llc, int8_t jjc, int8_t mmjc, int8_t mmtc,
-    int8_t ed, int8_t lld, int8_t jjd, int8_t mmjd, int8_t mmtd,
-    qcx_utils::SO3_CGC& cgcs) const
+  double TwBME_scalar::getME(
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta, 
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb, 
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc, 
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd, 
+      sam::Databases& dbs) const
   {
-    int8_t MMJab = mmja + mmjb, MMJcd = mmjc + mmjd, 
-           MMTab = mmta + mmtb, MMTcd = mmtc + mmtd;
+    qn_t MMJab = mmja + mmjb, MMJcd = mmjc + mmjd, 
+         MMTab = mmta + mmtb, MMTcd = mmtc + mmtd;
     if ((MMJab != MMJcd) || (MMTab != MMTcd)) // spin or isospin violation
       return 0.0;
 
-    int8_t JJ_min = std::max(abs(jja - jjb), abs(jjc - jjd)),
-           JJ_max = std::min(jja + jjb, jjc + jjd);
+    qn_t JJ_min = std::max(abs(jja - jjb), abs(jjc - jjd)),
+         JJ_max = std::min(jja + jjb, jjc + jjd);
 
     if (JJ_min > JJ_max) // no coupled J possible
       return 0.0;
 
-    int8_t la = lla / 2, lb = llb / 2, lc = llc / 2, ld = lld / 2,
-           na = (ea - la) / 2, nb = (eb - lb) / 2, nc = (ec - lc) / 2,
-           nd = (ed - ld) / 2;
+    qn_t la = lla / 2, lb = llb / 2, lc = llc / 2, ld = lld / 2,
+         na = (ea - la) / 2, nb = (eb - lb) / 2, nc = (ec - lc) / 2,
+         nd = (ed - ld) / 2;
 
     if ((la + lb + lc + ld) % 2 != 0) // parity violation
       return 0.0;
@@ -659,17 +612,13 @@ namespace HO
     double norm_ab = (a == b) ? SQRT2 : 1.0, norm_cd = (c == d) ? SQRT2 : 1.0;
 
     double x = 0.0;
-    for (int8_t JJ = JJ_min; JJ <= JJ_max; JJ += 2)
+    for (qn_t JJ = JJ_min; JJ <= JJ_max; JJ += 2)
     {
       if ((a == b && JJ % 4 != 0) || (c == d && JJ % 4 != 0))
         continue;
 
-      x += cgcs.compute(static_cast<int>(jja), static_cast<int>(jjb), 
-                        static_cast<int>(JJ), static_cast<int>(mmja), 
-                        static_cast<int>(mmjb), static_cast<int>(MMJab)) *
-           cgcs.compute(static_cast<int>(jjc), static_cast<int>(jjd), 
-                        static_cast<int>(JJ), static_cast<int>(mmjc), 
-                        static_cast<int>(mmjd), static_cast<int>(MMJab)) *
+      x += dbs.cgcs.compute(jja, jjb, JJ, mmja, mmjb, MMJab) *
+           dbs.cgcs.compute(jjc, jjd, JJ, mmjc, mmjd, MMJab) *
            getME(a, b, c, d, JJ / 2);
     }
 

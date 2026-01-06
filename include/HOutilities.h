@@ -10,95 +10,126 @@
 #include <vector>
 
 #include <CustomHash.h>
+#include <Databases.h>
 
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
 
 namespace HO
 {
+  /////////////// DETERMINING VALENCE SHELL ///////////////
+  inline int valenceShell(int A)
+  {
+    int num_sps = 0, shell = 0;
+    while (num_sps < A)
+    {
+      num_sps += 2 * (shell + 1) * (shell + 2);
+      shell++;
+    }
+    return shell - 1;
+  }
+
+  /////////////// RME OF BOSON OPERATORS ///////////////
+
+  // < na lla || b+ || nb llb >
+  double bosonCreatorRME(int na, int lla, int nb, int llb);
+
+  // < na lla jja || b+ || nb llb jjb >
+  double bosonCreatorRME(int na, int lla, int jja, 
+    int nb, int llb, int jjb, sam::Databases& db);
+
+  // < na lla || b- || nb llb >
+  double bosonAnnihilatorRME(int na, int lla, int nb, int llb);
+
+  // < na lla jja || b- || nb llb jjb >
+  double bosonAnnihilatorRME(int na, int lla, int jja, 
+    int nb, int llb, int jjb, sam::Databases& db);
+
+
+  //////////// CLASS Table_nljmjmt /////////////
+
+  // Assume n = 20 => max(ll) = 40, max(jj) = 41, 
+  // min(mmj) = -41, max(mmj) = 41, mmt = +-1 
+  // Thus these quantum numbers can be represented by int8: -128 to 127
+  using qn_t = int8_t;
+
   class Table_nljmjmt
   {
   private:
     // key = (n, ll, jj, mmj, mmt)
-    // Assume n = 20 => max(ll) = 40, max(jj) = 41, 
-    // min(mmj) = -41, max(mmj) = 41, mmt = +-1 => Key can be int8: -128 to 127
-    using key_type = std::tuple<int8_t, int8_t, int8_t, int8_t, int8_t>;
+    using key_type = std::tuple<qn_t, qn_t, qn_t, qn_t, qn_t>;
 
     // Each shell, dimension is 2(n+1)(n+2)
-    // For n = 0 to 20: total number of single-particle states = 7084 
-    // Thus index can be uint16
+    // For n = 0 to 44: total number of single-particle states = 64860 
+    // Thus index can be uint16 (0 to 65,535)
     std::unordered_map<key_type, uint16_t> state_to_index;
     std::vector<key_type> index_to_state;
-    uint16_t dim;
 
   public:
     // Constructor
-    Table_nljmjmt() : dim(0) { }
+    Table_nljmjmt() = default;
     Table_nljmjmt(int maxShell);
 
+    size_t dim() const { return index_to_state.size(); }
+
     // Get index from quantum numbers
-    uint16_t getIndex(int8_t n, int8_t ll, int8_t jj, 
-                        int8_t mmj, int8_t mmt) const;
+    uint16_t getIndex(qn_t n, qn_t ll, qn_t jj, qn_t mmj, qn_t mmt) const;
 
     // Get quantum numbers from index
     key_type getLabels(uint16_t index) const;
   };
 
-  // < na lla || b+ || nb llb >
-  double bosonCreatorRME(int8_t na, int8_t lla, int8_t nb, int8_t llb);
 
-  // < na lla jja || b+ || nb llb jjb >
-  double bosonCreatorRME(int8_t na, int8_t lla, int8_t jja, int8_t nb, 
-                int8_t llb, int8_t jjb, qcx_utils::SO3_Racah9& racah9);
-
-  // < na lla || b- || nb llb >
-  double bosonAnnihilatorRME(int8_t na, int8_t lla, int8_t nb, int8_t llb);
-
-  // < na lla jja || b- || nb llb jjb >
-  double bosonAnnihilatorRME(int8_t na, int8_t lla, int8_t jja, int8_t nb, 
-                int8_t llb, int8_t jjb, qcx_utils::SO3_Racah9& racah9);
+  ////////////// STRUCT Orbit ///////////////
 
   struct Orbit
   {
-    int8_t n,  // nodal quantum number (!!!not shell number e)
-        l,     // orbital angular momentum
-        jj,    // twice total angular momentum
-        mmt;   // twice isospin projection: +1 for neutron, -1 for proton
+    qn_t n_,   // nodal quantum number (!!!not shell number e)
+         l_,   // orbital angular momentum
+         jj_,  // twice total angular momentum
+         mmt_; // twice isospin projection: +1 for neutron, -1 for proton
 
     // Constructor
-    Orbit() { }
-    Orbit(int8_t n_, int8_t l_, int8_t jj_, int8_t mmt_);
+    Orbit() : n_(0), l_(0), jj_(0), mmt_(0) {}
+    Orbit(qn_t n, qn_t l, qn_t jj, qn_t mmt)
+      : n_(n), l_(l), jj_(jj), mmt_(mmt)
+    { }
 
     bool operator==(const Orbit& other) const;
     bool operator<(const Orbit& other) const;
+    qn_t shell() const { return 2 * n_ + l_; }
   };
 
   inline std::ostream& operator<<(std::ostream& s, const Orbit& o)
   {
-    return s << static_cast<int>(o.n) << "\t" 
-             << static_cast<int>(o.l) << "\t" 
-             << static_cast<int>(o.jj) << "\t" 
-             << static_cast<int>(o.mmt);
+    return s << static_cast<int>(o.n_) << "\t" 
+             << static_cast<int>(o.l_) << "\t" 
+             << static_cast<int>(o.jj_) << "\t" 
+             << static_cast<int>(o.mmt_);
   }
+
+
+  //////////// CLASS OrbitsMap //////////////
 
   class OrbitsMap
   {
-  public:
-    uint8_t emax; // e is the shell number
-    uint16_t num_orbits;
+    qn_t emax_; // e is the shell number
 
     // All orbits
     std::vector<Orbit> orbits;
     std::map<Orbit, uint16_t> index_map;
 
+  public:
     // Constructor
-    OrbitsMap() : emax(0), num_orbits(0), orbits(), index_map() { }
-    OrbitsMap(int emax_);
+    OrbitsMap() : emax_(0), orbits(), index_map() { }
+    OrbitsMap(int emax);
+
+    size_t num_orbits() const { return orbits.size(); }
 
     // Get index of the orbit
     // Caution: n = (e - l)/2 is the nodal quantum number
     // whereas e is the shell number
-    int getIndex(int8_t n, int8_t l, int8_t jj, int8_t mmt) const;
+    uint16_t getIndex(qn_t n, qn_t l, qn_t jj, qn_t mmt) const;
 
     // Get orbit
     Orbit getOrbit(int idx) const { return orbits[idx - 1]; }
@@ -111,6 +142,9 @@ namespace HO
     }
   };
 
+
+  //////////// CLASS TwBME_scalar /////////////
+
   // Two-body matrix elements (TBME) are read in from files computed with
   // NuHamil. Since formatted ascii files take much longer time to read, the
   // default option is to read from binary files (specifically .myg.bin);
@@ -119,26 +153,25 @@ namespace HO
   // need generating and read back from the same computer. However, it might be
   // true that NuHamil has handled these binary files in such a way that they
   // can be moved across platforms.
-#define READ_FROM_BINARY
-  class TBME_scalar
+#define READ_TWBME_FROM_BINARY
+  class TwBME_scalar
   {
   private:
     // key: a b c d J
     using key_type =
-        std::tuple<uint16_t, uint16_t, uint16_t, uint16_t, uint16_t>;
+        std::tuple<uint16_t, uint16_t, uint16_t, uint16_t, qn_t>;
 
     std::unordered_map<key_type, double> me_map;
     OrbitsMap orbit_map;
-    int num_me;
 
-    std::string name;
-    int8_t hw, Nmax, valenceShell, maxShell;
+    std::string name_;
+    qn_t hw_, Nmax_, valenceShell_, maxShell_;
 
   public:
     // Constructor
-    TBME_scalar(); // Default constructor
-    TBME_scalar(const std::string& name_, int hw_, int Nmax_,
-                int valenceShell_, int maxShell_);
+    TwBME_scalar(); // Default constructor
+    TwBME_scalar(const std::string& name, 
+      int hw, int Nmax, int valenceShell, int maxShell);
 
     // Read options during construction
     void read();
@@ -146,28 +179,22 @@ namespace HO
     void read_from_file(const std::string& filename);
 
     // Print out name
-    void is() const
-    {
-      std::cout << "Two-body potential with " << name
-                << " hw=" << static_cast<int>(hw)
-                << " valenceShell=" << static_cast<int>(valenceShell)
-                << " Nmax=" << static_cast<int>(Nmax)
-                << " maxShell=" << static_cast<int>(maxShell) << std::endl;
-    }
+    void is() const;
+    friend std::ostream& operator<<(std::ostream& s, const TwBME_scalar& x);
 
     // Total number of matrix elements
-    int countMEs() const { return num_me; }
+    size_t num_mes() const { return me_map.size();; }
 
     // Get ME from channels
     double getME(uint16_t a, uint16_t b, uint16_t c, uint16_t d,
-                 uint16_t J) const;
+                 qn_t J) const;
 
     // Get ME from quantum numbers
     double getME(
-      int8_t ea, int8_t lla, int8_t jja, int8_t mmja, int8_t mmta, 
-      int8_t eb, int8_t llb, int8_t jjb, int8_t mmjb, int8_t mmtb, 
-      int8_t ec, int8_t llc, int8_t jjc, int8_t mmjc, int8_t mmtc, 
-      int8_t ed, int8_t lld, int8_t jjd, int8_t mmjd, int8_t mmtd, 
-      qcx_utils::SO3_CGC& cgcs) const;
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta, 
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb, 
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc, 
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd, 
+      sam::Databases& dbs) const;
   };
 } // namespace HO
