@@ -1,12 +1,12 @@
 #include <algorithm>
 #include <cassert>
-#include <chrono>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include <UNtoU3.h>
 
@@ -21,30 +21,28 @@
 #endif
 #include <nullspace_error.h>
 
+#include <qcx_readwrite.h>
+
 namespace U3xU4
 {
-  std::vector<UNxU4::SlaterDeterminant>
-  expand_to_SD(std::size_t A, std::size_t n, std::size_t N,
-               const U3xU4::irrep& x, const std::vector<u3::gelfand>& sps3,
-               const std::vector<u4::gelfand>& sps4)
+  UNxU4::SlaterDeterminants expand_to_SD(const U3xU4::GammaElement& G, 
+    const u3::gelfands& sps3, const u4::gelfands& sps4)
   {
-    const u3::irrep b = x.u3();
-    const u4::irrep p = x.u4();
+    int A = G.particles(), n = G.shell(), N = (n + 1) * (n + 2) / 2;
 
-    std::vector<UNxU4::SlaterDeterminant> SDarr;
+    UNxU4::SlaterDeterminants SDarr;
 
     // an array to store the position of the particles
-    std::vector<std::size_t> pos(A);
+    std::vector<size_t> pos(A);
     // initialize first combination: 0, 1, ..., A-1
-    for (std::size_t i = 0; i < A; ++i)
-      pos[i] = i;
+    for (size_t i = 0; i < A; ++i) pos[i] = i;
 
     while (true)
     {
       int N12b = 0, N11b = 0, N13p = 0, N12p = 0, N11p = 0;
-      for (std::size_t index : pos)
+      for (const auto& index : pos)
       {
-        std::size_t r = index / N, c = index % N;
+        size_t r = index / N, c = index % N;
 
         N12b += sps3[c].n12();
         N11b += sps3[c].n11();
@@ -54,15 +52,15 @@ namespace U3xU4
         N11p += sps4[r].n11();
       }
 
-      if (N12b == (x.u3().n13() + x.u3().n23()) && N11b == x.u3().n13() &&
-          N13p == (x.u4().n14() + x.u4().n24() + x.u4().n34()) &&
-          N12p == (x.u4().n14() + x.u4().n24()) && N11p == x.u4().n14())
+      if (N12b == (G.n13() + G.n23()) && N11b == G.n13() &&
+          N13p == (G.n14() + G.n24() + G.n34()) &&
+          N12p == (G.n14() + G.n24()) && N11p == G.n14())
       {
         UNxU4::SlaterDeterminant SD(n);
         // fill SD with positions
-        for (std::size_t index : pos)
+        for (const auto& index : pos)
         {
-          std::size_t r = index / N, c = index % N;
+          size_t r = index / N, c = index % N;
           // std::cout << r << c << std::endl;
           SD.occupy(r, c);
         }
@@ -71,25 +69,23 @@ namespace U3xU4
       }
 
       // Generate next combination
-      std::size_t i = A; // start from the right end
+      size_t i = A; // start from the right end
       while (i > 0 && pos[i - 1] == 4 * N - A + i - 1)
         i--; // find the rightmost element that can be incremented
 
-      if (i == 0)
-        break; // if no element can be increased, done
+      if (i == 0) break; // if no element can be increased, done
 
       pos[i - 1]++; // increase the first non-maxed-out position
 
-      for (std::size_t j = i; j < A; ++j)
+      for (size_t j = i; j < A; ++j)
         pos[j] = pos[j - 1] + 1; // ensure the combination remains increasing
     }
 
     return SDarr;
   }
 
-  static auto RaisingGenerator(std::vector<UNxU4::SlaterDeterminant>& SDarr,
-                               const std::vector<u3::gelfand>& sps3,
-                               const std::vector<u4::gelfand>& sps4)
+  static auto RaisingGenerator(UNxU4::SlaterDeterminants& SDarr,
+    const u3::gelfands& sps3, const u4::gelfands& sps4)
   {
     /* Acting a raising generator on the expansion of SDs will result in
        a new expansion of SDs, each of which has vanishing coefficient.
@@ -101,7 +97,7 @@ namespace U3xU4
        E12p = 2, E23p = 3, E34p = 4
     */
 
-    std::vector<std::pair<std::size_t, UNxU4::SlaterDeterminant>> opt_SD;
+    std::vector<std::pair<size_t, UNxU4::SlaterDeterminant>> opt_SD;
 
 #ifdef USE_SLEPC
     std::vector<Eigen::Triplet<double>> ija;
@@ -110,16 +106,15 @@ namespace U3xU4
 #endif
 
     // Looping over all SDs
-    for (std::size_t i = 0; i < SDarr.size(); i++)
+    for (size_t i = 0; i < SDarr.size(); i++)
     {
       // Going through occupied bits
-      for (std::size_t index = SDarr[i].bits.find_first();
+      for (size_t index = SDarr[i].bits().find_first();
            index != boost::dynamic_bitset<>::npos;
-           index = SDarr[i].bits.find_next(index))
+           index = SDarr[i].bits().find_next(index))
       {
-        // index is an occupied bit
-        auto [r, c] =
-            SDarr[i].invert_index(index); // convert flat index to (r, c)
+        // convert flat index to (r, c)
+        auto [r, c] = SDarr[i].invert_index(index); 
 
         // action of E12b
         int c12 = -1;
@@ -136,7 +131,7 @@ namespace U3xU4
           double phase = (sd.num_hop(r, c, r, c12) % 2 == 0) ? 1 : -1;
           sd.vacate(r, c);
           sd.occupy(r, c12);
-          std::pair<std::size_t, UNxU4::SlaterDeterminant> p(0, sd);
+          std::pair<size_t, UNxU4::SlaterDeterminant> p(0, sd);
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
@@ -177,7 +172,7 @@ namespace U3xU4
           double phase = (sd.num_hop(r, c, r, c23) % 2 == 0) ? 1 : -1;
           sd.vacate(r, c);
           sd.occupy(r, c23);
-          std::pair<std::size_t, UNxU4::SlaterDeterminant> p(1, sd);
+          std::pair<size_t, UNxU4::SlaterDeterminant> p(1, sd);
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
@@ -218,7 +213,7 @@ namespace U3xU4
           double phase = (sd.num_hop(r, c, r12, c) % 2 == 0) ? 1 : -1;
           sd.vacate(r, c);
           sd.occupy(r12, c);
-          std::pair<std::size_t, UNxU4::SlaterDeterminant> p(2, sd);
+          std::pair<size_t, UNxU4::SlaterDeterminant> p(2, sd);
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
@@ -259,7 +254,7 @@ namespace U3xU4
           double phase = (sd.num_hop(r, c, r23, c) % 2 == 0) ? 1 : -1;
           sd.vacate(r, c);
           sd.occupy(r23, c);
-          std::pair<std::size_t, UNxU4::SlaterDeterminant> p(3, sd);
+          std::pair<size_t, UNxU4::SlaterDeterminant> p(3, sd);
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
@@ -300,7 +295,7 @@ namespace U3xU4
           double phase = (sd.num_hop(r, c, r34, c) % 2 == 0) ? 1 : -1;
           sd.vacate(r, c);
           sd.occupy(r34, c);
-          std::pair<std::size_t, UNxU4::SlaterDeterminant> p(4, sd);
+          std::pair<size_t, UNxU4::SlaterDeterminant> p(4, sd);
           auto it = std::find(opt_SD.begin(), opt_SD.end(), p);
           if (it == opt_SD.end())
           {
@@ -333,7 +328,7 @@ namespace U3xU4
     mat.setFromTriplets(ija.begin(), ija.end());
 #else
     Eigen::MatrixXd mat(mat_temp.size(), SDarr.size());
-    for (std::size_t i = 0; i < mat_temp.size(); i++)
+    for (size_t i = 0; i < mat_temp.size(); i++)
       mat.row(i) = mat_temp[i];
 #endif
 
@@ -342,24 +337,24 @@ namespace U3xU4
     return mat;
   }
 
-  std::pair<std::vector<UNxU4::SlaterDeterminant>, Eigen::MatrixXd>
-  HWS_to_SD(int A, int n, const U3xU4::irrep& x,
-            const std::vector<u3::gelfand>& sps3,
-            const std::vector<u4::gelfand>& sps4)
+  std::pair<UNxU4::SlaterDeterminants, Eigen::MatrixXd>
+  HWS_to_SD(const U3xU4::GammaElement& G, 
+    const u3::gelfands& sps3, const u4::gelfands& sps4)
   {
-    int N = (n + 1) * (n + 2) / 2; // shell degeneracy
+    // int N = (n + 1) * (n + 2) / 2; // shell degeneracy
 
-    std::vector<UNxU4::SlaterDeterminant> SDarr =
-        expand_to_SD(A, n, N, x, sps3, sps4);
+    UNxU4::SlaterDeterminants SDarr = expand_to_SD(G, sps3, sps4);
 
     auto mat = RaisingGenerator(SDarr, sps3, sps4);
 
 #ifdef USE_SLEPC
+    /* 
     untou3::UNtoU3<4> gen;
     gen.set_shell(n);
     gen.reduceU4(x.u4(), N);
-    auto multi = gen.multiplicity(x.u3());
-    Eigen::MatrixXd expansion = qcx_utils::null_space_slepc(mat, multi);
+    auto multi = gen.multiplicity(x.u3()); 
+    */
+    Eigen::MatrixXd expansion = qcx_utils::null_space_slepc(mat, G.alphamax());
 #else
     Eigen::MatrixXd expansion = qcx_utils::null_space(mat);
 #endif
@@ -371,10 +366,10 @@ namespace U3xU4
     return std::make_pair(SDarr, expansion);
   }
 
-  std::filesystem::path get_HWS_file(int A, int n, const U3xU4::irrep& x,
-                                     const std::vector<u3::gelfand>& sps3,
-                                     const std::vector<u4::gelfand>& sps4)
+  std::filesystem::path get_HWS_file(const U3xU4::GammaElement& G, 
+    const u3::gelfands& sps3, const u4::gelfands& sps4)
   {
+    assert(!G.vacuum());
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
       throw std::runtime_error("Environment variable SAM_DIR not set");
@@ -385,11 +380,11 @@ namespace U3xU4
     std::filesystem::create_directories(dir);
 
     std::string filename =
-        std::to_string(x.u3().n13()) + "-" + std::to_string(x.u3().n23()) +
-        "-" + std::to_string(x.u3().n33()) + "-" +
-        std::to_string(x.u4().n14()) + "-" + std::to_string(x.u4().n24()) +
-        "-" + std::to_string(x.u4().n34()) + "-" +
-        std::to_string(x.u4().n44()) + ".bin";
+        std::to_string(G.n13()) + "-" + std::to_string(G.n23()) +
+        "-" + std::to_string(G.n33()) + "-" +
+        std::to_string(G.n14()) + "-" + std::to_string(G.n24()) +
+        "-" + std::to_string(G.n34()) + "-" +
+        std::to_string(G.n44()) + ".bin";
 
     std::filesystem::path full_path = dir / filename;
 
@@ -402,26 +397,20 @@ namespace U3xU4
         throw std::runtime_error("Failed to open file for writing: " +
                                  full_path.string());
 
-      auto [SDarr, coeffs] = HWS_to_SD(A, n, x, sps3, sps4);
+      auto [SDarr, coeffs] = HWS_to_SD(G, sps3, sps4);
 
-      std::size_t rows = SDarr.size(), cols = coeffs.cols();
+      size_t bit_count = SDarr[0].num_sps();
+      qcx_utils::writeBinary(file, bit_count);
 
-      file.write(reinterpret_cast<const char*>(&rows), sizeof(rows));
-      file.write(reinterpret_cast<const char*>(&cols), sizeof(cols));
+      size_t rows = SDarr.size(), cols = coeffs.cols();
+      qcx_utils::writeBinary(file, rows);
+      qcx_utils::writeBinary(file, cols);
 
-      for (std::size_t i = 0; i < rows; i++)
+      for (size_t i = 0; i < rows; i++)
       {
-        const auto& bits = SDarr[i].bits;
-        std::size_t bit_count = bits.size();
-        file.write(reinterpret_cast<const char*>(&bit_count),
-                   sizeof(bit_count));
-
         std::vector<unsigned long> blocks;
-        boost::to_block_range(
-            bits, std::back_inserter(blocks)); // Correct representation
-        std::size_t block_count = blocks.size();
-        file.write(reinterpret_cast<const char*>(blocks.data()),
-                   block_count * sizeof(unsigned long));
+        boost::to_block_range(SDarr[i].bits(), std::back_inserter(blocks));
+        qcx_utils::writeBinary(file, blocks);
 
         file.write(reinterpret_cast<const char*>(coeffs.row(i).data()),
                    cols * sizeof(double));
@@ -434,8 +423,7 @@ namespace U3xU4
     return full_path;
   }
 
-  std::pair<std::vector<UNxU4::SlaterDeterminant>,
-            std::vector<Eigen::RowVectorXd>>
+  std::pair<UNxU4::SlaterDeterminants, Eigen::MatrixXd>
   read_HWS_data(const std::filesystem::path& path)
   {
     std::ifstream file(path, std::ios::binary);
@@ -443,68 +431,37 @@ namespace U3xU4
       throw std::runtime_error("Failed to open file for reading: " +
                                path.string());
 
-    std::size_t rows = 0, cols = 0;
-    file.read(reinterpret_cast<char*>(&rows), sizeof(rows)); // read rows
-    file.read(reinterpret_cast<char*>(&cols), sizeof(cols)); // read cols
+    size_t bit_count;
+    qcx_utils::readBinary(file, bit_count);
+    size_t block_count = (bit_count + 
+      sizeof(unsigned long) * 8 - 1) / (sizeof(unsigned long) * 8);
 
-    std::vector<UNxU4::SlaterDeterminant> SDarr;
-    std::vector<Eigen::RowVectorXd> coeffs;
+    size_t rows, cols;
+    qcx_utils::readBinary(file, rows);
+    qcx_utils::readBinary(file, cols);
+
+    UNxU4::SlaterDeterminants SDarr;
     SDarr.reserve(rows);
-    coeffs.reserve(rows);
+
+    Eigen::MatrixXd coeffs(rows,cols);
 
     // std::cout << rows << "," << cols << std::endl;
 
-    for (std::size_t i = 0; i < rows; i++)
-    {
-      std::size_t bit_count = 0;
-      file.read(reinterpret_cast<char*>(&bit_count), sizeof(bit_count));
-
-      if (bit_count == 0 || bit_count > 10000) // or another safe threshold
-        throw std::runtime_error("Corrupted file: unreasonable bit_count = " +
-                                 std::to_string(bit_count));
-
-      std::size_t block_count = (bit_count + sizeof(unsigned long) * 8 - 1) /
-                                (sizeof(unsigned long) * 8);
+    for (size_t i = 0; i < rows; i++)
+    {      
       std::vector<unsigned long> blocks(block_count);
-      file.read(reinterpret_cast<char*>(blocks.data()),
-                block_count * sizeof(unsigned long));
+      qcx_utils::readBinary(file, blocks);
 
       boost::dynamic_bitset<> bits(bit_count);
       boost::from_block_range(blocks.begin(), blocks.end(), bits);
-      bits.resize(bit_count); // Make sure to crop to the correct bit count
-
-      std::vector<double> coeff_vec(cols);
-      file.read(reinterpret_cast<char*>(coeff_vec.data()),
-                cols * sizeof(double));
-      Eigen::RowVectorXd row =
-          Eigen::Map<Eigen::RowVectorXd>(coeff_vec.data(), cols);
-
       SDarr.emplace_back(bits);
-      coeffs.emplace_back(row);
+
+      std::vector<double> coeff(cols);
+      qcx_utils::readBinary(file, coeff);
+      for (size_t j = 0; j < cols; j++) coeffs(i, j) = coeff[j];
     }
-    /*
-        std::string line;
-        while (std::getline(file, line))
-        {
-          std::istringstream iss(line);
-          std::string bitstr;
-          iss >> bitstr;
 
-          std::vector<double> coeff_vec;
-          double val;
-          while (iss >> val)
-            coeff_vec.push_back(val);
-
-          boost::dynamic_bitset<> bits(bitstr);
-          UNxU4::SlaterDeterminant SD(bits);
-          Eigen::RowVectorXd row =
-       Eigen::Map<Eigen::RowVectorXd>(coeff_vec.data(), coeff_vec.size());
-
-          SDarr.push_back(SD);
-          coeffs.push_back(row);
-        }
-    */
-    return std::make_pair(SDarr, coeffs);
+    return std::make_pair(std::move(SDarr), std::move(coeffs));
   }
 
 } // namespace U3xU4
