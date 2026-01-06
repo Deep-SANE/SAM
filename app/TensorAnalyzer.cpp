@@ -1,24 +1,108 @@
-#include <TensorAnalyzer.h>
+#include <OneBodyOperatorJT.h>
+#include <TwoBodyOperatorJT.h>
 
-int main()
+#ifdef USE_SLEPC
+#include <slepcsys.h>
+#endif
+
+int main(int argc, char* argv[])
 {
-  /* Choose one:
-    N4LO_EMN500_bare
-    N3LO_EMN500_bare
-    N2LO_opt_bare
-    CoMNumberOp
-    Kinetic
-  */
-  std::string name = "N4LO_EMN500_bare";
-  auto tensors_U3_stats = sam::U3_tensor_analyzer_write(name);
+#ifdef USE_SLEPC
+  SlepcInitialize(&argc, &argv, NULL, NULL);
+#endif
+
+  sam::Databases dbs;
+
+  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = Nmax;
+  HO::Table_nljmjmt labels(maxShell);
+
+  // YOU MUST CHOOSE ONLY ONE OF THE FOLLOWING OPTIONS.
+  // NOTE THAT THESE OPERATORS MUST HAVE BEEN EXPANDED
+  // AND WRITTEN TO BINARY FILES.
+
+  ////////////// ONE-BODY OPERATORS //////////////
+
+  // Example 1: One-body part of LL
+  // std::string name = "L.L";
+
+  // Example 2: One-body part of LS
+  // std::string name = "L.S";
+
+  // Example 3: One-body part of relative kinetic energy
+  // std::string name = "Kinetic";  
+
+  // Example 4: One-body part of the CoM HO operator
+  std::string name = "CoMNumberOp";
+
+  JT::OneBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
+
+  ////////////// TWO-BODY OPERATORS //////////////
+
+  // Example 1: Two-body part of LL
+  // std::string name = "L.L";
+
+  // Example 2: Two-body part of LS
+  // std::string name = "L.S";
+
+  // Example 3: Two-body part of relative kinetic energy
+  // std::string name = "Kinetic";  
+
+  // Example 4: Two-body part of the CoM HO operator
+  // std::string name = "CoMNumberOp";
+
+  // Example 5: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
+  // std::string name = "N2LO_opt_bare";
+  // std::string name = "N2LO_opt_srg1.0";
+  // std::string name = "N2LO_opt_srg2.0";
+  // std::string name = "N2LO_opt_srg4.0";
+
+  // Example 6: Two-body potential (bare) with N3LO_EMN500_bare,srg1.0,2.0,4.0
+  // std::string name = "N3LO_EMN500_bare";
+  // std::string name = "N3LO_EMN500_srg1.0";
+  // std::string name = "N3LO_EMN500_srg2.0";
+  // std::string name = "N3LO_EMN500_srg4.0";
+
+  // Example 7: Two-body potential (bare) with N2LO_sat_bare,srg1.0,2.0,4.0
+  // std::string name = "N2LO_sat_bare";
+  // std::string name = "N2LO_sat_srg1.0";
+  // std::string name = "N2LO_sat_srg2.0";
+  // std::string name = "N2LO_sat_srg4.0";
+  
+  // Example 8: Two-body potential (bare) with N4LO_EMN500_bare,srg1.0,2.0,4.0
+  // std::string name = "N4LO_EMN500_bare";
+  // std::string name = "N4LO_EMN500_srg1.0";
+  // std::string name = "N4LO_EMN500_srg2.0"
+  // std::string name = "N4LO_EMN500_srg4.0";
+
+  // JT::TwoBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
+
+  ////////////// DON'T EDIT ANYTHING BELOW //////////////
+  
+  op.is();
+
+  auto tensors_U3_stats = op.U3_tensor_analyzer_write(dbs);
   std::cout << "U3 tensor characters:" << std::endl;
-  for (const auto& [irrep, strength] : tensors_U3_stats)
-    std::cout << irrep << ":\t" << strength << std::endl;
+  for (const auto& [irr, stats] : tensors_U3_stats)
+    std::cout << irr << ":\t" << stats << std::endl;
 
-  auto tensors_U4_stats = sam::U4_tensor_analyzer_write(name);
+  auto tensors_U4_stats = op.U4_tensor_analyzer_write(dbs);
   std::cout << "U4 tensor characters:" << std::endl;
-  for (const auto& [irrep, strength] : tensors_U4_stats)
-    std::cout << irrep << ":\t" << strength << std::endl;
+  for (const auto& [irr, stats] : tensors_U4_stats)
+    std::cout << irr << ":\t" << stats << std::endl;
 
+  auto tensors_LL_stats = op.LL_tensor_analyzer_write(dbs);
+  std::cout << "LL tensor characters:" << std::endl;
+  for (const auto& [irr, stats] : tensors_LL_stats)
+    std::cout << irr << ":\t" << stats << std::endl;
+
+  auto tensors_SS_stats = op.SS_tensor_analyzer_write(dbs);
+  std::cout << "SS tensor characters:" << std::endl;
+  for (const auto& [irr, stats] : tensors_SS_stats)
+    std::cout << irr << ":\t" << stats << std::endl;
+
+#ifdef USE_SLEPC
+  SlepcFinalize();
+#endif
+  
   return 0;
 }
