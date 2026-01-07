@@ -110,23 +110,23 @@ namespace U3xU4
                 {
                   if (abs(JJ1 - JJ2) > JJ_ || (JJ1 + JJ2) < JJ_) continue;
                   
-                  double U9j = racah9.compute(LL1, LL2, LL(),
+                  double U9j = racah9.get({LL1, LL2, LL(),
                                               SS1, SS2, SS(),
-                                              JJ1, JJ2, JJ());
+                                              JJ1, JJ2, JJ()});
 
                   for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
                   {
                     int MMJ2 = MMJ() - MMJ1;
                     if (abs(MMJ2) > JJ2) continue;
 
-                    double cgcJ = cgcs.compute(JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ());
+                    double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
 
                     for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
                     {
                       int MMT2 = MMT() - MMT1;
                       if (abs(MMT2) > TT2) continue;
 
-                      double cgcT = cgcs.compute(TT1, TT2, TT(), MMT1, MMT2, MMT());
+                      double cgcT = cgcs.get({TT1, TT2, TT(), MMT1, MMT2, MMT()});
 
                       U3xU4::SingleShellTensor_phys tadat_phys1(
                         tadat1.shell(), tadat1.num_ads(), tadat1.num_ats(),
@@ -275,23 +275,23 @@ namespace U3xU4
                 {
                   if (abs(JJ1 - JJ2) > JJ_ || (JJ1 + JJ2) < JJ_) continue;
 
-                  double U9j = racah9.compute(LL1, LL2, LL(),
+                  double U9j = racah9.get({LL1, LL2, LL(),
                                               SS1, SS2, SS(),
-                                              JJ1, JJ2, JJ());
+                                              JJ1, JJ2, JJ()});
 
                   for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
                   {
                     int MMJ2 = MMJ() - MMJ1;
                     if (abs(MMJ2) > JJ2) continue;
 
-                    double cgcJ = cgcs.compute(JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ());
+                    double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
 
                     for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
                     {
                       int MMT2 = MMT() - MMT1;
                       if (abs(MMT2) > TT2) continue;
 
-                      double cgcT = cgcs.compute(TT1, TT2, TT(), MMT1, MMT2, MMT());
+                      double cgcT = cgcs.get({TT1, TT2, TT(), MMT1, MMT2, MMT()});
 
                       // Even though the extracted tensor is no longer a
                       // two-body multi-shell tensor, we can still utilize its
@@ -485,23 +485,23 @@ namespace U3xU4
                 {
                   if (abs(JJ1 - JJ2) > JJ() || (JJ1 + JJ2) < JJ()) continue;
                   
-                  double U9j = racah9.compute(LL1, LL2, LL,
+                  double U9j = racah9.get({LL1, LL2, LL,
                                               SS1, SS2, SS,
-                                              JJ1, JJ2, JJ());
+                                              JJ1, JJ2, JJ()});
 
                   for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
                   {
                     int MMJ2 = MMJ() - MMJ1;
                     if (abs(MMJ2) > JJ2) continue;
 
-                    double cgcJ = cgcs.compute(JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ());
+                    double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
 
                     for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
                     {
                       int MMT2 = MMT() - MMT1;
                       if (abs(MMT2) > TT2) continue;
 
-                      double cgcT = cgcs.compute(TT1, TT2, TT, MMT1, MMT2, MMT());
+                      double cgcT = cgcs.get({TT1, TT2, TT, MMT1, MMT2, MMT()});
 
                       double cgcU2 = U9j * cgcJ * cgcT;
 
@@ -653,23 +653,23 @@ namespace U3xU4
                 {
                   if (abs(JJ1 - JJ2) > JJ_ || (JJ1 + JJ2) < JJ_) continue;
 
-                  double U9j = racah9.compute(LL1, LL2, LL,
+                  double U9j = racah9.get({LL1, LL2, LL,
                                               SS1, SS2, SS,
-                                              JJ1, JJ2, JJ());
+                                              JJ1, JJ2, JJ()});
 
                   for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
                   {
                     int MMJ2 = MMJ() - MMJ1;
                     if (abs(MMJ2) > JJ2) continue;
 
-                    double cgcJ = cgcs.compute(JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ());
+                    double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
 
                     for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
                     {
                       int MMT2 = MMT() - MMT1;
                       if (abs(MMT2) > TT2) continue;
 
-                      double cgcT = cgcs.compute(TT1, TT2, TT, MMT1, MMT2, MMT());
+                      double cgcT = cgcs.get({TT1, TT2, TT, MMT1, MMT2, MMT()});
 
                       double cgcU2 = U9j * cgcJ * cgcT;
 

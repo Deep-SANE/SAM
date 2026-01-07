@@ -205,7 +205,7 @@ namespace U3xU4
           f3hws.n23(), f3hws.n33(), f3hws.n12(), f3hws.n22());
       if (allowU3 == false) continue;
 
-      double cgc3 = cgcs.compute(jj_i3, jj_t3, jj_f3, mm_i3, mm_t3, mm_f3);
+      double cgc3 = cgcs.get({jj_i3, jj_t3, jj_f3, mm_i3, mm_t3, mm_f3});
 
       auto cgcU3 = accU3 * cgc3;
 
@@ -232,7 +232,7 @@ namespace U3xU4
             f4hws.n23(), f4hws.n33(), f4hws.n12(), f4hws.n22());
         if (allowU3_4 == false) continue;
 
-        double cgc4 = cgcs.compute(jj_i4, jj_t4, jj_f4, mm_i4, mm_t4, mm_f4);
+        double cgc4 = cgcs.get({jj_i4, jj_t4, jj_f4, mm_i4, mm_t4, mm_f4});
 
         Eigen::RowVectorXd cgcU4(etamax);
         cgcU4.setZero();

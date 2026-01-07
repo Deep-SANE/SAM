@@ -268,12 +268,12 @@ namespace JT
       if (mmta == mmtb && mmtb == -1)
       {
         double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0,
-               factor = cgcs.compute(jjb, 4, jja, mmjb, 0, mmja) *
-                        racah.compute(llb, 1, 4, jja, jjb, lla);
+               factor = cgcs.get({jjb, 4, jja, mmjb, 0, mmja}) *
+                        racah.get({llb, 1, 4, jja, jjb, lla});
         int nc = nb - 1, llc_min = 2 * (nc % 2);
         for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
         {
-          double factor = racah.compute(llb, 2, lla, 2, llc, 4);
+          double factor = racah.get({llb, 2, lla, 2, llc, 4});
           if (na == nb)
             x += factor * HO::bosonCreatorRME(na, lla, nc, llc) *
                  HO::bosonAnnihilatorRME(nc, llc, nb, llb);
@@ -284,7 +284,7 @@ namespace JT
         nc = nb + 1, llc_min = 2 * (nc % 2);
         for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
         {
-          double factor = racah.compute(llb, 2, lla, 2, llc, 4);
+          double factor = racah.get({llb, 2, lla, 2, llc, 4});
           if (na == nb)
             x += factor * HO::bosonAnnihilatorRME(na, lla, nc, llc) *
                  HO::bosonCreatorRME(nc, llc, nb, llb);
@@ -303,10 +303,10 @@ namespace JT
         double gs = (mmta == 1) ? gs_n : gs_p;
 
         double phase = ((jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0;
-        x = cgcs.compute(jjb, 2, jja, mmjb, 0, mmja) *
-            (gl * phase * racah.compute(llb, 1, 2, jja, jjb, llb) *
+        x = cgcs.get({jjb, 2, jja, mmjb, 0, mmja}) *
+            (gl * phase * racah.get({llb, 1, 2, jja, jjb, llb}) *
                  std::sqrt(llb * (llb + 2.0) / 4.0) +
-             gs * racah.compute(1, llb, 2, jja, jjb, 1) * std::sqrt(0.75));
+             gs * racah.get({1, llb, 2, jja, jjb, 1}) * std::sqrt(0.75));
       }
     }
     else if (name_ == "FermiPlus") // Fermi for beta+
@@ -494,9 +494,9 @@ namespace JT
 
             double U9j;
             if (na <= nb)
-              U9j = racah9.compute(lla, 1, jja, llb, 1, jjb, LL0, SS0, JJ());
+              U9j = racah9.get({lla, 1, jja, llb, 1, jjb, LL0, SS0, JJ()});
             else // na > nb
-              U9j = racah9.compute(llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ());
+              U9j = racah9.get({llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ()});
 
             Eigen::MatrixXd Coeffs3, Coeffs4;
             if (na <= nb)
@@ -549,8 +549,8 @@ namespace JT
 #endif
                 if (na <= nb)
                 {
-                  double cgcJ = cgcs.compute(jja, jjb, JJ(), mmja, -mmjb, MMJ()),
-                         cgcT = cgcs.compute(1, 1, TT(), mmta, -mmtb, MMT());
+                  double cgcJ = cgcs.get({jja, jjb, JJ(), mmja, -mmjb, MMJ()}),
+                         cgcT = cgcs.get({1, 1, TT(), mmta, -mmtb, MMT()});
 
                   for (int k = 0; k < kappa0; k++)
                   {
@@ -562,8 +562,8 @@ namespace JT
                 }
                 else // na > nb
                 {
-                  double cgcJ = cgcs.compute(jjb, jja, JJ(), -mmjb, mmja, MMJ()),
-                         cgcT = cgcs.compute(1, 1, TT(), -mmtb, mmta, MMT());
+                  double cgcJ = cgcs.get({jjb, jja, JJ(), -mmjb, mmja, MMJ()}),
+                         cgcT = cgcs.get({1, 1, TT(), -mmtb, mmta, MMT()});
 
                   for (int k = 0; k < kappa0; k++)
                   {
@@ -624,9 +624,9 @@ namespace JT
 
             double U9j;
             if (na <= nb)
-              U9j = racah9.compute(lla, 1, jja, llb, 1, jjb, LL0, SS0, JJ());
+              U9j = racah9.get({lla, 1, jja, llb, 1, jjb, LL0, SS0, JJ()});
             else // na > nb
-              U9j = racah9.compute(llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ());
+              U9j = racah9.get({llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ()});
 
             Eigen::MatrixXd Coeffs3, Coeffs4;
             if (na <= nb)
@@ -935,9 +935,9 @@ namespace JT
                 // check if jja x jjb -> JJ coupling is allowed
                 if (JJ() < abs(jja - jjb) || JJ() > jja + jjb) continue;
 
-                double U9j = (na <= nb) 
-                  ? racah9.compute(lla, 1, jja, llb, 1, jjb, LL0, SS0, JJ())
-                  : racah9.compute(llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ());
+                double U9j = (na <= nb)
+                  ? racah9.get({lla, 1, jja, llb, 1, jjb, LL0, SS0, JJ()})
+                  : racah9.get({llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ()});
 
                 // loop over projections
                 for (int mmja = jja; mmja >= -jja; mmja -= 2)
@@ -945,18 +945,18 @@ namespace JT
                   int mmjb = mmja - MMJ(); // selection rule of sphericalME
                   if (abs(mmjb) > jjb) continue;
 
-                  double cgcJ = (na <= nb) 
-                    ? cgcs.compute(jja, jjb, JJ(), mmja, -mmjb, MMJ())
-                    : cgcs.compute(jjb, jja, JJ(), -mmjb, mmja, MMJ());
+                  double cgcJ = (na <= nb)
+                    ? cgcs.get({jja, jjb, JJ(), mmja, -mmjb, MMJ()})
+                    : cgcs.get({jjb, jja, JJ(), -mmjb, mmja, MMJ()});
 
                   for (int mmta = 1; mmta >= -1; mmta -= 2)
                   {
                     int mmtb = mmta - MMT(); // selection rule of sphericalME
                     if (abs(mmtb) > 1) continue;
 
-                    double cgcT = (na <= nb) 
-                      ? cgcs.compute(1, 1, TT(), mmta, -mmtb, MMT())
-                      : cgcs.compute(1, 1, TT(), -mmtb, mmta, MMT());
+                    double cgcT = (na <= nb)
+                      ? cgcs.get({1, 1, TT(), mmta, -mmtb, MMT()})
+                      : cgcs.get({1, 1, TT(), -mmtb, mmta, MMT()});
 
                     double me = sphericalME(na, lla, jja, mmja, mmta, nb, llb,
                                             jjb, mmjb, mmtb, dbs);

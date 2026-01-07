@@ -87,7 +87,7 @@ namespace U3xU4
 
     std::vector<Eigen::Triplet<double>> ija;
 
-    auto cgcJ = cgcs.compute(JJ, JJ_opt, JJ, MMJ, MMJ_opt, MMJ);
+    auto cgcJ = cgcs.get({JJ, JJ_opt, JJ, MMJ, MMJ_opt, MMJ});
 
     if (std::fabs(cgcJ) > 0.0)
     {
@@ -205,10 +205,10 @@ namespace U3xU4
 
                 for (const auto& [k, LL, z, SS, TT, s] : tensors[tensor_id].LLSSTTstrengths())
                 {
-                  auto cgcT = cgcs.compute(ket_TT, TT, bra_TT, MMT, MMT_opt, MMT);
-                  auto cgcU2 = cgcJ * cgcT * racah9.compute(ket_LL, ket_SS, JJ, 
-                                                            LL, SS, JJ_opt, 
-                                                            bra_LL, bra_SS, JJ);
+                  auto cgcT = cgcs.get({ket_TT, TT, bra_TT, MMT, MMT_opt, MMT});
+                  auto cgcU2 = cgcJ * cgcT * racah9.get({ket_LL, ket_SS, JJ,
+                                                            LL, SS, JJ_opt,
+                                                            bra_LL, bra_SS, JJ});
                   cgcU2s[tensor_id].push_back(cgcU2);
 
                   auto [allowU3, cgcU3] = wigU3SO3db.get(
@@ -412,8 +412,8 @@ namespace U3xU4
 
     std::vector<Eigen::Triplet<double>> ija;
 
-    auto cgcJ = cgcs.compute(kets_JJ, JJ_opt, bras_JJ, 
-                             kets_MMJ, MMJ_opt, bras_MMJ);
+    auto cgcJ = cgcs.get({kets_JJ, JJ_opt, bras_JJ,
+                             kets_MMJ, MMJ_opt, bras_MMJ});
 
     if (std::fabs(cgcJ) > 0.0)
     {
@@ -529,11 +529,11 @@ namespace U3xU4
 
                 for (const auto& [k, LL, z, SS, TT, s] : tensors[tensor_id].LLSSTTstrengths())
                 {
-                  auto cgcT = cgcs.compute(ket_TT, TT, bra_TT, 
-                                           kets_MMT, MMT_opt, bras_MMT);
-                  auto cgcU2 = cgcJ * cgcT * racah9.compute(ket_LL, ket_SS, kets_JJ, 
-                                                            LL, SS, JJ_opt, 
-                                                            bra_LL, bra_SS, bras_JJ);
+                  auto cgcT = cgcs.get({ket_TT, TT, bra_TT,
+                                           kets_MMT, MMT_opt, bras_MMT});
+                  auto cgcU2 = cgcJ * cgcT * racah9.get({ket_LL, ket_SS, kets_JJ,
+                                                            LL, SS, JJ_opt,
+                                                            bra_LL, bra_SS, bras_JJ});
                   cgcU2s[tensor_id].push_back(cgcU2);
 
                   auto [allowU3, cgcU3] = wigU3SO3db.get(

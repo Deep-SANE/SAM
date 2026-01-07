@@ -51,7 +51,7 @@ namespace HO
       // double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0;
       // double factor = phase * racah.compute(llb,1,2,jja,jjb,lla) /
       // std::sqrt(lla + 1.0);
-      double factor = db.racah9.compute(llb, 2, lla, 1, 0, 1, jjb, 2, jja);
+      double factor = db.racah9.get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
       return factor * bosonCreatorRME(na, lla, nb, llb);
     }
     else
@@ -91,7 +91,7 @@ namespace HO
       // double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0;
       // double factor = phase * racah.compute(llb,1,2,jja,jjb,lla) /
       // std::sqrt(lla + 1.0);
-      double factor = db.racah9.compute(llb, 2, lla, 1, 0, 1, jjb, 2, jja);
+      double factor = db.racah9.get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
       return factor * bosonAnnihilatorRME(na, lla, nb, llb);
     }
     else
@@ -617,8 +617,8 @@ namespace HO
       if ((a == b && JJ % 4 != 0) || (c == d && JJ % 4 != 0))
         continue;
 
-      x += dbs.cgcs.compute(jja, jjb, JJ, mmja, mmjb, MMJab) *
-           dbs.cgcs.compute(jjc, jjd, JJ, mmjc, mmjd, MMJab) *
+      x += dbs.cgcs.get({jja, jjb, JJ, mmja, mmjb, MMJab}) *
+           dbs.cgcs.get({jjc, jjd, JJ, mmjc, mmjd, MMJab}) *
            getME(a, b, c, d, JJ / 2);
     }
 

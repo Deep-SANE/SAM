@@ -116,12 +116,12 @@ namespace JT
       {
         double phase = ((jja + jjb + jjc + jjd) / 2 % 2 == 0) ? 1.0 : -1.0,
                factor = std::sqrt(llc * (llc + 2.0) * lld * (lld + 2.0)) / 4.0,
-               U1 = racah.compute(llc, 1, 2, jja, jjc, llc),
-               U2 = racah.compute(lld, 1, 2, jjb, jjd, lld), cgc = 0.0;
+               U1 = racah.get({llc, 1, 2, jja, jjc, llc}),
+               U2 = racah.get({lld, 1, 2, jjb, jjd, lld}), cgc = 0.0;
         for (int mu = -1; mu <= 1; mu++)
           cgc += (mu == 0 ? 1.0 : -1.0) *
-                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
-                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
+                 cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
+                 cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
         x = 2 * phase * factor * U1 * U2 * cgc;
       }
     }
@@ -130,10 +130,10 @@ namespace JT
       if (na == nc && nb == nd && lla == llc && llb == lld && mmta == mmtc &&
           mmtb == mmtd)
       {
-        double U1 = racah.compute(llc, 1, 2, jja, jjc, llc),
-               U2 = racah.compute(1, lld, 2, jjb, jjd, 1),
-               U3 = racah.compute(lld, 1, 2, jjb, jjd, lld),
-               U4 = racah.compute(1, llc, 2, jja, jjc, 1),
+        double U1 = racah.get({llc, 1, 2, jja, jjc, llc}),
+               U2 = racah.get({1, lld, 2, jjb, jjd, 1}),
+               U3 = racah.get({lld, 1, 2, jjb, jjd, lld}),
+               U4 = racah.get({1, llc, 2, jja, jjc, 1}),
                phase12 = ((jja - jjc) / 2 % 2 == 0) ? 1.0 : -1.0,
                phase34 = ((jjb - jjd) / 2 % 2 == 0) ? 1.0 : -1.0,
                factor =
@@ -142,8 +142,8 @@ namespace JT
                cgc = 0.0;
         for (int mu = -1; mu <= 1; mu++)
           cgc += (mu == 0 ? 1.0 : -1.0) *
-                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
-                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
+                 cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
+                 cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
         x = std::sqrt(0.75) * cgc * factor;
       }
     }
@@ -155,8 +155,8 @@ namespace JT
         double cgc = 0.0;
         for (int mu = -1; mu <= 1; mu++)
           cgc += (mu == 0 ? 1.0 : -1.0) *
-                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
-                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
+                 cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
+                 cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
         x = cgc *
             (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
@@ -172,8 +172,8 @@ namespace JT
         double cgc = 0.0;
         for (int mu = -1; mu <= 1; mu++)
           cgc += (mu == 0 ? 1.0 : -1.0) *
-                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
-                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
+                 cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
+                 cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
         x = static_cast<double>(hw_) * cgc *
             (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
                  (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs) -
@@ -192,8 +192,8 @@ namespace JT
         double cgc = 0.0;
         for (int mu = -1; mu <= 1; mu++)
           cgc += (mu == 0 ? 1.0 : -1.0) *
-                 cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
-                 cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
+                 cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
+                 cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
         x = 2.0 * cgc *
             (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
                  (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +

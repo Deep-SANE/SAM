@@ -64,8 +64,8 @@ double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
     double cgc = 0.0;
     for (int mu = -1; mu <= 1; mu++)
       cgc += (mu == 0 ? 1.0 : -1.0) *
-              cgcs.compute(jjc, 2, jja, mmjc, 2 * mu, mmja) *
-              cgcs.compute(jjd, 2, jjb, mmjd, -2 * mu, mmjb);
+              cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
+              cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
     x = cgc *
         (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
          HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
@@ -109,12 +109,12 @@ double RME_CoM_2B_AS(int na, int lla, int jja, int nb, int llb, int jjb,
   for (int mmja = jja; mmja >= -jja; mmja -= 2)
   {
   	int mmjb = JJ - mmja;
-  	double cgcJ_ab = cgcs.compute(jja,jjb,JJ,mmja,mmjb,JJ);
+  	double cgcJ_ab = cgcs.get({jja,jjb,JJ,mmja,mmjb,JJ});
 
   	for (int mmjc = jjc; mmjc >= -jjc; mmjc -= 2)
     {
   	  int mmjd = JJ - mmjc;
-      double cgcJ_cd = cgcs.compute(jjc,jjd,JJ,mmjc,mmjd,JJ);
+      double cgcJ_cd = cgcs.get({jjc,jjd,JJ,mmjc,mmjd,JJ});
 
   	  x += cgcJ_ab * cgcJ_cd *
   	  	   ME_CoM_2B_AS(na, lla, jja, mmja, nb, llb, jjb, mmjb,
@@ -238,13 +238,13 @@ int main(int argc, char* argv[])
         	  		  	  	  	  	  	  rme *= factor * std::sqrt((JJ + 1.0));// norm_ab / norm_cd);
       	     		  	  	  	  	  	  if (std::fabs(rme) < 1e-12) continue;
 
-      	     		  	  	  	  	  	  double racah9_ab = racah9.compute(2*la,1,jja, 2*lb,1,jjb, 2*Lf,2*Sf,JJ);
+      	     		  	  	  	  	  	  double racah9_ab = racah9.get({2*la,1,jja, 2*lb,1,jjb, 2*Lf,2*Sf,JJ});
       	  		  	  	  	  	  	  	  if (std::fabs(racah9_ab) < 1e-12) continue;
 
-      	  		  	  	  	  	  	  	  double racah9_dc = racah9.compute(2*ld,1,jjd, 2*lc,1,jjc, 2*Li,2*Si,JJ);
+      	  		  	  	  	  	  	  	  double racah9_dc = racah9.get({2*ld,1,jjd, 2*lc,1,jjc, 2*Li,2*Si,JJ});
       	  		     	  	  	  	  	  if (std::fabs(racah9_dc) < 1e-12) continue;
 
-      	  		     	  	  	  	  	  double racah9_0 = racah9.compute(2*Lf,2*Sf,JJ, 2*Li,2*Si,JJ, 2*L0,2*L0,0);
+      	  		     	  	  	  	  	  double racah9_0 = racah9.get({2*Lf,2*Sf,JJ, 2*Li,2*Si,JJ, 2*L0,2*L0,0});
       	  		  	  	  	  	  	  	  if (std::fabs(racah9_0) < 1e-12) continue;
 
       	  		  	  	  	  	  	  	  for (int kf = 0; kf < kfmax; kf++)

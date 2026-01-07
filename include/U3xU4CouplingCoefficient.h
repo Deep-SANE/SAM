@@ -30,9 +30,9 @@ namespace U3xU4
       auto& wigU3SO3db = dbs.wigU3SO3db;
       auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
 
-      double cgcJ = cgcs.compute(JJ1, JJ2, JJ3, MMJ1, MMJ2, MMJ3),
-             cgcT = cgcs.compute(TT1, TT2, TT3, MMT1, MMT2, MMT3),
-             U9j = racah9.compute(LL1, SS1, JJ1, LL2, SS2, JJ2, LL3, SS3, JJ3),
+      double cgcJ = cgcs.get({JJ1, JJ2, JJ3, MMJ1, MMJ2, MMJ3}),
+             cgcT = cgcs.get({TT1, TT2, TT3, MMT1, MMT2, MMT3}),
+             U9j = racah9.get({LL1, SS1, JJ1, LL2, SS2, JJ2, LL3, SS3, JJ3}),
              factor = cgcJ * cgcT * U9j;
 
       auto [allowU3, cgcU3] = wigU3SO3db.get(a.lam(), a.mu(), LL1 / 2, 

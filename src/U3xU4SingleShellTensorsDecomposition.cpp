@@ -125,7 +125,7 @@ namespace U3xU4
         // accU3 should have only one element
         assert(accU3.cols() == 1);        
 
-        double cgc3 = cgcs.compute(jj3_1, jj3_2, jj3, mm3_1, mm3_2, mm3);
+        double cgc3 = cgcs.get({jj3_1, jj3_2, jj3, mm3_1, mm3_2, mm3});
 
         double cgcU3 = accU3(0) * cgc3;
 
@@ -162,7 +162,7 @@ namespace U3xU4
 
           if (allowU3_4 == false) continue;
 
-          double cgc4 = cgcs.compute(jj4_1, jj4_2, jj4, mm4_1, mm4_2, mm4);
+          double cgc4 = cgcs.get({jj4_1, jj4_2, jj4, mm4_1, mm4_2, mm4});
 
           double cgcU4 = 0.0;
           for (size_t r = 0; r < accU4.rows(); r++)
@@ -215,7 +215,7 @@ namespace U3xU4
         // accU3 should have only one element
         assert(accU3.cols() == 1);        
 
-        double cgc3 = cgcs.compute(jj3_0, jj3_3, jj3, mm3_0, mm3_3, mm3);
+        double cgc3 = cgcs.get({jj3_0, jj3_3, jj3, mm3_0, mm3_3, mm3});
 
         double cgcU3 = accU3(0) * cgc3;
 
@@ -251,7 +251,7 @@ namespace U3xU4
 
           if (allowU3_4 == false) continue;
 
-          double cgc4 = cgcs.compute(jj4_0, jj4_3, jj4, mm4_0, mm4_3, mm4);
+          double cgc4 = cgcs.get({jj4_0, jj4_3, jj4, mm4_0, mm4_3, mm4});
 
           double cgcU4 = 0.0;
           for (size_t r = 0; r < accU4.rows(); r++)
@@ -339,9 +339,9 @@ namespace U3xU4
             {
               if (abs(jja - jjb) > JJ_ || (jja + jjb) < JJ_) continue;
 
-              double U9j = racah9.compute(lla, llb, LL(), 
-                                          1, 1, SS(), 
-                                          jja, jjb, JJ());
+              double U9j = racah9.get({lla, llb, LL(),
+                                          1, 1, SS(),
+                                          jja, jjb, JJ()});
 
               for (int mmja = jja; mmja >= -jja; mmja -= 2)
               {
@@ -353,8 +353,8 @@ namespace U3xU4
                   int mmtb = MMT() - mmta;
                   if (abs(mmtb) > 1) continue;
 
-                  double cgcJ = cgcs.compute(jja, jjb, JJ(), mmja, mmjb, MMJ()),
-                         cgcT = cgcs.compute(1, 1, TT(), mmta, mmtb, MMT()),
+                  double cgcJ = cgcs.get({jja, jjb, JJ(), mmja, mmjb, MMJ()}),
+                         cgcT = cgcs.get({1, 1, TT(), mmta, mmtb, MMT()}),
                          factor = cgcU4(0, 0) * U9j * cgcJ * cgcT;
 
                   Eigen::RowVectorXd coeffs(kappamax());
@@ -428,9 +428,9 @@ namespace U3xU4
               {
                 if (abs(JJ0 - jjc) > JJ_ || (JJ0 + jjc) < JJ_) continue;
 
-                double U9j = racah9.compute(LL0, llc, LL(), 
-                                            SS0, 1, SS(), 
-                                            JJ0, jjc, JJ());
+                double U9j = racah9.get({LL0, llc, LL(),
+                                            SS0, 1, SS(),
+                                            JJ0, jjc, JJ()});
 
                 for (int mmjc = jjc; mmjc >= -jjc; mmjc -= 2)
                 {
@@ -442,8 +442,8 @@ namespace U3xU4
                     int MMT0 = MMT() - mmtc;
                     if (abs(MMT0) > TT0) continue;
 
-                    double cgcJ = cgcs.compute(JJ0, jjc, JJ(), MMJ0, mmjc, MMJ()),
-                           cgcT = cgcs.compute(TT0, 1, TT(), MMT0, mmtc, MMT()),
+                    double cgcJ = cgcs.get({JJ0, jjc, JJ(), MMJ0, mmjc, MMJ()}),
+                           cgcT = cgcs.get({TT0, 1, TT(), MMT0, mmtc, MMT()}),
                            factor = cgcU4(0, 0) * U9j * cgcJ * cgcT;
 
                     U3xU4::Tad_phys Tad0(n_, {Omegas_[0]}, LL0, SS0, TT0, MMT0, 
@@ -552,7 +552,7 @@ namespace U3xU4
         // accU3 should have only one element
         assert(accU3.cols() == 1);        
 
-        double cgc3 = cgcs.compute(jj3_1, jj3_2, jj3, mm3_1, mm3_2, mm3);
+        double cgc3 = cgcs.get({jj3_1, jj3_2, jj3, mm3_1, mm3_2, mm3});
 
         double cgcU3 = accU3(0) * cgc3;
 
@@ -589,7 +589,7 @@ namespace U3xU4
 
           if (allowU3_4 == false) continue;
 
-          double cgc4 = cgcs.compute(jj4_1, jj4_2, jj4, mm4_1, mm4_2, mm4);
+          double cgc4 = cgcs.get({jj4_1, jj4_2, jj4, mm4_1, mm4_2, mm4});
 
           double cgcU4 = 0.0;
           for (size_t r = 0; r < accU4.rows(); r++)
@@ -650,7 +650,7 @@ namespace U3xU4
         // accU3 should have only one element
         assert(accU3.cols() == 1);        
 
-        double cgc3 = cgcs.compute(jj3_0, jj3_3, jj3, mm3_0, mm3_3, mm3);
+        double cgc3 = cgcs.get({jj3_0, jj3_3, jj3, mm3_0, mm3_3, mm3});
 
         double cgcU3 = accU3(0) * cgc3;
 
@@ -686,7 +686,7 @@ namespace U3xU4
 
           if (allowU3_4 == false) continue;
 
-          double cgc4 = cgcs.compute(jj4_0, jj4_3, jj4, mm4_0, mm4_3, mm4);
+          double cgc4 = cgcs.get({jj4_0, jj4_3, jj4, mm4_0, mm4_3, mm4});
 
           double cgcU4 = 0.0;
           for (size_t r = 0; r < accU4.rows(); r++)
@@ -778,9 +778,9 @@ namespace U3xU4
             {
               if (abs(jja - jjb) > JJ_ || (jja + jjb) < JJ_) continue;
 
-              double U9j = racah9.compute(lla, llb, LL(), 
-                                          1, 1, SS(), 
-                                          jja, jjb, JJ());
+              double U9j = racah9.get({lla, llb, LL(),
+                                          1, 1, SS(),
+                                          jja, jjb, JJ()});
 
               for (int mmja = jja; mmja >= -jja; mmja -= 2)
               {
@@ -792,8 +792,8 @@ namespace U3xU4
                   int mmtb = MMT() - mmta;
                   if (abs(mmtb) > 1) continue;
 
-                  double cgcJ = cgcs.compute(jja, jjb, JJ(), mmja, mmjb, MMJ()),
-                         cgcT = cgcs.compute(1, 1, TT(), mmta, mmtb, MMT());
+                  double cgcJ = cgcs.get({jja, jjb, JJ(), mmja, mmjb, MMJ()}),
+                         cgcT = cgcs.get({1, 1, TT(), mmta, mmtb, MMT()});
 
                   U3xU4::at_phys at1(n_, lla, jja, mmja, mmta, labels_),
                                  at2(n_, llb, jjb, mmjb, mmtb, labels_);
@@ -874,9 +874,9 @@ namespace U3xU4
               {
                 if (abs(JJ0 - jjc) > JJ_ || (JJ0 + jjc) < JJ_) continue;
 
-                double U9j = racah9.compute(LL0, llc, LL(), 
-                                            SS0, 1, SS(), 
-                                            JJ0, jjc, JJ());
+                double U9j = racah9.get({LL0, llc, LL(),
+                                            SS0, 1, SS(),
+                                            JJ0, jjc, JJ()});
 
                 for (int mmjc = jjc; mmjc >= -jjc; mmjc -= 2)
                 {
@@ -888,8 +888,8 @@ namespace U3xU4
                     int MMT0 = MMT() - mmtc;
                     if (abs(MMT0) > TT0) continue;
 
-                    double cgcJ = cgcs.compute(JJ0, jjc, JJ(), MMJ0, mmjc, MMJ()),
-                           cgcT = cgcs.compute(TT0, 1, TT(), MMT0, mmtc, MMT()),
+                    double cgcJ = cgcs.get({JJ0, jjc, JJ(), MMJ0, mmjc, MMJ()}),
+                           cgcT = cgcs.get({TT0, 1, TT(), MMT0, mmtc, MMT()}),
                            factor = cgcU4(0, 0) * U9j * cgcJ * cgcT;
 
                     U3xU4::Tat_phys Tat0(n_, {Omegas_[0]}, LL0, SS0, TT0, MMT0, 
@@ -1044,7 +1044,7 @@ namespace U3xU4
         
         if (allowU3 == false) continue;
 
-        double cgc3 = cgcs.compute(jj3_1, jj3_2, jj3, mm3_1, mm3_2, mm3);
+        double cgc3 = cgcs.get({jj3_1, jj3_2, jj3, mm3_1, mm3_2, mm3});
 
         auto cgcU3 = accU3 * cgc3;
 
@@ -1075,7 +1075,7 @@ namespace U3xU4
 
           if (allowU3_4 == false) continue;
 
-          double cgc4 = cgcs.compute(jj4_1, jj4_2, jj4, mm4_1, mm4_2, mm4);
+          double cgc4 = cgcs.get({jj4_1, jj4_2, jj4, mm4_1, mm4_2, mm4});
 
           Eigen::RowVectorXd cgcU4(etamax);
           cgcU4.setZero();
@@ -1226,23 +1226,23 @@ namespace U3xU4
                 {
                   if (abs(JJ1 - JJ2) > JJ_ || (JJ1 + JJ2) < JJ_) continue;
 
-                  double U9j = racah9.compute(LL1, LL2, LL(), 
-                                              SS1, SS2, SS(), 
-                                              JJ1, JJ2, JJ());
+                  double U9j = racah9.get({LL1, LL2, LL(),
+                                              SS1, SS2, SS(),
+                                              JJ1, JJ2, JJ()});
 
                   for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
                   {
                     int MMJ2 = MMJ() - MMJ1;
                     if (abs(MMJ2) > JJ2) continue;
 
-                    double cgcJ = cgcs.compute(JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ());
+                    double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
 
                     for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
                     {
                       int MMT2 = MMT() - MMT1;
                       if (abs(MMT2) > TT2) continue;
 
-                      double cgcT = cgcs.compute(TT1, TT2, TT(), MMT1, MMT2, MMT());
+                      double cgcT = cgcs.get({TT1, TT2, TT(), MMT1, MMT2, MMT()});
 
                       U3xU4::Tad_phys Tad(n, Omega_ads(), LL1, SS1, TT1, MMT1, JJ1,
                                           MMJ1, labels_);
