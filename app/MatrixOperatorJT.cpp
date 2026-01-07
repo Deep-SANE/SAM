@@ -4,19 +4,14 @@
 
 #include <eigensolver.h>
 #include <qcx_readwrite.h>
+#include <qcx_utils.h>
 
 #include <Databases.h>
 #include <OperatorJT.h>
 
-#ifdef USE_SLEPC
-#include <slepcsys.h>
-#endif
-
 int main(int argc, char* argv[])
 {
-#ifdef USE_SLEPC
-  SlepcInitialize(&argc, &argv, NULL, NULL);
-#endif
+  qcx_utils::initialize(&argc, &argv);
 
   int Z, N, Nmax, JJ, hw, write;
 
@@ -141,9 +136,5 @@ int main(int argc, char* argv[])
             << duration.count() / 60.0 << " minutes" << std::endl;
 
 
-#ifdef USE_SLEPC
-  SlepcFinalize();
-#endif
-
-  return 0;
+  qcx_utils::finalize();
 }

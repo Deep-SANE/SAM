@@ -2,10 +2,14 @@
 #include <iomanip>
 #include <iostream>
 
+#include <qcx_utils.h>
+
 #include <HOutilities.h>
 
-int main()
+int main(int argc, char* argv[])
 {
+  qcx_utils::initialize(&argc, &argv);
+
   int hw = -1, Nmax = 12, valenceShell = -1, maxShell = 12; // default
 
   HO::TwBME_scalar TBME("N2LO_opt_bare", hw, Nmax, valenceShell, maxShell);
@@ -38,5 +42,5 @@ int main()
   std::chrono::duration<double> duration = t1 - t0;
   std::cout << "Hashing time: " << duration.count() << " seconds" << std::endl;
 
-  return 0;
+  qcx_utils::finalize();
 }

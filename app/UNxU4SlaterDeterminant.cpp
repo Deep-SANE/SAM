@@ -1,9 +1,13 @@
 #include <iostream>
 
+#include <qcx_utils.h>
+
 #include <UNxU4SlaterDeterminant.h>
 
-int main()
+int main(int argc, char* argv[])
 {
+  qcx_utils::initialize(&argc, &argv);
+
   int n;
   std::cout << "Enter H.O. shell: ";
   std::cin >> n;
@@ -46,5 +50,5 @@ int main()
   std::cin >> r >> c;
   std::cout << sd.preceding_occupation(r, c);
 
-  return 0;
+  qcx_utils::finalize();
 }

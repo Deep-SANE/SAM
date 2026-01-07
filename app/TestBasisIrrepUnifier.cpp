@@ -2,11 +2,15 @@
 #include <iostream>
 
 #include <qcx_print.h>
+#include <qcx_utils.h>
+
 #include <U3xU4ManyNucleonBasis.h>
 
-int main()
+int main(int argc, char* argv[])
 {
   using qcx_utils::print;
+
+  qcx_utils::initialize(&argc, &argv);
 
   int Z, N, Nmax, MMT, JJ;
 
@@ -49,4 +53,6 @@ int main()
 
   print("Ket unified irrep: gamma = {}; omega = {}\n", ket_uirrep.gamma,
         ket_uirrep.omega);
+
+  qcx_utils::finalize();
 }

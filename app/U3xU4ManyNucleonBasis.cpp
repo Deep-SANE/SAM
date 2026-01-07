@@ -2,11 +2,14 @@
 #include <iostream>
 
 #include <qcx_print.h>
+#include <qcx_utils.h>
 #include <U3xU4ManyNucleonBasis.h>
 
-int main()
+int main(int argc, char* argv[])
 {
   using qcx_utils::print;
+
+  qcx_utils::initialize(&argc, &argv);
 
   int Z, N, Nmax, MMT, JJ;
 
@@ -38,4 +41,6 @@ int main()
   }
 
   print("\nBasis dimension: {}\n", basis.dim());
+
+  qcx_utils::finalize();
 }

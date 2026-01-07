@@ -3,21 +3,17 @@
 #include <chrono>
 #include <iostream>
 
+#include <qcx_utils.h>
+
 #include <Databases.h>
 #include <U3xU4irrep.h>
 #include <U3xU4GammaOmega.h>
 #include <U3xU4MultiShellTensors.h>
 #include <U3xU4ManyNucleonBasis.h>
 
-#ifdef USE_SLEPC
-#include <slepcsys.h>
-#endif
-
 int main(int argc, char* argv[])
 {
-#ifdef USE_SLEPC
-  SlepcInitialize(&argc, &argv, NULL, NULL);
-#endif
+  qcx_utils::initialize(&argc, &argv);
 
   sam::Databases dbs;
 
@@ -283,9 +279,5 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
   
-#ifdef USE_SLEPC
-  SlepcFinalize();
-#endif
-
-  return 0;
+  qcx_utils::finalize();
 }

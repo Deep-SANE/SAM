@@ -2,20 +2,16 @@
 #include <fstream>
 #include <iostream>
 
+#include <qcx_utils.h>
+
 #include <U3basis.h>
 #include <U4basis.h>
 
 #include <U3xU4HWSgenerator.h>
 
-#ifdef USE_SLEPC
-#include <slepcsys.h>
-#endif
-
 int main(int argc, char* argv[])
 {
-#ifdef USE_SLEPC
-  SlepcInitialize(&argc, &argv, NULL, NULL);
-#endif
+  qcx_utils::initialize(&argc, &argv);
 
   std::cout << "This program expands the HWS of a non-vacuum irrep"
             << " into Slater Determinants" << std::endl;
@@ -73,9 +69,5 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
-#ifdef USE_SLEPC
-  SlepcFinalize();
-#endif
-
-  return 0;
+  qcx_utils::finalize();
 }

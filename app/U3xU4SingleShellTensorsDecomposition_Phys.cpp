@@ -6,15 +6,11 @@
 #include <U3xU4irrep.h>
 #include <U3xU4SingleShellTensors.h>
 
-#ifdef USE_SLEPC
-#include <slepcsys.h>
-#endif
+#include <qcx_utils.h>
 
 int main(int argc, char* argv[])
 {
-#ifdef USE_SLEPC
-  SlepcInitialize(&argc, &argv, NULL, NULL);
-#endif
+  qcx_utils::initialize(&argc, &argv);
 
   sam::Databases dbs;
 
@@ -161,5 +157,5 @@ int main(int argc, char* argv[])
   SlepcFinalize();
 #endif
 
-  return 0;
+  qcx_utils::finalize();
 }

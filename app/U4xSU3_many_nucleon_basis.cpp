@@ -11,6 +11,8 @@
 #include <set>
 #include <vector>
 
+#include <qcx_utils.h>
+
 #include <U4basis.h>
 #include <U4decomposition.h>
 #include <UNtoU3.h>
@@ -504,8 +506,10 @@ uint64_t dimDistribution(const tSHELLSCONFIG& distribution, int MMT, int JJ)
   return dim;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
+  qcx_utils::initialize(&argc, &argv);
+
   int Z, N, Nmax, MMT, JJ;
 
   std::cout << "Enter number of protons:";
@@ -536,6 +540,8 @@ int main()
     }
   }
   std::cout << "dim:" << dim << std::endl;
+
+  qcx_utils::finalize();
 }
 
 /*

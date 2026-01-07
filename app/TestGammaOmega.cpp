@@ -1,13 +1,16 @@
 #include <qcx_print.h>
 #include <qcx_optional_reference.h>
+#include <qcx_utils.h>
 
 #include <U3xU4irrep.h>
 #include <U3xU4GammaOmega.h>
 
 using qcx_utils::print;
 
-int main()
+int main(int argc, char* argv[])
 {
+  qcx_utils::initialize(&argc, &argv);
+
   // basis vacuum gamma element in shell 0:
   U3xU4::GammaElement ge_basis_vacuum(0, 1, {}, {});
   print("{}\n", ge_basis_vacuum);
@@ -48,4 +51,6 @@ int main()
   print("{}\n", rw3->su3());
   print("{}\n", rw3->u3());
   print("{}\n", rw3->u4());
+
+  qcx_utils::finalize();
 }

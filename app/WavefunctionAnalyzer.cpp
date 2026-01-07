@@ -1,14 +1,10 @@
-#include <WavefunctionAnalyzer.h>
+#include <qcx_utils.h>
 
-#ifdef USE_SLEPC
-#include <slepcsys.h>
-#endif
+#include <WavefunctionAnalyzer.h>
 
 int main(int argc, char* argv[])
 {
-#ifdef USE_SLEPC
-  SlepcInitialize(&argc, &argv, NULL, NULL);
-#endif
+  qcx_utils::initialize(&argc, &argv);
 
   int Z, N, Nmax, JJ, hw;
 
@@ -55,9 +51,5 @@ int main(int argc, char* argv[])
   for (const auto& subspace : subspaces)
   	std::cout << subspace << std::endl;
 
-#ifdef USE_SLEPC
-  SlepcFinalize();
-#endif
-
-  return 0;
+  qcx_utils::finalize();
 }

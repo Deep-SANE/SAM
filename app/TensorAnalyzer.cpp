@@ -1,15 +1,11 @@
+#include <qcx_utils.h>
+
 #include <OneBodyOperatorJT.h>
 #include <TwoBodyOperatorJT.h>
 
-#ifdef USE_SLEPC
-#include <slepcsys.h>
-#endif
-
 int main(int argc, char* argv[])
 {
-#ifdef USE_SLEPC
-  SlepcInitialize(&argc, &argv, NULL, NULL);
-#endif
+  qcx_utils::initialize(&argc, &argv);
 
   sam::Databases dbs;
 
@@ -100,9 +96,5 @@ int main(int argc, char* argv[])
   for (const auto& [irr, stats] : tensors_SS_stats)
     std::cout << irr << ":\t" << stats << std::endl;
 
-#ifdef USE_SLEPC
-  SlepcFinalize();
-#endif
-  
-  return 0;
+  qcx_utils::finalize();
 }

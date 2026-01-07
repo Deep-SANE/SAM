@@ -1,4 +1,6 @@
 #include <qcx_print.h>
+#include <qcx_utils.h>
+
 using qcx_utils::print;
 
 #include <U3basis.h>
@@ -9,10 +11,6 @@ using qcx_utils::print;
 #include <HOutilities.h>
 #include <U3xU4CouplingCoefficient.h>
 #include <U3xU4irrep.h>
-
-#ifdef USE_SLEPC
-#include <slepcsys.h>
-#endif
 
 auto GenerateCombinationsHOShells(int Nmax, int valenceShell,
                                          int maxShell)
@@ -141,9 +139,7 @@ double RME_CoM_2B_AS(int na, int lla, int jja, int nb, int llb, int jjb,
 
 int main(int argc, char* argv[])
 {
-#ifdef USE_SLEPC
-  SlepcInitialize(&argc, &argv, NULL, NULL);
-#endif
+  qcx_utils::initialize(&argc, &argv);
 
   sam::Databases dbs;
   auto& racah9 = dbs.racah9;
@@ -385,9 +381,5 @@ int main(int argc, char* argv[])
     }
   }
 
-#ifdef USE_SLEPC
-  SlepcFinalize();
-#endif
-
-  return 0;
+  qcx_utils::finalize();
 }

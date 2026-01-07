@@ -1,6 +1,7 @@
 // clang-format off
 
 #include <qcx_print.h>
+#include <qcx_utils.h>
 
 #include <Databases.h>
 #include <U3xU4irrep.h>
@@ -12,9 +13,7 @@ using qcx_utils::print;
 
 int main(int argc, char* argv[])
 {
-#ifdef USE_SLEPC
-  SlepcInitialize(&argc, &argv, NULL, NULL);
-#endif
+  qcx_utils::initialize(&argc, &argv);
 
   sam::Databases dbs;
 
@@ -168,7 +167,5 @@ int main(int argc, char* argv[])
   for (size_t i = 0; i < RMEs.size(); i++)
     print("{: .8f}\n", RMEs[i]);
 
-#ifdef USE_SLEPC
-  SlepcFinalize();
-#endif
+  qcx_utils::finalize();
 }

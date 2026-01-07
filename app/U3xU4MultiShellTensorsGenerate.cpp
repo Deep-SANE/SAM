@@ -1,10 +1,14 @@
 #include <iostream>
 
+#include <qcx_utils.h>
+
 #include <U3xU4MultiShellTensors.h>
 #include <U3xU4SingleShellTensors.h>
 
-int main()
+int main(int argc, char* argv[])
 {
+  qcx_utils::initialize(&argc, &argv);
+
   std::vector<std::array<int, 3>> groups = {{0, 2, 1}, {1, 0, 1}, {8, 1, 0}};
 
   std::vector<std::vector<U3xU4::SingleShellTensor>> Tadat_lists;
@@ -30,5 +34,5 @@ int main()
     std::cout << std::endl;
   }
 
-  return 0;
+  qcx_utils::finalize();
 }
