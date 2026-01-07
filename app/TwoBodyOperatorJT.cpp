@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
-  int hw = 20, valenceShell = 0, Nmax = 12, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = Nmax;
   HO::Table_nljmjmt labels(maxShell);
 
   // Example 1: Two-body part of LL
@@ -23,13 +23,13 @@ int main(int argc, char* argv[])
   // std::string name = "L.S";
 
   // Example 3: Two-body part of relative kinetic energy
-  std::string name = "Kinetic";  
+  // std::string name = "Kinetic";  
 
   // Example 4: Two-body part of the CoM HO operator
   // std::string name = "CoMNumberOp";
 
   // Example 5: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
-  // std::string name = "N2LO_opt_bare";
+  std::string name = "N2LO_opt_bare";
   // std::string name = "N2LO_opt_srg1.0";
   // std::string name = "N2LO_opt_srg2.0";
   // std::string name = "N2LO_opt_srg4.0";
@@ -61,14 +61,38 @@ int main(int argc, char* argv[])
   op.is();
 
   auto tensors = op.expand(dbs);
+  // auto tensors_new = op.expand_new(dbs); // expand on the fly
   
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-
-  std::cout << "There are " << tensors.size() << " tensors" << std::endl;
-  for (const auto& tensor : tensors)
-    std::cout << tensor << std::endl;
   
+  std::cout << "There are " << tensors.size() << " tensors" << std::endl;
+  for (auto tensor : tensors)
+    std::cout << tensor << std::endl;
+
+/*
+  // This might be helpful for Daniel for comparison
+  assert(tensors.size() == tensors_new.size());
+  for (size_t i = 0; i < tensors.size(); i++)
+  {
+    assert(tensors[i] == tensors_new[i]);
+    assert(tensors[i].LLSSTTstrengths().size() == 
+           tensors_new[i].LLSSTTstrengths().size());
+
+    for (size_t j = 0; j < tensors[i].LLSSTTstrengths().size(); j++)
+    {
+      const auto& [k, LL, z, SS, TT, strengths] = tensors[i].LLSSTTstrengths()[j];
+      const auto& [k_, LL_, z_, SS_, TT_, strengths_] = tensors_new[i].LLSSTTstrengths()[j];
+
+      assert(k == k_ && LL == LL_ && z == z_ && SS == SS_ && TT == TT_);
+
+      assert(strengths.size() == strengths_.size());
+      for (size_t s = 0; s < strengths.size(); s++)
+        assert(std::fabs(strengths[s] - strengths_[s]) < 1e-8);
+    }
+  }
+*/
+
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;
 
