@@ -5,7 +5,6 @@
 #include <iostream>
 #include <stdexcept>
 
-#include <GlobalConstants.h>
 #include <HOutilities.h>
 
 #include <qcx_convert.h>
@@ -16,6 +15,29 @@
 
 namespace HO
 {
+  /////////////// DETERMINING VALENCE SHELL ///////////////
+  int valenceShell(int A)
+  {
+    int num_sps = 0, shell = 0;
+    while (num_sps < A)
+    {
+      num_sps += 2 * (shell + 1) * (shell + 2);
+      shell++;
+    }
+    return shell - 1;
+  }
+
+  /////////////// DETERMINING OSCILLATOR STRENGTH ///////////////
+  double oscilatorLength2(int hw, int mmt)
+  {
+    double mass = (mmt == 1) ? mass_n : mass_p;
+    return hbar * hbar / mass / static_cast<double>(hw);
+  }
+  double oscilatorLength(int hw, int mmt)
+  {
+    return std::sqrt(oscilatorLength2(hw, mmt));
+  }
+
   /////////////// RME OF BOSON OPERATORS ///////////////
 
   // < na lla || b+ || nb llb >
@@ -48,9 +70,6 @@ namespace HO
   {
     if (na == nb + 1)
     {
-      // double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0;
-      // double factor = phase * racah.compute(llb,1,2,jja,jjb,lla) /
-      // std::sqrt(lla + 1.0);
       double factor = db.racah9.get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
       return factor * bosonCreatorRME(na, lla, nb, llb);
     }
@@ -88,14 +107,47 @@ namespace HO
   {
     if (na == nb - 1)
     {
-      // double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0;
-      // double factor = phase * racah.compute(llb,1,2,jja,jjb,lla) /
-      // std::sqrt(lla + 1.0);
       double factor = db.racah9.get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
       return factor * bosonAnnihilatorRME(na, lla, nb, llb);
     }
     else
       return 0;
+  }
+
+  /////////////// RME OF POSITION & MOMENTUM OPERATORS ///////////////
+
+  // < na lla || r || nb llb >
+  double rRME(int hw, int na, int lla, int nb, int llb, int mmt)
+  {
+    return (bosonCreatorRME(na, lla, nb, llb) + 
+            bosonAnnihilatorRME(na, lla, nb, llb)) *
+            oscilatorLength(hw, mmt) / SQRT2;
+  }
+
+  // < na lla jja || r || nb llb jjb >
+  double rRME(int hw, int na, int lla, int jja, 
+    int nb, int llb, int jjb, int mmt, sam::Databases& db)
+  {
+    return (bosonCreatorRME(na, lla, jja, nb, llb, jjb, db) + 
+            bosonAnnihilatorRME(na, lla, jja, nb, llb, jjb, db)) *
+            oscilatorLength(hw, mmt) / SQRT2;
+  }
+
+  // < na lla || p || nb llb > defined without i
+  double pRME(int hw, int na, int lla, int nb, int llb, int mmt)
+  {
+    return (bosonCreatorRME(na, lla, nb, llb) - 
+            bosonAnnihilatorRME(na, lla, nb, llb)) *
+            hbar / (oscilatorLength(hw, mmt) * SQRT2);
+  }
+
+  // < na lla jja || p || nb llb jjb > defined without i
+  double pRME(int hw, int na, int lla, int jja, 
+    int nb, int llb, int jjb, int mmt, sam::Databases& db)
+  {
+    return (bosonCreatorRME(na, lla, jja, nb, llb, jjb, db) - 
+            bosonAnnihilatorRME(na, lla, jja, nb, llb, jjb, db)) *
+            hbar / (oscilatorLength(hw, mmt) * SQRT2);
   }
 
   //////////// CLASS Table_nljmjmt /////////////

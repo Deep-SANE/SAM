@@ -11,6 +11,7 @@
 
 #include <CustomHash.h>
 #include <Databases.h>
+#include <GlobalConstants.h>
 
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
@@ -18,16 +19,13 @@
 namespace HO
 {
   /////////////// DETERMINING VALENCE SHELL ///////////////
-  inline int valenceShell(int A)
-  {
-    int num_sps = 0, shell = 0;
-    while (num_sps < A)
-    {
-      num_sps += 2 * (shell + 1) * (shell + 2);
-      shell++;
-    }
-    return shell - 1;
-  }
+  int valenceShell(int A);
+
+  /////////////// DETERMINING OSCILLATOR STRENGTH ///////////////
+  
+  // mmt = 1 for neutron, -1 for proton
+  double oscilatorLength2(int hw, int mmt); // squared
+  double oscilatorLength(int hw, int mmt);
 
   /////////////// RME OF BOSON OPERATORS ///////////////
 
@@ -45,6 +43,23 @@ namespace HO
   double bosonAnnihilatorRME(int na, int lla, int jja, 
     int nb, int llb, int jjb, sam::Databases& db);
 
+  /////////////// RME OF POSITION & MOMENTUM OPERATORS ///////////////
+
+  // mmt = 1 for neutron, -1 for proton
+
+  // < na lla || r || nb llb >
+  double rRME(int hw, int na, int lla, int nb, int llb, int mmt);
+
+  // < na lla jja || r || nb llb jjb >
+  double rRME(int hw, int na, int lla, int jja, 
+    int nb, int llb, int jjb, int mmt, sam::Databases& db);
+
+  // < na lla || p || nb llb > defined without i
+  double pRME(int hw, int na, int lla, int nb, int llb, int mmt);
+
+  // < na lla jja || p || nb llb jjb > defined without i
+  double pRME(int hw, int na, int lla, int jja, 
+    int nb, int llb, int jjb, int mmt, sam::Databases& db);
 
   //////////// CLASS Table_nljmjmt /////////////
 
