@@ -26,6 +26,9 @@ namespace JT
         !one_plus_two_body.count(name) && !Hamiltonian_type)
       throw std::invalid_argument(
           "Name is incorrect or operator is not implemented");
+
+    for (auto& c : name_) 
+        if (c == ' ') c = '_';
   }
 
   void Operator::is() const
@@ -73,6 +76,30 @@ namespace JT
   	else s << x.name_ << " with Lawson term x 1000";
 
   	return s;
+  }
+
+  std::string Operator::dirname() const
+  {
+    const char* sam_dir = std::getenv("SAM_DIR");
+    if (!sam_dir)
+      throw std::runtime_error("Environment variable SAM_DIR not set");
+      
+    std::string dir = std::string(sam_dir) + "/data/OperatorJT/" + name_;
+    std::filesystem::create_directories(dir);
+
+    return dir;
+  }
+  
+  std::string Operator::filename(const U3xU4::ManyNucleonBasis& basis) const
+  {
+    std::string dir = dirname() + "/Z" + std::to_string(Z_) 
+                                + "/N" + std::to_string(N_)
+                                + "/JJ" + std::to_string(basis.JJ()) 
+                                + "/Nmax" + std::to_string(Nmax_);
+
+    std::filesystem::create_directories(dir);
+
+    return dir + "/hw" + std::to_string(hw_);       
   }
 
   U3xU4::MultiShellTensors_phys Operator::expand(sam::Databases& dbs)

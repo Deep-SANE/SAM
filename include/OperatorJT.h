@@ -46,6 +46,10 @@ namespace JT
     void is() const;
     friend std::ostream& operator<<(std::ostream& s, const Operator& x);
 
+    // Get binary file name for writing matrix
+    std::string dirname() const;
+    std::string filename(const U3xU4::ManyNucleonBasis& basis) const;
+
     // expand into a sum of U3xU4::MultiShellTensor_phys
     U3xU4::MultiShellTensors_phys expand(sam::Databases& dbs);
 
@@ -57,20 +61,5 @@ namespace JT
     Eigen::SparseMatrix<double>
     matrix(const U3xU4::ManyNucleonBasis& bras, 
            const U3xU4::ManyNucleonBasis& kets, sam::Databases& dbs);
-
-    // Get binary file name for writing matrix
-    std::string filename(const U3xU4::ManyNucleonBasis& basis) const
-    {
-      const char* sam_dir = std::getenv("SAM_DIR");
-      if (!sam_dir)
-        throw std::runtime_error("Environment variable SAM_DIR not set");
-      std::string res = std::string(sam_dir) + "/data/OperatorJT/" + name_
-                           + "/Z" + std::to_string(Z_) 
-                           + "/N" + std::to_string(N_)
-                           + "/JJ" + std::to_string(basis.JJ()) 
-                           + "/Nmax" + std::to_string(Nmax_)
-                           + "/hw" + std::to_string(hw_);
-      return res;             
-    }
   };
 } // namespace JT
