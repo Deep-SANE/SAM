@@ -67,7 +67,7 @@ namespace JT
           << "Two-body part of the intrinsic mass radius squared without -1/A"
           << std::endl;
     else if (on_the_fly == false)
-      std::cout << "Two-body potential with" << name_ << std::endl;
+      std::cout << "Two-body potential with " << name_ << std::endl;
       //TBME->is();
     else
       throw std::invalid_argument("This operator has not been implemented");
@@ -92,6 +92,18 @@ namespace JT
       throw std::invalid_argument("This operator has not been implemented");
 
     return s;
+  }
+
+  std::string TwoBodyOperator::dirname() const
+  {
+    const char* sam_dir = std::getenv("SAM_DIR");
+    if (!sam_dir)
+      throw std::runtime_error("Environment variable SAM_DIR not set");
+      
+    std::string dir = std::string(sam_dir) + "/data/TwoBodyOperatorJT/" + name_;
+    std::filesystem::create_directories(dir);
+
+    return dir;
   }
 
   // ME: / na lla jja mmja mmta | O | nc llc jjc mmjc mmtc \
@@ -513,7 +525,7 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" ||
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "R.R" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (LL != 0) flag = false;
@@ -526,7 +538,7 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" ||
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "R.R" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (SS != 0) flag = false;
@@ -543,7 +555,7 @@ namespace JT
     {
       if (irr != u3::irrep(0, 0, 0)) flag = false;
     }
-    else if (name_ == "Kinetic")
+    else if (name_ == "R.R" || name_ == "Kinetic")
     {
       if (irr != u3::irrep(0, 0, 0) &&
           irr != u3::irrep(2, 0, 0) &&
@@ -562,7 +574,7 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" ||
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "R.R" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (irr != u4::irrep(0, 0, 0, 0)) flag = false;
@@ -878,15 +890,11 @@ namespace JT
   U3xU4::MultiShellTensors_phys 
     TwoBodyOperator::expand(sam::Databases& dbs)
   {
-    const char* sam_dir = std::getenv("SAM_DIR");
-    if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
-
-    std::string base_dir = std::string(sam_dir) + "/data/TwoBodyOperatorExpansion";
+    std::string base_dir = dirname() + "/Expansion";
     std::filesystem::create_directories(base_dir);
 
-    std::string filename = base_dir + "/" + name_ 
-                         + "_hw" + std::to_string(static_cast<int>(hw_));
+    std::string filename = base_dir + "/" + name_ + "_hw" 
+                         + std::to_string(static_cast<int>(hw_));
 
     // if this file exists, returns immediately
     if (std::filesystem::exists(filename))
@@ -1005,22 +1013,13 @@ namespace JT
   }
 
   // Tensor Analyzers
-  static std::string analysis_dir()
-  {
-    const char* sam_dir = std::getenv("SAM_DIR");
-    if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
-
-    std::string base_dir = std::string(sam_dir) 
-                         + "/data/TwoBodyOperatorExpansion/Analysis";
-    std::filesystem::create_directories(base_dir);
-    return base_dir;
-  }
-
   std::vector<std::pair<u3::irrep, sam::strength_stats>>
     TwoBodyOperator::U3_tensor_analyzer_write(sam::Databases& dbs)
   {
-    std::string filename = analysis_dir() + "/" + name_ 
+    std::string base_dir = dirname() + "/Analysis";
+    std::filesystem::create_directories(base_dir);
+
+    std::string filename = base_dir + "/" + name_
                          + "_hw" + std::to_string(static_cast<int>(hw_))
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_U3.dat";
@@ -1039,7 +1038,10 @@ namespace JT
   std::vector<std::pair<u4::irrep, sam::strength_stats>>
     TwoBodyOperator::U4_tensor_analyzer_write(sam::Databases& dbs)
   {
-    std::string filename = analysis_dir() + "/" + name_ 
+    std::string base_dir = dirname() + "/Analysis";
+    std::filesystem::create_directories(base_dir);
+
+    std::string filename = base_dir + "/" + name_
                          + "_hw" + std::to_string(static_cast<int>(hw_))
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_U4.dat";
@@ -1058,7 +1060,10 @@ namespace JT
   std::vector<std::pair<int, sam::strength_stats>>
     TwoBodyOperator::LL_tensor_analyzer_write(sam::Databases& dbs)
   {
-    std::string filename = analysis_dir() + "/" + name_ 
+    std::string base_dir = dirname() + "/Analysis";
+    std::filesystem::create_directories(base_dir);
+
+    std::string filename = base_dir + "/" + name_
                          + "_hw" + std::to_string(static_cast<int>(hw_))
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_LL.dat";
@@ -1077,7 +1082,10 @@ namespace JT
   std::vector<std::pair<int, sam::strength_stats>>
     TwoBodyOperator::SS_tensor_analyzer_write(sam::Databases& dbs)
   {
-    std::string filename = analysis_dir() + "/" + name_ 
+    std::string base_dir = dirname() + "/Analysis";
+    std::filesystem::create_directories(base_dir);
+
+    std::string filename = base_dir + "/" + name_
                          + "_hw" + std::to_string(static_cast<int>(hw_))
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_SS.dat";

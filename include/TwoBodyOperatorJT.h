@@ -60,6 +60,9 @@ namespace JT
     friend std::ostream& operator<<(std::ostream& s,
                                     const TwoBodyOperator& x);
 
+    // Name of the directory that contains data of this operator
+    std::string dirname() const;
+
   private:
     // ME: / na lla jja mmja mmta | O | nc llc jjc mmjc mmtc \
     // 	   \ nb llb jjb mmjb mmtb |	  | nd lld jjb mmjd mmtd /
