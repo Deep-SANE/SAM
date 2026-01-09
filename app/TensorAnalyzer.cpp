@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
-  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = Nmax;
   HO::Table_nljmjmt labels(maxShell);
 
   // YOU MUST CHOOSE ONLY ONE OF THE FOLLOWING OPTIONS.
@@ -28,9 +28,18 @@ int main(int argc, char* argv[])
   // std::string name = "Kinetic";  
 
   // Example 4: One-body part of the CoM HO operator
-  std::string name = "CoMNumberOp";
+  // std::string name = "CoMNumberOp";
 
-  JT::OneBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
+  // Example 5: Electric quadrupole operator
+  // std::string name = "E2";
+
+  // Example 6: Magnetic dipole operator
+  // std::string name = "M1";
+
+  // Example 7: Intrinsic mass radius squared
+  // std::string name = "R.R";
+
+  // JT::OneBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
 
   ////////////// TWO-BODY OPERATORS //////////////
 
@@ -41,36 +50,39 @@ int main(int argc, char* argv[])
   // std::string name = "L.S";
 
   // Example 3: Two-body part of relative kinetic energy
-  // std::string name = "Kinetic";  
+  std::string name = "Kinetic";  
 
   // Example 4: Two-body part of the CoM HO operator
   // std::string name = "CoMNumberOp";
 
-  // Example 5: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
+  // Example 5: Intrinsic mass radius squared
+  // std::string name = "R.R";
+
+  // Example 6: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
   // std::string name = "N2LO_opt_bare";
   // std::string name = "N2LO_opt_srg1.0";
   // std::string name = "N2LO_opt_srg2.0";
   // std::string name = "N2LO_opt_srg4.0";
 
-  // Example 6: Two-body potential (bare) with N3LO_EMN500_bare,srg1.0,2.0,4.0
+  // Example 7: Two-body potential (bare) with N3LO_EMN500_bare,srg1.0,2.0,4.0
   // std::string name = "N3LO_EMN500_bare";
   // std::string name = "N3LO_EMN500_srg1.0";
   // std::string name = "N3LO_EMN500_srg2.0";
   // std::string name = "N3LO_EMN500_srg4.0";
 
-  // Example 7: Two-body potential (bare) with N2LO_sat_bare,srg1.0,2.0,4.0
+  // Example 8: Two-body potential (bare) with N2LO_sat_bare,srg1.0,2.0,4.0
   // std::string name = "N2LO_sat_bare";
   // std::string name = "N2LO_sat_srg1.0";
   // std::string name = "N2LO_sat_srg2.0";
   // std::string name = "N2LO_sat_srg4.0";
   
-  // Example 8: Two-body potential (bare) with N4LO_EMN500_bare,srg1.0,2.0,4.0
+  // Example 9: Two-body potential (bare) with N4LO_EMN500_bare,srg1.0,2.0,4.0
   // std::string name = "N4LO_EMN500_bare";
   // std::string name = "N4LO_EMN500_srg1.0";
   // std::string name = "N4LO_EMN500_srg2.0"
   // std::string name = "N4LO_EMN500_srg4.0";
 
-  // JT::TwoBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
+  JT::TwoBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
   

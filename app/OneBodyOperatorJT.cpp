@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
-  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 14, maxShell = Nmax;
   HO::Table_nljmjmt labels(maxShell);
 
   // Example 1: One-body part of LL
@@ -29,10 +29,19 @@ int main(int argc, char* argv[])
   // std::string name = "L.S";
 
   // Example 3: One-body part of relative kinetic energy
-  std::string name = "Kinetic";  
+  // std::string name = "Kinetic";
 
   // Example 4: One-body part of the CoM HO operator
   // std::string name = "CoMNumberOp";
+
+  // Example 5: Electric quadrupole operator
+  // std::string name = "E2";
+
+  // Example 6: Magnetic dipole operator
+  // std::string name = "M1";
+
+  // Example 7: Intrinsic mass radius squared
+  std::string name = "R.R";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
