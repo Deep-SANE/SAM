@@ -69,7 +69,7 @@ namespace U3xU4
     auto dim = basis.dim();
     auto labels = basis.decomposition();
     auto JJ = basis.JJ();
-    int MMJ = (JJ % 2 == 0) ? 0 : 1;
+    auto MMJ = JJ;
     auto MMT = basis.MMT();
 
     // tensors info
@@ -386,7 +386,7 @@ namespace U3xU4
     auto bras_dim = bras.dim();
     auto bras_labels = bras.decomposition();
     auto bras_JJ = bras.JJ();
-    int bras_MMJ = (bras_JJ % 2 == 0) ? 0 : 1;
+    auto bras_MMJ = bras_JJ;
     auto bras_MMT = bras.MMT();
 
     // ket basis info
@@ -394,7 +394,7 @@ namespace U3xU4
     auto kets_dim = kets.dim();
     auto kets_labels = kets.decomposition();
     auto kets_JJ = kets.JJ();
-    int kets_MMJ = (kets_JJ % 2 == 0) ? 0 : 1;
+    auto kets_MMJ = kets_JJ;
     auto kets_MMT = kets.MMT();
 
     // tensors info
