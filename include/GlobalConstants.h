@@ -11,8 +11,11 @@ constexpr double PI = std::numbers::pi;
 
 ///////////////// PHYSICAL CONSTANTS ////////////////
 
-// constexpr double mass_p = ; proton mass
-// constexpr double mass_n = ; neutron mass
+// proton and neutron masses quoted from NIST database
+// https://physics.nist.gov/cuu/Constants/index.html
+constexpr double mass_p = 938.272; // proton mass in MeV
+constexpr double mass_n = 939.565; // neutron mass in MeV
+constexpr double hbar = 197.327; // reduced Planck constant in MeV.fm
 
 // g factors for proton and neutron quoted from
 // K.S. Krane, Introductory Nuclear Physics (3rd edition), pg. 215
