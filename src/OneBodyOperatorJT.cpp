@@ -87,10 +87,10 @@ namespace JT
                    "(A-1)/A"
                 << std::endl;
     else if (name_ == "E2")
-      std::cout << "E2 transition operator without (HO strength)^2"
+      std::cout << "E2 transition operator"
                 << std::endl;
     else if (name_ == "M1")
-      std::cout << "M1 transition operator without sqrt(3/4pi)" << std::endl;
+      std::cout << "M1 transition operator" << std::endl;
     else if (name_ == "FermiPlus")
       std::cout << "Fermi for beta+" << std::endl;
     else if (name_ == "FermiMinus")
@@ -118,9 +118,9 @@ namespace JT
     else if (x.name_ == "R.R")
       s << "One-body part of the intrinsic mass radius squared without (A-1)/A";
     else if (x.name_ == "E2")
-      s << "E2 transition operator without (HO strength)^2";
+      s << "E2 transition operator";
     else if (x.name_ == "M1")
-      s << "M1 transition operator without sqrt(3/4pi)";
+      s << "M1 transition operator";
     else if (x.name_ == "FermiPlus")
       s << "Fermi for beta+";
     else if (x.name_ == "FermiMinus")
@@ -133,6 +133,18 @@ namespace JT
       throw std::invalid_argument("This operator has not been implemented");
 
     return s;
+  }
+
+  std::string OneBodyOperator::dirname() const
+  {
+    const char* sam_dir = std::getenv("SAM_DIR");
+    if (!sam_dir)
+      throw std::runtime_error("Environment variable SAM_DIR not set");
+      
+    std::string dir = std::string(sam_dir) + "/data/OneBodyOperatorJT/" + name_;
+    std::filesystem::create_directories(dir);
+
+    return dir;
   }
 
   // ME: < na lla jja mmja mmta | O | nb llb jjb mmjb mmtb >
@@ -166,18 +178,19 @@ namespace JT
       if (na == nb && jja == jjb && mmja == mmjb && mmta == mmtb)
       {
         int nc = nb - 1, llc_min = 2 * (nc % 2);
-        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
-        {
-          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+        if (nc >= 0)
+          for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
           {
-            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
-                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+            for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+            {
+              double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                     factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
 
-            x += phase * factor *
-                 HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                 HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+              x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+            }
           }
-        }
       }
     }
     else if (name_ == "Kinetic") // One-body part of the relative kinetic energy
@@ -186,22 +199,24 @@ namespace JT
       if (jja == jjb && mmja == mmjb && mmta == mmtb)
       {
         int nc = nb - 1, llc_min = 2 * (nc % 2);
-        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
-        {
-          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+        if (nc >= 0)
+          for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
           {
-            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
-                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
-            if (na == nb)
-              x += phase * factor *
+            for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+            {
+              double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                     factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+              if (na == nb)
+                x += phase * factor *
                    HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
                    HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
-            else if (na == nb - 2)
-              x -= phase * factor *
+              else if (na == nb - 2)
+                x -= phase * factor *
                    HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
                    HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+            }
           }
-        }
+
         nc = nb + 1, llc_min = 2 * (nc % 2);
         for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
         {
@@ -219,8 +234,8 @@ namespace JT
                    HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
           }
         }
-      }
-      x = (static_cast<int>(hw_) * x / 4.0);
+        x = (static_cast<int>(hw_) * x / 4.0);
+      }      
     }
     else if (name_ == "R.R") // One-body part of the intrinsic mass radius
                             // squared without (A-1)/A
@@ -228,22 +243,24 @@ namespace JT
       if (jja == jjb && mmja == mmjb && mmta == mmtb)
       {
         int nc = nb - 1, llc_min = 2 * (nc % 2);
-        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
-        {
-          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+        if (nc >= 0)
+          for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
           {
-            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
-                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
-            if (na == nb)
-              x += phase * factor *
+            for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+            {
+              double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                     factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+              if (na == nb)
+                x += phase * factor *
                    HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
                    HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
-            else if (na == nb - 2)
-              x += phase * factor *
+              else if (na == nb - 2)
+                x += phase * factor *
                    HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
                    HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+            }
           }
-        }
+
         nc = nb + 1, llc_min = 2 * (nc % 2);
         for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
         {
@@ -261,26 +278,52 @@ namespace JT
                    HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
           }
         }
+        x *= HO::oscilatorLength2(hw_, -1) / 2;
       }
     }
-    else if (name_ == "E2") // E2 transition operator without (HO strength)^2
+    else if (name_ == "E2") // E2 transition operator
     {
+      
+      if (mmta == mmtb && mmtb == -1)
+      {
+        double factor1 = cgcs.get({jjb, 4, jja, mmjb, 0, mmja}) *
+                        dbs.racah9.get({llb,4,lla, 1,0,1, jjb,4,jja});
+        for (int nc = nb + 1; nc >= 0; nc -= 2)
+        {
+          int llc_min = 2 * (nc % 2);
+          for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
+          {
+            double phase = ((llc + 2 - llb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                   factor2 = std::sqrt(5.0 * (llc + 1.0) / 3.0 / (llb + 1.0)) *
+                            racah.get({llc, 2, lla, 4, llb, 2});
+            x += phase * factor1 * factor2 
+               * HO::rRME(hw_, na, lla, nc, llc, mmta) 
+               * HO::rRME(hw_, nc, llc, nb, llb, mmtb);
+          }
+        } 
+        x *= std::sqrt(6.0);               
+      }
+      
+      /* Old implementation
       if (mmta == mmtb && mmtb == -1)
       {
         double phase = ((lla - llb + jjb - jja) / 2 % 2 == 0) ? 1.0 : -1.0,
                factor = cgcs.get({jjb, 4, jja, mmjb, 0, mmja}) *
                         racah.get({llb, 1, 4, jja, jjb, lla});
+        
         int nc = nb - 1, llc_min = 2 * (nc % 2);
-        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
-        {
-          double factor = racah.get({llb, 2, lla, 2, llc, 4});
-          if (na == nb)
-            x += factor * HO::bosonCreatorRME(na, lla, nc, llc) *
-                 HO::bosonAnnihilatorRME(nc, llc, nb, llb);
-          else if (na == nb - 2)
-            x += factor * HO::bosonAnnihilatorRME(na, lla, nc, llc) *
-                 HO::bosonAnnihilatorRME(nc, llc, nb, llb);
-        }
+        if (nc >= 0)
+          for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
+          {
+            double factor = racah.get({llb, 2, lla, 2, llc, 4});
+            if (na == nb)
+              x += factor * HO::bosonCreatorRME(na, lla, nc, llc) *
+                         HO::bosonAnnihilatorRME(nc, llc, nb, llb);
+            else if (na == nb - 2)
+              x += factor * HO::bosonAnnihilatorRME(na, lla, nc, llc) *
+                         HO::bosonAnnihilatorRME(nc, llc, nb, llb);
+          }
+        
         nc = nb + 1, llc_min = 2 * (nc % 2);
         for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
         {
@@ -292,10 +335,11 @@ namespace JT
             x += factor * HO::bosonCreatorRME(na, lla, nc, llc) *
                  HO::bosonCreatorRME(nc, llc, nb, llb);
         }
+        x *= std::sqrt(1.5) * HO::oscilatorLength2(hw_, -1);
       }
-      x *= std::sqrt(1.5);
+      */
     }
-    else if (name_ == "M1") // M1 transition operator without sqrt(3/4pi)
+    else if (name_ == "M1") // M1 transition operator
     {
       if (na == nb && lla == llb && mmta == mmtb)
       {
@@ -307,6 +351,7 @@ namespace JT
             (gl * phase * racah.get({llb, 1, 2, jja, jjb, llb}) *
                  std::sqrt(llb * (llb + 2.0) / 4.0) +
              gs * racah.get({1, llb, 2, jja, jjb, 1}) * std::sqrt(0.75));
+        x *= std::sqrt(3.0 / 4.0 / PI);
       }
     }
     else if (name_ == "FermiPlus") // Fermi for beta+
@@ -807,10 +852,18 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" ||
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "R.R" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (LL != 0) flag = false;
+    }
+    else if (name_ == "E2")
+    {
+      if (LL != 4) flag = false;
+    }
+    else if (name_ == "M1")
+    {
+      if (LL != 0 && LL != 2) flag = false;
     }
     
     return flag;
@@ -820,10 +873,14 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" ||
-        name_ == "CoMNumberOp" || name_ == "Kinetic")
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "E2" ||
+        name_ == "R.R" || name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (SS != 0) flag = false;
+    }
+    else if (name_ == "M1")
+    {
+      if (SS != 0 && SS != 2) flag = false;
     }
     
     return flag;
@@ -837,11 +894,23 @@ namespace JT
     {
       if (irr != u3::irrep(0, 0, 0)) flag = false;
     }
-    else if (name_ == "Kinetic")
+    else if (name_ == "R.R" || name_ == "Kinetic")
     {
       if (irr != u3::irrep(0, 0, 0) &&
           irr != u3::irrep(2, 0, 0) &&
           irr != u3::irrep(2, 2, 0)) 
+        flag = false;
+    }
+    else if (name_ == "E2")
+    {
+      if (irr != u3::irrep(2, 1, 0) &&
+          irr != u3::irrep(2, 0, 0) &&
+          irr != u3::irrep(2, 2, 0)) 
+        flag = false;
+    }
+    else if (name_ == "M1")
+    {
+      if (irr != u3::irrep(2, 1, 0) && irr != u3::irrep(0, 0, 0)) 
         flag = false;
     }
     
@@ -852,10 +921,15 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" ||
-        name_ == "CoMNumberOp" || name_ == "Kinetic")
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "E2" ||
+        name_ == "R.R" || name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (irr != u4::irrep(0, 0, 0, 0)) flag = false;
+    }
+    else if (name_ == "M1")
+    {
+      if (irr != u4::irrep(2, 1, 1, 0) && irr != u4::irrep(0, 0, 0, 0)) 
+        flag = false;
     }
     
     return flag;
@@ -958,16 +1032,16 @@ namespace JT
                       ? cgcs.get({1, 1, TT(), mmta, -mmtb, MMT()})
                       : cgcs.get({1, 1, TT(), -mmtb, mmta, MMT()});
 
-                    double me = sphericalME(na, lla, jja, mmja, mmta, nb, llb,
-                                            jjb, mmjb, mmtb, dbs);
+                    double me = sphericalME(na, lla, jja, mmja, mmta,
+                                            nb, llb, jjb, mmjb, mmtb, dbs);
                     if (me == 0.0) continue;
 
-                    // phase = (-)^{(nb + lb + 1)/2 - jb + mjb + mtb}
 #ifdef ADD_SU3LIB_PHASE_U3SO3
                     double phase = 
                       ((2 * nb + 1 - jjb + mmjb + mmtb) / 2 % 2 == 0) 
                       ? 1.0 : -1.0;
 #else
+                    // phase = (-)^{(nb + lb + 1)/2 - jb + mjb + mtb}
                     double phase = 
                       ((nb + llb / 2 + 1 - jjb + mmjb + mmtb) / 2 % 2 == 0)
                       ? 1.0 : -1.0;
@@ -1083,15 +1157,11 @@ namespace JT
   U3xU4::MultiShellTensors_phys 
     OneBodyOperator::expand(sam::Databases& dbs)
   {
-    const char* sam_dir = std::getenv("SAM_DIR");
-    if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
-
-    std::string base_dir = std::string(sam_dir) + "/data/OneBodyOperatorExpansion";
+    std::string base_dir = dirname() + "/Expansion";
     std::filesystem::create_directories(base_dir);
 
-    std::string filename = base_dir + "/" + name_ 
-                         + "_hw" + std::to_string(static_cast<int>(hw_));
+    std::string filename = base_dir + "/" + name_ + "_hw" 
+                         + std::to_string(static_cast<int>(hw_));
 
     // if this file exists, returns immediately
     if (std::filesystem::exists(filename))
@@ -1188,6 +1258,7 @@ namespace JT
     auto tensors = expand(dbs);
     return U3xU4::MatrixElements(tensors,basis,dbs);
   }
+
   Eigen::SparseMatrix<double> OneBodyOperator::matrix(
     const U3xU4::ManyNucleonBasis& bras,
     const U3xU4::ManyNucleonBasis& kets, sam::Databases& dbs)
@@ -1197,22 +1268,13 @@ namespace JT
   }
 
   // Tensor Analyzers
-  static std::string analysis_dir()
-  {
-    const char* sam_dir = std::getenv("SAM_DIR");
-    if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
-
-    std::string base_dir = std::string(sam_dir) 
-                         + "/data/OneBodyOperatorExpansion/Analysis";
-    std::filesystem::create_directories(base_dir);
-    return base_dir;
-  }
-
   std::vector<std::pair<u3::irrep, sam::strength_stats>>
     OneBodyOperator::U3_tensor_analyzer_write(sam::Databases& dbs)
   {
-    std::string filename = analysis_dir() + "/" + name_ 
+    std::string base_dir = dirname() + "/Analysis";
+    std::filesystem::create_directories(base_dir);
+
+    std::string filename = base_dir + "/" + name_
                          + "_hw" + std::to_string(static_cast<int>(hw_))
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_U3.dat";
@@ -1231,7 +1293,10 @@ namespace JT
   std::vector<std::pair<u4::irrep, sam::strength_stats>>
     OneBodyOperator::U4_tensor_analyzer_write(sam::Databases& dbs)
   {
-    std::string filename = analysis_dir() + "/" + name_ 
+    std::string base_dir = dirname() + "/Analysis";
+    std::filesystem::create_directories(base_dir);
+
+    std::string filename = base_dir + "/" + name_
                          + "_hw" + std::to_string(static_cast<int>(hw_))
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_U4.dat";
@@ -1250,7 +1315,10 @@ namespace JT
   std::vector<std::pair<int, sam::strength_stats>>
     OneBodyOperator::LL_tensor_analyzer_write(sam::Databases& dbs)
   {
-    std::string filename = analysis_dir() + "/" + name_ 
+    std::string base_dir = dirname() + "/Analysis";
+    std::filesystem::create_directories(base_dir);
+
+    std::string filename = base_dir + "/" + name_
                          + "_hw" + std::to_string(static_cast<int>(hw_))
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_LL.dat";
@@ -1269,7 +1337,10 @@ namespace JT
   std::vector<std::pair<int, sam::strength_stats>>
     OneBodyOperator::SS_tensor_analyzer_write(sam::Databases& dbs)
   {
-    std::string filename = analysis_dir() + "/" + name_ 
+    std::string base_dir = dirname() + "/Analysis";
+    std::filesystem::create_directories(base_dir);
+
+    std::string filename = base_dir + "/" + name_
                          + "_hw" + std::to_string(static_cast<int>(hw_))
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_SS.dat";

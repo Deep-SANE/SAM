@@ -48,6 +48,9 @@ namespace JT
     friend std::ostream& operator<<(std::ostream& s,
                                     const OneBodyOperator& x);
 
+    // Name of the directory that contains data of this operator
+    std::string dirname() const;
+
   private:
     // ME: < na lla jja mmja mmta | O | nb llb jjb mmjb mmtb >
     // recommended, since I haven't implemented RME for all operators
