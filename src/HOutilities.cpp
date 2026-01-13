@@ -1,6 +1,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -358,7 +359,13 @@ namespace HO
       throw std::runtime_error("Failed to read count from: " + filename);
 
     // Allocate temporary buffers
-    std::vector<uint> ia(num_me), ib(num_me), ic(num_me), id(num_me), J(num_me);
+    /* From subroutine write_scalar_operator_binary_myg(this, f)
+       in NuHamil-public/src/TwoBody/TwoBodyLabOps.F90:
+    integer :: a, b, c, d, bra, ket
+    integer :: j, ipar, itz, ich, nn
+    integer, allocatable :: ia(:), ib(:), ic(:), id(:), jj(:)
+    */
+    std::vector<int> ia(num_me), ib(num_me), ic(num_me), id(num_me), J(num_me);
     std::vector<double> v(num_me);
 
     // Read data arrays
@@ -503,7 +510,7 @@ namespace HO
     std::getline(infile, line);
 
     // Read all matrix elements
-    uint a, b, c, d, J;
+    int a, b, c, d, J;
     double v;
 
 #ifdef CHECKING_2B_CHANNELS
