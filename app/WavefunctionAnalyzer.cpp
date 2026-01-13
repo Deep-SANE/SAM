@@ -1,10 +1,15 @@
 #include <qcx_utils.h>
 
+#include <u3lib.h>
+#include <u4lib.h>
+
 #include <WavefunctionAnalyzer.h>
 
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
+  u3::initialize();
+  u4::initialize();
 
   int Z, N, Nmax, JJ, hw;
 
@@ -51,5 +56,7 @@ int main(int argc, char* argv[])
   for (const auto& subspace : subspaces)
   	std::cout << subspace << std::endl;
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }

@@ -1,8 +1,12 @@
 #include <cassert>
 
 #include <qcx_ND.h>
+#include <so3Coeffs/SO3_CGC.h>
+#include <so3Coeffs/SO3_Racah.h>
 
-#include <Databases.h>
+#include <U3SO3xU3SO3.h>
+#include <U4SU2SU2xU4SU2SU2.h>
+
 #include <U3xU4MultiShellTensors.h>
 #include <U3xU4SingleShellTensors.h>
 
@@ -17,12 +21,12 @@ namespace U3xU4
   // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
   std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
             std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-  TwoBodyMultiShellTensor::expand(sam::Databases& dbs) const
+  TwoBodyMultiShellTensor::expand() const
   {
-    auto& cgcs = dbs.cgcs;
-    auto& racah9 = dbs.racah9;
-    auto& wigU3SO3db = dbs.wigU3SO3db;
-    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
     std::vector<Eigen::RowVectorXd> coeffsArr;
     std::vector<U3xU4::ads_ats_phys> opsArr;
@@ -37,7 +41,7 @@ namespace U3xU4
         tadat.num_ats(), tadat.Omega_ads(), tadat.Omega_ats(), tadat.T(), 
         rhomax(), etamax(), LL(), SS(), TT(), MMT(), JJ(), MMJ(), labels_);
 
-      auto [coeffs, ads, ats] = tadat_phys.expand(dbs);
+      auto [coeffs, ads, ats] = tadat_phys.expand();
 
       for (size_t i = 0; i < coeffs.size(); i++)
       {
@@ -133,14 +137,14 @@ namespace U3xU4
                         tadat1.Omega_ads(), tadat1.Omega_ats(), tadat1.T(),
                         tadat1.rho0max(), tadat1.eta0max(), LL1, SS1, TT1,
                         MMT1, JJ1, MMJ1, labels_);
-                      auto [coeffsArr1, adsArr1, asArr1] = tadat_phys1.expand(dbs);
+                      auto [coeffsArr1, adsArr1, asArr1] = tadat_phys1.expand();
 
                       U3xU4::SingleShellTensor_phys tadat_phys2(
                           tadat2.shell(), tadat2.num_ads(), tadat2.num_ats(),
                           tadat2.Omega_ads(), tadat2.Omega_ats(), tadat2.T(),
                           tadat2.rho0max(), tadat2.eta0max(), LL2, SS2, TT2,
                           MMT2, JJ2, MMJ2, labels_);
-                      auto [coeffsArr2, adsArr2, asArr2] = tadat_phys2.expand(dbs);
+                      auto [coeffsArr2, adsArr2, asArr2] = tadat_phys2.expand();
 
                       for (size_t i = 0; i < coeffsArr1.size(); i++)
                       {
@@ -304,7 +308,7 @@ namespace U3xU4
                           labels_);
 
                       auto [coeffsArr1, opsArr1] =
-                          new_multi_shell_tensor.expand(dbs);
+                          new_multi_shell_tensor.expand();
 
                       U3xU4::SingleShellTensor_phys tadat_phys(
                           tadat.shell(), tadat.num_ads(), tadat.num_ats(),
@@ -312,7 +316,7 @@ namespace U3xU4
                           tadat.rho0max(), tadat.eta0max(), LL2, SS2, TT2, MMT2,
                           JJ2, MMJ2, labels_);
                       auto [coeffsArr2, adsArr2, asArr2] =
-                          tadat_phys.expand(dbs);
+                          tadat_phys.expand();
 
                       for (size_t i = 0; i < coeffsArr1.size(); i++)
                       {
@@ -382,12 +386,12 @@ namespace U3xU4
   // and annihilation operators (a)
   std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
             std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-  MultiShellTensor_phys::expand(int LL, int SS, int TT,sam::Databases& dbs) const
+  MultiShellTensor_phys::expand(int LL, int SS, int TT) const
   {
-    auto& cgcs = dbs.cgcs;
-    auto& racah9 = dbs.racah9;
-    auto& wigU3SO3db = dbs.wigU3SO3db;
-    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
     std::vector<Eigen::RowVectorXd> coeffsArr;
     std::vector<U3xU4::ads_ats_phys> opsArr;
@@ -398,7 +402,7 @@ namespace U3xU4
       const U3xU4::SingleShellTensor& t = Gammas()[0];
       U3xU4::SingleShellTensor_phys t_phys(t, LL, SS, TT, MMT(), JJ(), MMJ(), labels_);
 
-      auto [coeffs, ads, ats] = t_phys.expand(dbs);
+      auto [coeffs, ads, ats] = t_phys.expand();
 
       for (size_t i = 0; i < coeffs.size(); i++)
       {
@@ -510,11 +514,11 @@ namespace U3xU4
                         t2_phys(t2, LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels_);     
 
                       // std::cout << "Start expanding t1: " << t1_phys << std::endl;
-                      auto [coeffsArr1, adsArr1, asArr1] = t1_phys.expand(dbs);
+                      auto [coeffsArr1, adsArr1, asArr1] = t1_phys.expand();
                       // std::cout << "Finish expanding t1" << std::endl;
 
                       // std::cout << "Start expanding t2: " << t2_phys << std::endl;
-                      auto [coeffsArr2, adsArr2, asArr2] = t2_phys.expand(dbs);
+                      auto [coeffsArr2, adsArr2, asArr2] = t2_phys.expand();
                       // std::cout << "Finish expanding t2" << std::endl;
 
                       for (size_t i = 0; i < coeffsArr1.size(); i++)
@@ -680,11 +684,11 @@ namespace U3xU4
                         t2_phys(t2, LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels_);
                     
                       // std::cout << "Start expanding t1: " << t1_phys << std::endl;
-                      auto [coeffsArr1, opsArr1] = t1_phys.expand(LL1, SS1, TT1, dbs);
+                      auto [coeffsArr1, opsArr1] = t1_phys.expand(LL1, SS1, TT1);
                       // std::cout << "Finish expanding t1" << std::endl;                     
 
                       // std::cout << "Start expanding t2: " << t2_phys << std::endl;
-                      auto [coeffsArr2, adsArr2, asArr2] = t2_phys.expand(dbs);
+                      auto [coeffsArr2, adsArr2, asArr2] = t2_phys.expand();
                       // std::cout << "Finish expanding t2" << std::endl;
 
                       for (size_t i = 0; i < coeffsArr1.size(); i++)

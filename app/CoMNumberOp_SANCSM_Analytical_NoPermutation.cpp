@@ -3,11 +3,18 @@
 
 using qcx_utils::print;
 
+#include <u3lib.h>
+#include <u4lib.h>
 #include <U3basis.h>
 
-#include <Databases.h>
 #include <GlobalConstants.h>
 #include <HOutilities.h>
+
+#include <so3Coeffs/SO3_CGC.h>
+#include <so3Coeffs/SO3_Racah.h>
+
+#include <U3SO3xU3SO3.h>
+#include <U4SU2SU2xU4SU2SU2.h>
 
 auto GenerateCombinationsHOShells(int Nmax, int valenceShell,
                                          int maxShell)
@@ -50,12 +57,12 @@ auto GenerateCombinationsHOShells(int Nmax, int valenceShell,
 double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
                  int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                  int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
-                 int mmjd, int mmtd, sam::Databases& dbs)
+                 int mmjd, int mmtd)
 {
   double x = 0.0;
 
-  auto& cgcs = dbs.cgcs;
-  auto& racah9 = dbs.racah9;
+  auto& cgcs = qcx_utils::cgcs();
+  auto& racah9 = qcx_utils::racahs9();
 
   if (mmta == mmtc && mmtb == mmtd)
   {
@@ -65,10 +72,10 @@ double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
               cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
               cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
     x = cgc *
-        (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-         HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
-         HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-          HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs));
+        (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+         HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd) +
+         HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+          HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd));
   }
 
   return x;
@@ -78,21 +85,19 @@ double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
 double ME_CoM_2B_AS(int na, int lla, int jja, int mmja, 
 					int nb, int llb, int jjb, int mmjb, 
 					int nc, int llc, int jjc, int mmjc, 
-					int nd, int lld, int jjd, int mmjd, sam::Databases& dbs)
+					int nd, int lld, int jjd, int mmjd)
 {
   return (ME_CoM_2B(na, lla, jja, mmja, 1, nb, llb, jjb, mmjb, 1,
-                    nc, llc, jjc, mmjc, 1, nd, lld, jjd, mmjd, 1,
-                    dbs) -
+                    nc, llc, jjc, mmjc, 1, nd, lld, jjd, mmjd, 1) -
           ME_CoM_2B(na, lla, jja, mmja, 1, nb, llb, jjb, mmjb, 1,
-                    nd, lld, jjd, mmjd, 1, nc, llc, jjc, mmjc, 1,
-                    dbs)) / 4.0; 
+                    nd, lld, jjd, mmjd, 1, nc, llc, jjc, mmjc, 1)) / 4.0; 
 }
 
 double RME_CoM_2B_AS(int na, int lla, int jja, int nb, int llb, int jjb,
 					 int nc, int llc, int jjc, int nd, int lld, int jjd,
-					 int JJ, sam::Databases& dbs)
+					 int JJ)
 {
-  auto& cgcs = dbs.cgcs;
+  auto& cgcs = qcx_utils::cgcs();
 
   //Since the RME is the same as ME, choose MJ=J
 
@@ -116,7 +121,7 @@ double RME_CoM_2B_AS(int na, int lla, int jja, int nb, int llb, int jjb,
 
   	  x += cgcJ_ab * cgcJ_cd *
   	  	   ME_CoM_2B_AS(na, lla, jja, mmja, nb, llb, jjb, mmjb,
-                        nc, llc, jjc, mmjc, nd, lld, jjd, mmjd, dbs);
+                        nc, llc, jjc, mmjc, nd, lld, jjd, mmjd);
   	  	
   	}
   }
@@ -127,10 +132,11 @@ double RME_CoM_2B_AS(int na, int lla, int jja, int nb, int llb, int jjb,
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
+  u3::initialize();
+  u4::initialize();
 
-  sam::Databases dbs;
-  auto& racah9 = dbs.racah9;
-  auto& wigU3SO3db = dbs.wigU3SO3db;
+  auto& racah9 = qcx_utils::racahs9();
+  auto& wigU3SO3db = u3::wigU3SO3db();
 
   int Nmax = 2, valenceShell = 0, maxShell = 2;
   auto na_nb_nc_nds =
@@ -223,7 +229,7 @@ int main(int argc, char* argv[])
 
       	  		  	  	  	  	     	  auto rme = RME_CoM_2B_AS(na,2*la,jja, nb,2*lb,jjb,
 																   nc,2*lc,jjc, nd,2*ld,jjd,
-																   JJ,dbs);
+																   JJ);
 
 #ifdef ADD_SU3LIB_PHASE_U3SO3
       	  		  	  	  	  	  		  int phase = (2*nc + 2*nd - jjc - jjd + JJ);
@@ -282,5 +288,7 @@ int main(int argc, char* argv[])
   }
 
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }

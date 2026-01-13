@@ -5,7 +5,9 @@
 
 #include <qcx_utils.h>
 
-#include <Databases.h>
+#include <u3lib.h>
+#include <u4lib.h>
+
 #include <U3xU4irrep.h>
 #include <U3xU4GammaOmega.h>
 #include <U3xU4MultiShellTensors.h>
@@ -14,8 +16,8 @@
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
-
-  sam::Databases dbs;
+  u3::initialize();
+  u4::initialize();
 
   /* Example 1: n = 1 shell
                            [2,0,0]       [2,2,0]   [0,0,0]
@@ -263,7 +265,7 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto RMEs = tensor.RME(bra, ket, dbs);
+  auto RMEs = tensor.RME(bra, ket);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -279,5 +281,7 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
   
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }

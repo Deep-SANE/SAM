@@ -10,7 +10,6 @@
 using qcx_utils::print;
 #include <so3Coeffs/SO3_CGC.h>
 
-#include <Databases.h>
 #include <TwoBodyOperatorJT.h>
 
 namespace JT
@@ -112,12 +111,11 @@ namespace JT
                                       int mmta, int nb, int llb, int jjb,
                                       int mmjb, int mmtb, int nc, int llc,
                                       int jjc, int mmjc, int mmtc, int nd,
-                                      int lld, int jjd, int mmjd, int mmtd,
-                                      sam::Databases& dbs) const
+                                      int lld, int jjd, int mmjd, int mmtd) const
   {
-    auto& cgcs = dbs.cgcs;
-    auto& racah = dbs.racah;
-    auto& racah9 = dbs.racah9;
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah = qcx_utils::racahs();
+    auto& racah9 = qcx_utils::racahs9();
 
     double x = 0.0;
 
@@ -170,10 +168,10 @@ namespace JT
                  cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
                  cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
         x = cgc *
-            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                 HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
-             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                 HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs));
+            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                 HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd) +
+             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                 HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd));
       }
     }
     else if (name_ == "Kinetic") // Two-body part of the relative kinetic energy
@@ -187,12 +185,12 @@ namespace JT
                  cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
                  cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
         x = static_cast<double>(hw_) * cgc *
-            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                 (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs) -
-                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs)) +
-             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                 (HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) -
-                  HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs))) /
+            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                 (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd) -
+                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd)) +
+             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                 (HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd) -
+                  HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd))) /
             2.0;
       }
     }
@@ -207,12 +205,12 @@ namespace JT
                  cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
                  cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
         x = 2.0 * cgc *
-            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                 (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
-                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs)) +
-             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                 (HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
-                  HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs)));
+            (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                 (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd) +
+                  HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd)) +
+             HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                 (HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd) +
+                  HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd)));
       }
     }
     else
@@ -226,23 +224,19 @@ namespace JT
                                          int mmta, int nb, int llb, int jjb,
                                          int mmjb, int mmtb, int nc, int llc,
                                          int jjc, int mmjc, int mmtc, int nd,
-                                         int lld, int jjd, int mmjd, int mmtd,
-                                         sam::Databases& dbs) const
+                                         int lld, int jjd, int mmjd, int mmtd) const
   {
     if (on_the_fly == true)
     {
       return (sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
-                          nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd,
-                          dbs) -
+                          nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd) -
               sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
-                          nd, lld, jjd, mmjd, mmtd, nc, llc, jjc, mmjc, mmtc,
-                          dbs)) / 4.0;
+                          nd, lld, jjd, mmjd, mmtd, nc, llc, jjc, mmjc, mmtc)) / 4.0;
     }
     else
     {
       return TBME->getME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb, 
-                         nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd, 
-                         dbs) / 4.0;
+                         nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd) / 4.0;
     }
   }
 
@@ -442,7 +436,7 @@ namespace JT
   bool TwoBodyOperator::setTensorStrength(
       U3xU4::TwoBodyMultiShellTensor& tensor,
       const std::vector<std::vector<int>>& inverse,
-      const std::vector<int>& phase, sam::Databases& dbs) const
+      const std::vector<int>& phase) const
   {
     /* Coefficients in the expansion of two-body JT-coupled operator.
        The size of this array is equal to rhomax * etamax * kappamax * zetamax.
@@ -457,7 +451,7 @@ namespace JT
     std::vector<double> coeffs(tensor.rhomax() * tensor.etamax() * 
                                 tensor.kappamax() * tensor.zetamax(), 0.0);
 
-    auto [coeffsArr, opsArr] = tensor.expand(dbs);
+    auto [coeffsArr, opsArr] = tensor.expand();
 
     for (size_t i = 0; i < coeffsArr.size(); i++)
     {
@@ -494,7 +488,7 @@ namespace JT
                                         mmts_orig[1], ns_orig[3], lls_orig[3],
                                         jjs_orig[3], mmjs_orig[3], mmts_orig[3],
                                         ns_orig[2], lls_orig[2], jjs_orig[2],
-                                        mmjs_orig[2], mmts_orig[2], dbs);
+                                        mmjs_orig[2], mmts_orig[2]);
       }
 
       if (std::fabs(me) < 1e-10) continue;
@@ -587,7 +581,7 @@ namespace JT
   void TwoBodyOperator::setTensorStrength(
       U3xU4::MultiShellTensor_phys& tensor,
       const std::vector<std::vector<int>>& inverse,
-      const std::vector<int>& phase, sam::Databases& dbs) const
+      const std::vector<int>& phase) const
   {
     std::vector<std::tuple<uint8_t,              // kappamax
                            HO::qn_t,             // LL
@@ -623,7 +617,7 @@ namespace JT
 
         std::vector<double> strengths(tensor.alphamax() * kappa0 * zeta0, 0.0);
 
-        auto [coeffsArr, opsArr] = tensor.expand(LL0, SS0, TT0, dbs);
+        auto [coeffsArr, opsArr] = tensor.expand(LL0, SS0, TT0);
 
         for (size_t i = 0; i < coeffsArr.size(); i++)
         {
@@ -658,7 +652,7 @@ namespace JT
                                         mmts_orig[1], ns_orig[3], lls_orig[3],
                                         jjs_orig[3], mmjs_orig[3], mmts_orig[3],
                                         ns_orig[2], lls_orig[2], jjs_orig[2],
-                                        mmjs_orig[2], mmts_orig[2], dbs);
+                                        mmjs_orig[2], mmts_orig[2]);
           }
 
           if (std::fabs(me) < 1e-10) continue;
@@ -689,7 +683,7 @@ namespace JT
 #define RESTRICT_WITH_NMAX
 #define RESTRICT_JJ
   U3xU4::TwoBodyMultiShellTensors 
-    TwoBodyOperator::expand_old(sam::Databases& dbs)
+    TwoBodyOperator::expand_old()
   {
     if (on_the_fly == false)
       TBME->read();
@@ -800,7 +794,7 @@ namespace JT
               kappa0, LL0, zeta0, SS0, TT0, MMT_, JJ_, MMJ_, {}, labels_);
 
             bool ignore =
-                setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
+                setTensorStrength(tensor, all_inverse[i], all_phase[i]);
 
             //std::cout << (ignore ? "Ignore" : "Accept") << tensor << std::endl;
 
@@ -819,7 +813,7 @@ namespace JT
                 kappa0, LL0, zeta0, SS0, TT0, MMT_, JJ0, MMJ_, {}, labels_);
 
               bool ignore =
-                setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
+                setTensorStrength(tensor, all_inverse[i], all_phase[i]);
 
               //std::cout << (ignore ? "Ignore" : "Accept") << tensor << std::endl;
 
@@ -839,7 +833,7 @@ namespace JT
   }
 
   U3xU4::MultiShellTensors_phys 
-    TwoBodyOperator::expand_new(sam::Databases& dbs)
+    TwoBodyOperator::expand_new()
   {
     if (on_the_fly == false)
       TBME->read();
@@ -877,7 +871,7 @@ namespace JT
         if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
 
-        setTensorStrength(tensor, all_inverse[i], all_phase[i], dbs);
+        setTensorStrength(tensor, all_inverse[i], all_phase[i]);
 
         if (!tensor.LLSSTTstrengths().empty())
           tensors.push_back(std::move(tensor));
@@ -888,7 +882,7 @@ namespace JT
   }
 
   U3xU4::MultiShellTensors_phys 
-    TwoBodyOperator::expand(sam::Databases& dbs)
+    TwoBodyOperator::expand()
   {
     std::string base_dir = dirname() + "/Expansion";
     std::filesystem::create_directories(base_dir);
@@ -899,11 +893,11 @@ namespace JT
     // if this file exists, returns immediately
     if (std::filesystem::exists(filename))
     {
-      return readBinary(filename, dbs);
+      return readBinary(filename);
     }
     else
     {
-      auto tensors = expand_new(dbs);
+      auto tensors = expand_new();
       writeBinary(filename, tensors);
       return tensors;
     }
@@ -938,7 +932,7 @@ namespace JT
 
   // Read from binary file
   U3xU4::MultiShellTensors_phys TwoBodyOperator::readBinary(
-    const std::string& filename, sam::Databases& dbs)
+    const std::string& filename)
   {
     std::ifstream s(filename, std::ios::binary);
     if (!s)
@@ -958,7 +952,7 @@ namespace JT
       valenceShell_ = 0;
       Nmax_ = maxShell_;
 
-      auto tensors = expand_new(dbs);
+      auto tensors = expand_new();
       writeBinary(filename, tensors);
       return tensors;
     }
@@ -999,22 +993,22 @@ namespace JT
 
   // Matrix representation
   Eigen::SparseMatrix<double> TwoBodyOperator::matrix(
-    const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs)
+    const U3xU4::ManyNucleonBasis& basis)
   {
-    auto tensors = expand(dbs);
-    return U3xU4::MatrixElements(tensors, basis, dbs);
+    auto tensors = expand();
+    return U3xU4::MatrixElements(tensors, basis);
   }
   Eigen::SparseMatrix<double> TwoBodyOperator::matrix(
     const U3xU4::ManyNucleonBasis& bras, 
-    const U3xU4::ManyNucleonBasis& kets, sam::Databases& dbs)
+    const U3xU4::ManyNucleonBasis& kets)
   {
-    auto tensors = expand(dbs);
-    return U3xU4::MatrixElements(tensors, bras, kets, dbs);
+    auto tensors = expand();
+    return U3xU4::MatrixElements(tensors, bras, kets);
   }
 
   // Tensor Analyzers
   std::vector<std::pair<u3::irrep, sam::strength_stats>>
-    TwoBodyOperator::U3_tensor_analyzer_write(sam::Databases& dbs)
+    TwoBodyOperator::U3_tensor_analyzer_write()
   {
     std::string base_dir = dirname() + "/Analysis";
     std::filesystem::create_directories(base_dir);
@@ -1024,19 +1018,19 @@ namespace JT
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_U3.dat";
 
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::U3_tensor_analyzer(tensors, filename);
   }
   
   std::vector<std::pair<u3::irrep, sam::strength_stats>>
-    TwoBodyOperator::U3_tensor_analyzer(sam::Databases& dbs)
+    TwoBodyOperator::U3_tensor_analyzer()
   {
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::U3_tensor_analyzer(tensors);
   }
 
   std::vector<std::pair<u4::irrep, sam::strength_stats>>
-    TwoBodyOperator::U4_tensor_analyzer_write(sam::Databases& dbs)
+    TwoBodyOperator::U4_tensor_analyzer_write()
   {
     std::string base_dir = dirname() + "/Analysis";
     std::filesystem::create_directories(base_dir);
@@ -1046,19 +1040,19 @@ namespace JT
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_U4.dat";
 
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::U4_tensor_analyzer(tensors, filename);
   }
   
   std::vector<std::pair<u4::irrep, sam::strength_stats>>
-    TwoBodyOperator::U4_tensor_analyzer(sam::Databases& dbs)
+    TwoBodyOperator::U4_tensor_analyzer()
   {
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::U4_tensor_analyzer(tensors);
   }
 
   std::vector<std::pair<int, sam::strength_stats>>
-    TwoBodyOperator::LL_tensor_analyzer_write(sam::Databases& dbs)
+    TwoBodyOperator::LL_tensor_analyzer_write()
   {
     std::string base_dir = dirname() + "/Analysis";
     std::filesystem::create_directories(base_dir);
@@ -1068,19 +1062,19 @@ namespace JT
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_LL.dat";
 
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::LL_tensor_analyzer(tensors, filename);
   }
 
   std::vector<std::pair<int, sam::strength_stats>>
-    TwoBodyOperator::LL_tensor_analyzer(sam::Databases& dbs)
+    TwoBodyOperator::LL_tensor_analyzer()
   {
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::LL_tensor_analyzer(tensors);
   }
 
   std::vector<std::pair<int, sam::strength_stats>>
-    TwoBodyOperator::SS_tensor_analyzer_write(sam::Databases& dbs)
+    TwoBodyOperator::SS_tensor_analyzer_write()
   {
     std::string base_dir = dirname() + "/Analysis";
     std::filesystem::create_directories(base_dir);
@@ -1090,14 +1084,14 @@ namespace JT
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_SS.dat";
 
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::SS_tensor_analyzer(tensors, filename);
   }
 
   std::vector<std::pair<int, sam::strength_stats>>
-    TwoBodyOperator::SS_tensor_analyzer(sam::Databases& dbs)
+    TwoBodyOperator::SS_tensor_analyzer()
   {
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::SS_tensor_analyzer(tensors);
   }
 } // namespace JT

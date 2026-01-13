@@ -1,6 +1,11 @@
 #include <ostream>
 
 #include <qcx_ND.h>
+#include <so3Coeffs/SO3_CGC.h>
+#include <so3Coeffs/SO3_Racah.h>
+
+#include <U3SO3xU3SO3.h>
+#include <U4SU2SU2xU4SU2SU2.h>
 
 #include <U3xU4MultiShellTensors.h>
 
@@ -55,14 +60,14 @@ namespace U3xU4
 
   // Symmetric matrix
   Eigen::SparseMatrix<double> MatrixElements(const MultiShellTensors_phys& tensors, 
-    const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs)
+    const U3xU4::ManyNucleonBasis& basis)
   {
   	// for (auto tensor : tensors) std::cout << tensor << std::endl;
 
-    auto& cgcs = dbs.cgcs;
-    auto& racah9 = dbs.racah9;
-    auto& wigU3SO3db = dbs.wigU3SO3db;
-    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
     // basis info
     auto irreps = basis.irreps();
@@ -156,7 +161,7 @@ namespace U3xU4
               for (auto uO : uT->Omegas()) std::cout << uO << std::endl; 
               */
 
-              auto rmes = uT->RME(ubra, uket, dbs);
+              auto rmes = uT->RME(ubra, uket);
               // rmes.print();
               RMEs.push_back(std::move(rmes));
             }
@@ -371,15 +376,14 @@ namespace U3xU4
 
   // Rectangular matrix
   Eigen::SparseMatrix<double> MatrixElements(const MultiShellTensors_phys& tensors, 
-    const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets, 
-    sam::Databases& dbs)
+    const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets)
   {
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
-    auto& cgcs = dbs.cgcs;
-    auto& racah9 = dbs.racah9;
-    auto& wigU3SO3db = dbs.wigU3SO3db;
-    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
     // bra basis info
     auto bras_irreps = bras.irreps();
@@ -480,7 +484,7 @@ namespace U3xU4
               for (auto uO : uT->Omegas()) std::cout << uO << std::endl; 
               */
 
-              auto rmes = uT->RME(ubra, uket, dbs);
+              auto rmes = uT->RME(ubra, uket);
               // rmes.print();
               RMEs.push_back(std::move(rmes));
             }

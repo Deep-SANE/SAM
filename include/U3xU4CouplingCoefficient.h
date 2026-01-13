@@ -1,7 +1,12 @@
 #pragma once
 
-#include <Databases.h>
 #include <U3xU4irrep.h>
+
+#include <so3Coeffs/SO3_CGC.h>
+#include <so3Coeffs/SO3_Racah.h>
+
+#include <U3SO3xU3SO3.h>
+#include <U4SU2SU2xU4SU2SU2.h>
 
 namespace U3xU4
 {
@@ -22,13 +27,12 @@ namespace U3xU4
                         int MMT1, int JJ1, int MMJ1, const U3xU4::irrep& b,
                         int LL2, int SS2, int TT2, int MMT2, int JJ2, int MMJ2,
                         const U3xU4::irrep& c, int LL3, int SS3, int TT3,
-                        int MMT3, int JJ3, int MMJ3,
-                        sam::Databases& dbs)
+                        int MMT3, int JJ3, int MMJ3)
     {
-      auto& cgcs = dbs.cgcs;
-      auto& racah9 = dbs.racah9;
-      auto& wigU3SO3db = dbs.wigU3SO3db;
-      auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+      auto& cgcs = qcx_utils::cgcs();
+      auto& racah9 = qcx_utils::racahs9();
+      auto& wigU3SO3db = u3::wigU3SO3db();
+      auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
       double cgcJ = cgcs.get({JJ1, JJ2, JJ3, MMJ1, MMJ2, MMJ3}),
              cgcT = cgcs.get({TT1, TT2, TT3, MMT1, MMT2, MMT3}),

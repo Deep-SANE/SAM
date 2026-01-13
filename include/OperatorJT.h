@@ -51,15 +51,15 @@ namespace JT
     std::string filename(const U3xU4::ManyNucleonBasis& basis) const;
 
     // expand into a sum of U3xU4::MultiShellTensor_phys
-    U3xU4::MultiShellTensors_phys expand(sam::Databases& dbs);
+    U3xU4::MultiShellTensors_phys expand();
 
     // Matrix representation
     // symmetric
     Eigen::SparseMatrix<double>
-    matrix(const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
+    matrix(const U3xU4::ManyNucleonBasis& basis);
     // rectangular
     Eigen::SparseMatrix<double>
     matrix(const U3xU4::ManyNucleonBasis& bras, 
-           const U3xU4::ManyNucleonBasis& kets, sam::Databases& dbs);
+           const U3xU4::ManyNucleonBasis& kets);
   };
 } // namespace JT

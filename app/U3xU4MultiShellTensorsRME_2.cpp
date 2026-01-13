@@ -3,7 +3,9 @@
 #include <qcx_print.h>
 #include <qcx_utils.h>
 
-#include <Databases.h>
+#include <u3lib.h>
+#include <u4lib.h>
+
 #include <U3xU4irrep.h>
 #include <U3xU4GammaOmega.h>
 #include <U3xU4MultiShellTensors.h>
@@ -14,8 +16,8 @@ using qcx_utils::print;
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
-
-  sam::Databases dbs;
+  u3::initialize();
+  u4::initialize();
 
   // (1) bra irrep:
 /*
@@ -161,11 +163,13 @@ int main(int argc, char* argv[])
 
   // (6) calculate RMEs:
 
-  auto RMEs = uT->RME(ubra, uket, dbs);
+  auto RMEs = uT->RME(ubra, uket);
 
   print("\nRMEs:\n");
   for (size_t i = 0; i < RMEs.size(); i++)
     print("{: .8f}\n", RMEs[i]);
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }

@@ -5,15 +5,17 @@
 #include <qcx_utils.h>
 #include <qcx_convert.h>
 
-#include <Databases.h>
+#include <u3lib.h>
+#include <u4lib.h>
+
 #include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
 
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
-
-  sam::Databases dbs;
+  u3::initialize();
+  u4::initialize();
 
   int maxShell, LL = 0, SS = 0, TT = 0, MMT = 0, JJ = 0, MMJ = 0;
   U3xU4::SingleShellTensors Gammas;
@@ -205,7 +207,7 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [coeffsArr, opsArr] = T.expand(LL, SS, TT, dbs);
+  auto [coeffsArr, opsArr] = T.expand(LL, SS, TT);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -240,5 +242,7 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }

@@ -4,11 +4,16 @@
 
 #include <qcx_utils.h>
 
+#include <u3lib.h>
+#include <u4lib.h>
+
 #include <HOutilities.h>
 
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
+  u3::initialize();
+  u4::initialize();
 
   int hw = -1, Nmax = 12, valenceShell = -1, maxShell = 12; // default
 
@@ -42,5 +47,7 @@ int main(int argc, char* argv[])
   std::chrono::duration<double> duration = t1 - t0;
   std::cout << "Hashing time: " << duration.count() << " seconds" << std::endl;
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }

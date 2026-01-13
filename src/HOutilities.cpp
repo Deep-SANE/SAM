@@ -10,6 +10,9 @@
 #include <qcx_convert.h>
 #include <qcx_readwrite.h>
 
+#include <so3Coeffs/SO3_CGC.h>
+#include <so3Coeffs/SO3_Racah.h>
+
 #define POSITIVE_INFINITY
 //#define POSITIVE_ORIGIN
 
@@ -66,11 +69,11 @@ namespace HO
 
   // < na lla jja || b+ || nb llb jjb >
   double bosonCreatorRME(int na, int lla, int jja, 
-    int nb, int llb, int jjb, sam::Databases& db)
+    int nb, int llb, int jjb)
   {
     if (na == nb + 1)
     {
-      double factor = db.racah9.get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
+      double factor = qcx_utils::racahs9().get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
       return factor * bosonCreatorRME(na, lla, nb, llb);
     }
     else
@@ -103,11 +106,11 @@ namespace HO
 
   // < na lla jja || b- || nb llb jjb >
   double bosonAnnihilatorRME(int na, int lla, int jja, 
-    int nb, int llb, int jjb, sam::Databases& db)
+    int nb, int llb, int jjb)
   {
     if (na == nb - 1)
     {
-      double factor = db.racah9.get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
+      double factor = qcx_utils::racahs9().get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
       return factor * bosonAnnihilatorRME(na, lla, nb, llb);
     }
     else
@@ -126,10 +129,10 @@ namespace HO
 
   // < na lla jja || r || nb llb jjb >
   double rRME(int hw, int na, int lla, int jja, 
-    int nb, int llb, int jjb, int mmt, sam::Databases& db)
+    int nb, int llb, int jjb, int mmt)
   {
-    return (bosonCreatorRME(na, lla, jja, nb, llb, jjb, db) + 
-            bosonAnnihilatorRME(na, lla, jja, nb, llb, jjb, db)) *
+    return (bosonCreatorRME(na, lla, jja, nb, llb, jjb) + 
+            bosonAnnihilatorRME(na, lla, jja, nb, llb, jjb)) *
             oscilatorLength(hw, mmt) / SQRT2;
   }
 
@@ -143,10 +146,10 @@ namespace HO
 
   // < na lla jja || p || nb llb jjb > defined without i
   double pRME(int hw, int na, int lla, int jja, 
-    int nb, int llb, int jjb, int mmt, sam::Databases& db)
+    int nb, int llb, int jjb, int mmt)
   {
-    return (bosonCreatorRME(na, lla, jja, nb, llb, jjb, db) - 
-            bosonAnnihilatorRME(na, lla, jja, nb, llb, jjb, db)) *
+    return (bosonCreatorRME(na, lla, jja, nb, llb, jjb) - 
+            bosonAnnihilatorRME(na, lla, jja, nb, llb, jjb)) *
             hbar / (oscilatorLength(hw, mmt) * SQRT2);
   }
 
@@ -635,8 +638,7 @@ namespace HO
       qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta, 
       qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb, 
       qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc, 
-      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd, 
-      sam::Databases& dbs) const
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
   {
     qn_t MMJab = mmja + mmjb, MMJcd = mmjc + mmjd, 
          MMTab = mmta + mmtb, MMTcd = mmtc + mmtd;
@@ -669,8 +671,8 @@ namespace HO
       if ((a == b && JJ % 4 != 0) || (c == d && JJ % 4 != 0))
         continue;
 
-      x += dbs.cgcs.get({jja, jjb, JJ, mmja, mmjb, MMJab}) *
-           dbs.cgcs.get({jjc, jjd, JJ, mmjc, mmjd, MMJab}) *
+      x += qcx_utils::cgcs().get({jja, jjb, JJ, mmja, mmjb, MMJab}) *
+           qcx_utils::cgcs().get({jjc, jjd, JJ, mmjc, mmjd, MMJab}) *
            getME(a, b, c, d, JJ / 2);
     }
 

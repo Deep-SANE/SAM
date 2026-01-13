@@ -11,7 +11,6 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
-#include <Databases.h>
 #include <HOutilities.h>
 #include <RME.h>
 #include <U3xU4GammaOmega.h>
@@ -235,7 +234,7 @@ namespace U3xU4
     // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
     std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
               std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-    expand(sam::Databases& dbs) const;
+    expand() const;
   };
   using TwoBodyMultiShellTensors = std::vector<TwoBodyMultiShellTensor>;
 
@@ -295,7 +294,7 @@ namespace U3xU4
                    const ManyNucleonBasis::Irrep& ket) const;
 
     sam::RME RME(const ManyNucleonBasis::Irrep& bra,
-                 const ManyNucleonBasis::Irrep& ket, sam::Databases& dbs) const;
+                 const ManyNucleonBasis::Irrep& ket) const;
 
   private:
     // Phase during uncoupling of RME
@@ -382,7 +381,7 @@ namespace U3xU4
     // and annihilation operators (a)
     std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
               std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-              expand(int LL, int SS, int TT, sam::Databases& dbs) const;
+              expand(int LL, int SS, int TT) const;
 
     // Setter: done after expanding and computing strengths
     void setLLSSTTstrengths(const std::vector<labels_type>& LLSSTTstrengths)
@@ -423,12 +422,11 @@ namespace U3xU4
 
   // Symmetric matrix
   Eigen::SparseMatrix<double> MatrixElements(const MultiShellTensors_phys& tensors, 
-    const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
+    const U3xU4::ManyNucleonBasis& basis);
 
   // Rectangular matrix
   Eigen::SparseMatrix<double> MatrixElements(const MultiShellTensors_phys& tensors, 
-    const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets, 
-    sam::Databases& dbs);
+    const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets);
 
   // A function to couple single-shell tensors into multi-shell tensors
   using CouplingPath = 

@@ -6,8 +6,11 @@
 #include <qcx_convert.h>
 #include <qcx_readwrite.h>
 #include <so3Coeffs/SO3_CGC.h>
+#include <so3Coeffs/SO3_Racah.h>
 
-#include <Databases.h>
+#include <U3SO3xU3SO3.h>
+#include <U4SU2SU2xU4SU2SU2.h>
+
 #include <GlobalConstants.h>
 #include <HOutilities.h>
 #include <OneBodyOperatorJT.h>
@@ -150,11 +153,11 @@ namespace JT
   // ME: < na lla jja mmja mmta | O | nb llb jjb mmjb mmtb >
   double OneBodyOperator::sphericalME(int na, int lla, int jja, int mmja,
                                       int mmta, int nb, int llb, int jjb,
-                                      int mmjb, int mmtb,
-                                      sam::Databases& dbs) const
+                                      int mmjb, int mmtb) const
   {
-    auto& cgcs = dbs.cgcs;
-    auto& racah = dbs.racah;
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah = qcx_utils::racahs();
+    auto& racah9 = qcx_utils::racahs9();
 
     double x = 0.0;
 
@@ -187,8 +190,8 @@ namespace JT
                      factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
 
               x += phase * factor *
-                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
             }
           }
       }
@@ -208,12 +211,12 @@ namespace JT
                      factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
               if (na == nb)
                 x += phase * factor *
-                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
               else if (na == nb - 2)
                 x -= phase * factor *
-                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
             }
           }
 
@@ -226,12 +229,12 @@ namespace JT
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
             if (na == nb)
               x += phase * factor *
-                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
             else if (na == nb + 2)
               x -= phase * factor *
-                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
           }
         }
         x = (static_cast<int>(hw_) * x / 4.0);
@@ -252,12 +255,12 @@ namespace JT
                      factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
               if (na == nb)
                 x += phase * factor *
-                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
               else if (na == nb - 2)
                 x += phase * factor *
-                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
             }
           }
 
@@ -270,12 +273,12 @@ namespace JT
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
             if (na == nb)
               x += phase * factor *
-                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
             else if (na == nb + 2)
               x += phase * factor *
-                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
           }
         }
         x *= HO::oscilatorLength2(hw_, -1) / 2;
@@ -287,7 +290,7 @@ namespace JT
       if (mmta == mmtb && mmtb == -1)
       {
         double factor1 = cgcs.get({jjb, 4, jja, mmjb, 0, mmja}) *
-                        dbs.racah9.get({llb,4,lla, 1,0,1, jjb,4,jja});
+                        racah9.get({llb,4,lla, 1,0,1, jjb,4,jja});
         for (int nc = nb + 1; nc >= 0; nc -= 2)
         {
           int llc_min = 2 * (nc % 2);
@@ -375,8 +378,7 @@ namespace JT
   // RME: < na lla jja || O || nb llb jjb >
   // = ME / ( < jb mjb ; J MJ | ja mja > * < 1/2 mtb ; T MT | 1/2 mta > )
   double OneBodyOperator::sphericalRME(int na, int lla, int jja, int nb,
-                                       int llb, int jjb,
-                                       sam::Databases& dbs) const
+                                       int llb, int jjb) const
   { 
     double x = 0.0;
 
@@ -408,8 +410,8 @@ namespace JT
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
 
             x += phase * factor *
-                 HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                 HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                 HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                 HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
           }
         }
       }
@@ -428,12 +430,12 @@ namespace JT
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
             if (na == nb)
               x += phase * factor *
-                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
             else if (na == nb - 2)
               x -= phase * factor *
-                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
           }
         }
         nc = nb + 1, llc_min = 2 * (nc % 2);
@@ -445,12 +447,12 @@ namespace JT
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
             if (na == nb)
               x += phase * factor *
-                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
             else if (na == nb + 2)
               x -= phase * factor *
-                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
           }
         }
       }
@@ -470,12 +472,12 @@ namespace JT
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
             if (na == nb)
               x += phase * factor *
-                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
             else if (na == nb - 2)
               x += phase * factor *
-                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
           }
         }
         nc = nb + 1, llc_min = 2 * (nc % 2);
@@ -487,12 +489,12 @@ namespace JT
                    factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
             if (na == nb)
               x += phase * factor *
-                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
             else if (na == nb + 2)
               x += phase * factor *
-                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb, dbs);
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
           }
         }
       }
@@ -506,12 +508,12 @@ namespace JT
   std::pair<bool, std::vector<double>>
   OneBodyOperator::getTensorStrength_ME(int lam0, int mu0, int P10, int P20,
                                      int P30, int kappa0, int LL0, int SS0,
-                                     int na, int nb, sam::Databases& dbs) const
+                                     int na, int nb) const
   {
-    auto& cgcs = dbs.cgcs;
-    auto& racah9 = dbs.racah9;
-    auto& wigU3SO3db = dbs.wigU3SO3db;
-    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
     std::vector<double> x(kappa0, 0.0);
 
@@ -577,7 +579,7 @@ namespace JT
                 int mmtb = mmta - MMT(); // selection rule of sphericalME
 
                 double me = sphericalME(na, lla, jja, mmja, mmta, nb, llb,
-                                          jjb, mmjb, mmtb, dbs);
+                                          jjb, mmjb, mmtb);
                 if (me == 0.0) continue;
 
                 // phase = (-)^{(nb + lb + 1)/2 - jb + mjb + mtb}
@@ -635,12 +637,12 @@ namespace JT
   std::pair<bool, std::vector<double>>
   OneBodyOperator::getTensorStrength_RME(int lam0, int mu0, int P10, int P20,
                                      int P30, int kappa0, int LL0, int SS0,
-                                     int na, int nb, sam::Databases& dbs) const
+                                     int na, int nb) const
   {
-    auto& cgcs = dbs.cgcs;
-    auto& racah9 = dbs.racah9;
-    auto& wigU3SO3db = dbs.wigU3SO3db;
-    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
     std::vector<double> x(kappa0, 0.0);
 
@@ -664,7 +666,7 @@ namespace JT
             if (JJ() < std::fabs(jja - jjb) || JJ() > jja + jjb)
               continue;
 
-            double rme = sphericalRME(na, lla, jja, nb, llb, jjb, dbs);
+            double rme = sphericalRME(na, lla, jja, nb, llb, jjb);
             if (rme == 0.0) continue;
 
             double U9j;
@@ -744,7 +746,7 @@ namespace JT
   }
 
   U3xU4::OneBodyMultiShellTensors
-    OneBodyOperator::expand_old(sam::Databases& dbs) const
+    OneBodyOperator::expand_old() const
   {
     U3xU4::OneBodyMultiShellTensors tensors;
 
@@ -815,8 +817,8 @@ namespace JT
                 // compute the expansion coefficients
                 auto [ignore, coeff] = getTensorStrength_ME(
                     lam0, mu0, P10, P20, P30, kappa0, LL0, SS0, na,
-                    nb, // pv3as, pv3bs, pv4as, pv4bs,
-                    dbs);
+                    nb // pv3as, pv3bs, pv4as, pv4bs,
+                    );
 
                 if (ignore == false)
                 {
@@ -936,12 +938,12 @@ namespace JT
   }
 
   void OneBodyOperator::setTensorStrength(U3xU4::MultiShellTensor_phys& tensor,
-                                    int na, int nb, sam::Databases& dbs) const
+                                    int na, int nb) const
   {
-    auto& cgcs = dbs.cgcs;
-    auto& racah9 = dbs.racah9;
-    auto& wigU3SO3db = dbs.wigU3SO3db;
-    auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
     std::vector<std::tuple<uint8_t,              // kappamax
                            HO::qn_t,             // LL
@@ -1033,7 +1035,7 @@ namespace JT
                       : cgcs.get({1, 1, TT(), -mmtb, mmta, MMT()});
 
                     double me = sphericalME(na, lla, jja, mmja, mmta,
-                                            nb, llb, jjb, mmjb, mmtb, dbs);
+                                            nb, llb, jjb, mmjb, mmtb);
                     if (me == 0.0) continue;
 
 #ifdef ADD_SU3LIB_PHASE_U3SO3
@@ -1074,7 +1076,7 @@ namespace JT
   }
 
   U3xU4::MultiShellTensors_phys 
-    OneBodyOperator::expand_new(sam::Databases& dbs) const
+    OneBodyOperator::expand_new() const
   {
     U3xU4::MultiShellTensors_phys tensors;
 
@@ -1130,7 +1132,7 @@ namespace JT
 
               U3xU4::MultiShellTensor_phys tensor({ab}, {}, MMT_, JJ_, MMJ_, labels_);
 
-              setTensorStrength(tensor, na, nb, dbs);
+              setTensorStrength(tensor, na, nb);
 
               if (!tensor.LLSSTTstrengths().empty())
                 tensors.push_back(std::move(tensor));
@@ -1141,7 +1143,7 @@ namespace JT
                 (na < nb) ? std::vector({a, b}) : std::vector({b, a}), 
                 {t}, MMT_, JJ_, MMJ_, labels_);
 
-              setTensorStrength(tensor, na, nb, dbs);
+              setTensorStrength(tensor, na, nb);
 
               if (!tensor.LLSSTTstrengths().empty())
                 tensors.push_back(std::move(tensor));
@@ -1155,7 +1157,7 @@ namespace JT
   }
 
   U3xU4::MultiShellTensors_phys 
-    OneBodyOperator::expand(sam::Databases& dbs)
+    OneBodyOperator::expand()
   {
     std::string base_dir = dirname() + "/Expansion";
     std::filesystem::create_directories(base_dir);
@@ -1166,11 +1168,11 @@ namespace JT
     // if this file exists, returns immediately
     if (std::filesystem::exists(filename))
     {
-      return readBinary(filename, dbs);
+      return readBinary(filename);
     }
     else
     {
-      auto tensors = expand_new(dbs);
+      auto tensors = expand_new();
       writeBinary(filename, tensors);
       return tensors;
     }
@@ -1205,7 +1207,7 @@ namespace JT
 
   // Read from binary file
   U3xU4::MultiShellTensors_phys OneBodyOperator::readBinary(
-    const std::string& filename, sam::Databases& dbs)
+    const std::string& filename)
   {
     std::ifstream s(filename, std::ios::binary);
     if (!s)
@@ -1225,7 +1227,7 @@ namespace JT
       valenceShell_ = 0;
       Nmax_ = maxShell_;
 
-      auto tensors = expand_new(dbs);
+      auto tensors = expand_new();
       writeBinary(filename, tensors);
       return tensors;
     }
@@ -1253,23 +1255,23 @@ namespace JT
 
   // Matrix representation
   Eigen::SparseMatrix<double> OneBodyOperator::matrix(
-    const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs)
+    const U3xU4::ManyNucleonBasis& basis)
   {
-    auto tensors = expand(dbs);
-    return U3xU4::MatrixElements(tensors,basis,dbs);
+    auto tensors = expand();
+    return U3xU4::MatrixElements(tensors,basis);
   }
 
   Eigen::SparseMatrix<double> OneBodyOperator::matrix(
     const U3xU4::ManyNucleonBasis& bras,
-    const U3xU4::ManyNucleonBasis& kets, sam::Databases& dbs)
+    const U3xU4::ManyNucleonBasis& kets)
   {
-    auto tensors = expand(dbs);
-    return U3xU4::MatrixElements(tensors, bras, kets, dbs);
+    auto tensors = expand();
+    return U3xU4::MatrixElements(tensors, bras, kets);
   }
 
   // Tensor Analyzers
   std::vector<std::pair<u3::irrep, sam::strength_stats>>
-    OneBodyOperator::U3_tensor_analyzer_write(sam::Databases& dbs)
+    OneBodyOperator::U3_tensor_analyzer_write()
   {
     std::string base_dir = dirname() + "/Analysis";
     std::filesystem::create_directories(base_dir);
@@ -1279,19 +1281,19 @@ namespace JT
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_U3.dat";
 
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::U3_tensor_analyzer(tensors, filename);
   }
   
   std::vector<std::pair<u3::irrep, sam::strength_stats>>
-    OneBodyOperator::U3_tensor_analyzer(sam::Databases& dbs)
+    OneBodyOperator::U3_tensor_analyzer()
   {
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::U3_tensor_analyzer(tensors);
   }
 
   std::vector<std::pair<u4::irrep, sam::strength_stats>>
-    OneBodyOperator::U4_tensor_analyzer_write(sam::Databases& dbs)
+    OneBodyOperator::U4_tensor_analyzer_write()
   {
     std::string base_dir = dirname() + "/Analysis";
     std::filesystem::create_directories(base_dir);
@@ -1301,19 +1303,19 @@ namespace JT
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_U4.dat";
 
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::U4_tensor_analyzer(tensors, filename);
   }
   
   std::vector<std::pair<u4::irrep, sam::strength_stats>>
-    OneBodyOperator::U4_tensor_analyzer(sam::Databases& dbs)
+    OneBodyOperator::U4_tensor_analyzer()
   {
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::U4_tensor_analyzer(tensors);
   }
 
   std::vector<std::pair<int, sam::strength_stats>>
-    OneBodyOperator::LL_tensor_analyzer_write(sam::Databases& dbs)
+    OneBodyOperator::LL_tensor_analyzer_write()
   {
     std::string base_dir = dirname() + "/Analysis";
     std::filesystem::create_directories(base_dir);
@@ -1323,19 +1325,19 @@ namespace JT
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_LL.dat";
 
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::LL_tensor_analyzer(tensors, filename);
   }
 
   std::vector<std::pair<int, sam::strength_stats>>
-    OneBodyOperator::LL_tensor_analyzer(sam::Databases& dbs)
+    OneBodyOperator::LL_tensor_analyzer()
   {
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::LL_tensor_analyzer(tensors);
   }
 
   std::vector<std::pair<int, sam::strength_stats>>
-    OneBodyOperator::SS_tensor_analyzer_write(sam::Databases& dbs)
+    OneBodyOperator::SS_tensor_analyzer_write()
   {
     std::string base_dir = dirname() + "/Analysis";
     std::filesystem::create_directories(base_dir);
@@ -1345,14 +1347,14 @@ namespace JT
                          + "_Nmax" + std::to_string(static_cast<int>(Nmax_))
                          + "_SS.dat";
 
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::SS_tensor_analyzer(tensors, filename);
   }
 
   std::vector<std::pair<int, sam::strength_stats>>
-    OneBodyOperator::SS_tensor_analyzer(sam::Databases& dbs)
+    OneBodyOperator::SS_tensor_analyzer()
   {
-    auto tensors = expand(dbs);
+    auto tensors = expand();
     return sam::SS_tensor_analyzer(tensors);
   }
 

@@ -10,7 +10,6 @@
 #include <vector>
 
 #include <CustomHash.h>
-#include <Databases.h>
 #include <GlobalConstants.h>
 
 #include <so3Coeffs/SO3_CGC.h>
@@ -34,14 +33,14 @@ namespace HO
 
   // < na lla jja || b+ || nb llb jjb >
   double bosonCreatorRME(int na, int lla, int jja, 
-    int nb, int llb, int jjb, sam::Databases& db);
+    int nb, int llb, int jjb);
 
   // < na lla || b- || nb llb >
   double bosonAnnihilatorRME(int na, int lla, int nb, int llb);
 
   // < na lla jja || b- || nb llb jjb >
   double bosonAnnihilatorRME(int na, int lla, int jja, 
-    int nb, int llb, int jjb, sam::Databases& db);
+    int nb, int llb, int jjb);
 
   /////////////// RME OF POSITION & MOMENTUM OPERATORS ///////////////
 
@@ -52,14 +51,14 @@ namespace HO
 
   // < na lla jja || r || nb llb jjb >
   double rRME(int hw, int na, int lla, int jja, 
-    int nb, int llb, int jjb, int mmt, sam::Databases& db);
+    int nb, int llb, int jjb, int mmt);
 
   // < na lla || p || nb llb > defined without i
   double pRME(int hw, int na, int lla, int nb, int llb, int mmt);
 
   // < na lla jja || p || nb llb jjb > defined without i
   double pRME(int hw, int na, int lla, int jja, 
-    int nb, int llb, int jjb, int mmt, sam::Databases& db);
+    int nb, int llb, int jjb, int mmt);
 
   //////////// CLASS Table_nljmjmt /////////////
 
@@ -209,7 +208,6 @@ namespace HO
       qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta, 
       qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb, 
       qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc, 
-      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd, 
-      sam::Databases& dbs) const;
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const;
   };
 } // namespace HO

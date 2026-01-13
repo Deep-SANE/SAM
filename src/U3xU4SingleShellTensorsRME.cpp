@@ -4,7 +4,9 @@
 
 #include <UNtoU3.h>
 
-#include <Databases.h>
+#include <U3U2xU3U2.h>
+#include <U4U3xU4U3.h>
+
 #include <U3xU4HWSgenerator.h>
 #include <U3xU4SingleShellTensors.h>
 #include <RME.h>
@@ -46,12 +48,11 @@ namespace U3xU4
   }
 
   sam::RME SingleShellTensor::RME(const U3xU4::GammaElement& f,
-                                  const U3xU4::GammaElement& i,
-                                  sam::Databases& dbs) const
+                                  const U3xU4::GammaElement& i) const
   {
-    auto& cgcs = dbs.cgcs;
-    auto& wigU3U2db = dbs.wigU3U2db;
-    auto& wigU4U3db = dbs.wigU4U3db;
+    auto& cgcs = qcx_utils::cgcs();
+    auto& wigU3U2db = u3::wigU3U2db();
+    auto& wigU4U3db = u4::wigU4U3db();
 
     if (RME_exist(f, i) == false) return {};
 
@@ -253,7 +254,7 @@ namespace U3xU4
             n, sps3, sps3_conj, sps4, sps4_conj, ads_, ats_, 
             Omega_ads_, Omega_ats_, T(), rho0max(), eta0max(), gt3, gt4);
 
-        auto [coeffs, adArr, aArr] = Tadat.expand(dbs);
+        auto [coeffs, adArr, aArr] = Tadat.expand();
         /*
         for (size_t t = 0; t < coeffs.size(); t++)
         {

@@ -6,12 +6,16 @@
 #include <qcx_readwrite.h>
 #include <qcx_utils.h>
 
-#include <Databases.h>
+#include <u3lib.h>
+#include <u4lib.h>
+
 #include <OperatorJT.h>
 
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
+  u3::initialize();
+  u4::initialize();
 
   int Z, N, Nmax, JJ, hw, write;
 
@@ -57,12 +61,10 @@ int main(int argc, char* argv[])
   JT::Operator op(name, N, Z, hw, Nmax, HO_labels);
   op.is();
 
-  sam::Databases dbs;
-
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto mat = op.matrix(basis, dbs);
+  auto mat = op.matrix(basis);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -136,5 +138,7 @@ int main(int argc, char* argv[])
             << duration.count() / 60.0 << " minutes" << std::endl;
 
 
+  u3::finalize();
+  u4::finalize();
   qcx_utils::finalize();
 }
