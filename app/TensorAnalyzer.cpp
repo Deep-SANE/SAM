@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
 
   sam::Databases dbs;
 
-  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 8, maxShell = Nmax;
   HO::Table_nljmjmt labels(maxShell);
 
   // YOU MUST CHOOSE ONLY ONE OF THE FOLLOWING OPTIONS.
@@ -36,10 +36,27 @@ int main(int argc, char* argv[])
   // Example 6: Magnetic dipole operator
   // std::string name = "M1";
 
-  // Example 7: Intrinsic mass radius squared
-  // std::string name = "R.R";
+  // Example 7: Intrinsic mass radius
+  // std::string name = "Rrel";
 
-  // JT::OneBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
+  // Example 8: Point-nucleon root-mean-squared radius
+  // std::string name = "Radius";
+
+  // Example 9: Point-proton root-mean-squared radius
+  // std::string name = "Radius_p";
+
+  // Example 10: Point-neutron root-mean-squared radius
+  // std::string name = "Radius_n";
+
+  // Example 11: Fermi for beta decay
+  // std::string name = "FermiMinus";
+  // std::string name = "FermiPlus";
+
+  // Example 12: Gamow-Teller for beta decay
+  std::string name = "GamowTellerMinus";
+  // std::string name = "GamowTellerPlus";
+
+  JT::OneBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
 
   ////////////// TWO-BODY OPERATORS //////////////
 
@@ -50,7 +67,7 @@ int main(int argc, char* argv[])
   // std::string name = "L.S";
 
   // Example 3: Two-body part of relative kinetic energy
-  std::string name = "Kinetic";  
+  // std::string name = "Kinetic";  
 
   // Example 4: Two-body part of the CoM HO operator
   // std::string name = "CoMNumberOp";
@@ -82,7 +99,7 @@ int main(int argc, char* argv[])
   // std::string name = "N4LO_EMN500_srg2.0"
   // std::string name = "N4LO_EMN500_srg4.0";
 
-  JT::TwoBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
+  // JT::TwoBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
   

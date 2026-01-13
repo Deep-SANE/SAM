@@ -62,7 +62,7 @@ namespace JT
     else if (name_ == "Kinetic")
       std::cout << "Two-body part of the relative kinetic energy without 1/A"
                 << std::endl;
-    else if (name_ == "R.R")
+    else if (name_ == "Rrel")
       std::cout
           << "Two-body part of the intrinsic mass radius squared without -1/A"
           << std::endl;
@@ -196,7 +196,7 @@ namespace JT
             2.0;
       }
     }
-    else if (name_ == "R.R") // Two-body part of the intrinsic mass radius
+    else if (name_ == "Rrel") // Two-body part of the intrinsic mass radius
                             // squared without -1/A
     {
       if (mmta == mmtc && mmtb == mmtd)
@@ -206,7 +206,7 @@ namespace JT
           cgc += (mu == 0 ? 1.0 : -1.0) *
                  cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
                  cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
-        x = 2.0 * cgc *
+        x = HO::oscilatorLength2(hw_, -1) * cgc *
             (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
                  (HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
                   HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs)) +
@@ -525,7 +525,7 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "R.R" ||
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (LL != 0) flag = false;
@@ -538,7 +538,7 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "R.R" ||
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (SS != 0) flag = false;
@@ -555,7 +555,7 @@ namespace JT
     {
       if (irr != u3::irrep(0, 0, 0)) flag = false;
     }
-    else if (name_ == "R.R" || name_ == "Kinetic")
+    else if (name_ == "Rrel" || name_ == "Kinetic")
     {
       if (irr != u3::irrep(0, 0, 0) &&
           irr != u3::irrep(2, 0, 0) &&
@@ -574,7 +574,7 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "R.R" ||
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (irr != u4::irrep(0, 0, 0, 0)) flag = false;
