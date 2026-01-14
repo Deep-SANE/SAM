@@ -85,9 +85,18 @@ namespace JT
       std::cout
           << "One-body part of the relative kinetic energy without (A-1)/A"
           << std::endl;
-    else if (name_ == "R.R")
+    else if (name_ == "Rrel")
       std::cout << "One-body part of the intrinsic mass radius squared without "
                    "(A-1)/A"
+                << std::endl;
+    else if (name_ == "Radius")
+      std::cout << "Point-nucleon radius" // squared without CoM correction 
+                << std::endl;
+    else if (name_ == "Radius_p")
+      std::cout << "Point-proton radius" // squared without CoM correction 
+                << std::endl;
+    else if (name_ == "Radius_n")
+      std::cout << "Point-neutron radius" // squared without CoM correction 
                 << std::endl;
     else if (name_ == "E2")
       std::cout << "E2 transition operator"
@@ -118,8 +127,14 @@ namespace JT
       s << "One-body part of the CoM number operator without 1/A";
     else if (x.name_ == "Kinetic")
       s << "One-body part of the relative kinetic energy without (A-1)/A";
-    else if (x.name_ == "R.R")
+    else if (x.name_ == "Rrel")
       s << "One-body part of the intrinsic mass radius squared without (A-1)/A";
+    else if (x.name_ == "Radius")
+      s << "Point-nucleon radius"; // squared without CoM correction
+    else if (x.name_ == "Radius_p")
+      s << "Point-proton radius"; // squared without CoM correction
+    else if (x.name_ == "Radius_n")
+      s << "Point-neutron radius"; // squared without CoM correction
     else if (x.name_ == "E2")
       s << "E2 transition operator";
     else if (x.name_ == "M1")
@@ -240,8 +255,8 @@ namespace JT
         x = (static_cast<int>(hw_) * x / 4.0);
       }      
     }
-    else if (name_ == "R.R") // One-body part of the intrinsic mass radius
-                            // squared without (A-1)/A
+    else if (name_ == "Rrel" || name_ == "Radius") // One-body part of the 
+                            // intrinsic mass radius squared without (A-1)/A
     {
       if (jja == jjb && mmja == mmjb && mmta == mmtb)
       {
@@ -281,12 +296,97 @@ namespace JT
                    HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
           }
         }
-        x *= HO::oscilatorLength2(hw_, -1) / 2;
+        x *= HO::oscilatorLength2(hw_, -1) / 2.0; // use proton mass
+      }
+    }
+    else if (name_ == "Radius_p") // Point-proton radius
+    {
+      if (jja == jjb && mmja == mmjb && mmta == mmtb && mmta == -1)
+      {
+        int nc = nb - 1, llc_min = 2 * (nc % 2);
+        if (nc >= 0)
+          for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
+          {
+            for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+            {
+              double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                     factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+              if (na == nb)
+                x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
+              else if (na == nb - 2)
+                x += phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
+            }
+          }
+
+        nc = nb + 1, llc_min = 2 * (nc % 2);
+        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
+        {
+          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+          {
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+            if (na == nb)
+              x += phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
+            else if (na == nb + 2)
+              x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
+          }
+        }
+        x *= HO::oscilatorLength2(hw_, -1) / 2.0; // use proton mass
+      }
+    }
+    else if (name_ == "Radius_n") // Point-proton radius
+    {
+      if (jja == jjb && mmja == mmjb && mmta == mmtb && mmta == 1)
+      {
+        int nc = nb - 1, llc_min = 2 * (nc % 2);
+        if (nc >= 0)
+          for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
+          {
+            for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+            {
+              double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                     factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+              if (na == nb)
+                x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
+              else if (na == nb - 2)
+                x += phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonAnnihilatorRME(nc, llc, jjc, nb, llb, jjb);
+            }
+          }
+
+        nc = nb + 1, llc_min = 2 * (nc % 2);
+        for (int llc = 2 * nc; llc >= llc_min; llc -= 4)
+        {
+          for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
+          {
+            double phase = ((jjc - jjb) / 2 % 2 == 0) ? 1.0 : -1.0,
+                   factor = std::sqrt((jjc + 1.0) / (jjb + 1.0));
+            if (na == nb)
+              x += phase * factor *
+                   HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
+            else if (na == nb + 2)
+              x += phase * factor *
+                   HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+                   HO::bosonCreatorRME(nc, llc, jjc, nb, llb, jjb);
+          }
+        }
+        x *= HO::oscilatorLength2(hw_, 1) / 2.0; // use neutron mass
       }
     }
     else if (name_ == "E2") // E2 transition operator
     {
-      
       if (mmta == mmtb && mmtb == -1)
       {
         double factor1 = cgcs.get({jjb, 4, jja, mmjb, 0, mmja}) *
@@ -361,14 +461,33 @@ namespace JT
     {
       if (na == nb && lla == llb && jja == jjb && mmja == mmjb &&
           mmta == mmtb + 2)
-        x = std::sqrt(0.75 - mmtb * (mmtb - 2.0) / 4.0);
+        x = std::sqrt(0.75 - mmtb * (mmtb + 2.0) / 4.0);
     }
     else if (name_ == "FermiMinus") // Fermi for beta-
     {
       if (na == nb && lla == llb && jja == jjb && mmja == mmjb &&
           mmta == mmtb - 2)
-        x = std::sqrt(0.75 - mmtb * (mmtb + 2.0) / 4.0);
+        x = std::sqrt(0.75 - mmtb * (mmtb - 2.0) / 4.0);
     }
+    else if (name_ == "GamowTellerPlus") // GT for beta+
+    {
+      if (na == nb && lla == llb && mmja == mmjb && mmta == mmtb + 2)
+      {
+        x = std::sqrt(0.75 - mmtb * (mmtb + 2.0) / 4.0) * SQRT3 *
+            cgcs.get({jjb, 2, jja, mmjb, 0, mmja}) *
+            racah.get({1, llb, 2, jja, jjb, 1});
+      }
+    }
+    else if (name_ == "GamowTellerMinus") // GT for beta-
+    {
+      if (na == nb && lla == llb && mmja == mmjb && mmta == mmtb - 2)
+      {
+        x = std::sqrt(0.75 - mmtb * (mmtb - 2.0) / 4.0) * SQRT3 *
+            cgcs.get({jjb, 2, jja, mmjb, 0, mmja}) *
+            racah.get({1, llb, 2, jja, jjb, 1});
+      }
+    }
+
     else
       throw std::invalid_argument("ME has not been implemented");
 
@@ -458,8 +577,8 @@ namespace JT
       }
       x = (static_cast<int>(hw_) * x / 4.0);
     }
-    else if (name_ == "R.R") // One-body part of the intrinsic mass radius
-                            // squared without (A-1)/A
+    else if (name_ == "Rrel" || name_ == "Radius") // One-body part of the
+                            // intrinsic mass radius squared without (A-1)/A
     {
       if (jja == jjb)
       {
@@ -854,8 +973,11 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "R.R" ||
-        name_ == "CoMNumberOp" || name_ == "Kinetic")
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
+        name_ == "Radius" || name_ == "Radius_p" || name_ == "Radius_n" ||
+        name_ == "CoMNumberOp" || name_ == "Kinetic" || 
+        name_ == "FermiPlus" || name_ == "FermiMinus" ||
+        name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus")
     {
       if (LL != 0) flag = false;
     }
@@ -876,13 +998,19 @@ namespace JT
     bool flag = true;
 
     if (name_ == "L.L" || name_ == "L.S" || name_ == "E2" ||
-        name_ == "R.R" || name_ == "CoMNumberOp" || name_ == "Kinetic")
+        name_ == "Rrel" || name_ == "Radius" || name_ == "Radius_p" ||
+        name_ == "Radius_n" || name_ == "CoMNumberOp" || name_ == "Kinetic" || 
+        name_ == "FermiPlus" || name_ == "FermiMinus")
     {
       if (SS != 0) flag = false;
     }
     else if (name_ == "M1")
     {
       if (SS != 0 && SS != 2) flag = false;
+    }
+    else if (name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus")
+    {
+      if (SS != 2) flag = false;
     }
     
     return flag;
@@ -892,11 +1020,14 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "CoMNumberOp")
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "CoMNumberOp" || 
+        name_ == "FermiPlus" || name_ == "FermiMinus" ||
+        name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus")
     {
       if (irr != u3::irrep(0, 0, 0)) flag = false;
     }
-    else if (name_ == "R.R" || name_ == "Kinetic")
+    else if (name_ == "Rrel" || name_ == "Radius" || name_ == "Radius_p" ||
+             name_ == "Radius_n" || name_ == "Kinetic")
     {
       if (irr != u3::irrep(0, 0, 0) &&
           irr != u3::irrep(2, 0, 0) &&
@@ -924,7 +1055,8 @@ namespace JT
     bool flag = true;
 
     if (name_ == "L.L" || name_ == "L.S" || name_ == "E2" ||
-        name_ == "R.R" || name_ == "CoMNumberOp" || name_ == "Kinetic")
+        name_ == "Rrel" || name_ == "Radius" || name_ == "Radius_p" ||
+        name_ == "Radius_n" || name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (irr != u4::irrep(0, 0, 0, 0)) flag = false;
     }
@@ -932,6 +1064,11 @@ namespace JT
     {
       if (irr != u4::irrep(2, 1, 1, 0) && irr != u4::irrep(0, 0, 0, 0)) 
         flag = false;
+    }
+    else if (name_ == "FermiPlus" || name_ == "FermiMinus" ||
+             name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus")
+    {
+      if (irr != u4::irrep(2, 1, 1, 0)) flag = false;
     }
     
     return flag;

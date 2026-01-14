@@ -30,7 +30,7 @@ namespace JT
                                          // expand() or writeBinary()
 
     const std::unordered_set<std::string> known_scalar_ops = {
-                        "L.L", "L.S", "CoMNumberOp", "Kinetic", "R.R"};
+                        "L.L", "L.S", "CoMNumberOp", "Kinetic", "Rrel"};
 
     const std::unordered_set<std::string> known_potentials = {
         "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",

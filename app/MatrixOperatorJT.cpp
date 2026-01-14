@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
   qcx_utils::initialize(&argc, &argv);
   u3::initialize();
   u4::initialize();
-
+  /*
   int Z, N, Nmax, JJ, hw, write;
 
   std::cout << "Enter number of protons: ";
@@ -31,12 +31,15 @@ int main(int argc, char* argv[])
   std::cin >> hw;
   std::cout << "Enter 1 to write matrix to binary file: ";
   std::cin >> write;
+  */
+
+  int Z = 3, N = 3, JJ = 2, Nmax = 2, hw = 20, write = 1;
 
   // Example 1: LL
   // std::string name = "L.L";
 
   // Example 2: LS
-  std::string name = "L.S";
+  // std::string name = "L.S";
 
   // Example 3: relative kinetic energy
   // std::string name = "Kinetic";  
@@ -45,7 +48,7 @@ int main(int argc, char* argv[])
   // std::string name = "CoMNumberOp";  
 
   // Example 6: Hamiltonian with N2LO_opt_bare
-  // std::string name = "Hamiltonian with N2LO_opt_bare";
+  std::string name = "Hamiltonian with N2LO_opt_bare";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
@@ -85,6 +88,7 @@ int main(int argc, char* argv[])
     qcx_utils::writeBinary(filename, mat);
   }
 
+  // L.L and L.S are analytical
   if (name == "L.L" || name == "L.S")
   {
     auto irreps = basis.irreps();
@@ -129,14 +133,13 @@ int main(int argc, char* argv[])
         }
       }
   }
-  
+ 
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;
 
   // Output the time in seconds
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
-
 
   u3::finalize();
   u4::finalize();

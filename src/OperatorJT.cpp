@@ -49,8 +49,14 @@ namespace JT
       std::cout << "HO center-of-mass number operator" << std::endl;
   	else if (name_ == "Kinetic")
       std::cout << "Relative kinetic energy" << std::endl;
-  	else if (name_ == "R.R")
-      std::cout << "Intrinsic mass radius squared" << std::endl;
+  	else if (name_ == "Rrel")
+      std::cout << "Intrinsic mass root-mean-squared radius" << std::endl;
+    else if (name_ == "Radius")
+      std::cout << "Point-nucleon root-mean-squared radius" << std::endl;
+    else if (name_ == "Radius_p")
+      std::cout << "Point-proton root-mean-squared radius" << std::endl;
+    else if (name_ == "Radius_n")
+      std::cout << "Point-neutron root-mean-squared radius" << std::endl;
   	else
   	  std::cout << name_ << " with Lawson term x 1000" << std::endl;
   }
@@ -72,7 +78,10 @@ namespace JT
     else if (x.name_ == "L.L" || x.name_ == "L.S") s << x.name_ << " operator";
   	else if (x.name_ == "CoMNumberOp") s << "HO center-of-mass number operator";
   	else if (x.name_ == "Kinetic") s << "Relative kinetic energy";
-  	else if (x.name_ == "R.R") s << "Intrinsic mass radius squared";
+  	else if (x.name_ == "Rrel") s << "Intrinsic mass root-mean-squared radius";
+    else if (x.name_ == "Radius") s << "Point-nucleon root-mean-squared radius";
+    else if (x.name_ == "Radius_p") s << "Point-proton root-mean-squared radius";
+    else if (x.name_ == "Radius_n") s << "Point-neutron root-mean-squared radius";
   	else s << x.name_ << " with Lawson term x 1000";
 
   	return s;
@@ -141,7 +150,7 @@ namespace JT
       	coeff1 = (A - 1.0) / A;
       	coeff2 = 1.0 / A;
       }
-      else if (name_ == "R.R")
+      else if (name_ == "Rrel")
       {
       	double A = N_ + Z_;
       	coeff1 = (A - 1.0) / A;
@@ -269,5 +278,142 @@ namespace JT
   {
     auto tensors = expand();
     return U3xU4::MatrixElements(tensors, bras, kets);
+  }
+
+    // Expectation value
+  using Col_t = Eigen::MatrixXd::ColXpr;
+  // within a single basis; users can pass multiple eigenstate pairs
+  std::vector<double> Operator::expectationValue(
+    const U3xU4::ManyNucleonBasis& basis, 
+    const std::vector<std::pair<Col_t, Col_t>>& states)
+  {
+    std::vector<double> res;
+    res.reserve(states.size());
+
+    auto dim = basis.dim();
+    
+    auto mat = matrix(basis);
+    
+    for (auto& [bra, ket] : states)
+    {
+      assert(bra.size() == dim);
+      assert(ket.size() == dim);
+      double val = bra.transpose() * mat * ket;
+      res.push_back(val);
+    }
+
+    if (name_ == "M1")
+    {
+      double factor = std::sqrt(4.0 * PI / 3.0);
+      for (auto& r : res) r *= factor;
+    }
+
+    if (name_ == "Radius") 
+    {
+      double A = N_ + Z_, com = 1.5 * HO::oscilatorLength2(hw_, -1);
+      for (auto& r2 : res) r2 = std::sqrt((r2 - com) / A);
+    }
+
+    if (name_ == "Radius_p") 
+    {
+      double A = N_ + Z_, com = 1.5 * HO::oscilatorLength2(hw_, -1);
+      for (auto& r2 : res) r2 = std::sqrt(r2 / Z_ - com / A);
+    }
+
+    if (name_ == "Radius_n") 
+    {
+      double A = N_ + Z_, com = 1.5 * HO::oscilatorLength2(hw_, -1);
+      for (auto& r2 : res) r2 = std::sqrt(r2 / N_ - com / A);
+    }
+
+    return res;
+  }
+
+  // transition between two bases; users can pass multiple eigenstate pairs
+  std::vector<double> Operator::expectationValue(
+    const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,
+    const std::vector<std::pair<Col_t, Col_t>>& states)
+  {
+    std::vector<double> res;
+    res.reserve(states.size());
+
+    auto bras_dim = bras.dim();
+    auto kets_dim = kets.dim();
+    
+    auto mat = matrix(bras, kets);
+
+    for (auto& [bra, ket] : states)
+    {
+      assert(bra.size() == bras_dim);
+      assert(ket.size() == kets_dim);
+      double val = bra.transpose() * mat * ket;
+      res.push_back(val);
+    }
+
+    return res;
+  }
+
+  // Transition strength
+  // within a single basis; users can pass multiple eigenstate pairs
+  std::vector<double> Operator::transitionStrength(
+    const U3xU4::ManyNucleonBasis& basis, 
+    const std::vector<std::pair<Col_t, Col_t>>& states)
+  {
+    auto& cgcs = qcx_utils::cgcs();
+    
+    auto res = expectationValue(basis, states);
+    
+    double factor = 1.0;
+
+    if (name_ == "E2")
+    {
+      auto JJ = basis.JJ();
+      auto cgc = cgcs.get({JJ, 4, JJ, JJ, 0, JJ});
+      factor = 5.0 / (16.0 * PI) / cgc / cgc;
+      for (auto& r : res) r *= (r * factor);
+    }
+    else if (name_ == "M1")
+    {
+      auto JJ = basis.JJ();
+      auto cgc = cgcs.get({JJ, 2, JJ, JJ, 0, JJ});
+      factor = 1.0 / cgc / cgc;
+      for (auto& r : res) r *= (r * factor);
+    }
+
+    return res;
+  }
+  // transition between two bases; users can pass multiple eigenstate pairs
+  std::vector<double> Operator::transitionStrength(
+    const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,
+    const std::vector<std::pair<Col_t, Col_t>>& states)
+  {
+    auto& cgcs = qcx_utils::cgcs();
+
+    auto JJf = bras.JJ();
+    auto JJi = kets.JJ();
+    auto MMJ = std::min(JJf, JJi);
+
+    auto res = expectationValue(bras, kets, states);
+
+    if (name_ == "E2")
+    { 
+      auto cgc = cgcs.get({JJi, 4, JJf, MMJ, 0, MMJ});
+      double factor = 5.0 / (16.0 * PI) * (JJf + 1.0) / (JJi + 1.0) / cgc / cgc;
+      for (auto& r : res) r *= (r * factor);
+    }
+    else if (name_ == "M1")
+    {
+      auto cgc = cgcs.get({JJi, 2, JJf, MMJ, 0, MMJ});
+      double factor = (JJf + 1.0) / (JJi + 1.0) / cgc / cgc;
+      for (auto& r : res) r *= (r * factor);
+    }
+    else if (name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus")
+    {
+      auto cgc = cgcs.get({JJi, 2, JJf, MMJ, 0, MMJ});
+      double factor = std::sqrt(JJf + 1.0) / cgc;
+      for (auto& r : res) r *= factor;
+    }
+
+    return res;
   }
 } // namespace JT

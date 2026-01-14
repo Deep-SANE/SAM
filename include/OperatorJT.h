@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include <qcx_Int.h>
 
 #include <HOutilities.h>
@@ -19,7 +21,8 @@ namespace JT
     std::string name_;
 
     const std::unordered_set<std::string> one_body = {"E2", "M1",
-        "FermiPlus", "FermiMinus", "GamowTellerPlus", "GamowTellerMinus"};
+        "FermiPlus", "FermiMinus", "GamowTellerPlus", "GamowTellerMinus",
+        "Radius", "Radius_p", "Radius_n"};
 
     const std::unordered_set<std::string> two_body = {
         "N2LO_EMN500_bare",   "N3LO_EMN500_bare",   "N4LO_EMN500_bare",
@@ -32,7 +35,7 @@ namespace JT
         "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"};
 
     const std::unordered_set<std::string> one_plus_two_body = {
-        "L.L", "L.S", "CoMNumberOp", "Kinetic", "R.R"};
+        "L.L", "L.S", "CoMNumberOp", "Kinetic", "Rrel"};
 
     // Note: if you want a Hamiltonian, just define
     // std::string name = "Hamiltonian with " + potential_name;
@@ -61,5 +64,25 @@ namespace JT
     Eigen::SparseMatrix<double>
     matrix(const U3xU4::ManyNucleonBasis& bras, 
            const U3xU4::ManyNucleonBasis& kets);
+
+    // Expectation value
+    using Col_t = Eigen::MatrixXd::ColXpr;
+    // within a single basis; users can pass multiple eigenstate pairs
+    std::vector<double> expectationValue(const U3xU4::ManyNucleonBasis& basis, 
+                            const std::vector<std::pair<Col_t, Col_t>>& states);
+    // between two bases; users can pass multiple eigenstate pairs
+    std::vector<double> expectationValue(
+      const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,
+      const std::vector<std::pair<Col_t, Col_t>>& states);
+
+    // Transition strength
+    // within a single basis; users can pass multiple eigenstate pairs
+    std::vector<double> transitionStrength(const U3xU4::ManyNucleonBasis& basis, 
+      const std::vector<std::pair<Col_t, Col_t>>& states);
+    // between two bases; users can pass multiple eigenstate pairs
+    std::vector<double> transitionStrength(
+      const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,
+      const std::vector<std::pair<Col_t, Col_t>>& states);
+
   };
 } // namespace JT

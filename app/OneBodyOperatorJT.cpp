@@ -7,13 +7,6 @@
 
 #include <OneBodyOperatorJT.h>
 
-double avg_strength(const std::vector<double>& vs)
-{
-  double sum = 0.0;
-  for (const auto& v : vs) sum += v;
-  return sum / vs.size();
-}
-
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
@@ -41,8 +34,25 @@ int main(int argc, char* argv[])
   // Example 6: Magnetic dipole operator
   // std::string name = "M1";
 
-  // Example 7: Intrinsic mass radius squared
-  std::string name = "R.R";
+  // Example 7: Intrinsic mass radius
+  // std::string name = "Rrel";
+
+  // Example 8: Point-nucleon root-mean-squared radius
+  // std::string name = "Radius";
+
+  // Example 9: Point-proton root-mean-squared radius
+  // std::string name = "Radius_p";
+
+  // Example 10: Point-neutron root-mean-squared radius
+  // std::string name = "Radius_n";
+
+  // Example 11: Fermi for beta decay
+  // std::string name = "FermiMinus";
+  // std::string name = "FermiPlus";
+
+  // Example 12: Gamow-Teller for beta decay
+  // std::string name = "GamowTellerMinus";
+  std::string name = "GamowTellerPlus";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
