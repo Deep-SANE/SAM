@@ -12,7 +12,7 @@
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
-  /*
+
   int Z, N, Nmax, JJ, hw, write;
 
   std::cout << "Enter number of protons: ";
@@ -27,15 +27,12 @@ int main(int argc, char* argv[])
   std::cin >> hw;
   std::cout << "Enter 1 to write matrix to binary file: ";
   std::cin >> write;
-  */
-
-  int Z = 3, N = 3, Nmax = 0, JJ = 2, hw = 20, write = 1;
 
   // Example 1: LL
   // std::string name = "L.L";
 
   // Example 2: LS
-  // std::string name = "L.S";
+  std::string name = "L.S";
 
   // Example 3: relative kinetic energy
   // std::string name = "Kinetic";  
@@ -44,7 +41,7 @@ int main(int argc, char* argv[])
   // std::string name = "CoMNumberOp";  
 
   // Example 6: Hamiltonian with N2LO_opt_bare
-  std::string name = "Hamiltonian with N2LO_opt_bare";
+  // std::string name = "Hamiltonian with N2LO_opt_bare";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 

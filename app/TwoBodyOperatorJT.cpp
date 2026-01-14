@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   // std::string name = "CoMNumberOp";
 
   // Example 5: Intrinsic mass radius squared
-  std::string name = "Rrel";
+  std::string name = "R.R";
 
   // Example 6: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
   // std::string name = "N2LO_opt_bare";

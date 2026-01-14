@@ -1,9 +1,16 @@
-#include <algorithm>
 #include <ostream>
 
 #include <qcx_ND.h>
 
 #include <U3xU4MultiShellTensors.h>
+
+static std::pair<double,double> sum_mean(const std::vector<double>& vs)
+{
+  double x = 0.0;
+  for (const auto& v : vs)
+    x += v;
+  return std::make_pair(x, vs.empty() ? 0.0 : x / vs.size());
+}
 
 namespace U3xU4
 {
@@ -396,7 +403,6 @@ namespace U3xU4
     auto JJ_opt = tensors[0].JJ();
     auto MMJ_opt = tensors[0].MMJ();
     auto MMT_opt = tensors[0].MMT();
-    assert(MMJ_opt == 0);
 
     if (tensors_count == 0)
     {
@@ -406,9 +412,8 @@ namespace U3xU4
 
     std::vector<Eigen::Triplet<double>> ija;
 
-    auto MMJ = std::min(bras_MMJ, kets_MMJ);
     auto cgcJ = cgcs.get({kets_JJ, JJ_opt, bras_JJ,
-                          MMJ, MMJ_opt, MMJ});
+                             kets_MMJ, MMJ_opt, bras_MMJ});
 
     if (std::fabs(cgcJ) > 0.0)
     {

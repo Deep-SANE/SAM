@@ -29,8 +29,7 @@ namespace JT
     std::string name_;
 
     const std::unordered_set<std::string> known_scalar_ops = {
-        "NumberOp", "L.L", "L.S", "CoMNumberOp", "Kinetic", "Rrel", 
-        "Radius", "Radius_p", "Radius_n"};
+        "NumberOp", "L.L", "L.S", "CoMNumberOp", "Kinetic", "R.R"};
 
   public:
     // Constructor
