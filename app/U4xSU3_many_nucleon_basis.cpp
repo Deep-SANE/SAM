@@ -13,6 +13,9 @@
 
 #include <qcx_utils.h>
 
+#include <u3lib.h>
+#include <u4lib.h>
+
 #include <U4basis.h>
 #include <U4decomposition.h>
 #include <UNtoU3.h>
@@ -509,6 +512,8 @@ uint64_t dimDistribution(const tSHELLSCONFIG& distribution, int MMT, int JJ)
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
+  u3::initialize();
+  u4::initialize();
 
   int Z, N, Nmax, MMT, JJ;
 
@@ -541,6 +546,8 @@ int main(int argc, char* argv[])
   }
   std::cout << "dim:" << dim << std::endl;
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }
 

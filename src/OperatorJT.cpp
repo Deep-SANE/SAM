@@ -102,25 +102,25 @@ namespace JT
     return dir + "/hw" + std::to_string(hw_);       
   }
 
-  U3xU4::MultiShellTensors_phys Operator::expand(sam::Databases& dbs)
+  U3xU4::MultiShellTensors_phys Operator::expand()
   {
   	if (one_body.count(name_))
     {
       JT::OneBodyOperator op(name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
-      return op.expand(dbs);
+      return op.expand();
     }
     else if (two_body.count(name_))
     {
       JT::TwoBodyOperator op(name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
-      return op.expand(dbs);
+      return op.expand();
     }
     else if (one_plus_two_body.count(name_))
     {
       JT::OneBodyOperator op1(name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
-      auto tensors1 = op1.expand(dbs);
+      auto tensors1 = op1.expand();
 
       JT::TwoBodyOperator op2(name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
-      auto tensors2 = op2.expand(dbs);
+      auto tensors2 = op2.expand();
 
       double coeff1, coeff2;
 
@@ -171,17 +171,17 @@ namespace JT
       	CoM1("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_, labels_),
       	KE1("Kinetic", hw_, Nmax_, valenceShell_, maxShell_, labels_);
 
-      auto com1s = CoM1.expand(dbs);
-      auto ke1s = KE1.expand(dbs);
+      auto com1s = CoM1.expand();
+      auto ke1s = KE1.expand();
 
   	  JT::TwoBodyOperator 
   	  	CoM2("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_, labels_),
       	KE2("Kinetic", hw_, Nmax_, valenceShell_, maxShell_, labels_),
       	NN(potential_name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
 
-      auto com2s = CoM2.expand(dbs);
-      auto ke2s = KE2.expand(dbs);
-      auto nns = NN.expand(dbs);
+      auto com2s = CoM2.expand();
+      auto ke2s = KE2.expand();
+      auto nns = NN.expand();
 
       U3xU4::MultiShellTensors_phys tensors;
       tensors.reserve(com1s.size() + com2s.size() + 
@@ -258,16 +258,16 @@ namespace JT
 
   // Matrix representation
   Eigen::SparseMatrix<double> Operator::matrix(
-    const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs)
+    const U3xU4::ManyNucleonBasis& basis)
   {
-    auto tensors = expand(dbs);
-    return U3xU4::MatrixElements(tensors,basis,dbs);
+    auto tensors = expand();
+    return U3xU4::MatrixElements(tensors,basis);
   }
   Eigen::SparseMatrix<double> Operator::matrix(
     const U3xU4::ManyNucleonBasis& bras,
-    const U3xU4::ManyNucleonBasis& kets, sam::Databases& dbs)
+    const U3xU4::ManyNucleonBasis& kets)
   {
-    auto tensors = expand(dbs);
-    return U3xU4::MatrixElements(tensors, bras, kets, dbs);
+    auto tensors = expand();
+    return U3xU4::MatrixElements(tensors, bras, kets);
   }
 } // namespace JT

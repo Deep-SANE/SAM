@@ -1,4 +1,6 @@
 #include <qcx_utils.h>
+#include <u3lib.h>
+#include <u4lib.h>
 
 #include <OneBodyOperatorJT.h>
 #include <TwoBodyOperatorJT.h>
@@ -6,8 +8,8 @@
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
-
-  sam::Databases dbs;
+  u3::initialize();
+  u4::initialize();
 
   int hw = 20, valenceShell = 0, Nmax = 4, maxShell = Nmax;
   HO::Table_nljmjmt labels(maxShell);
@@ -88,25 +90,27 @@ int main(int argc, char* argv[])
   
   op.is();
 
-  auto tensors_U3_stats = op.U3_tensor_analyzer_write(dbs);
+  auto tensors_U3_stats = op.U3_tensor_analyzer_write();
   std::cout << "U3 tensor characters:" << std::endl;
   for (const auto& [irr, stats] : tensors_U3_stats)
     std::cout << irr << ":\t" << stats << std::endl;
 
-  auto tensors_U4_stats = op.U4_tensor_analyzer_write(dbs);
+  auto tensors_U4_stats = op.U4_tensor_analyzer_write();
   std::cout << "U4 tensor characters:" << std::endl;
   for (const auto& [irr, stats] : tensors_U4_stats)
     std::cout << irr << ":\t" << stats << std::endl;
 
-  auto tensors_LL_stats = op.LL_tensor_analyzer_write(dbs);
+  auto tensors_LL_stats = op.LL_tensor_analyzer_write();
   std::cout << "LL tensor characters:" << std::endl;
   for (const auto& [irr, stats] : tensors_LL_stats)
     std::cout << irr << ":\t" << stats << std::endl;
 
-  auto tensors_SS_stats = op.SS_tensor_analyzer_write(dbs);
+  auto tensors_SS_stats = op.SS_tensor_analyzer_write();
   std::cout << "SS tensor characters:" << std::endl;
   for (const auto& [irr, stats] : tensors_SS_stats)
     std::cout << irr << ":\t" << stats << std::endl;
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }

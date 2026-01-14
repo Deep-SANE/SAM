@@ -8,7 +8,6 @@
 
 #include <Eigen/Dense>
 
-#include <Databases.h>
 #include <HOutilities.h>
 #include <U3xU4GammaOmega.h>
 #include <U3xU4irrep.h>
@@ -270,7 +269,7 @@ namespace U3xU4
 
     // Expand in terms of uncoupled products of ad's
     std::pair<std::vector<double>, std::vector<U3xU4::ads_gelfand>>
-    expand(sam::Databases& dbs) const;
+    expand() const;
   };
   using Tads_gelfand = std::vector<Tad_gelfand>;
 
@@ -332,7 +331,7 @@ namespace U3xU4
     std::pair<std::vector<Eigen::RowVectorXd>, // each element has size ==
                                                // kappamax
               std::vector<U3xU4::ads_phys>>
-    expand(sam::Databases& dbs) const;
+    expand() const;
   };
   using Tads_phys = std::vector<Tad_phys>;
 
@@ -389,7 +388,7 @@ namespace U3xU4
     // Expand in terms of uncoupled products of a's
     // (not at's because a phase is added)
     std::pair<std::vector<double>, std::vector<U3xU4::ats_gelfand>>
-    expand(sam::Databases& dbs) const;
+    expand() const;
   };
   using Tats_gelfand = std::vector<Tat_gelfand>;
 
@@ -451,7 +450,7 @@ namespace U3xU4
     std::pair<std::vector<Eigen::RowVectorXd>, // each element has size ==
                                                // kappamax
               std::vector<U3xU4::ats_phys>>
-    expand(sam::Databases& dbs) const;
+    expand() const;
   };
   using Tats_phys = std::vector<Tat_phys>;
 
@@ -545,8 +544,7 @@ namespace U3xU4
     */
     bool RME_exist(const U3xU4::GammaElement& f, const U3xU4::GammaElement& i) const;
 
-    sam::RME RME(const U3xU4::GammaElement& f, const U3xU4::GammaElement& i,
-                 sam::Databases& dbs) const;
+    sam::RME RME(const U3xU4::GammaElement& f, const U3xU4::GammaElement& i) const;
   };
   using SingleShellTensors = std::vector<SingleShellTensor>;
 
@@ -602,7 +600,7 @@ namespace U3xU4
     std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
                std::vector<U3xU4::ads_gelfand>, // ad's
                std::vector<U3xU4::ats_gelfand>> // a's
-    expand(sam::Databases& dbs) const;
+    expand() const;
   };
   using SingleShellTensors_gelfand = std::vector<SingleShellTensor_gelfand>;
 
@@ -688,7 +686,7 @@ namespace U3xU4
     std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
                std::vector<U3xU4::ads_phys>,    // ad's
                std::vector<U3xU4::ats_phys>>    // a's
-    expand(sam::Databases& dbs) const;
+    expand() const;
   };
   using SingleShellTensors_phys = std::vector<SingleShellTensor_phys>;
   using ads_ats_phys = std::vector<std::variant<ad_phys, at_phys>>;

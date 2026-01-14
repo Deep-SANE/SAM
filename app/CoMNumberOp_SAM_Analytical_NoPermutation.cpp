@@ -3,10 +3,11 @@
 
 using qcx_utils::print;
 
+#include <u3lib.h>
+#include <u4lib.h>
 #include <U3basis.h>
 #include <U4basis.h>
 
-#include <Databases.h>
 #include <GlobalConstants.h>
 #include <HOutilities.h>
 #include <U3xU4CouplingCoefficient.h>
@@ -53,12 +54,12 @@ auto GenerateCombinationsHOShells(int Nmax, int valenceShell,
 double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
                         int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                         int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
-                        int mmjd, int mmtd, sam::Databases& dbs)
+                        int mmjd, int mmtd)
 {
   double x = 0.0;
 
-  auto& cgcs = dbs.cgcs;
-  auto& racah9 = dbs.racah9;
+  auto& cgcs = qcx_utils::cgcs();
+  auto& racah9 = qcx_utils::racahs9();
 
   if (mmta == mmtc && mmtb == mmtd)
   {
@@ -68,10 +69,10 @@ double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
               cgcs.get({jjc, 2, jja, mmjc, 2 * mu, mmja}) *
               cgcs.get({jjd, 2, jjb, mmjd, -2 * mu, mmjb});
     x = cgc *
-        (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-         HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd, dbs) +
-         HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc, dbs) *
-          HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd, dbs));
+        (HO::bosonCreatorRME(na, lla, jja, nc, llc, jjc) *
+         HO::bosonAnnihilatorRME(nb, llb, jjb, nd, lld, jjd) +
+         HO::bosonAnnihilatorRME(na, lla, jja, nc, llc, jjc) *
+          HO::bosonCreatorRME(nb, llb, jjb, nd, lld, jjd));
   }
 
   return x;
@@ -80,21 +81,19 @@ double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
 double ME_CoM_2B_AS(int na, int lla, int jja, int mmja, int mmta, int nb,
                            int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                            int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
-                           int mmjd, int mmtd, sam::Databases& dbs)
+                           int mmjd, int mmtd)
 {
   return (ME_CoM_2B(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
-                    nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd,
-                    dbs) -
+                    nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd) -
           ME_CoM_2B(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
-                    nd, lld, jjd, mmjd, mmtd, nc, llc, jjc, mmjc, mmtc,
-                    dbs)) / 4.0; 
+                    nd, lld, jjd, mmjd, mmtd, nc, llc, jjc, mmjc, mmtc)) / 4.0; 
 }
 
 double RME_CoM_2B_AS(int na, int lla, int jja, int nb, int llb, int jjb,
 							int nc, int llc, int jjc, int nd, int lld, int jjd,
-							int JJ, int TT, sam::Databases& dbs)
+							int JJ, int TT)
 {
-  auto& cgcs = dbs.cgcs;
+  auto& cgcs = qcx_utils::cgcs();
 
   //Since the RME is the same as ME, choose MJ=J, MT=T
 
@@ -128,7 +127,7 @@ double RME_CoM_2B_AS(int na, int lla, int jja, int nb, int llb, int jjb,
 
   	  	  x += cgcJ_ab * cgcJ_cd * cgcT_ab * cgcT_cd *
   	  	  	ME_CoM_2B_AS(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
-                    nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd, dbs);
+                    nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd);
   	  	}
   	  }
   	}
@@ -140,11 +139,12 @@ double RME_CoM_2B_AS(int na, int lla, int jja, int nb, int llb, int jjb,
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
+  u3::initialize();
+  u4::initialize();
 
-  sam::Databases dbs;
-  auto& racah9 = dbs.racah9;
-  auto& wigU3SO3db = dbs.wigU3SO3db;
-  auto& wigU4SU2SU2db = dbs.wigU4SU2SU2db;
+  auto& racah9 = qcx_utils::racahs9();
+  auto& wigU3SO3db = u3::wigU3SO3db();
+  auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
   int Nmax = 2, valenceShell = 0, maxShell = 2;
   auto na_nb_nc_nds =
@@ -274,12 +274,12 @@ int main(int argc, char* argv[])
       	    		  	  	  	  	  		     	  	  {
       	     		  	  	  	  	  		     	  	  	auto rme = RME_CoM_2B_AS(na,2*la,jja, nb,2*lb,jjb,
 						  													                                     nc,2*lc,jjc, nd,2*ld,jjd,
-							   												                                     JJ,TT, dbs);
+							   												                                     JJ,TT);
 
       	  		     	  	  	  	  		  	  	    	double phase_exchange = ((jjc + jjd - JJ - TT) % 4 == 0) ? 1.0 : -1.0;
   								  					                      auto rme_exchange = RME_CoM_2B_AS(na,2*la,jja, nb,2*lb,jjb,
 										    											                                        nd,2*ld,jjd, nc,2*lc,jjc,
-												    									                                        JJ,TT, dbs);
+												    									                                        JJ,TT);
   													                        assert(std::fabs(rme - rme_exchange * phase_exchange) < 1e-12);
 
 #ifdef ADD_SU3LIB_PHASE_U3SO3
@@ -381,5 +381,7 @@ int main(int argc, char* argv[])
     }
   }
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }

@@ -2,12 +2,17 @@
 
 #include <qcx_utils.h>
 
+#include <u3lib.h>
+#include <u4lib.h>
+
 #include <U3xU4MultiShellTensors.h>
 #include <U3xU4SingleShellTensors.h>
 
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
+  u3::initialize();
+  u4::initialize();
 
   std::vector<std::array<int, 3>> groups = {{0, 2, 1}, {1, 0, 1}, {8, 1, 0}};
 
@@ -34,5 +39,7 @@ int main(int argc, char* argv[])
     std::cout << std::endl;
   }
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }

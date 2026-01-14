@@ -3,6 +3,9 @@
 #include <qcx_convert.h>
 #include <qcx_ND.h>
 
+#include <U3_U9Coeffs.h>
+#include <U4_U9Coeffs.h>
+
 #include <RME.h>
 #include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
@@ -113,8 +116,7 @@ namespace U3xU4
   }
 
   sam::RME MultiShellTensor::RME(const U3xU4::ManyNucleonBasis::Irrep& bra,
-                                 const U3xU4::ManyNucleonBasis::Irrep& ket,
-                                 sam::Databases& dbs) const
+                                 const U3xU4::ManyNucleonBasis::Irrep& ket) const
   {
     // (1) check if RMEs exist
 
@@ -141,8 +143,8 @@ namespace U3xU4
       // assert(T.shell() == i.shell());
 
       //std::size_t rhomax_temp, etamax_temp; // multi for Wigner-Eckart theorem
-      //auto RMEsR = T.RME(f, i, rhomax_temp, etamax_temp, dbs); // right part
-      auto RMEsR = T.RME(f, i, dbs); // right part
+      //auto RMEsR = T.RME(f, i, rhomax_temp, etamax_temp); // right part
+      auto RMEsR = T.RME(f, i); // right part
 
       if (RMEsR.empty()) return {};
 
@@ -186,7 +188,7 @@ namespace U3xU4
       */
 
       auto U3U9 =
-          dbs.u3u9db.get_U3U9(A.u3(), B.u3(), C.u3(), D.u3(), AB.u3(), CD.u3(),
+          u3::u3u9db().get_U3U9(A.u3(), B.u3(), C.u3(), D.u3(), AB.u3(), CD.u3(),
                               AC.u3(), BD.u3(), ABCD.u3(), rhoACmax, rhoBDmax,
                               rhoABCDmax, rhoABmax, rhoCDmax, rhoACBDmax);
 
@@ -209,7 +211,7 @@ namespace U3xU4
       */
 
       auto U4U9 =
-          dbs.u4u9db.get_U4U9(A.u4(), B.u4(), C.u4(), D.u4(), AB.u4(), CD.u4(),
+          u4::u4u9db().get_U4U9(A.u4(), B.u4(), C.u4(), D.u4(), AB.u4(), CD.u4(),
                               AC.u4(), BD.u4(), ABCD.u4(), etaACmax, etaBDmax,
                               etaABCDmax, etaABmax, etaCDmax, etaACBDmax);
 

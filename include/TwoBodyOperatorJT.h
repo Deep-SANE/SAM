@@ -6,7 +6,6 @@
 #include <string>
 #include <utility>
 
-#include <Databases.h>
 #include <HOutilities.h>
 #include <TensorAnalyzer.h>
 #include <U3xU4ManyNucleonBasis.h>
@@ -69,12 +68,12 @@ namespace JT
     double sphericalME(int na, int lla, int jja, int mmja, int mmta, int nb,
                        int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                        int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
-                       int mmjd, int mmtd, sam::Databases& dbs) const;
+                       int mmjd, int mmtd) const;
     // Antisymmetrized matrix element
     double sphericalME_AS(int na, int lla, int jja, int mmja, int mmta, int nb,
                           int llb, int jjb, int mmjb, int mmtb, int nc, int llc,
                           int jjc, int mmjc, int mmtc, int nd, int lld, int jjd,
-                          int mmjd, int mmtd, sam::Databases& dbs) const;
+                          int mmjd, int mmtd) const;
 
     // Generate a list of all {na, nb, nc, nd} combinations such that
     // 0 <= na, nb, nc, nd <= maxShell
@@ -121,14 +120,12 @@ namespace JT
     // It returns a flag, which indicate whether this tensor can be ignored.
     bool setTensorStrength(U3xU4::TwoBodyMultiShellTensor& tensor,
                            const std::vector<std::vector<int>>& inverse,
-                           const std::vector<int>& phase,
-                           sam::Databases& dbs) const;
+                           const std::vector<int>& phase) const;
 
     // Set strengths for U3xU4::MultiShellTensor_phys
     void setTensorStrength(U3xU4::MultiShellTensor_phys& tensor,
                            const std::vector<std::vector<int>>& inverse,
-                           const std::vector<int>& phase,
-                           sam::Databases& dbs) const;
+                           const std::vector<int>& phase) const;
 
     // selection rule
     bool LLselection(const int& LL) const;
@@ -138,49 +135,48 @@ namespace JT
 
   public:
     // Expand into a sum of U3xU4::TwoBodyMultiShellTensors
-    U3xU4::TwoBodyMultiShellTensors expand_old(sam::Databases& dbs);
+    U3xU4::TwoBodyMultiShellTensors expand_old();
 
     // expand into a sum of U3xU4::MultiShellTensor_phys
-    U3xU4::MultiShellTensors_phys expand_new(sam::Databases& dbs);
-    U3xU4::MultiShellTensors_phys expand(sam::Databases& dbs);
+    U3xU4::MultiShellTensors_phys expand_new();
+    U3xU4::MultiShellTensors_phys expand();
 
     // Write to binary file
     void writeBinary(const std::string& filename, 
                      const U3xU4::MultiShellTensors_phys& tensors) const;
 
     // Read from binary file
-    U3xU4::MultiShellTensors_phys readBinary(
-      const std::string& filename, sam::Databases& dbs);
+    U3xU4::MultiShellTensors_phys readBinary(const std::string& filename);
 
     // Matrix representation
     // symmetric
     Eigen::SparseMatrix<double>
-    matrix(const U3xU4::ManyNucleonBasis& basis, sam::Databases& dbs);
+    matrix(const U3xU4::ManyNucleonBasis& basis);
     // rectangular
     Eigen::SparseMatrix<double>
     matrix(const U3xU4::ManyNucleonBasis& bras, 
-           const U3xU4::ManyNucleonBasis& kets, sam::Databases& dbs);
+           const U3xU4::ManyNucleonBasis& kets);
 
     // Tensor Analyzers
     std::vector<std::pair<u3::irrep, sam::strength_stats>>
-      U3_tensor_analyzer_write(sam::Databases& dbs);
+      U3_tensor_analyzer_write();
     std::vector<std::pair<u3::irrep, sam::strength_stats>>
-      U3_tensor_analyzer(sam::Databases& dbs);
+      U3_tensor_analyzer();
 
     std::vector<std::pair<u4::irrep, sam::strength_stats>>
-      U4_tensor_analyzer_write(sam::Databases& dbs);
+      U4_tensor_analyzer_write();
     std::vector<std::pair<u4::irrep, sam::strength_stats>>
-      U4_tensor_analyzer(sam::Databases& dbs);
+      U4_tensor_analyzer();
 
     std::vector<std::pair<int, sam::strength_stats>>
-      LL_tensor_analyzer_write(sam::Databases& dbs);
+      LL_tensor_analyzer_write();
     std::vector<std::pair<int, sam::strength_stats>>
-      LL_tensor_analyzer(sam::Databases& dbs);
+      LL_tensor_analyzer();
 
     std::vector<std::pair<int, sam::strength_stats>>
-      SS_tensor_analyzer_write(sam::Databases& dbs);
+      SS_tensor_analyzer_write();
     std::vector<std::pair<int, sam::strength_stats>>
-      SS_tensor_analyzer(sam::Databases& dbs);
+      SS_tensor_analyzer();
   };
 
 } // namespace JT

@@ -4,14 +4,16 @@
 
 #include <qcx_utils.h>
 
-#include <Databases.h>
+#include <u3lib.h>
+#include <u4lib.h>
+
 #include <TwoBodyOperatorJT.h>
 
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
-
-  sam::Databases dbs;
+  u3::initialize();
+  u4::initialize();
 
   int hw = 20, valenceShell = 0, Nmax = 14, maxShell = Nmax;
   HO::Table_nljmjmt labels(maxShell);
@@ -63,8 +65,8 @@ int main(int argc, char* argv[])
   JT::TwoBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
   op.is();
 
-  auto tensors = op.expand(dbs);
-  // auto tensors_new = op.expand_new(dbs); // expand on the fly
+  auto tensors = op.expand();
+  // auto tensors_new = op.expand_new(); // expand on the fly
   
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -103,5 +105,7 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }

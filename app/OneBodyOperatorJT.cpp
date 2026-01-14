@@ -2,8 +2,9 @@
 #include <iostream>
 
 #include <qcx_utils.h>
+#include <u3lib.h>
+#include <u4lib.h>
 
-#include <Databases.h>
 #include <OneBodyOperatorJT.h>
 
 double avg_strength(const std::vector<double>& vs)
@@ -16,8 +17,8 @@ double avg_strength(const std::vector<double>& vs)
 int main(int argc, char* argv[])
 {
   qcx_utils::initialize(&argc, &argv);
-
-  sam::Databases dbs;
+  u3::initialize();
+  u4::initialize();
 
   int hw = 20, valenceShell = 0, Nmax = 14, maxShell = Nmax;
   HO::Table_nljmjmt labels(maxShell);
@@ -51,7 +52,7 @@ int main(int argc, char* argv[])
   JT::OneBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
   op.is();
 
-  auto tensors = op.expand(dbs);
+  auto tensors = op.expand();
   
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -67,5 +68,7 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
+  u4::finalize();
+  u3::finalize();
   qcx_utils::finalize();
 }
