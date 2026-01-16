@@ -42,14 +42,11 @@ int main(int argc, char* argv[])
   
   int Z = 3, N = 3, Nmax = 4, JJ = 2, hw = 20;
 
-  U3xU4::ManyNucleonBasis basis(Z, N, Nmax, JJ);
+  U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
   basis.construct();
   std::cout << "Basis dimension: " << basis.dim() << std::endl;
 
-  int valenceShell = HO::valenceShell(Z + N),
-      maxShell = valenceShell + Nmax;
-
-  HO::Table_nljmjmt HO_labels(maxShell);
+  HO::Table_nljmjmt HO_labels(basis.maxShell());
 
   JT::Operator Hamil(Hamil_name, N, Z, hw, Nmax, HO_labels),
                op(name, N, Z, hw, Nmax, HO_labels);
@@ -93,19 +90,15 @@ int main(int argc, char* argv[])
   int Nmax = 4, hw = 20, 
       Zi = 2, Ni = 4, JJi = 0, Zf = 3, Nf = 3, JJf = 2;
 
-  U3xU4::ManyNucleonBasis kets(Zi, Ni, Nmax, JJi);
+  U3xU4::ManyNucleonBasis kets(Ni, Zi, Nmax, JJi);
   kets.construct();
   std::cout << "Ket basis dimension: " << kets.dim() << std::endl;
 
-  U3xU4::ManyNucleonBasis bras(Zf, Nf, Nmax, JJf);
+  U3xU4::ManyNucleonBasis bras(Nf, Zf, Nmax, JJf);
   bras.construct();
   std::cout << "Bra basis dimension: " << bras.dim() << std::endl;
 
-  int valenceShell_i = HO::valenceShell(Zi + Ni),
-      valenceShell_f = HO::valenceShell(Zf + Nf),
-      maxShell = std::max(valenceShell_i, valenceShell_f) + Nmax;
-
-  HO::Table_nljmjmt HO_labels(maxShell);
+  HO::Table_nljmjmt HO_labels(std::max(kets.maxShell(), bras.maxShell()));
 
   JT::Operator Hamil_i(Hamil_name, Ni, Zi, hw, Nmax, HO_labels),
                Hamil_f(Hamil_name, Nf, Zf, hw, Nmax, HO_labels),

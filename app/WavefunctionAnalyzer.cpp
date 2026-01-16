@@ -3,6 +3,7 @@
 #include <u3lib.h>
 #include <u4lib.h>
 
+#include <OperatorJT.h>
 #include <WavefunctionAnalyzer.h>
 
 int main(int argc, char* argv[])
@@ -24,37 +25,31 @@ int main(int argc, char* argv[])
   std::cout << "Enter hw: ";
   std::cin >> hw;
 
-  U3xU4::ManyNucleonBasis basis(Z, N, Nmax, JJ);
+  U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
   basis.construct();
 
-  const char* sam_dir = std::getenv("SAM_DIR");
-  if (!sam_dir)
-    throw std::runtime_error("Environment variable SAM_DIR not set");
+  int valenceShell = HO::valenceShell(Z + N),
+      maxShell = valenceShell + Nmax;
 
-  std::string base_dir = std::string(sam_dir) +
-                         "/data/OperatorJT/Hamiltonian/Z" + std::to_string(Z) +
-                         "_N" + std::to_string(N) + "/JJ" + std::to_string(JJ) +
-                         "/Nmax" + std::to_string(Nmax);
-  std::string potential = "N4LO_EMN500_bare"; //"N3LO_EMN500_bare"; //"N2LO_opt_bare";                       
-  std::string filename =
-      base_dir + "/" + "hw" + std::to_string(hw) + "_" + potential;
+  HO::Table_nljmjmt HO_labels(maxShell);
+  std::string Hamil_name = "Hamiltonian with N2LO_opt_bare";
+  JT::Operator Hamil(Hamil_name, N, Z, hw, Nmax, HO_labels);
 
-  //auto [evals, subspaces] = sam::U3xU4_wavefunction_analyzer(basis,filename,1);
+  // read Hamiltonian matrix
+  auto filename = Hamil.filename(basis);
+  auto mat = qcx_utils::readBinary(filename);
 
+  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, mat.rows());
 
-  //auto [evals, subspaces] = sam::U3_wavefunction_analyzer(basis,filename,1);
+  auto subspaces_u3 = sam::U3_wavefunction_analyzer(basis, evecs, 1);
 
+  auto subspaces_u4 = sam::U4_wavefunction_analyzer(basis, evecs, 1);
 
-  //auto [evals, subspaces] = sam::U4_wavefunction_analyzer(basis,filename,1);
-  auto [evals, subspaces] = sam::U4_wavefunction_analyzer_write(basis,filename,1);
-
-  std::cout << "Eigenvalues: ";
-  for (const auto& e : evals)
-  	std::cout << e << "\t";
-  std::cout << std::endl;
-
-  for (const auto& subspace : subspaces)
+  for (const auto& subspace : subspaces_u3)
   	std::cout << subspace << std::endl;
+
+  for (const auto& subspace : subspaces_u4)
+    std::cout << subspace << std::endl;
 
   u4::finalize();
   u3::finalize();

@@ -52,14 +52,11 @@ int main(int argc, char* argv[])
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
-  U3xU4::ManyNucleonBasis basis(Z, N, Nmax, JJ);
+  U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
   basis.construct();
   std::cout << "Basis dimension: " << basis.dim() << std::endl;
 
-  int valenceShell = HO::valenceShell(Z + N),
-      maxShell = valenceShell + Nmax;
-
-  HO::Table_nljmjmt HO_labels(maxShell);
+  HO::Table_nljmjmt HO_labels(basis.maxShell());
 
   JT::Operator op(name, N, Z, hw, Nmax, HO_labels);
   op.is();

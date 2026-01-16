@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
   u3::initialize();
   u4::initialize();
 
-  int Z, N, Nmax, MMT, JJ;
+  int Z, N, Nmax, JJ;
 
   std::cout << "Enter number of protons: ";
   std::cin >> Z;
@@ -26,21 +26,22 @@ int main(int argc, char* argv[])
   std::cout << "Enter JJ: ";
   std::cin >> JJ;
 
-  U3xU4::ManyNucleonBasis basis(Z, N, Nmax, JJ);
+  U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
   basis.construct();
 
   auto irreps = basis.irreps();
+  auto labels = basis.decomposition();
 
   for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
   {
     auto [gamma, omega] = irreps[irrep_id];
     auto offset = irreps.offset(irrep_id);
-    auto labels = basis.decomposition(irreps[irrep_id]);
+    // auto labels = basis.decomposition(irreps[irrep_id]);
 
     print("Irrep ID {:5} : ", irrep_id);
     print("gamma = {}", gamma);
     print(" ; omega = {}", omega);
-    print(" ; kappamax LL zetamax SS TT offset = {}", labels);
+    print(" ; kappamax LL zetamax SS TT offset = {}", labels[irrep_id]);
     print(" ; offset = {}\n", offset);
   }
 
