@@ -10,15 +10,78 @@
 #include <vector>
 
 #include <qcx_convert.h>
+#include <qcx_Int.h>
 
 #include <U3irrep.h>
 #include <U4irrep.h>
 
+#include <HOutilities.h>
 #include <U3xU4GammaOmega.h>
 #include <U3xU4irrep.h>
 
 namespace U3xU4
 {
+  /**
+   * Class that represents a particular hw sub model space.
+   */
+  struct hw_subspace
+  {
+    // Members
+    HO::qn_t hw;
+
+    u3::irreps u3s;
+    u4::irreps u4s;
+    std::vector<HO::qn_t> SSs, TTs;
+
+    // 2D array for storing probabilities of multiple states
+    // only non-empty after analyzing w.f.
+    std::vector<std::vector<double>> probs; 
+
+    // Constructors
+    hw_subspace() = default;
+    hw_subspace(qcx_utils::Int8 hw_, const u3::irreps& u3s_, const u4::irreps& u4s_,
+      const std::vector<HO::qn_t>& SSs_, const std::vector<HO::qn_t>& TTs_)
+        : hw(hw_), u3s(u3s_), u4s(u4s_), SSs(SSs_), TTs(TTs_)
+    {}
+    hw_subspace(qcx_utils::Int8 hw_, const u3::irreps& u3s_, const u4::irreps& u4s_,
+      const std::vector<HO::qn_t>& SSs_, const std::vector<HO::qn_t>& TTs_,
+                const std::vector<std::vector<double>>& probs_)
+        : hw(hw_), u3s(u3s_), u4s(u4s_), SSs(SSs_), TTs(TTs_), probs(probs_)
+    {}
+
+    // selection rules: used during truncation
+    // if u3s is empty, no selection is performed
+    bool U3_selection(const u3::irrep& irr) const;
+    // if u4s is empty, no selection is performed
+    bool U4_selection(const u4::irrep& irr) const;
+    // if SSs is empty, no selection is performed
+    bool SS_selection(qcx_utils::Int8 SS) const;
+    // if TTs is empty, no selection is performed
+    bool TT_selection(qcx_utils::Int8 TT) const;
+
+    // sort u3s in decreasing order of C2; u4s, SSs, TTs must be empty
+    // if probs is not empty, it will be sorted too
+    void sort_u3_by_C2_decreasing();
+
+    // sort u4s in increasing order of C2; u3s, SSs, TTs must be empty
+    // if probs is not empty, it will be sorted too
+    void sort_u4_by_C2_increasing();
+
+    // sort SSs in increasing order; u3s, u4s, TTs must be empty
+    // if probs is not empty, it will be sorted too
+    void sort_SS();
+
+    // sort TTs in increasing order; u3s, u4s, SSs must be empty
+    // if probs is not empty, it will be sorted too
+    void sort_TT();
+
+    // print to terminal
+    friend std::ostream& operator<<(std::ostream& os, const hw_subspace& s);
+
+    // print to file
+    void print_to_file(std::ostream& os) const;
+  };
+
   /**
    * Class that represents the many nucleon basis.
    */
@@ -88,12 +151,24 @@ namespace U3xU4
     /**
      * Constructor that sets the model space parameters.
      *
-     * @param Z Number of protons.
      * @param N Number of neutrons.
+     * @param Z Number of protons.
      * @param Nmax Nmax parameter.
      * @param JJ Total angular momemtum J multiplied by 2.
      */
-    ManyNucleonBasis(int Z, int N, int Nmax, int JJ);
+    ManyNucleonBasis(int N, int Z, int Nmax, int JJ);
+
+    /**
+     * Constructor that sets the model space parameters.
+     *
+     * @param N Number of neutrons.
+     * @param Z Number of protons.
+     * @param Nmax Nmax parameter.
+     * @param JJ Total angular momemtum J multiplied by 2.
+     * @param 
+     */
+    ManyNucleonBasis(int N, int Z, int Nmax, int JJ,
+                     const std::vector<hw_subspace>& hw_subspaces);
 
     /**
      * Basis construction.
@@ -175,7 +250,7 @@ namespace U3xU4
     // **** PRIVATE MEMBER VARIABLES ****
 
     int A_;   // number of nucleons; equal to (Z+N)
-    int MMT_; // proton-neutron "difference"; equal to (abs(Z-N))
+    int MMT_; // proton-neutron "difference"; N-Z
     int Nmax_;
     int JJ_;
 
@@ -188,7 +263,9 @@ namespace U3xU4
     int n0max_; // highest occupied HO shell for 0hw
 
     int nmax_; // highest occupied HO shell (for Nmaxhw); equal to
-               // (n0max_+Nmax_)
+               // (n0max_ + Nmax_)
+
+    int quanta_0hw; // total quanta at 0hw
 
     size_t D_; // number of shells in each distribution; equal to (nmax_+1)
 
@@ -214,6 +291,14 @@ namespace U3xU4
     // (4) irreps:
 
     std::vector<InternalIrrep> irreps_;
+
+    // (5) subgroup labels:
+
+    std::vector<std::vector<std::array<int,6>>> LLSSTTs_;
+
+    // (6) sub-model spaces:
+
+    std::vector<hw_subspace> hw_subspaces_;
 
     // **** PRIVATE MEMBER FUNCTIONS ****
 
@@ -396,6 +481,19 @@ namespace U3xU4
     int compute_dim(const su3::irrep& su3, int SS);
 
     /**
+     * Calculates the dimension of a pair of U(4) and SU(3) irreps and
+     * returns subgroup labels (LL, SS, TT).
+     *
+     * @param hw subspace Nhw
+     * @param u4 U(4) irrep.
+     * @param su3 SU(3) irrep.
+     *
+     * @return Dimension.
+     */
+    std::pair<std::vector<std::array<int,6>>, int> 
+      decomposition(int hw, const u4::irrep& u4, const su3::irrep& su3);
+
+    /**
      * Generates omegas for a gamma.
      *
      * @param dist_id ID of the gamma distribution.
@@ -410,8 +508,21 @@ namespace U3xU4
     // get twice isospin projection
     int MMT() const { return static_cast<int>(MMT_); }
 
+    // get valence shell
+    int valenceShell() const { return n0max_; }
+
+    // get maxShell
+    int maxShell() const { return nmax_; }
+
+    // determine if this model space is truncated
+    bool isTruncated() { return !hw_subspaces_.empty(); }
+
     // perform decomposition to LL,SS,TT
-    std::vector<std::vector<std::array<int,6>>> decomposition() const;
+    // std::vector<std::vector<std::array<int,6>>> decomposition() const;
+    const std::vector<std::vector<std::array<int,6>>>& decomposition() const
+    {
+      return LLSSTTs_;
+    }
     std::vector<std::array<int,6>> decomposition(const Irrep& irr) const;
   };
 
