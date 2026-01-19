@@ -9,7 +9,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include <CustomHash.h>
+#include <qcx_CustomHash.h>
+
 #include <GlobalConstants.h>
 
 #include <so3Coeffs/SO3_CGC.h>
