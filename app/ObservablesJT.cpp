@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
 
   // Specify operator name
   // Example 1: E2
-  std::string name = "E2";
+  // std::string name = "E2";
 
   // Example 2: M1
   // std::string name = "M1";
@@ -35,11 +35,11 @@ int main(int argc, char* argv[])
   // std::string name = "FermiPlus";
 
   // Example 12: Gamow-Teller for beta decay
-  // std::string name = "GamowTellerMinus";
+  std::string name = "GamowTellerMinus";
   // std::string name = "GamowTellerPlus";
 
   ////////////// WITHIN THE SAME BASIS //////////////
-  
+  /*
   int Z = 3, N = 3, Nmax = 4, JJ = 2, hw = 20;
 
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
@@ -47,9 +47,10 @@ int main(int argc, char* argv[])
   std::cout << "Basis dimension: " << basis.dim() << std::endl;
 
   HO::Table_nljmjmt HO_labels(basis.maxShell());
+  U3xU4::Table_gelfand gelfand_labels(basis.maxShell());
 
-  JT::Operator Hamil(Hamil_name, N, Z, hw, Nmax, HO_labels),
-               op(name, N, Z, hw, Nmax, HO_labels);
+  JT::Operator Hamil(Hamil_name, N, Z, hw, Nmax, HO_labels, gelfand_labels),
+               op(name, N, Z, hw, Nmax, HO_labels, gelfand_labels);
   op.is();
 
   // Start time measurement
@@ -60,7 +61,7 @@ int main(int argc, char* argv[])
   auto mat = qcx_utils::readBinary(filename);
 
   auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, mat.rows());
-  
+  */
   // moments
   /*
   auto vals = op.expectationValue(basis, 
@@ -72,21 +73,21 @@ int main(int argc, char* argv[])
   */
 
   // transition
-  
+  /*
   auto strengths = op.transitionStrength(basis, 
     {{evecs.col(0), evecs.col(1)}});
 
   std::cout << "Transition strengths of " << name << " are" << std::endl;
   for (int i = 0; i < strengths.size(); i++)
     std::cout << "Channel " << i << ": " << strengths[i] << std::endl;
-  
+  */
 
   // End time measurement
-  auto t1 = std::chrono::high_resolution_clock::now();
+  // auto t1 = std::chrono::high_resolution_clock::now();
   
 
   ////////////// BETWEEN TWO DIFFERENT BASES //////////////
-  /*
+  
   int Nmax = 4, hw = 20, 
       Zi = 2, Ni = 4, JJi = 0, Zf = 3, Nf = 3, JJf = 2;
 
@@ -98,11 +99,13 @@ int main(int argc, char* argv[])
   bras.construct();
   std::cout << "Bra basis dimension: " << bras.dim() << std::endl;
 
-  HO::Table_nljmjmt HO_labels(std::max(kets.maxShell(), bras.maxShell()));
+  int maxShell = std::max(kets.maxShell(), bras.maxShell());
+  HO::Table_nljmjmt HO_labels(maxShell);
+  U3xU4::Table_gelfand gelfand_labels(maxShell);
 
-  JT::Operator Hamil_i(Hamil_name, Ni, Zi, hw, Nmax, HO_labels),
-               Hamil_f(Hamil_name, Nf, Zf, hw, Nmax, HO_labels),
-               op(name, Ni, Zi, hw, Nmax, HO_labels);
+  JT::Operator Hamil_i(Hamil_name, Ni, Zi, hw, Nmax, HO_labels, gelfand_labels),
+               Hamil_f(Hamil_name, Nf, Zf, hw, Nmax, HO_labels, gelfand_labels),
+               op(name, Ni, Zi, hw, Nmax, HO_labels, gelfand_labels);
   op.is();
 
   // Start time measurement
@@ -133,7 +136,7 @@ int main(int argc, char* argv[])
   
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  */
+  
 
   ////////////// DON'T EDIT ANYTHING HERE //////////////
   

@@ -16,7 +16,8 @@ namespace JT
   class TwoBodyOperator
   {
   private:
-    const HO::Table_nljmjmt& labels_;
+    const HO::Table_nljmjmt& HO_labels_;
+    const U3xU4::Table_gelfand& gelfand_labels_;
 
     HO::qn_t JJ_, MMJ_, TT_, MMT_, parity_,
              hw_, Nmax_, valenceShell_, maxShell_;
@@ -45,7 +46,9 @@ namespace JT
   public:
     // Constructor
     TwoBodyOperator(const std::string& name, int hw, int Nmax, 
-      int valenceShell, int maxShell, const HO::Table_nljmjmt& labels);
+                    int valenceShell, int maxShell,
+                    const HO::Table_nljmjmt& HO_labels,
+                    const U3xU4::Table_gelfand& gelfand_labels);
 
     // Getters
     int JJ() const { return static_cast<int>(JJ_); }

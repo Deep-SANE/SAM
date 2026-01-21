@@ -14,7 +14,8 @@ int main(int argc, char* argv[])
   u4::initialize();
 
   int hw = 20, valenceShell = 0, Nmax = 14, maxShell = Nmax;
-  HO::Table_nljmjmt labels(maxShell);
+  HO::Table_nljmjmt HO_labels(maxShell);
+  U3xU4::Table_gelfand gelfand_labels(maxShell);
 
   // Example 1: One-body part of LL
   // std::string name = "L.L";
@@ -59,7 +60,8 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  JT::OneBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
+  JT::OneBodyOperator 
+    op(name, hw, Nmax, valenceShell, maxShell, HO_labels, gelfand_labels);
   op.is();
 
   auto tensors = op.expand();

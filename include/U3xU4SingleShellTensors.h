@@ -10,6 +10,7 @@
 
 #include <HOutilities.h>
 #include <U3xU4GammaOmega.h>
+#include <U3xU4gelfand.h>
 #include <U3xU4irrep.h>
 #include <RME.h>
 
@@ -545,6 +546,9 @@ namespace U3xU4
     bool RME_exist(const U3xU4::GammaElement& f, const U3xU4::GammaElement& i) const;
 
     sam::RME RME(const U3xU4::GammaElement& f, const U3xU4::GammaElement& i) const;
+
+    sam::RME RME(const U3xU4::GammaElement& f, const U3xU4::GammaElement& i,
+                 const U3xU4::Table_gelfand& labels) const;
   };
   using SingleShellTensors = std::vector<SingleShellTensor>;
 

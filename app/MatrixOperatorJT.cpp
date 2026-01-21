@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
   std::cin >> write;
   */
 
-  int Z = 3, N = 3, JJ = 2, Nmax = 2, hw = 20, write = 1;
+  int Z = 3, N = 3, JJ = 2, Nmax = 6, hw = 20, write = 0;
 
   // Example 1: LL
   // std::string name = "L.L";
@@ -57,19 +57,23 @@ int main(int argc, char* argv[])
   std::cout << "Basis dimension: " << basis.dim() << std::endl;
 
   HO::Table_nljmjmt HO_labels(basis.maxShell());
+  U3xU4::Table_gelfand gelfand_labels(basis.maxShell());
 
-  JT::Operator op(name, N, Z, hw, Nmax, HO_labels);
+  JT::Operator op(name, N, Z, hw, Nmax, HO_labels, gelfand_labels);
   op.is();
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto mat = op.matrix(basis);
+  // auto mat = op.matrix(basis);
+  auto filename = op.filename(basis);
+  auto mat = qcx_utils::readBinary(filename);
+  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 10);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, mat.rows());
+  // auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, mat.rows());
   std::cout << "Eigenvalues are" << std::endl;
   for (auto ev : evals)
   {

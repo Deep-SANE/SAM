@@ -12,7 +12,8 @@ int main(int argc, char* argv[])
   u4::initialize();
 
   int hw = 20, valenceShell = 0, Nmax = 4, maxShell = Nmax;
-  HO::Table_nljmjmt labels(maxShell);
+  HO::Table_nljmjmt HO_labels(maxShell);
+  U3xU4::Table_gelfand gelfand_labels(maxShell);
 
   // YOU MUST CHOOSE ONLY ONE OF THE FOLLOWING OPTIONS.
   // NOTE THAT THESE OPERATORS MUST HAVE BEEN EXPANDED
@@ -58,7 +59,8 @@ int main(int argc, char* argv[])
   std::string name = "GamowTellerMinus";
   // std::string name = "GamowTellerPlus";
 
-  JT::OneBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
+  JT::OneBodyOperator 
+    op(name, hw, Nmax, valenceShell, maxShell, HO_labels, gelfand_labels);
 
   ////////////// TWO-BODY OPERATORS //////////////
 
@@ -101,7 +103,8 @@ int main(int argc, char* argv[])
   // std::string name = "N4LO_EMN500_srg2.0"
   // std::string name = "N4LO_EMN500_srg4.0";
 
-  // JT::TwoBodyOperator op(name, hw, Nmax, valenceShell, maxShell, labels);
+  // JT::TwoBodyOperator 
+  //   op(name, hw, Nmax, valenceShell, maxShell, HO_labels, gelfand_labels);
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
   

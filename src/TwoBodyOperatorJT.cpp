@@ -15,8 +15,10 @@ using qcx_utils::print;
 namespace JT
 {
   TwoBodyOperator::TwoBodyOperator(const std::string& name, int hw, int Nmax, 
-      int valenceShell, int maxShell, const HO::Table_nljmjmt& labels)
-      : labels_(labels)
+                                   int valenceShell, int maxShell,
+                                   const HO::Table_nljmjmt& HO_labels,
+                                   const U3xU4::Table_gelfand& gelfand_labels)
+      : HO_labels_(HO_labels), gelfand_labels_(gelfand_labels)
   {
     if (maxShell > 14)
       throw std::out_of_range(
@@ -791,7 +793,7 @@ namespace JT
               Gammas, coupled_irreps, 
               coupled_irreps.empty() ? Gammas[0].rho0max() : Rhomax,
               coupled_irreps.empty() ? Gammas[0].eta0max() : Etamax, 
-              kappa0, LL0, zeta0, SS0, TT0, MMT_, JJ_, MMJ_, {}, labels_);
+              kappa0, LL0, zeta0, SS0, TT0, MMT_, JJ_, MMJ_, {}, HO_labels_);
 
             bool ignore =
                 setTensorStrength(tensor, all_inverse[i], all_phase[i]);
@@ -810,7 +812,7 @@ namespace JT
                 Gammas, coupled_irreps, 
                 coupled_irreps.empty() ? Gammas[0].rho0max() : Rhomax,
                 coupled_irreps.empty() ? Gammas[0].eta0max() : Etamax, 
-                kappa0, LL0, zeta0, SS0, TT0, MMT_, JJ0, MMJ_, {}, labels_);
+                kappa0, LL0, zeta0, SS0, TT0, MMT_, JJ0, MMJ_, {}, HO_labels_);
 
               bool ignore =
                 setTensorStrength(tensor, all_inverse[i], all_phase[i]);
@@ -866,7 +868,7 @@ namespace JT
       for (const auto& [Gammas, Omegas] : all_results)
       {
         U3xU4::MultiShellTensor_phys tensor(Gammas, Omegas, 
-                                            MMT_, JJ_, MMJ_, labels_);
+                                            MMT_, JJ_, MMJ_, HO_labels_);
 
         if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
@@ -966,7 +968,7 @@ namespace JT
 
     for (size_t i = 0; i < n_tensors; ++i)
     { 
-      U3xU4::MultiShellTensor_phys tensor(labels_);
+      U3xU4::MultiShellTensor_phys tensor(HO_labels_);
       tensor.readBinary(s);
 
       int ab_Nhw = 0, cd_Nhw = 0, ads = 0, ats = 0;
@@ -996,14 +998,18 @@ namespace JT
     const U3xU4::ManyNucleonBasis& basis)
   {
     auto tensors = expand();
-    return U3xU4::MatrixElements(tensors, basis);
+
+    // return U3xU4::MatrixElements(tensors, basis);
+    return U3xU4::MatrixElements(tensors, basis, gelfand_labels_);
   }
   Eigen::SparseMatrix<double> TwoBodyOperator::matrix(
     const U3xU4::ManyNucleonBasis& bras, 
     const U3xU4::ManyNucleonBasis& kets)
   {
     auto tensors = expand();
-    return U3xU4::MatrixElements(tensors, bras, kets);
+
+    // return U3xU4::MatrixElements(tensors, bras, kets);
+    return U3xU4::MatrixElements(tensors, bras, kets, gelfand_labels_);
   }
 
   // Tensor Analyzers

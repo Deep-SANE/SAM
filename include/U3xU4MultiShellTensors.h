@@ -296,12 +296,31 @@ namespace U3xU4
     sam::RME RME(const ManyNucleonBasis::Irrep& bra,
                  const ManyNucleonBasis::Irrep& ket) const;
 
+    sam::RME RME(const ManyNucleonBasis::Irrep& bra,
+                 const ManyNucleonBasis::Irrep& ket,
+                 const U3xU4::Table_gelfand& labels) const;
+
   private:
     // Phase during uncoupling of RME
     int8_t uncoupling_phase(const ManyNucleonBasis::Irrep& bra,
                             const ManyNucleonBasis::Irrep& ket) const;
   };
   using MultiShellTensors = std::vector<MultiShellTensor>;
+
+  // A function to couple single-shell tensors into multi-shell tensors
+  using CouplingPath = 
+    std::pair<U3xU4::SingleShellTensors, // list of selected single-shell tensors
+              U3xU4::OmegaElements>;     // list of all coupled (irrep,rhomax,etamax)
+
+  void GenerateMultiShellTensors(
+      const std::vector<U3xU4::SingleShellTensors>&
+                                        Tadat_lists,// list of lists of Tadat
+      size_t depth,                                 // recursion depth
+      U3xU4::SingleShellTensors Tadat_choices,      // current choices
+      U3xU4::irreps coupled_irreps,                 // current coupled irreps
+      std::vector<int> rhomax_list,                 // rhomax values
+      std::vector<int> etamax_list,                 // etamax values
+      std::vector<CouplingPath>& all_results);      // final results
 
   /* Class for holding a general U3xU4 multi-shell tensor with physical labels.
      It has total spin (JJ,MMJ) and isospin (TT,MMT) quantum numbers, 
@@ -419,30 +438,7 @@ namespace U3xU4
     }
   };
   using MultiShellTensors_phys = std::vector<MultiShellTensor_phys>;
-
-  // Symmetric matrix
-  Eigen::SparseMatrix<double> MatrixElements(const MultiShellTensors_phys& tensors, 
-    const U3xU4::ManyNucleonBasis& basis);
-
-  // Rectangular matrix
-  Eigen::SparseMatrix<double> MatrixElements(const MultiShellTensors_phys& tensors, 
-    const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets);
-
-  // A function to couple single-shell tensors into multi-shell tensors
-  using CouplingPath = 
-    std::pair<U3xU4::SingleShellTensors, // list of selected single-shell tensors
-              U3xU4::OmegaElements>;     // list of all coupled (irrep,rhomax,etamax)
-
-  void GenerateMultiShellTensors(
-      const std::vector<U3xU4::SingleShellTensors>&
-                                        Tadat_lists,// list of lists of Tadat
-      size_t depth,                                 // recursion depth
-      U3xU4::SingleShellTensors Tadat_choices,      // current choices
-      U3xU4::irreps coupled_irreps,                 // current coupled irreps
-      std::vector<int> rhomax_list,                 // rhomax values
-      std::vector<int> etamax_list,                 // etamax values
-      std::vector<CouplingPath>& all_results);      // final results
-
+  
   /**
    * Unification of a multi-shell tensor with a basis irrep.
    *
@@ -454,4 +450,29 @@ namespace U3xU4
    */
   std::optional<MultiShellTensor>
   unify_tensor(const MultiShellTensor& T, const ManyNucleonBasis::Irrep& irrep);
+
+  /////////////////// COMPUTING MATRIX ELEMENTS ///////////////////
+
+  // Symmetric matrix
+  Eigen::SparseMatrix<double> 
+    MatrixElements(const MultiShellTensors_phys& tensors, 
+                   const U3xU4::ManyNucleonBasis& basis);
+
+  Eigen::SparseMatrix<double> 
+    MatrixElements(const MultiShellTensors_phys& tensors, 
+                   const U3xU4::ManyNucleonBasis& basis,
+                   const U3xU4::Table_gelfand& gelfand_labels);
+
+  // Rectangular matrix
+  Eigen::SparseMatrix<double> 
+    MatrixElements(const MultiShellTensors_phys& tensors, 
+                   const U3xU4::ManyNucleonBasis& bras,
+                   const U3xU4::ManyNucleonBasis& kets);
+
+  Eigen::SparseMatrix<double> 
+    MatrixElements(const MultiShellTensors_phys& tensors, 
+                   const U3xU4::ManyNucleonBasis& bras,
+                   const U3xU4::ManyNucleonBasis& kets,
+                   const U3xU4::Table_gelfand& gelfand_labels);
+
 } // namespace U3xU4

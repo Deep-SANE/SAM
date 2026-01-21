@@ -14,7 +14,8 @@ namespace JT
   class Operator
   {
   private:
-    const HO::Table_nljmjmt& labels_;
+    const HO::Table_nljmjmt& HO_labels_;
+    const U3xU4::Table_gelfand& gelfand_labels_;
 
     int N_, Z_, hw_, Nmax_, valenceShell_, maxShell_;
 
@@ -43,7 +44,8 @@ namespace JT
 
   public:
     Operator(const std::string& name, int N, int Z, int hw, int Nmax,
-             const HO::Table_nljmjmt& labels);
+             const HO::Table_nljmjmt& HO_labels, 
+             const U3xU4::Table_gelfand& gelfand_labels);
 
     // Print
     void is() const;

@@ -3,8 +3,10 @@
 namespace JT
 {
   Operator::Operator(const std::string& name, int N, int Z, int hw, int Nmax,
-                     const HO::Table_nljmjmt& labels)
-      : name_(name), N_(N), Z_(Z), hw_(hw), Nmax_(Nmax), labels_(labels)
+                     const HO::Table_nljmjmt& HO_labels,
+                     const U3xU4::Table_gelfand& gelfand_labels)
+      : name_(name), N_(N), Z_(Z), hw_(hw), Nmax_(Nmax), 
+        HO_labels_(HO_labels), gelfand_labels_(gelfand_labels)
   {
     valenceShell_ = HO::valenceShell(N + Z);
     maxShell_ = valenceShell_ + Nmax_;
@@ -35,12 +37,14 @@ namespace JT
   {
     if (one_body.count(name_))
     {
-      JT::OneBodyOperator op(name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
+      JT::OneBodyOperator 
+        op(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
       op.is();
     }
     else if (two_body.count(name_))
     {
-      JT::TwoBodyOperator op(name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
+      JT::TwoBodyOperator 
+        op(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
       op.is();
     }
     else if (name_ == "L.L" || name_ == "L.S")
@@ -65,14 +69,14 @@ namespace JT
   {
   	if (x.one_body.count(x.name_))
     {
-      JT::OneBodyOperator 
-      	op(x.name_, x.hw_, x.Nmax_, x.valenceShell_, x.maxShell_, x.labels_);
+      JT::OneBodyOperator op(x.name_, x.hw_, x.Nmax_, x.valenceShell_, x.maxShell_, 
+                                                  x.HO_labels_, x.gelfand_labels_);
       s << op;
     }
     else if (x.two_body.count(x.name_))
     {
-      JT::TwoBodyOperator 
-      	op(x.name_, x.hw_, x.Nmax_, x.valenceShell_, x.maxShell_, x.labels_);
+      JT::TwoBodyOperator op(x.name_, x.hw_, x.Nmax_, x.valenceShell_, x.maxShell_,
+                                                  x.HO_labels_, x.gelfand_labels_);
       s << op;
     }
     else if (x.name_ == "L.L" || x.name_ == "L.S") s << x.name_ << " operator";
@@ -115,20 +119,24 @@ namespace JT
   {
   	if (one_body.count(name_))
     {
-      JT::OneBodyOperator op(name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
+      JT::OneBodyOperator 
+        op(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
       return op.expand();
     }
     else if (two_body.count(name_))
     {
-      JT::TwoBodyOperator op(name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
+      JT::TwoBodyOperator 
+        op(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
       return op.expand();
     }
     else if (one_plus_two_body.count(name_))
     {
-      JT::OneBodyOperator op1(name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
+      JT::OneBodyOperator 
+        op1(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
       auto tensors1 = op1.expand();
 
-      JT::TwoBodyOperator op2(name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
+      JT::TwoBodyOperator 
+        op2(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
       auto tensors2 = op2.expand();
 
       double coeff1, coeff2;
@@ -177,16 +185,21 @@ namespace JT
     else // Hamiltonian
     {
       JT::OneBodyOperator 
-      	CoM1("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_, labels_),
-      	KE1("Kinetic", hw_, Nmax_, valenceShell_, maxShell_, labels_);
+      	CoM1("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_,
+                                    HO_labels_, gelfand_labels_),
+      	KE1("Kinetic", hw_, Nmax_, valenceShell_, maxShell_,
+                                    HO_labels_, gelfand_labels_);
 
       auto com1s = CoM1.expand();
       auto ke1s = KE1.expand();
 
   	  JT::TwoBodyOperator 
-  	  	CoM2("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_, labels_),
-      	KE2("Kinetic", hw_, Nmax_, valenceShell_, maxShell_, labels_),
-      	NN(potential_name_, hw_, Nmax_, valenceShell_, maxShell_, labels_);
+  	  	CoM2("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_,
+                                    HO_labels_, gelfand_labels_),
+      	KE2("Kinetic", hw_, Nmax_, valenceShell_, maxShell_,
+                                    HO_labels_, gelfand_labels_),
+      	NN(potential_name_, hw_, Nmax_, valenceShell_, maxShell_,
+                                    HO_labels_, gelfand_labels_);
 
       auto com2s = CoM2.expand();
       auto ke2s = KE2.expand();
@@ -270,14 +283,18 @@ namespace JT
     const U3xU4::ManyNucleonBasis& basis)
   {
     auto tensors = expand();
-    return U3xU4::MatrixElements(tensors,basis);
+
+    // return U3xU4::MatrixElements(tensors, basis);
+    return U3xU4::MatrixElements(tensors, basis, gelfand_labels_);
   }
   Eigen::SparseMatrix<double> Operator::matrix(
     const U3xU4::ManyNucleonBasis& bras,
     const U3xU4::ManyNucleonBasis& kets)
   {
     auto tensors = expand();
-    return U3xU4::MatrixElements(tensors, bras, kets);
+    
+    // return U3xU4::MatrixElements(tensors, bras, kets);
+    return U3xU4::MatrixElements(tensors, bras, kets, gelfand_labels_);
   }
 
     // Expectation value

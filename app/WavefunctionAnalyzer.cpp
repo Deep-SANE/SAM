@@ -32,8 +32,10 @@ int main(int argc, char* argv[])
       maxShell = valenceShell + Nmax;
 
   HO::Table_nljmjmt HO_labels(maxShell);
+  U3xU4::Table_gelfand gelfand_labels(maxShell);
+
   std::string Hamil_name = "Hamiltonian with N2LO_opt_bare";
-  JT::Operator Hamil(Hamil_name, N, Z, hw, Nmax, HO_labels);
+  JT::Operator Hamil(Hamil_name, N, Z, hw, Nmax, HO_labels, gelfand_labels);
 
   // read Hamiltonian matrix
   auto filename = Hamil.filename(basis);

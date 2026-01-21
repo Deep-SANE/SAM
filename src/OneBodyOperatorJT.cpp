@@ -18,8 +18,10 @@
 namespace JT
 {
   OneBodyOperator::OneBodyOperator(const std::string& name, int hw, int Nmax, 
-            int valenceShell, int maxShell, const HO::Table_nljmjmt& labels)
-    : labels_(labels)
+                                   int valenceShell, int maxShell,
+                                   const HO::Table_nljmjmt& HO_labels,
+                                   const U3xU4::Table_gelfand& gelfand_labels)
+    : HO_labels_(HO_labels), gelfand_labels_(gelfand_labels)
   {
     if (maxShell > 14)
       throw std::out_of_range(
@@ -1267,7 +1269,7 @@ namespace JT
               U3xU4::SingleShellTensor ab(na, 1, 1, {}, {}, 
                             U3xU4::irrep(u3couple[i], u4couple[j]), 1, 1);
 
-              U3xU4::MultiShellTensor_phys tensor({ab}, {}, MMT_, JJ_, MMJ_, labels_);
+              U3xU4::MultiShellTensor_phys tensor({ab}, {}, MMT_, JJ_, MMJ_, HO_labels_);
 
               setTensorStrength(tensor, na, nb);
 
@@ -1278,7 +1280,7 @@ namespace JT
             {
               U3xU4::MultiShellTensor_phys tensor(
                 (na < nb) ? std::vector({a, b}) : std::vector({b, a}), 
-                {t}, MMT_, JJ_, MMJ_, labels_);
+                {t}, MMT_, JJ_, MMJ_, HO_labels_);
 
               setTensorStrength(tensor, na, nb);
 
@@ -1378,7 +1380,7 @@ namespace JT
 
     for (size_t i = 0; i < n_tensors; ++i)
     { 
-      U3xU4::MultiShellTensor_phys tensor(labels_);
+      U3xU4::MultiShellTensor_phys tensor(HO_labels_);
       tensor.readBinary(s);
 
       if (tensor.Gammas().back().shell() - valenceShell_ > Nmax_)
@@ -1395,7 +1397,8 @@ namespace JT
     const U3xU4::ManyNucleonBasis& basis)
   {
     auto tensors = expand();
-    return U3xU4::MatrixElements(tensors,basis);
+    // return U3xU4::MatrixElements(tensors, basis);
+    return U3xU4::MatrixElements(tensors, basis, gelfand_labels_);
   }
 
   Eigen::SparseMatrix<double> OneBodyOperator::matrix(
@@ -1403,7 +1406,7 @@ namespace JT
     const U3xU4::ManyNucleonBasis& kets)
   {
     auto tensors = expand();
-    return U3xU4::MatrixElements(tensors, bras, kets);
+    return U3xU4::MatrixElements(tensors, bras, kets, gelfand_labels_);
   }
 
   // Tensor Analyzers
