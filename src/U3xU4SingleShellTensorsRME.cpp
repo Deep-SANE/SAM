@@ -233,7 +233,7 @@ namespace U3xU4
       {
         Eigen::MatrixXd fme(g3Arr0.size() * g4Arr0.size(), rho0max() * eta0max());
         fme.setZero();
-        FMEs.push_back(fme);
+        FMEs.push_back(std::move(fme));
       }
     }
 
@@ -515,16 +515,16 @@ namespace U3xU4
 */
     // (3.3) General case
 
-    // Get outer multiplicities due to Wigner-Eckart theorem
+    // (3.3.1) Get outer multiplicities due to Wigner-Eckart theorem
     auto [rhomax, etamax] = U3xU4::RhoEta(i, T(), f);
 
-    // Extract single-particle states
+    // (3.3.2) Extract single-particle states
     const auto& sps3 = labels.sps3(n);
     const auto& sps3_conj = labels.sps3_conj(n);
     const auto& sps4 = labels.sps4();
     const auto& sps4_conj = labels.sps4_conj();
 
-    // Generate HWS for the ket irrep
+    // (3.3.3) Generate HWS for the ket irrep
     u3::gelfand i3hws(i.n13(), i.n23(), i.n33(), i.n13(), i.n23(), i.n13());
     u4::gelfand i4hws(i.n14(), i.n24(), i.n34(), i.n44(),
                       i.n14(), i.n24(), i.n34(), i.n14(), i.n24(), i.n14());
@@ -545,7 +545,7 @@ namespace U3xU4
     assert(ai_max == coeffs_i.cols());
     // std::cout << "coeffs_i:" << coeffs_i << std::endl;
 
-    // Generate HWS for the bra irrep
+    // (3.3.4) Generate HWS for the bra irrep
     u3::gelfand f3hws(f.n13(), f.n23(), f.n33(), f.n13(), f.n23(), f.n13());
     u4::gelfand f4hws(f.n14(), f.n24(), f.n34(), f.n44(),
                       f.n14(), f.n24(), f.n34(), f.n14(), f.n24(), f.n14());
@@ -566,29 +566,23 @@ namespace U3xU4
     assert(af_max == coeffs_f.cols());
     // std::cout << "coeffs_f:" << coeffs_f << std::endl;
 
-    // Generate tensor components of the tensor
+    // (3.3.5) Generate tensor components of the tensor
     u3::gelfands g3Arr = u3::gelfandBasis(T().u3());
-    std::vector<size_t> g3Arr0;
+    std::vector<int> g3Arr0;
     int missing3 = (N_quanta_i + T().u3().quanta() - N_quanta_f) / 3;
-    for (size_t i = 0; i < g3Arr.size(); i++)
+    for (int i = 0; i < g3Arr.size(); i++)
       if ((i3hws.e22() + g3Arr[i].e22()) == (f3hws.e22() + missing3) &&
           (i3hws.e11() + g3Arr[i].e11()) == (f3hws.e11() + missing3))
         g3Arr0.push_back(i);
 
     u4::gelfands g4Arr = u4::gelfandBasis(T().u4());
-    std::vector<size_t> g4Arr0;
+    std::vector<int> g4Arr0;
     int missing4 = (A_i + T().u4().quanta() - A_f) / 4;
-    for (size_t i = 0; i < g4Arr.size(); i++)
+    for (int i = 0; i < g4Arr.size(); i++)
       if ((i4hws.e33() + g4Arr[i].e33()) == (f4hws.e33() + missing4) &&
           (i4hws.e22() + g4Arr[i].e22()) == (f4hws.e22() + missing4) &&
           (i4hws.e11() + g4Arr[i].e11()) == (f4hws.e11() + missing4))
         g4Arr0.push_back(i);
-
-    // Get angular momenta
-    int jj_i3 = i3hws.Lambdax2(), mm_i3 = i3hws.MLambdax2(),
-        jj_f3 = f3hws.Lambdax2(), mm_f3 = f3hws.MLambdax2(),
-        jj_i4 = i4hws.Lambdax2(), mm_i4 = i4hws.MLambdax2(),
-        jj_f4 = f4hws.Lambdax2(), mm_f4 = f4hws.MLambdax2();
 
     // std::cout << "Count tensor components: " << g3Arr0.size()
     //      <<" x " << g4Arr0.size() << std::endl;
@@ -602,13 +596,19 @@ namespace U3xU4
       {
         Eigen::MatrixXd fme(g3Arr0.size() * g4Arr0.size(), rho0max() * eta0max());
         fme.setZero();
-        FMEs.push_back(fme);
+        FMEs.push_back(std::move(fme));
       }
     }
 
     // A matrix containing coupling coefficients
     Eigen::MatrixXd CGCs(g3Arr0.size() * g4Arr0.size(), rhomax * etamax);
     CGCs.setZero();
+
+    // Get angular momenta
+    int jj_i3 = i3hws.Lambdax2(), mm_i3 = i3hws.MLambdax2(),
+        jj_f3 = f3hws.Lambdax2(), mm_f3 = f3hws.MLambdax2(),
+        jj_i4 = i4hws.Lambdax2(), mm_i4 = i4hws.MLambdax2(),
+        jj_f4 = f4hws.Lambdax2(), mm_f4 = f4hws.MLambdax2();
 
     // Now run through tensor components
     int row = 0;
@@ -632,7 +632,6 @@ namespace U3xU4
 
       for (const auto& g4 : g4Arr0)
       {
-
         const auto& gt4 = g4Arr[g4];
         // std::cout << gt4 << std::endl;
         int jj_t4 = gt4.Lambdax2(), mm_t4 = gt4.MLambdax2();
@@ -696,7 +695,7 @@ namespace U3xU4
           // Determine how ad's and a's act on SDi's
           for (size_t i = 0; i < SDarr_i.size(); i++)
           {
-            auto SDi = SDarr_i[i];
+            auto SDi = SDarr_i[i]; // make a copy to act on with ad's and a's
             bool annihilated = false;
 
             double phase = 1;
@@ -734,8 +733,7 @@ namespace U3xU4
             {
               for (size_t f = 0; f < SDarr_f.size(); f++)
               {
-                auto SDf = SDarr_f[f];
-                if (SDi == SDf)
+                if (SDi == SDarr_f[f])
                 {
                   for (int ai = 0; ai < ai_max; ai++)
                   {
@@ -761,7 +759,7 @@ namespace U3xU4
     factorize.compute(CGCs);
 
     std::vector<Eigen::MatrixXd> RMEs(FMEs.size());
-    for (size_t i = 0; i < FMEs.size(); i++)
+    for (int i = 0; i < FMEs.size(); i++)
     {
       // std::cout << "FME = " << FMEs[i] << std::endl;
       RMEs[i] = factorize.solve(FMEs[i]);

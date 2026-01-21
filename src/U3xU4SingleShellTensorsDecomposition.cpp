@@ -55,16 +55,19 @@ namespace U3xU4
 
   double at_phys::turnToAnnihilation()
   {
-    auto [n, ll, jj, mmj, mmt] = labels_.getLabels(index);
+    const auto& [n, ll, jj, mmj, mmt] = labels_.getLabels(index);
 #ifdef ADD_SU3LIB_PHASE_U3SO3
     int phi = (2 * n + 1 - jj - mmj - mmt) / 2;
 #else
     int phi = (n + ll / 2 + 1 - jj - mmj - mmt) / 2;
 #endif
-    mmj *= -1;
-    mmt *= -1;
+    // mmj *= -1;
+    // mmt *= -1;
+    // index = labels_.getIndex(n, ll, jj, mmj, mmt);
+
+    index = labels_.getIndex(n, ll, jj, -mmj, -mmt);
+
     tensor = false;
-    index = labels_.getIndex(n, ll, jj, mmj, mmt);
     return (phi % 2 == 0) ? 1.0 : -1.0;
   }
 

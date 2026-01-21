@@ -186,7 +186,7 @@ namespace HO
   }
 
   // Get quantum numbers from index
-  std::tuple<qn_t, qn_t, qn_t, qn_t, qn_t>
+  const std::tuple<qn_t, qn_t, qn_t, qn_t, qn_t>&
   Table_nljmjmt::getLabels(uint16_t index) const
   {
     return index_to_state[index];
@@ -584,10 +584,10 @@ namespace HO
     if (a == b && J % 2 == 1) return 0.0;
     if (c == d && J % 2 == 1) return 0.0;
 
-    const auto &oa = orbit_map.getOrbit(static_cast<int>(a)); 
-    const auto &ob = orbit_map.getOrbit(static_cast<int>(b));
-    const auto &oc = orbit_map.getOrbit(static_cast<int>(c)); 
-    const auto &od = orbit_map.getOrbit(static_cast<int>(d));
+    const auto& oa = orbit_map.getOrbit(static_cast<int>(a)); 
+    const auto& ob = orbit_map.getOrbit(static_cast<int>(b));
+    const auto& oc = orbit_map.getOrbit(static_cast<int>(c)); 
+    const auto& od = orbit_map.getOrbit(static_cast<int>(d));
 
     qn_t ea = oa.shell(), eb = ob.shell(), ec = oc.shell(), ed = od.shell();
 

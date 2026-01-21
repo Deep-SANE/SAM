@@ -105,7 +105,7 @@ namespace U3xU4
     }
 
     // Get labels
-    auto getLabels() const { return labels_.getLabels(index); }
+    const auto& getLabels() const { return labels_.getLabels(index); }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s, const ad_phys& x);
@@ -209,7 +209,7 @@ namespace U3xU4
     }
 
     // Get labels
-    auto getLabels() const { return labels_.getLabels(index); }
+    const auto& getLabels() const { return labels_.getLabels(index); }
 
     // Turn it to a by conjugating, this method returns a phase
     // and change mmj to -mmj, mmt to -mmt

@@ -23,9 +23,11 @@ namespace U3xU4
     {
       U3xU4::OmegaElements coupling_data;
       for (size_t i = 0; i < coupled_irreps.size(); ++i)
-        coupling_data.push_back(U3xU4::OmegaElement(
-                      rhomax_list[i], coupled_irreps[i].u3(),
-                      etamax_list[i], coupled_irreps[i].u4()));
+      {
+        U3xU4::OmegaElement oe(rhomax_list[i], coupled_irreps[i].u3(),
+                               etamax_list[i], coupled_irreps[i].u4());
+        coupling_data.push_back(std::move(oe));
+      }
 
       all_results.emplace_back(Tadat_choices, coupling_data);
       return;
@@ -45,8 +47,8 @@ namespace U3xU4
     {
       for (auto& Tadat : current_list)
       {
-        auto prev_irrep = coupled_irreps.empty() ? Tadat_choices.back().T()
-                                                 : coupled_irreps.back();
+        const auto& prev_irrep = coupled_irreps.empty() ? Tadat_choices.back().T()
+                                                        : coupled_irreps.back();
         auto prev_rhomax = rhomax_list.empty() ? Tadat_choices.back().rho0max()
                                                : rhomax_list.back();
         auto prev_etamax = etamax_list.empty() ? Tadat_choices.back().eta0max()

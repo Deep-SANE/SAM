@@ -91,7 +91,7 @@ namespace HO
     uint16_t getIndex(qn_t n, qn_t ll, qn_t jj, qn_t mmj, qn_t mmt) const;
 
     // Get quantum numbers from index
-    key_type getLabels(uint16_t index) const;
+    const key_type& getLabels(uint16_t index) const;
   };
 
 
@@ -147,7 +147,7 @@ namespace HO
     uint16_t getIndex(qn_t n, qn_t l, qn_t jj, qn_t mmt) const;
 
     // Get orbit
-    Orbit getOrbit(int idx) const { return orbits[idx - 1]; }
+    const Orbit& getOrbit(int idx) const { return orbits[idx - 1]; }
 
     // Print out the list of orbits with there
     void print() const

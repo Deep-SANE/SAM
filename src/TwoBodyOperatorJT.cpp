@@ -434,7 +434,7 @@ namespace JT
   }
 
   // Set strengths for U3xU4::TwoBodyMultiShellTensor
-    // It returns a flag, which indicate whether this tensor can be ignored.
+  // It returns a flag, which indicate whether this tensor can be ignored.
   bool TwoBodyOperator::setTensorStrength(
       U3xU4::TwoBodyMultiShellTensor& tensor,
       const std::vector<std::vector<int>>& inverse,
@@ -764,13 +764,13 @@ namespace JT
 
         if (coupled_irreps.empty()) // Gammas has one element only
         {
-          pv3s = std::move(u3::physicalBasis(Gammas[0].u3()));
-          pv4s = std::move(u4::physicalBasis(Gammas[0].u4()));
+          pv3s = u3::physicalBasis(Gammas[0].u3());
+          pv4s = u4::physicalBasis(Gammas[0].u4());
         }
         else
         {
-          pv3s = std::move(u3::physicalBasis(coupled_irreps.back().u3()));
-          pv4s = std::move(u4::physicalBasis(coupled_irreps.back().u4()));
+          pv3s = u3::physicalBasis(coupled_irreps.back().u3());
+          pv4s = u4::physicalBasis(coupled_irreps.back().u4());
         }
 
         for (const auto& pv3 : pv3s)
@@ -1002,6 +1002,7 @@ namespace JT
     // return U3xU4::MatrixElements(tensors, basis);
     return U3xU4::MatrixElements(tensors, basis, gelfand_labels_);
   }
+  
   Eigen::SparseMatrix<double> TwoBodyOperator::matrix(
     const U3xU4::ManyNucleonBasis& bras, 
     const U3xU4::ManyNucleonBasis& kets)
