@@ -95,7 +95,8 @@ namespace U3xU4
 
     assert(ket.gamma.size() == ket.omega.size() + 1);
 
-    // (2) check if ALL single-shell RMEs exist
+    // (2) check if ALL single-shell RMEs exist 
+    // AND if ALL recoupling coefficients exist
 
     for (size_t k = 0; k < ket.gamma.size(); k++)
     {
@@ -109,6 +110,19 @@ namespace U3xU4
 
       // if one of them doesn't exist, it returns immediately
       if (T.RME_exist(f, i) == false) return false;
+
+      if (k > 0)
+      {
+        if (u3::Rho(ket.omega[k - 1].u3(), 
+                    Omegas_[k - 1].u3(), 
+                    bra.omega[k - 1].u3()) == 0)
+          return false;
+
+        if (u4::Eta(ket.omega[k - 1].u4(), 
+                    Omegas_[k - 1].u4(),
+                    bra.omega[k - 1].u4()) == 0)
+          return false;
+      }
     }
 
     // std::cout << "Multi-shell RME exists" << std::endl;
@@ -480,7 +494,22 @@ namespace U3xU4
 
     // apply phase factor:
     RMEsL.phase(phase);
+/*
+    if (RMEsL.empty())
+    {
+      std::cout << "Ket: ";
+      for (const auto& g : ket.gamma) std::cout << g << "\t";
+      std::cout << "\n";
+      for (const auto& o : ket.omega) std::cout << "\t" << o;
 
+      std::cout << "\nBra: ";
+      for (const auto& g : bra.gamma) std::cout << g << "\t";
+      std::cout << "\n";
+      for (const auto& o : bra.omega) std::cout << "\t" << o;
+
+      std::cout << "\nTensor: " << *this << std::endl;
+    }
+*/
     return RMEsL;
   }
 
