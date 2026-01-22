@@ -170,12 +170,16 @@ namespace JT
 
       for (auto& tensor1 : tensors1)
       {
+        if (tensor1.shift_quanta() < 0) continue;
+
       	tensor1.enhanceStrengths(coeff1);
       	tensors.push_back(std::move(tensor1));
       }
 
       for (auto& tensor2 : tensors2)
       {
+        if (tensor2.shift_quanta() < 0) continue;
+
       	tensor2.enhanceStrengths(coeff2);
       	tensors.push_back(std::move(tensor2));
       }
@@ -184,6 +188,13 @@ namespace JT
     }
     else // Hamiltonian
     {
+      // For Hamiltonian-type operators, the matrix is computed only in 
+      // the lower triangle.
+      // Recall this condition: if (bra_id < ket_id) continue;
+      // This means that the number of quanta carried by bra irrep is always
+      // larger or equal than that of the ket irrep. Thus the tensors must
+      // always either create or keep quanta.
+
       JT::OneBodyOperator 
       	CoM1("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_,
                                     HO_labels_, gelfand_labels_),
@@ -214,12 +225,16 @@ namespace JT
 
       for (auto& com1 : com1s)
       {
+        if (com1.shift_quanta() < 0) continue;
+
       	com1.enhanceStrengths(com_coeff);
       	tensors.push_back(std::move(com1));
       }
 
       for (auto& ke1 : ke1s)
       {
+        if (ke1.shift_quanta() < 0) continue;
+
       	ke1.enhanceStrengths(ke1_coeff);
       	bool found = false;
       	for (auto& tensor : tensors)
@@ -237,12 +252,16 @@ namespace JT
 
       for (auto& com2 : com2s)
       {
+        if (com2.shift_quanta() < 0) continue;
+
       	com2.enhanceStrengths(com_coeff);
       	tensors.push_back(std::move(com2));
       }
 
       for (auto& ke2 : ke2s)
       {
+        if (ke2.shift_quanta() < 0) continue;
+
       	ke2.enhanceStrengths(ke2_coeff);
       	bool found = false;
       	for (auto& tensor : tensors)
@@ -260,6 +279,8 @@ namespace JT
 
       for (auto& nn : nns)
       {
+        if (nn.shift_quanta() < 0) continue;
+
       	bool found = false;
       	for (auto& tensor : tensors)
       	{

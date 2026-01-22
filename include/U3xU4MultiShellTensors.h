@@ -275,6 +275,14 @@ namespace U3xU4
         return Omegas_.back();
     }
 
+    // Get change of oscillator quanta
+    int shift_quanta() const
+    {
+      int res = 0;
+      for (const auto& G : Gammas_) res += G.shift_quanta();
+      return res;
+    }
+
     // comparison:
     bool operator==(const MultiShellTensor&) const = default;
 

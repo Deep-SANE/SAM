@@ -513,6 +513,9 @@ namespace U3xU4
     // Get the number of at's
     int num_ats() const { return static_cast<int>(ats_); }
 
+    // Get change of oscillator quanta
+    int shift_quanta() const { return shell() * (num_ads() - num_ats()); }
+
     // Check if it's identity
     bool identity() const { return (ads_ == 0) && (ats_ == 0); }
 

@@ -1383,8 +1383,11 @@ namespace JT
       U3xU4::MultiShellTensor_phys tensor(HO_labels_);
       tensor.readBinary(s);
 
-      if (tensor.Gammas().back().shell() - valenceShell_ > Nmax_)
-        continue;
+      // tensor cannot reside beyond maxShell
+      if (tensor.Gammas().back().shell() - valenceShell_ > Nmax_) continue;
+
+      // tensor cannot shift more quanta than Nmax
+      if (abs(tensor.shift_quanta()) > Nmax_) continue;
 
       tensors.push_back(std::move(tensor));
     }

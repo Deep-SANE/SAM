@@ -980,7 +980,10 @@ namespace JT
         ads += G.num_ads();
         ats += G.num_ats();
       }
-      if (ab_Nhw > Nmax_ || cd_Nhw > Nmax_) continue;
+      
+      // number of quanta shifted by a+'s and a-'s cannot exceed Nmax
+      if (ab_Nhw > Nmax_ || cd_Nhw > Nmax_ || abs(ab_Nhw - cd_Nhw) > Nmax_) 
+        continue;
 
       assert(ads == 2);
       assert(ats == 2);
