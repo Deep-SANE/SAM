@@ -66,7 +66,7 @@ namespace U3xU4
     // basis info
     auto irreps = basis.irreps();
     auto dim = basis.dim();
-    auto labels = basis.decomposition();
+    const auto& labels = basis.decomposition();
     auto JJ = basis.JJ();
     auto MMJ = JJ;
     auto MMT = basis.MMT();
@@ -131,9 +131,9 @@ namespace U3xU4
           U3xU4::IrrepUnifier iu;
           const auto& [ubra, uket] = iu.unify(bra, ket);
           // extract the last irreps
-          auto ket_irr = (ubra.omega.empty()) 
+          const auto& ket_irr = (ubra.omega.empty()) 
                        ? uket.gamma[0].u3u4() : uket.omega.back().u3u4();
-          auto bra_irr = (ubra.omega.empty())
+          const auto& bra_irr = (ubra.omega.empty())
                        ? ubra.gamma[0].u3u4() : ubra.omega.back().u3u4();
 
           // initialize a matrix for storing MEs
@@ -162,7 +162,7 @@ namespace U3xU4
               if (rmes.empty()) continue;
               // rmes.print();
 
-              auto irr = tensor.getLastIrrep();
+              const auto& irr = tensor.getLastIrrep();
               size_t tensor_amax = tensor.alphamax();
               auto rhomax = rmes.rhomax(), etamax = rmes.etamax();
 
@@ -327,7 +327,7 @@ namespace U3xU4
     // basis info
     auto irreps = basis.irreps();
     auto dim = basis.dim();
-    auto labels = basis.decomposition();
+    const auto& labels = basis.decomposition();
     auto JJ = basis.JJ();
     auto MMJ = JJ;
     auto MMT = basis.MMT();
@@ -392,9 +392,9 @@ namespace U3xU4
           U3xU4::IrrepUnifier iu;
           const auto& [ubra, uket] = iu.unify(bra, ket);
           // extract the last irreps
-          auto ket_irr = (ubra.omega.empty()) 
+          const auto& ket_irr = (ubra.omega.empty()) 
                        ? uket.gamma[0].u3u4() : uket.omega.back().u3u4();
-          auto bra_irr = (ubra.omega.empty())
+          const auto& bra_irr = (ubra.omega.empty())
                        ? ubra.gamma[0].u3u4() : ubra.omega.back().u3u4();
 
           // initialize a matrix for storing MEs
@@ -423,7 +423,7 @@ namespace U3xU4
               if (rmes.empty()) continue;
               // rmes.print();
 
-              auto irr = tensor.getLastIrrep();
+              const auto& irr = tensor.getLastIrrep();
               size_t tensor_amax = tensor.alphamax();
               auto rhomax = rmes.rhomax(), etamax = rmes.etamax();
 
@@ -589,7 +589,7 @@ namespace U3xU4
     // bra basis info
     auto bras_irreps = bras.irreps();
     auto bras_dim = bras.dim();
-    auto bras_labels = bras.decomposition();
+    const auto& bras_labels = bras.decomposition();
     auto bras_JJ = bras.JJ();
     auto bras_MMJ = bras_JJ;
     auto bras_MMT = bras.MMT();
@@ -597,7 +597,7 @@ namespace U3xU4
     // ket basis info
     auto kets_irreps = kets.irreps();
     auto kets_dim = kets.dim();
-    auto kets_labels = kets.decomposition();
+    const auto& kets_labels = kets.decomposition();
     auto kets_JJ = kets.JJ();
     auto kets_MMJ = kets_JJ;
     auto kets_MMT = kets.MMT();
@@ -662,9 +662,9 @@ namespace U3xU4
           U3xU4::IrrepUnifier iu;
           const auto& [ubra, uket] = iu.unify(bra, ket);
           // extract the last irreps
-          auto ket_irr = (ubra.omega.empty()) 
+          const auto& ket_irr = (ubra.omega.empty()) 
                        ? uket.gamma[0].u3u4() : uket.omega.back().u3u4();
-          auto bra_irr = (ubra.omega.empty())
+          const auto& bra_irr = (ubra.omega.empty())
                        ? ubra.gamma[0].u3u4() : ubra.omega.back().u3u4();
 
           // initialize a matrix for storing MEs
@@ -693,7 +693,7 @@ namespace U3xU4
               if (rmes.empty()) continue;
               // rmes.print();
 
-              auto irr = tensor.getLastIrrep();
+              const auto& irr = tensor.getLastIrrep();
               size_t tensor_amax = tensor.alphamax();
               auto rhomax = rmes.rhomax(), etamax = rmes.etamax();
 
@@ -854,7 +854,7 @@ namespace U3xU4
     // bra basis info
     auto bras_irreps = bras.irreps();
     auto bras_dim = bras.dim();
-    auto bras_labels = bras.decomposition();
+    const auto& bras_labels = bras.decomposition();
     auto bras_JJ = bras.JJ();
     auto bras_MMJ = bras_JJ;
     auto bras_MMT = bras.MMT();
@@ -862,7 +862,7 @@ namespace U3xU4
     // ket basis info
     auto kets_irreps = kets.irreps();
     auto kets_dim = kets.dim();
-    auto kets_labels = kets.decomposition();
+    const auto& kets_labels = kets.decomposition();
     auto kets_JJ = kets.JJ();
     auto kets_MMJ = kets_JJ;
     auto kets_MMT = kets.MMT();
@@ -927,9 +927,9 @@ namespace U3xU4
           U3xU4::IrrepUnifier iu;
           const auto& [ubra, uket] = iu.unify(bra, ket);
           // extract the last irreps
-          auto ket_irr = (ubra.omega.empty()) 
+          const auto& ket_irr = (ubra.omega.empty()) 
                        ? uket.gamma[0].u3u4() : uket.omega.back().u3u4();
-          auto bra_irr = (ubra.omega.empty())
+          const auto& bra_irr = (ubra.omega.empty())
                        ? ubra.gamma[0].u3u4() : ubra.omega.back().u3u4();
 
           // initialize a matrix for storing MEs
@@ -958,7 +958,7 @@ namespace U3xU4
               if (rmes.empty()) continue;
               // rmes.print();
 
-              auto irr = tensor.getLastIrrep();
+              const auto& irr = tensor.getLastIrrep();
               size_t tensor_amax = tensor.alphamax();
               auto rhomax = rmes.rhomax(), etamax = rmes.etamax();
 

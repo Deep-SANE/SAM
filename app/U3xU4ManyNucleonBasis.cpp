@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
   basis.construct();
 
   auto irreps = basis.irreps();
-  auto labels = basis.decomposition();
+  const auto& labels = basis.decomposition();
 
   for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
   {
