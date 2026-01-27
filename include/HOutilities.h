@@ -9,7 +9,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <qcx_CustomHash.h>
+#include <boost/container_hash/hash.hpp>
 
 #include <GlobalConstants.h>
 
@@ -77,7 +77,7 @@ namespace HO
     // Each shell, dimension is 2(n+1)(n+2)
     // For n = 0 to 44: total number of single-particle states = 64860 
     // Thus index can be uint16 (0 to 65,535)
-    std::unordered_map<key_type, uint16_t> state_to_index;
+    std::unordered_map<key_type, uint16_t, boost::hash<key_type>> state_to_index;
     std::vector<key_type> index_to_state;
 
   public:
@@ -176,7 +176,7 @@ namespace HO
     using key_type =
         std::tuple<uint16_t, uint16_t, uint16_t, uint16_t, qn_t>;
 
-    std::unordered_map<key_type, double> me_map;
+    std::unordered_map<key_type, double, boost::hash<key_type>> me_map;
     OrbitsMap orbit_map;
 
     std::string name_;
