@@ -75,7 +75,7 @@ namespace U3xU4
     {
       bool flag = false;
       for (const auto& ir : SSs)
-        if (ir == SS)
+        if (ir == static_cast<int>(SS))
         {
           flag = true;
           break;
@@ -92,7 +92,7 @@ namespace U3xU4
     {
       bool flag = false;
       for (const auto& ir : TTs)
-        if (ir == TT)
+        if (ir == static_cast<int>(TT))
         {
           flag = true;
           break;
