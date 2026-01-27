@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
   std::cin >> write;
   */
 
-  int Z = 3, N = 3, JJ = 2, Nmax = 6, hw = 20, write = 0;
+  int Z = 3, N = 3, JJ = 2, Nmax = 4, hw = 20, write = 0;
 
   // Example 1: LL
   // std::string name = "L.L";
@@ -50,6 +50,12 @@ int main(int argc, char* argv[])
   // Example 6: Hamiltonian with N2LO_opt_bare
   std::string name = "Hamiltonian with N2LO_opt_bare";
 
+  // Example 7: Hamiltonian with N3LO_EMN500_bare
+  // std::string name = "Hamiltonian with N3LO_EMN500_bare";
+
+  // Example 8: Hamiltonian with N4LO_EMN500_bare
+  // std::string name = "Hamiltonian with N4LO_EMN500_bare";
+
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
@@ -65,15 +71,12 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  // auto mat = op.matrix(basis);
-  auto filename = op.filename(basis);
-  auto mat = qcx_utils::readBinary(filename);
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 10);
+  auto mat = op.matrix(basis);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  // auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, mat.rows());
+  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 10);
   std::cout << "Eigenvalues are" << std::endl;
   for (auto ev : evals)
   {

@@ -11,7 +11,7 @@ int main(int argc, char* argv[])
   u3::initialize();
   u4::initialize();
 
-  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -56,11 +56,11 @@ int main(int argc, char* argv[])
   // std::string name = "FermiPlus";
 
   // Example 12: Gamow-Teller for beta decay
-  std::string name = "GamowTellerMinus";
+  // std::string name = "GamowTellerMinus";
   // std::string name = "GamowTellerPlus";
 
-  JT::OneBodyOperator 
-    op(name, hw, Nmax, valenceShell, maxShell, HO_labels, gelfand_labels);
+  // JT::OneBodyOperator 
+  //   op(name, hw, Nmax, valenceShell, maxShell, HO_labels, gelfand_labels);
 
   ////////////// TWO-BODY OPERATORS //////////////
 
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
   // std::string name = "Rrel";
 
   // Example 6: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
-  // std::string name = "N2LO_opt_bare";
+  std::string name = "N2LO_opt_bare";
   // std::string name = "N2LO_opt_srg1.0";
   // std::string name = "N2LO_opt_srg2.0";
   // std::string name = "N2LO_opt_srg4.0";
@@ -103,23 +103,23 @@ int main(int argc, char* argv[])
   // std::string name = "N4LO_EMN500_srg2.0"
   // std::string name = "N4LO_EMN500_srg4.0";
 
-  // JT::TwoBodyOperator 
-  //   op(name, hw, Nmax, valenceShell, maxShell, HO_labels, gelfand_labels);
+  JT::TwoBodyOperator 
+    op(name, hw, Nmax, valenceShell, maxShell, HO_labels, gelfand_labels);
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
   
   op.is();
-
+/*
   auto tensors_U3_stats = op.U3_tensor_analyzer_write();
   std::cout << "U3 tensor characters:" << std::endl;
   for (const auto& [irr, stats] : tensors_U3_stats)
     std::cout << irr << ":\t" << stats << std::endl;
-
+*/
   auto tensors_U4_stats = op.U4_tensor_analyzer_write();
   std::cout << "U4 tensor characters:" << std::endl;
   for (const auto& [irr, stats] : tensors_U4_stats)
     std::cout << irr << ":\t" << stats << std::endl;
-
+/*
   auto tensors_LL_stats = op.LL_tensor_analyzer_write();
   std::cout << "LL tensor characters:" << std::endl;
   for (const auto& [irr, stats] : tensors_LL_stats)
@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
   std::cout << "SS tensor characters:" << std::endl;
   for (const auto& [irr, stats] : tensors_SS_stats)
     std::cout << irr << ":\t" << stats << std::endl;
-
+*/
   u4::finalize();
   u3::finalize();
   qcx_utils::finalize();

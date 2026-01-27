@@ -34,14 +34,14 @@ int main(int argc, char* argv[])
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
-  std::string Hamil_name = "Hamiltonian with N2LO_opt_bare";
+  std::string Hamil_name = "Hamiltonian with N4LO_EMN500_bare";
   JT::Operator Hamil(Hamil_name, N, Z, hw, Nmax, HO_labels, gelfand_labels);
 
   // read Hamiltonian matrix
   auto filename = Hamil.filename(basis);
   auto mat = qcx_utils::readBinary(filename);
 
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, mat.rows());
+  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 3);
 
   auto subspaces_u3 = sam::U3_wavefunction_analyzer(basis, evecs, 1);
 
