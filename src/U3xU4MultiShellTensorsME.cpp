@@ -2,12 +2,14 @@
 #include <ostream>
 
 #include <qcx_ND.h>
+#include <qcx_print.h>
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
 
 #include <U3SO3xU3SO3.h>
 #include <U4SU2SU2xU4SU2SU2.h>
 
+#include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4MultiShellTensors.h>
 
 namespace U3xU4
@@ -573,6 +575,659 @@ namespace U3xU4
     return mat;
   }
 
+  Eigen::SparseMatrix<double> 
+    MatrixElements(const MultiShellTensors_ShareGammas_phys& tensors, 
+                   const U3xU4::ManyNucleonBasis& basis,
+                   const U3xU4::Table_gelfand& gelfand_labels)
+  {
+    // for (auto tensor : tensors) std::cout << tensor << std::endl;
+
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
+
+    // basis info
+    auto irreps = basis.irreps();
+    auto dim = basis.dim();
+    const auto& labels = basis.decomposition();
+    auto JJ = basis.JJ();
+    auto MMJ = JJ;
+    auto MMT = basis.MMT();
+
+    // tensors info
+    auto tensors_count = tensors.size();
+    // all tensors have the same J, MJ, MT, but T may vary
+    auto JJ_opt = tensors[0].JJ();
+    auto MMJ_opt = tensors[0].MMJ();
+    assert(MMJ_opt == 0);
+    auto MMT_opt = tensors[0].MMT();
+
+    if (tensors_count == 0)
+    {
+      Eigen::SparseMatrix<double> mat(dim, dim);
+      return mat;
+    }
+
+    std::vector<Eigen::Triplet<double>> ija;
+
+    auto cgcJ = cgcs.get({JJ, JJ_opt, JJ, MMJ, MMJ_opt, MMJ});
+
+    if (std::fabs(cgcJ) > 0.0)
+    {
+      for (size_t bra_id = 0; bra_id < irreps.size(); bra_id++)
+      {
+        // std::cout << "bra_id: " << bra_id << std::endl;
+
+        const auto& bra = irreps[bra_id];
+
+        // get alphamax
+        size_t bra_amax = bra.alphamax();
+
+        // get offset
+        auto bra_offset = irreps.offset(bra_id);
+
+        // get labels
+        const auto& bra_labels = labels[bra_id];
+        size_t bra_dim = bra_labels.back()[5] +
+                  bra_labels.back()[0] * bra_labels.back()[2];
+
+        for (size_t ket_id = 0; ket_id < irreps.size(); ket_id++)
+        {
+          if (bra_id < ket_id) continue;
+
+          // std::cout << "ket_id: " << ket_id << std::endl;
+
+          const auto& ket = irreps[ket_id];
+
+          // get alphamax 
+          size_t ket_amax = ket.alphamax();
+
+          // get offset
+          auto ket_offset = irreps.offset(ket_id);
+
+          // get labels
+          const auto& ket_labels = labels[ket_id];
+          size_t ket_dim = ket_labels.back()[5] +
+                  ket_labels.back()[0] * ket_labels.back()[2];
+
+          // unify bra and ket irreps
+          U3xU4::IrrepUnifier iu;
+          const auto& [ubra, uket] = iu.unify(bra, ket);
+          // extract the last irreps
+          const auto& ket_irr = (ubra.omega.empty()) 
+                       ? uket.gamma[0].u3u4() : uket.omega.back().u3u4();
+          const auto& bra_irr = (ubra.omega.empty())
+                       ? ubra.gamma[0].u3u4() : ubra.omega.back().u3u4();
+
+          // initialize a matrix for storing MEs
+          Eigen::MatrixXd MEs(bra_amax * bra_dim, ket_amax * ket_dim);
+          MEs.setZero();
+
+          //std::cout << "Start to fill dense matrix: " 
+          //          << MEs.rows() << "x" << MEs.cols() << std::endl;
+          for (const auto& tensor : tensors)
+          {
+            // std::cout << "Before unified: " << tensor << std::endl;
+
+            // unify the tensor with the irreps
+            auto uT = U3xU4::unify_tensor(tensor, ubra, uket);
+            if (!uT.has_value()) continue;
+
+            // std::cout << "After unified: " << tensor << std::endl;
+
+            const auto& Gammas = uT->Gammas();
+            const auto& Omegas_LLSSTTstrengths = uT->Omegas_LLSSTTstrengths();
+
+            auto RMEs = uT->RME(ubra, uket, gelfand_labels);
+            assert(RMEs.size() == Omegas_LLSSTTstrengths.size());
+
+            for (size_t rme_id = 0; rme_id < RMEs.size(); rme_id++)
+            {
+              const auto& rmes = RMEs[rme_id];
+              const auto& Omegas = Omegas_LLSSTTstrengths[rme_id].first;
+              const auto& LLSSTTstrengths = Omegas_LLSSTTstrengths[rme_id].second;
+
+              const auto& irr = (Omegas.empty()) 
+                              ? Gammas.back().u3u4() : Omegas.back().u3u4();
+
+              size_t tensor_amax = U3xU4::alphamax(Gammas, Omegas);
+              auto rhomax = rmes.rhomax(), etamax = rmes.etamax();
+
+              // going through subgroup labels of the tensor
+              for (const auto& [kmax, LL, zmax, SS, TT, strengths] 
+                                                  : LLSSTTstrengths)
+              {
+                // going through bra labels
+                for (const auto& bra_label : bra_labels)
+                {
+                  const auto& bra_kmax = bra_label[0];
+                  const auto& bra_LL = bra_label[1];
+                  const auto& bra_zmax = bra_label[2];
+                  const auto& bra_SS = bra_label[3];
+                  const auto& bra_TT = bra_label[4];
+                  const auto& bra_label_offset = bra_label[5];
+
+                  // going through ket labels
+                  for (const auto& ket_label : ket_labels)
+                  {
+                    const auto& ket_kmax = ket_label[0];
+                    const auto& ket_LL = ket_label[1];
+                    const auto& ket_zmax = ket_label[2];
+                    const auto& ket_SS = ket_label[3];
+                    const auto& ket_TT = ket_label[4];
+                    const auto& ket_label_offset = ket_label[5];
+
+                    // std::cout << "Start to calculate coupling coeffs" << std::endl;
+                    auto cgcT = cgcs.get({ket_TT, TT, bra_TT, MMT, MMT_opt, MMT});
+                    auto cgcU2 = cgcJ * cgcT * racah9.get({ket_LL, ket_SS, JJ,
+                                                           LL, SS, JJ_opt,
+                                                           bra_LL, bra_SS, JJ});
+                    if (std::fabs(cgcU2) < 1e-12) continue;
+
+                    auto [allowU3, cgcU3] = wigU3SO3db.get(
+                            ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
+                            irr.lam(), irr.mu(), LL / 2,
+                            bra_irr.lam(), bra_irr.mu(), bra_LL / 2);
+                    if (!allowU3) continue;
+                    // std::cout << "cgcU3:\n" << cgcU3 << std::endl;
+
+                    auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+                      ket_irr.P1(), ket_irr.P2(), ket_irr.P3(), ket_SS, ket_TT, 
+                      irr.P1(), irr.P2(), irr.P3(), SS, TT,
+                      bra_irr.P1(), bra_irr.P2(), bra_irr.P3(), bra_SS, bra_TT);
+                    if (!allowU4) continue;
+                    // std::cout << "cgcU4:\n" << cgcU4 << std::endl;
+                    // std::cout << "Finish calculating coupling coeffs" << std::endl;
+
+
+                    // std::cout << "Start to calculate FMEs" << std::endl;
+                    for (size_t bra_a = 0; bra_a < bra_amax; bra_a++)
+                    {
+                      for (size_t bra_k = 0; bra_k < bra_kmax; bra_k++)
+                      {
+                        for (size_t bra_z = 0; bra_z < bra_zmax; bra_z++)
+                        {
+                          // bra index in the matrix
+                          size_t i =  bra_a * bra_dim 
+                            + bra_label_offset + (bra_k * bra_zmax + bra_z);
+
+                          for (size_t ket_a = 0; ket_a < ket_amax; ket_a++)
+                          {
+                            for (size_t ket_k = 0; ket_k < ket_kmax; ket_k++)
+                            {
+                              for (size_t ket_z = 0; ket_z < ket_zmax; ket_z++)
+                              {
+                                // ket index in the matrix
+                                size_t j = ket_a * ket_dim 
+                                  + ket_label_offset + (ket_k * ket_zmax + ket_z);
+
+                                if (bra_offset == ket_offset && i < j) continue;
+
+                                // std::cout << "i:" << i << " j:" << j << std::endl;
+
+                                for (size_t tensor_a = 0; tensor_a < tensor_amax; tensor_a++)
+                                {
+                                  for (size_t k = 0; k < kmax; k++)
+                                  {
+                                    auto cgcU3_row = (ket_k * kmax + k) * bra_kmax + bra_k;
+                                    // std::cout << "cgcU3_row: " << cgcU3_row << std::endl;
+
+                                    for (size_t z = 0; z < zmax; z++)
+                                    {
+                                      auto cgcU4_row = (ket_z * zmax + z) * bra_zmax + bra_z;
+                                      // std::cout << "cgcU4_row: " << cgcU4_row << std::endl;
+
+                                      double strength = strengths[(tensor_a * kmax + k) * zmax + z];
+
+                                      // going through multiplicities of 
+                                      // Wigner-Eckart theorem
+                                      for (size_t rho = 0; rho < rhomax; rho++)
+                                      {
+                                        for (size_t eta = 0; eta < etamax; eta++)
+                                        {            
+                                          //std::cout << "Extract: " << bra_a << " " << ket_a << " "
+                                          //          << tensor_a << " " << rho << " " << eta << "\t";
+
+                                          auto rme = rmes.get(bra_a, ket_a, tensor_a, rho, eta);
+                                          //std::cout << rme << std::endl;
+
+                                          MEs(i, j) += strength * cgcU2 * cgcU3(cgcU3_row,rho) 
+                                                     * cgcU4(cgcU4_row,eta) * rme;
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    // std::cout << "Finish calculating FMEs" << std::endl;
+                  }
+                }
+              }
+            }
+          }
+          // std::cout << "Finish filling dense matrix: " << std::endl;
+
+          // std::cout << "Start to fill sparse matrix" << std::endl;
+          for (size_t i = 0; i < MEs.rows(); i++)
+          {
+            size_t i_ = i + bra_offset;
+            for (size_t j = 0; j < MEs.cols(); j++)
+            {
+              size_t j_ = j + ket_offset;
+
+              if (std::fabs(MEs(i, j)) > 1e-12)
+              {
+                ija.emplace_back(i_, j_, MEs(i, j)); // for i_ >= j_
+                if (i_ > j_) ija.emplace_back(j_, i_, MEs(i, j));
+              }
+            }
+          }
+          // std::cout << "Finish filling sparse matrix" << std::endl;
+        }
+      }
+    }
+
+    Eigen::SparseMatrix<double> mat(dim, dim);
+    mat.setFromTriplets(ija.begin(), ija.end());
+    mat.makeCompressed();
+
+    return mat;
+  }
+
+  static std::vector<int> 
+    map_by_positive_order(const std::span<const uint16_t>& v)
+  {
+    std::vector<int> res;
+    res.reserve(v.size());
+
+    int counter = 0;
+    for (const auto& x : v)
+    {
+      if (x == 0) res.push_back(-1);
+      else res.push_back(counter++);
+    }
+    return res;
+  }
+
+  Eigen::SparseMatrix<double> 
+    MatrixElements_new(const MultiShellTensors_ShareGammas_phys& tensors, 
+                       const U3xU4::ManyNucleonBasis& basis,
+                       const U3xU4::Table_gelfand& gelfand_labels)
+  {
+    // for (auto tensor : tensors) std::cout << tensor << std::endl;
+
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
+
+    // basis info
+    auto irreps = basis.irreps();
+    auto dim = basis.dim();
+    const auto& labels = basis.decomposition();
+    auto JJ = basis.JJ();
+    auto MMJ = JJ;
+    auto MMT = basis.MMT();
+/*
+    for (size_t dist_id = 0; dist_id < basis.n_distributions(); dist_id++)
+    {
+      auto dist = basis.distribution(dist_id);
+      qcx_utils::print("\ndist_id {}: {};", dist_id, dist);
+
+      for (const auto& [gamma_id, irrep_ids] : basis.group_dists[dist_id])
+        qcx_utils::print("\n\tgamma_id {}\n\t\t irrep_ids {}", gamma_id, irrep_ids);
+    }
+*/
+    // tensors info
+    auto tensors_count = tensors.size();
+    // all tensors have the same J, MJ, MT, but T may vary
+    auto JJ_opt = tensors[0].JJ();
+    auto MMJ_opt = tensors[0].MMJ();
+    assert(MMJ_opt == 0);
+    auto MMT_opt = tensors[0].MMT();
+
+    auto cgcJ = cgcs.get({JJ, JJ_opt, JJ, MMJ, MMJ_opt, MMJ});
+
+    if (tensors_count == 0 || std::fabs(cgcJ) == 0.0)
+    {
+      Eigen::SparseMatrix<double> mat(dim, dim);
+      return mat;
+    }
+
+    std::vector<Eigen::Triplet<double>> ija;
+    
+    for (size_t bra_dist_id = 0; 
+         bra_dist_id < basis.n_distributions(); 
+         bra_dist_id++)
+    {
+      // std::cout << "bra_dist_id: " << bra_dist_id << std::endl;
+
+      auto bra_dist = basis.distribution(bra_dist_id);
+      const auto& bra_gamma_irreps_ids = basis.group_dists[bra_dist_id];
+
+      auto bra_dist_to_gamma = map_by_positive_order(bra_dist);
+
+      for (size_t ket_dist_id = 0; 
+           ket_dist_id < basis.n_distributions(); 
+           ket_dist_id++)
+      {
+        if (bra_dist_id < ket_dist_id) continue;
+
+        // std::cout << "ket_dist_id: " << ket_dist_id << std::endl;
+
+        auto ket_dist = basis.distribution(ket_dist_id);
+        const auto& ket_gamma_irreps_ids = basis.group_dists[ket_dist_id];
+
+        auto ket_dist_to_gamma = map_by_positive_order(ket_dist);
+
+        // Predicate to check if particles are conserved in all shells
+        auto all_shells_particles = [&](const auto& tensor)
+        {
+          // in a shell:
+          // ket_dist[n] - G.num_ats() + G.num_ads()) == bra_dist[n] &&
+          // ket_dist[n] >= G.num_ats()
+
+          std::vector<int> delta(ket_dist.size(), 0);
+
+          // Accumulate net changes from Gammas
+          for (const auto& G : tensor.Gammas())
+          {
+            auto n = G.shell();
+            delta[n] = G.num_ads() - G.num_ats();
+
+            // Early failure: destroying more than available
+            if (ket_dist[n] < G.num_ats())
+              return false;
+          }
+
+          // Check all shells (including untouched ones)
+          for (size_t n = 0; n < ket_dist.size(); ++n)
+          {
+            if (ket_dist[n] + delta[n] != bra_dist[n])
+              return false;
+          }
+
+          return true;
+        };
+
+        std::vector<size_t> tensors1;
+        tensors1.reserve(tensors.size());
+        for (size_t i = 0; i < tensors.size(); i++)
+          if (all_shells_particles(tensors[i])) tensors1.push_back(i);
+        if (tensors1.empty()) continue;
+
+        for (const auto& [bra_gamma_id, bra_irrep_ids] : bra_gamma_irreps_ids)
+        {
+          // std::cout << "bra_gamma_id: " << bra_gamma_id << std::endl;
+
+          auto bra_gamma = basis.gamma(bra_gamma_id);
+
+          for (const auto& [ket_gamma_id, ket_irrep_ids] : ket_gamma_irreps_ids)
+          {
+            if (bra_gamma_id < ket_gamma_id) continue;
+
+            // std::cout << "ket_gamma_id: " << ket_gamma_id << std::endl;
+
+            auto ket_gamma = basis.gamma(ket_gamma_id);
+
+            // Predicate to check if single-shell coupling is allowed
+            auto single_shell_coupling = [&](const auto& G)
+            {
+              auto n = G.shell();
+
+              su3::irrep i3, f3;
+              u4::irrep i4, f4;
+                
+              if (bra_dist_to_gamma[n] >= 0)
+              {
+                f3 = bra_gamma[bra_dist_to_gamma[n]].su3;
+                f4 = bra_gamma[bra_dist_to_gamma[n]].u4;
+              }
+
+              if (ket_dist_to_gamma[n] >= 0)
+              {
+                i3 = ket_gamma[ket_dist_to_gamma[n]].su3;
+                i4 = ket_gamma[ket_dist_to_gamma[n]].u4;
+              }
+
+              return u3::Rho(i3, G.u3(), f3) > 0 && u4::Eta(i4, G.u4(), f4) > 0;
+            };
+            // Predicate to check if all single-shell coupings are allowed
+            auto all_shells_coupling = [&](const auto& tensor)
+            {
+              return std::all_of(tensor.Gammas().begin(),
+                                 tensor.Gammas().end(),
+                                 single_shell_coupling);
+            };
+
+            std::vector<size_t> tensors2;
+            tensors2.reserve(tensors1.size());
+            for (const auto& i : tensors1)
+              if (all_shells_coupling(tensors[i])) tensors2.push_back(i);
+            if (tensors2.empty()) continue;
+
+            for (const auto& bra_id : bra_irrep_ids)
+            {
+              // std::cout << "bra_id: " << bra_id << std::endl;
+
+              const auto& bra = irreps[bra_id];
+
+              // get alphamax
+              size_t bra_amax = bra.alphamax();
+
+              // get offset
+              auto bra_offset = irreps.offset(bra_id);
+
+              // get labels
+              const auto& bra_labels = labels[bra_id];
+              size_t bra_dim = bra_labels.back()[5] +
+                              bra_labels.back()[0] * bra_labels.back()[2];
+
+              for (const auto& ket_id : ket_irrep_ids)
+              {
+                if (bra_id < ket_id) continue;
+
+                // std::cout << "ket_id: " << ket_id << std::endl;
+
+                const auto& ket = irreps[ket_id];
+
+                // get alphamax 
+                size_t ket_amax = ket.alphamax();
+
+                // get offset
+                auto ket_offset = irreps.offset(ket_id);
+
+                // get labels
+                const auto& ket_labels = labels[ket_id];
+                size_t ket_dim = ket_labels.back()[5] +
+                              ket_labels.back()[0] * ket_labels.back()[2];
+
+                // unify bra and ket irreps
+                U3xU4::IrrepUnifier iu;
+                const auto& [ubra, uket] = iu.unify(bra, ket);
+                // extract the last irreps
+                const auto& ket_irr = (ubra.omega.empty()) 
+                             ? uket.gamma[0].u3u4() : uket.omega.back().u3u4();
+                const auto& bra_irr = (ubra.omega.empty())
+                             ? ubra.gamma[0].u3u4() : ubra.omega.back().u3u4();
+
+                // initialize a matrix for storing MEs
+                Eigen::MatrixXd MEs(bra_amax * bra_dim, ket_amax * ket_dim);
+                MEs.setZero();
+
+                for (const auto& tensor_id : tensors2)
+                {
+                  const auto& tensor = tensors[tensor_id];
+
+                  // std::cout << "Before unified: " << tensor << std::endl;
+                  auto uT = U3xU4::unify_tensor(tensor, ubra, uket);
+                  if (!uT.has_value()) continue;
+                  // std::cout << "After unified: " << tensor << std::endl;
+
+                  const auto& Gammas = uT->Gammas();
+                  const auto& Omegas_LLSSTTstrengths = uT->Omegas_LLSSTTstrengths();
+
+                  auto RMEs = uT->RME(ubra, uket, gelfand_labels);
+                  assert(RMEs.size() == Omegas_LLSSTTstrengths.size());
+
+                  for (size_t rme_id = 0; rme_id < RMEs.size(); rme_id++)
+                  {
+                    const auto& rmes = RMEs[rme_id];
+                    const auto& Omegas = Omegas_LLSSTTstrengths[rme_id].first;
+                    const auto& LLSSTTstrengths = Omegas_LLSSTTstrengths[rme_id].second;
+
+                    const auto& irr = (Omegas.empty()) 
+                                    ? Gammas.back().u3u4() : Omegas.back().u3u4();
+
+                    size_t tensor_amax = U3xU4::alphamax(Gammas, Omegas);
+                    auto rhomax = rmes.rhomax(), etamax = rmes.etamax();
+
+                    // going through subgroup labels of the tensor
+                    for (const auto& [kmax, LL, zmax, SS, TT, strengths] 
+                                                        : LLSSTTstrengths)
+                    {
+                      // going through bra labels
+                      for (const auto& bra_label : bra_labels)
+                      {
+                        const auto& bra_kmax = bra_label[0];
+                        const auto& bra_LL = bra_label[1];
+                        const auto& bra_zmax = bra_label[2];
+                        const auto& bra_SS = bra_label[3];
+                        const auto& bra_TT = bra_label[4];
+                        const auto& bra_label_offset = bra_label[5];
+
+                        // going through ket labels
+                        for (const auto& ket_label : ket_labels)
+                        {
+                          const auto& ket_kmax = ket_label[0];
+                          const auto& ket_LL = ket_label[1];
+                          const auto& ket_zmax = ket_label[2];
+                          const auto& ket_SS = ket_label[3];
+                          const auto& ket_TT = ket_label[4];
+                          const auto& ket_label_offset = ket_label[5];
+
+                          // std::cout << "Start to calculate coupling coeffs" << std::endl;
+                          auto cgcT = cgcs.get({ket_TT, TT, bra_TT, MMT, MMT_opt, MMT});
+                          auto cgcU2 = cgcJ * cgcT * racah9.get({ket_LL, ket_SS, JJ,
+                                                                 LL, SS, JJ_opt,
+                                                                 bra_LL, bra_SS, JJ});
+                          if (std::fabs(cgcU2) < 1e-12) continue;
+
+                          auto [allowU3, cgcU3] = wigU3SO3db.get(
+                            ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
+                            irr.lam(), irr.mu(), LL / 2,
+                            bra_irr.lam(), bra_irr.mu(), bra_LL / 2);
+                          if (!allowU3) continue;
+
+                          auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+                            ket_irr.P1(), ket_irr.P2(), ket_irr.P3(), ket_SS, ket_TT, 
+                            irr.P1(), irr.P2(), irr.P3(), SS, TT,
+                            bra_irr.P1(), bra_irr.P2(), bra_irr.P3(), bra_SS, bra_TT);
+                          if (!allowU4) continue;
+                          // std::cout << "Finish calculating coupling coeffs" << std::endl;
+
+
+                          // std::cout << "Start to calculate FMEs" << std::endl;
+                          for (size_t bra_a = 0; bra_a < bra_amax; bra_a++)
+                          {
+                            for (size_t bra_k = 0; bra_k < bra_kmax; bra_k++)
+                            {
+                              for (size_t bra_z = 0; bra_z < bra_zmax; bra_z++)
+                              {
+                                // bra index in the matrix
+                                size_t i =  bra_a * bra_dim 
+                                    + bra_label_offset + (bra_k * bra_zmax + bra_z);
+
+                                for (size_t ket_a = 0; ket_a < ket_amax; ket_a++)
+                                {
+                                  for (size_t ket_k = 0; ket_k < ket_kmax; ket_k++)
+                                  {
+                                    for (size_t ket_z = 0; ket_z < ket_zmax; ket_z++)
+                                    {
+                                      // ket index in the matrix
+                                      size_t j = ket_a * ket_dim 
+                                        + ket_label_offset + (ket_k * ket_zmax + ket_z);
+
+                                      if (bra_offset == ket_offset && i < j) continue;
+
+                                      // std::cout << "i:" << i << " j:" << j << std::endl;
+
+                                      for (size_t tensor_a = 0; tensor_a < tensor_amax; tensor_a++)
+                                      {
+                                        for (size_t k = 0; k < kmax; k++)
+                                        {
+                                          auto cgcU3_row = (ket_k * kmax + k) * bra_kmax + bra_k;
+
+                                          for (size_t z = 0; z < zmax; z++)
+                                          {
+                                            auto cgcU4_row = (ket_z * zmax + z) * bra_zmax + bra_z;
+
+                                            double strength = strengths[(tensor_a * kmax + k) * zmax + z];
+
+                                            // going through multiplicities of 
+                                            // Wigner-Eckart theorem
+                                            for (size_t rho = 0; rho < rhomax; rho++)
+                                            {
+                                              for (size_t eta = 0; eta < etamax; eta++)
+                                              {
+                                                auto rme = rmes.get(bra_a, ket_a, tensor_a, rho, eta);
+                                                //std::cout << rme << std::endl;
+
+                                                MEs(i, j) += strength * cgcU2 * cgcU3(cgcU3_row,rho) 
+                                                           * cgcU4(cgcU4_row,eta) * rme;
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                          // std::cout << "Finish calculating FMEs" << std::endl;
+                        }
+                      }
+                    }
+                  }
+                }
+                // std::cout << "Start to fill sparse matrix" << std::endl;
+                for (size_t i = 0; i < MEs.rows(); i++)
+                {
+                  size_t i_ = i + bra_offset;
+                  for (size_t j = 0; j < MEs.cols(); j++)
+                  {
+                    size_t j_ = j + ket_offset;
+
+                    if (std::fabs(MEs(i, j)) > 1e-12)
+                    {
+                      ija.emplace_back(i_, j_, MEs(i, j)); // for i_ >= j_
+                      if (i_ > j_) ija.emplace_back(j_, i_, MEs(i, j));
+                    }
+                  }
+                }
+                // std::cout << "Finish filling sparse matrix; " << std::endl;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    Eigen::SparseMatrix<double> mat(dim, dim);
+    mat.setFromTriplets(ija.begin(), ija.end());
+    mat.makeCompressed();
+
+    return mat;
+  }
+
   /////////////////// COMPUTING RECTANGULAR MATRIX ///////////////////
   Eigen::SparseMatrix<double> 
     MatrixElements(const MultiShellTensors_phys& tensors, 
@@ -1104,611 +1759,3 @@ namespace U3xU4
   }
 
 } // namespace U3xU4
-
-/*
-  // Symmetric matrix
-  Eigen::SparseMatrix<double> MatrixElements(const MultiShellTensors_phys& tensors, 
-    const U3xU4::ManyNucleonBasis& basis)
-  {
-    // for (auto tensor : tensors) std::cout << tensor << std::endl;
-
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
-    auto& wigU3SO3db = u3::wigU3SO3db();
-    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
-
-    // basis info
-    auto irreps = basis.irreps();
-    auto dim = basis.dim();
-    auto labels = basis.decomposition();
-    auto JJ = basis.JJ();
-    auto MMJ = JJ;
-    auto MMT = basis.MMT();
-
-    // tensors info
-    auto tensors_count = tensors.size();
-    // all tensors have the same J, MJ, MT, but T may vary
-    auto JJ_opt = tensors[0].JJ();
-    auto MMJ_opt = tensors[0].MMJ();
-    assert(MMJ_opt == 0);
-    auto MMT_opt = tensors[0].MMT();
-
-    if (tensors_count == 0)
-    {
-      Eigen::SparseMatrix<double> mat(dim, dim);
-      return mat;
-    }
-
-    std::vector<Eigen::Triplet<double>> ija;
-
-    auto cgcJ = cgcs.get({JJ, JJ_opt, JJ, MMJ, MMJ_opt, MMJ});
-
-    if (std::fabs(cgcJ) > 0.0)
-    {
-      for (size_t bra_id = 0; bra_id < irreps.size(); bra_id++)
-      {
-        // std::cout << "bra_id: " << bra_id << std::endl;
-
-        const auto& bra = irreps[bra_id];
-
-        // get alphamax
-        size_t bra_alphamax = bra.alphamax();
-
-        // get offset
-        auto bra_offset = irreps.offset(bra_id);
-
-        // get labels
-        const auto& bra_labels = labels[bra_id];
-        size_t bra_labels_dim = bra_labels.back()[5] +
-                  bra_labels.back()[0] * bra_labels.back()[2];
-
-        for (size_t ket_id = 0; ket_id < irreps.size(); ket_id++)
-        {
-          if (bra_id < ket_id) continue;
-
-          // std::cout << "ket_id: " << ket_id << std::endl;
-
-          const auto& ket = irreps[ket_id];
-
-          // get alphamax 
-          size_t ket_alphamax = ket.alphamax();
-
-          // get offset
-          auto ket_offset = irreps.offset(ket_id);
-
-          // get labels
-          const auto& ket_labels = labels[ket_id];
-          size_t ket_labels_dim = ket_labels.back()[5] +
-                  ket_labels.back()[0] * ket_labels.back()[2];
-
-
-          // unify bra and ket irreps
-          U3xU4::IrrepUnifier iu;
-          const auto& [ubra, uket] = iu.unify(bra, ket);
-          // extract the last irreps
-          auto ket_irr = (ubra.omega.empty()) 
-                       ? uket.gamma[0].u3u4() : uket.omega.back().u3u4();
-          auto bra_irr = (ubra.omega.empty())
-                       ? ubra.gamma[0].u3u4() : ubra.omega.back().u3u4();
-
-          // calculate RMEs
-          // std::cout << "Start to calculate RMEs" << std::endl;
-          std::vector<sam::RME> RMEs;
-          RMEs.reserve(tensors_count);
-          for (const auto& tensor : tensors)
-          {
-            // std::cout << tensor.T();
-
-            // unify the tensor with the irreps
-            auto uT = U3xU4::unify_tensor(tensor.T(), ubra);
-
-            if (uT.has_value())
-            {
-              auto rmes = uT->RME(ubra, uket);
-              // rmes.print();
-              RMEs.push_back(std::move(rmes));
-            }
-            else
-            {
-              RMEs.push_back({});
-              // std::cout << std::endl;
-            }
-          }
-          // std::cout << "Finish calculating RMEs" << std::endl;
-
-          // now, we compute full matrix elements
-          // std::cout << "Start to calculate FMEs" << std::endl;
-
-          // going through bra labels
-          for (const auto& bra_label : bra_labels)
-          {
-            auto bra_kappamax = bra_label[0];
-            auto bra_LL = bra_label[1];
-            auto bra_zetamax = bra_label[2];
-            auto bra_SS = bra_label[3];
-            auto bra_TT = bra_label[4];
-            auto bra_labels_offset = bra_label[5];
-
-            // going through ket labels
-            for (const auto& ket_label : ket_labels)
-            {
-              auto ket_kappamax = ket_label[0];
-              auto ket_LL = ket_label[1];
-              auto ket_zetamax = ket_label[2];
-              auto ket_SS = ket_label[3];
-              auto ket_TT = ket_label[4];
-              auto ket_labels_offset = ket_label[5];
-
-              std::vector<std::vector<double>> cgcU2s(tensors_count);
-
-              std::vector<std::vector<Eigen::MatrixXd>> 
-                cgcU3s(tensors_count), cgcU4s(tensors_count);
-
-              // std::cout << "Start to calculate coupling coeffs" << std::endl;
-              for (size_t tensor_id = 0; tensor_id < tensors_count; tensor_id++)
-              {
-                if (RMEs[tensor_id].empty()) continue;
-
-                auto irr = tensors[tensor_id].getLastIrrep();
-
-                for (const auto& [k, LL, z, SS, TT, s] : tensors[tensor_id].LLSSTTstrengths())
-                {
-                  auto cgcT = cgcs.get({ket_TT, TT, bra_TT, MMT, MMT_opt, MMT});
-                  auto cgcU2 = cgcJ * cgcT * racah9.get({ket_LL, ket_SS, JJ,
-                                                            LL, SS, JJ_opt,
-                                                            bra_LL, bra_SS, JJ});
-                  cgcU2s[tensor_id].push_back(cgcU2);
-
-                  auto [allowU3, cgcU3] = wigU3SO3db.get(
-                            ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
-                            irr.lam(), irr.mu(), LL / 2,
-                            bra_irr.lam(), bra_irr.mu(), bra_LL / 2);
-                  cgcU3s[tensor_id].push_back(std::move(cgcU3));
-
-                  auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
-                      ket_irr.P1(), ket_irr.P2(), ket_irr.P3(), ket_SS, ket_TT, 
-                      irr.P1(), irr.P2(), irr.P3(), SS, TT,
-                      bra_irr.P1(), bra_irr.P2(), bra_irr.P3(), bra_SS, bra_TT);
-                  cgcU4s[tensor_id].push_back(std::move(cgcU4));
-                }
-              }
-              // std::cout << "Finish calculating coupling coeffs" << std::endl;
-
-              for (size_t bra_alpha = 0;
-                   bra_alpha < bra_alphamax; bra_alpha++)
-              {
-                for (size_t bra_kappa = 0; bra_kappa < bra_kappamax;
-                     bra_kappa++)
-                {
-                  for (size_t bra_zeta = 0; bra_zeta < bra_zetamax; bra_zeta++)
-                  {
-                    // bra index in the matrix
-                    size_t i = bra_offset + bra_alpha * bra_labels_dim +
-                      bra_labels_offset + (bra_kappa * bra_zetamax + bra_zeta);
-
-                    for (size_t ket_alpha = 0;
-                         ket_alpha < ket_alphamax; ket_alpha++)
-                    {
-                      for (size_t ket_kappa = 0; ket_kappa < ket_kappamax;
-                           ket_kappa++)
-                      {
-                        for (size_t ket_zeta = 0; ket_zeta < ket_zetamax;
-                             ket_zeta++)
-                        {
-                          // ket index in the matrix
-                          size_t j = ket_offset + ket_alpha * ket_labels_dim +
-                            ket_labels_offset + (ket_kappa * ket_zetamax + ket_zeta);
-
-                          if (i < j) continue;
-
-                          double me = 0.0;
-                          // std::cout << "i:" << i << " j:" << j << std::endl;
-
-                          for (size_t tensor_id = 0; tensor_id < tensors_count;
-                               tensor_id++)
-                          {
-                            const auto& tensor = tensors[tensor_id];
-                            const auto& RME = RMEs[tensor_id];
-
-                            if (RME.empty()) continue;
-
-                            auto rhomax = RME.rhomax(), etamax = RME.etamax();
-
-                            // std::cout << "Tensor: " << tensor << std::endl;
-                            // RME.print();
-                        
-                            // going through subgroup labels of the tensor
-                            for (size_t lst_id = 0;
-                                 lst_id < tensor.LLSSTTstrengths().size();
-                                 lst_id++)
-                            {
-                              const auto& cgcU2 = cgcU2s[tensor_id][lst_id];
-                              if (std::fabs(cgcU2) == 0.0) continue;
-                              // std::cout << "cgcU2: " << cgcU2 << std::endl;
-
-                              const auto& cgcU3 = cgcU3s[tensor_id][lst_id];
-                              if (cgcU3.size() == 0) continue;
-                              // std::cout << "cgcU3: " << cgcU3 << std::endl;
-
-                              const auto& cgcU4 = cgcU4s[tensor_id][lst_id];
-                              if (cgcU4.size() == 0) continue;
-                              // std::cout << "cgcU4: " << cgcU4 << std::endl;
-
-                              const auto& kappa0max =
-                                std::get<0>(tensor.LLSSTTstrengths()[lst_id]);
-                              const auto& zeta0max =
-                                std::get<2>(tensor.LLSSTTstrengths()[lst_id]);
-                              const auto& strengths =
-                                std::get<5>(tensor.LLSSTTstrengths()[lst_id]);
-
-                              size_t tensor_alphamax = tensor.alphamax();
-
-                              for (size_t tensor_alpha = 0; 
-                                   tensor_alpha < tensor_alphamax; tensor_alpha++)
-                              {
-                                for (size_t kappa0 = 0; kappa0 < kappa0max; kappa0++)
-                                {
-                                  auto cgcU3_row = (ket_kappa * kappa0max + kappa0) 
-                                                 * bra_kappamax + bra_kappa;
-
-                                  for (size_t zeta0 = 0; zeta0 < zeta0max; zeta0++)
-                                  {
-                                    auto cgcU4_row = (ket_zeta * zeta0max + zeta0) 
-                                                   * bra_zetamax + bra_zeta;
-
-                                    double strength = strengths[
-                                      (tensor_alpha * kappa0max + kappa0) * zeta0max + zeta0];
-
-                                    // going through multiplicities of 
-                                    // Wigner-Eckart theorem
-                                    for (size_t rho = 0; rho < rhomax; rho++)
-                                    {
-                                      for (size_t eta = 0; eta < etamax; eta++)
-                                      {                                  
-                                        auto rme = RME.get(
-                                          bra_alpha, ket_alpha, tensor_alpha, rho, eta);
-                                        //std::cout << "rme: " << rme << std::endl;
-
-                                        double x = strength * cgcU2 * cgcU3(cgcU3_row,rho) 
-                                                 * cgcU4(cgcU4_row,eta) * rme;
-
-                                        me += x;
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-
-                          if (std::fabs(me) > 1e-12)
-                          {
-                            ija.emplace_back(i, j, me); // for i >= j
-                            if (i > j) ija.emplace_back(j, i, me);
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-          // std::cout << "Finish calculating FMEs" << std::endl;
-        }
-      }
-    }
-
-    Eigen::SparseMatrix<double> mat(dim, dim);
-    mat.setFromTriplets(ija.begin(), ija.end());
-    mat.makeCompressed();
-
-    return mat;
-  }
-
-  // Rectangular matrix
-  Eigen::SparseMatrix<double> MatrixElements(const MultiShellTensors_phys& tensors, 
-    const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets)
-  {
-    // for (auto tensor : tensors) std::cout << tensor << std::endl;
-
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
-    auto& wigU3SO3db = u3::wigU3SO3db();
-    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
-
-    // bra basis info
-    auto bras_irreps = bras.irreps();
-    auto bras_dim = bras.dim();
-    auto bras_labels = bras.decomposition();
-    auto bras_JJ = bras.JJ();
-    auto bras_MMJ = bras_JJ;
-    auto bras_MMT = bras.MMT();
-
-    // ket basis info
-    auto kets_irreps = kets.irreps();
-    auto kets_dim = kets.dim();
-    auto kets_labels = kets.decomposition();
-    auto kets_JJ = kets.JJ();
-    auto kets_MMJ = kets_JJ;
-    auto kets_MMT = kets.MMT();
-
-    // tensors info
-    auto tensors_count = tensors.size();
-    // all tensors have the same J, MJ, MT, but T may vary
-    auto JJ_opt = tensors[0].JJ();
-    auto MMJ_opt = tensors[0].MMJ();
-    assert(MMJ_opt == 0);
-    auto MMT_opt = tensors[0].MMT();
-
-    if (tensors_count == 0)
-    {
-      Eigen::SparseMatrix<double> mat(bras_dim, kets_dim);
-      return mat;
-    }
-
-    std::vector<Eigen::Triplet<double>> ija;
-
-    auto MMJ = std::min(bras_MMJ, kets_MMJ);
-    auto cgcJ = cgcs.get({kets_JJ, JJ_opt, bras_JJ,
-                          MMJ, MMJ_opt, MMJ});
-
-    if (std::fabs(cgcJ) > 0.0)
-    {
-      for (size_t bra_id = 0; bra_id < bras_irreps.size(); bra_id++)
-      {
-        // std::cout << "bra_id: " << bra_id << std::endl;
-
-        const auto& bra = bras_irreps[bra_id];
-
-        // get alphamax
-        size_t bra_alphamax = bra.alphamax();
-
-        // get offset
-        auto bra_offset = bras_irreps.offset(bra_id);
-
-        // get labels
-        const auto& bra_labels = bras_labels[bra_id];
-        size_t bra_labels_dim = bra_labels.back()[5] +
-                  bra_labels.back()[0] * bra_labels.back()[2];
-
-        for (size_t ket_id = 0; ket_id < kets_irreps.size(); ket_id++)
-        {
-          // std::cout << "ket_id: " << ket_id << std::endl;
-
-          const auto& ket = kets_irreps[ket_id];
-
-          // get alphamax 
-          size_t ket_alphamax = ket.alphamax();
-
-          // get offset
-          auto ket_offset = kets_irreps.offset(ket_id);
-
-          // get labels
-          const auto& ket_labels = kets_labels[ket_id];
-          size_t ket_labels_dim = ket_labels.back()[5] +
-                  ket_labels.back()[0] * ket_labels.back()[2];
-
-
-          // unify bra and ket irreps
-          U3xU4::IrrepUnifier iu;
-          const auto& [ubra, uket] = iu.unify(bra, ket);
-          // extract the last irreps
-          auto ket_irr = (ubra.omega.empty()) 
-                       ? uket.gamma[0].u3u4() : uket.omega.back().u3u4();
-          auto bra_irr = (ubra.omega.empty())
-                       ? ubra.gamma[0].u3u4() : ubra.omega.back().u3u4();
-
-          // calculate RMEs
-          // std::cout << "Start to calculate RMEs" << std::endl;
-          std::vector<sam::RME> RMEs;
-          RMEs.reserve(tensors_count);
-          for (const auto& tensor : tensors)
-          {
-            // std::cout << tensor.T();
-
-            // unify the tensor with the irreps
-            auto uT = U3xU4::unify_tensor(tensor.T(), ubra);
-
-            if (uT.has_value())
-            {
-
-              auto rmes = uT->RME(ubra, uket);
-              // rmes.print();
-              RMEs.push_back(std::move(rmes));
-            }
-            else
-            {
-              RMEs.push_back({});
-              // std::cout << std::endl;
-            }
-          }
-          // std::cout << "Finish calculating RMEs" << std::endl;
-
-          // now, we compute full matrix elements
-          // std::cout << "Start to calculate FMEs" << std::endl;
-
-          // going through bra labels
-          for (const auto& bra_label : bra_labels)
-          {
-            auto bra_kappamax = bra_label[0];
-            auto bra_LL = bra_label[1];
-            auto bra_zetamax = bra_label[2];
-            auto bra_SS = bra_label[3];
-            auto bra_TT = bra_label[4];
-            auto bra_labels_offset = bra_label[5];
-
-            // going through ket labels
-            for (const auto& ket_label : ket_labels)
-            {
-              auto ket_kappamax = ket_label[0];
-              auto ket_LL = ket_label[1];
-              auto ket_zetamax = ket_label[2];
-              auto ket_SS = ket_label[3];
-              auto ket_TT = ket_label[4];
-              auto ket_labels_offset = ket_label[5];
-
-              std::vector<std::vector<double>> cgcU2s(tensors_count);
-
-              std::vector<std::vector<Eigen::MatrixXd>> 
-                cgcU3s(tensors_count), cgcU4s(tensors_count);
-
-              // std::cout << "Start to calculate coupling coeffs" << std::endl;
-              for (size_t tensor_id = 0; tensor_id < tensors_count; tensor_id++)
-              {
-                if (RMEs[tensor_id].empty()) continue;
-
-                auto irr = tensors[tensor_id].getLastIrrep();
-
-                for (const auto& [k, LL, z, SS, TT, s] : tensors[tensor_id].LLSSTTstrengths())
-                {
-                  auto cgcT = cgcs.get({ket_TT, TT, bra_TT,
-                                           kets_MMT, MMT_opt, bras_MMT});
-                  auto cgcU2 = cgcJ * cgcT * racah9.get({ket_LL, ket_SS, kets_JJ,
-                                                            LL, SS, JJ_opt,
-                                                            bra_LL, bra_SS, bras_JJ});
-                  cgcU2s[tensor_id].push_back(cgcU2);
-
-                  auto [allowU3, cgcU3] = wigU3SO3db.get(
-                            ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
-                            irr.lam(), irr.mu(), LL / 2,
-                            bra_irr.lam(), bra_irr.mu(), bra_LL / 2);
-                  cgcU3s[tensor_id].push_back(std::move(cgcU3));
-
-                  auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
-                      ket_irr.P1(), ket_irr.P2(), ket_irr.P3(), ket_SS, ket_TT, 
-                      irr.P1(), irr.P2(), irr.P3(), SS, TT,
-                      bra_irr.P1(), bra_irr.P2(), bra_irr.P3(), bra_SS, bra_TT);
-                  cgcU4s[tensor_id].push_back(std::move(cgcU4));
-                }
-              }
-              // std::cout << "Finish calculating coupling coeffs" << std::endl;
-
-              for (size_t bra_alpha = 0;
-                   bra_alpha < bra_alphamax; bra_alpha++)
-              {
-                for (size_t bra_kappa = 0; bra_kappa < bra_kappamax;
-                     bra_kappa++)
-                {
-                  for (size_t bra_zeta = 0; bra_zeta < bra_zetamax; bra_zeta++)
-                  {
-                    // bra index in the matrix
-                    size_t i = bra_offset + bra_alpha * bra_labels_dim +
-                      bra_labels_offset + (bra_kappa * bra_zetamax + bra_zeta);
-
-                    for (size_t ket_alpha = 0;
-                         ket_alpha < ket_alphamax; ket_alpha++)
-                    {
-                      for (size_t ket_kappa = 0; ket_kappa < ket_kappamax;
-                           ket_kappa++)
-                      {
-                        for (size_t ket_zeta = 0; ket_zeta < ket_zetamax;
-                             ket_zeta++)
-                        {
-                          // ket index in the matrix
-                          size_t j = ket_offset + ket_alpha * ket_labels_dim +
-                            ket_labels_offset + (ket_kappa * ket_zetamax + ket_zeta);
-
-                          double me = 0.0;
-                          // std::cout << "i:" << i << " j:" << j << std::endl;
-
-                          for (size_t tensor_id = 0; tensor_id < tensors_count;
-                               tensor_id++)
-                          {
-                            const auto& tensor = tensors[tensor_id];
-                            const auto& RME = RMEs[tensor_id];
-
-                            if (RME.empty()) continue;
-
-                            auto rhomax = RME.rhomax(), etamax = RME.etamax();
-
-                            // std::cout << "Tensor: " << tensors[tensor_id] << std::endl;
-                            // RME.print();
-                        
-                            // going through subgroup labels of the tensor
-                            for (size_t lst_id = 0;
-                                 lst_id < tensor.LLSSTTstrengths().size();
-                                 lst_id++)
-                            {
-                              const auto& cgcU2 = cgcU2s[tensor_id][lst_id];
-                              if (std::fabs(cgcU2) == 0.0) continue;
-                              // std::cout << "cgcU2: " << cgcU2 << std::endl;
-
-                              const auto& cgcU3 = cgcU3s[tensor_id][lst_id];
-                              if (cgcU3.size() == 0) continue;
-                              // std::cout << "cgcU3: " << cgcU3 << std::endl;
-
-                              const auto& cgcU4 = cgcU4s[tensor_id][lst_id];
-                              if (cgcU4.size() == 0) continue;
-                              // std::cout << "cgcU4: " << cgcU4 << std::endl;
-
-                              const auto& kappa0max =
-                                std::get<0>(tensor.LLSSTTstrengths()[lst_id]);
-                              const auto& zeta0max =
-                                std::get<2>(tensor.LLSSTTstrengths()[lst_id]);
-                              const auto& strengths =
-                                std::get<5>(tensor.LLSSTTstrengths()[lst_id]);
-
-                              size_t tensor_alphamax = tensor.alphamax();
-
-                              for (size_t tensor_alpha = 0; 
-                                   tensor_alpha < tensor_alphamax; tensor_alpha++)
-                              {
-                                for (size_t kappa0 = 0; kappa0 < kappa0max; kappa0++)
-                                {
-                                  auto cgcU3_row = (ket_kappa * kappa0max + kappa0) 
-                                                 * bra_kappamax + bra_kappa;
-
-                                  for (size_t zeta0 = 0; zeta0 < zeta0max; zeta0++)
-                                  {
-                                    auto cgcU4_row = (ket_zeta * zeta0max + zeta0) 
-                                                   * bra_zetamax + bra_zeta;
-
-                                    double strength = strengths[
-                                      (tensor_alpha * kappa0max + kappa0) * zeta0max + zeta0];
-
-                                    // going through multiplicities of 
-                                    // Wigner-Eckart theorem
-                                    for (size_t rho = 0; rho < rhomax; rho++)
-                                    {
-                                      for (size_t eta = 0; eta < etamax; eta++)
-                                      {                                  
-                                        auto rme = RME.get(
-                                          bra_alpha, ket_alpha, tensor_alpha, rho, eta);
-                                        //std::cout << "rme: " << rme << std::endl;
-
-                                        double x = strength * cgcU2 * cgcU3(cgcU3_row,rho) 
-                                                 * cgcU4(cgcU4_row,eta) * rme;
-                                        me += x;
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-
-                          if (std::fabs(me) > 1e-12)
-                          {
-                            ija.emplace_back(i, j, me); 
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-          // std::cout << "Finish calculating FMEs" << std::endl;
-        }
-      }
-    }
-
-    Eigen::SparseMatrix<double> mat(bras_dim, kets_dim);
-    mat.setFromTriplets(ija.begin(), ija.end());
-    mat.makeCompressed();
-
-    return mat;
-  }
-*/

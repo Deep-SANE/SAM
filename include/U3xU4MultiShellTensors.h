@@ -247,11 +247,8 @@ namespace U3xU4
   class MultiShellTensor
   {
   private:
-    // List of single-shell tensors, each corresponds to Gamma in the document.
     U3xU4::SingleShellTensors Gammas_;
 
-    // The coupled (irrep, rhomax, etamax)'s, each corresponds to Omega in the document.
-    // This list has one less element than the single_shell_tensors list.
     U3xU4::OmegaElements Omegas_;
 
   public:
@@ -307,11 +304,6 @@ namespace U3xU4
     sam::RME RME(const ManyNucleonBasis::Irrep& bra,
                  const ManyNucleonBasis::Irrep& ket,
                  const U3xU4::Table_gelfand& labels) const;
-
-  private:
-    // Phase during uncoupling of RME
-    int8_t uncoupling_phase(const ManyNucleonBasis::Irrep& bra,
-                            const ManyNucleonBasis::Irrep& ket) const;
   };
   using MultiShellTensors = std::vector<MultiShellTensor>;
 
@@ -329,6 +321,18 @@ namespace U3xU4
       std::vector<int> rhomax_list,                 // rhomax values
       std::vector<int> etamax_list,                 // etamax values
       std::vector<CouplingPath>& all_results);      // final results
+
+  /**
+   * Unification of a multi-shell tensor with a basis irrep.
+   *
+   * @param T Multi-shell tensor to be unified.
+   * @param irrep Basis irrep.
+   *
+   * @return Unified multi-shell tensor, or, an empty optional if unification
+   * is not possible.
+   */
+  std::optional<MultiShellTensor>
+  unify_tensor(const MultiShellTensor& T, const ManyNucleonBasis::Irrep& irrep);
 
   /* Class for holding a general U3xU4 multi-shell tensor with physical labels.
      It has total spin (JJ,MMJ) and isospin (TT,MMT) quantum numbers, 
@@ -421,6 +425,7 @@ namespace U3xU4
     {
       for (const auto& [k, LL, z, SS, TT, strengths] : LLSSTTstrengths)
       {
+        bool found = false;
         for (auto& [k_, LL_, z_, SS_, TT_, strengths_] : LLSSTTstrengths_)
         {
           if (k == k_ && LL == LL_ && z == z_ && SS == SS_ && TT == TT_)
@@ -428,13 +433,13 @@ namespace U3xU4
             assert(strengths.size() == strengths_.size());
             for (size_t i = 0; i < strengths.size(); i++)
               strengths_[i] += strengths[i];
+
+            found = true;
             break;
           }
-          else
-          {
-            LLSSTTstrengths_.push_back({k, LL, z, SS, TT, strengths});
-          }
         }
+        if (!found)
+          LLSSTTstrengths_.push_back({k, LL, z, SS, TT, strengths});
       }
     }
 
@@ -447,17 +452,140 @@ namespace U3xU4
   };
   using MultiShellTensors_phys = std::vector<MultiShellTensor_phys>;
   
-  /**
-   * Unification of a multi-shell tensor with a basis irrep.
-   *
-   * @param T Multi-shell tensor to be unified.
-   * @param irrep Basis irrep.
-   *
-   * @return Unified multi-shell tensor, or, an empty optional if unification
-   * is not possible.
-   */
-  std::optional<MultiShellTensor>
-  unify_tensor(const MultiShellTensor& T, const ManyNucleonBasis::Irrep& irrep);
+  /* Class for holding multiple general U3xU4 multi-shell tensors,
+     which share the same U3xU4::SingleShellTensors
+  */
+  class MultiShellTensor_ShareGammas_phys
+  {
+  private:
+    U3xU4::SingleShellTensors Gammas_;
+
+    HO::qn_t MMT_, JJ_, MMJ_;
+
+    using labels_type = std::tuple<uint8_t,              // kappamax
+                                   HO::qn_t,             // LL
+                                   uint8_t,              // zetamax
+                                   HO::qn_t,             // SS
+                                   HO::qn_t,             // TT
+                                   std::vector<double>>; // strengths
+
+    std::vector<std::pair<U3xU4::OmegaElements,
+                          std::vector<labels_type>>> Omegas_LLSSTTstrengths_;
+
+  public:
+    // Constructor
+    MultiShellTensor_ShareGammas_phys() = default;
+    MultiShellTensor_ShareGammas_phys(
+      const U3xU4::SingleShellTensors& Gammas,
+      const std::vector<std::pair<U3xU4::OmegaElements,
+                        std::vector<labels_type>>>& Omegas_LLSSTTstrengths,
+      qcx_utils::Int8 MMT, qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ)
+      : Gammas_(Gammas),
+        MMT_(MMT),
+        JJ_(JJ),
+        MMJ_(MMJ),
+        Omegas_LLSSTTstrengths_(Omegas_LLSSTTstrengths)
+    { }
+
+    MultiShellTensor_ShareGammas_phys(const U3xU4::MultiShellTensor_phys& t)
+      : Gammas_(t.Gammas()),
+        MMT_(t.MMT()),
+        JJ_(t.JJ()),
+        MMJ_(t.MMJ()),
+        Omegas_LLSSTTstrengths_({{t.Omegas(), t.LLSSTTstrengths()}})
+    { }
+
+    // Getters
+    const auto& Gammas() const { return Gammas_; }
+    const auto& Omegas_LLSSTTstrengths() const { return Omegas_LLSSTTstrengths_; }
+    int MMT() const { return static_cast<int>(MMT_); }
+    int JJ() const { return static_cast<int>(JJ_); }
+    int MMJ() const { return static_cast<int>(MMJ_); }
+
+    // Print
+    friend std::ostream& operator<<(std::ostream& s,
+                                    const MultiShellTensor_ShareGammas_phys& x);
+
+    // comparison:
+    bool shareGammas(const U3xU4::MultiShellTensor_phys& t) const
+    {
+      return Gammas_.size() == t.Gammas().size() &&
+             std::equal(Gammas_.begin(), Gammas_.end(), t.Gammas().begin());
+    }
+    
+    // add Omegas_LLSSTTstrengths_ from a new tensor only if they share Gammas
+    void addOmegasLLSSTTstrengths(const U3xU4::MultiShellTensor_phys& t)
+    {
+      assert(MMT() == t.MMT() && JJ() == t.JJ() && MMJ() == t.MMJ());
+
+      bool found_Omegas = false;
+      for (auto& [Omegas_, LLSSTTstrengths_] : Omegas_LLSSTTstrengths_)
+      {
+        assert(Omegas_.size() == t.Omegas().size()); // because of same Gammas
+
+        if (std::equal(Omegas_.begin(), Omegas_.end(), t.Omegas().begin()))
+        {
+          for (const auto& [k, LL, z, SS, TT, strengths] : t.LLSSTTstrengths())
+          {
+            bool found_LST = false;
+            for (auto& [k_, LL_, z_, SS_, TT_, strengths_] : LLSSTTstrengths_)
+            {
+              if (k == k_ && LL == LL_ && z == z_ && SS == SS_ && TT == TT_)
+              {
+                assert(strengths.size() == strengths_.size());
+
+                for (size_t i = 0; i < strengths.size(); i++)
+                  strengths_[i] += strengths[i];
+
+                found_LST = true;
+                break;
+              }
+            }
+            if (!found_LST)
+              LLSSTTstrengths_.push_back({k, LL, z, SS, TT, strengths});
+          }
+          found_Omegas = true;
+          break;
+        }
+      }
+      if (!found_Omegas)
+      {
+        Omegas_LLSSTTstrengths_.push_back({t.Omegas(), t.LLSSTTstrengths()});
+      }
+    }
+
+    // list of RMEs
+    std::vector<sam::RME> RME(const ManyNucleonBasis::Irrep& bra,
+                              const ManyNucleonBasis::Irrep& ket,
+                              const U3xU4::Table_gelfand& labels) const;
+  };
+  using MultiShellTensors_ShareGammas_phys = 
+    std::vector<MultiShellTensor_ShareGammas_phys>;
+
+  std::optional<MultiShellTensor_ShareGammas_phys> 
+    unify_tensor(const MultiShellTensor_ShareGammas_phys& T, 
+                 const ManyNucleonBasis::Irrep& bra,
+                 const ManyNucleonBasis::Irrep& ket);
+
+  // helper function to check RMEs multiplicities:
+  template <typename G, typename O>
+  size_t alphamax(const G& gamma, const O& omega)
+  {
+    assert(gamma.size() == omega.size() + 1);
+
+    size_t res = 1;
+
+    for (const auto& ge : gamma)
+      if (ge.state() == U3xU4::GammaElement::State::Basis)
+        res *= ge.alphamax();
+      else if (ge.state() == U3xU4::GammaElement::State::Tensor)
+        res *= ge.rhomax() * ge.etamax();
+
+    for (const auto& oe : omega)
+      res *= oe.rhomax() * oe.etamax();
+
+    return res;
+  }
 
   /////////////////// COMPUTING MATRIX ELEMENTS ///////////////////
 
@@ -470,6 +598,16 @@ namespace U3xU4
     MatrixElements(const MultiShellTensors_phys& tensors, 
                    const U3xU4::ManyNucleonBasis& basis,
                    const U3xU4::Table_gelfand& gelfand_labels);
+
+  Eigen::SparseMatrix<double> 
+    MatrixElements(const MultiShellTensors_ShareGammas_phys& tensors, 
+                   const U3xU4::ManyNucleonBasis& basis,
+                   const U3xU4::Table_gelfand& gelfand_labels);
+
+  Eigen::SparseMatrix<double> 
+    MatrixElements_new(const MultiShellTensors_ShareGammas_phys& tensors, 
+                       const U3xU4::ManyNucleonBasis& basis,
+                       const U3xU4::Table_gelfand& gelfand_labels);
 
   // Rectangular matrix
   Eigen::SparseMatrix<double> 

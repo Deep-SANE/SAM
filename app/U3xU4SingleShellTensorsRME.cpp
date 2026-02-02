@@ -7,6 +7,7 @@
 
 #include <U3xU4irrep.h>
 #include <U3xU4SingleShellTensors.h>
+#include <U3xU4SingleShellTensorsRME_Database.h>
 
 #include <qcx_ND.h>
 #include <qcx_utils.h>
@@ -49,7 +50,7 @@ int main(int argc, char* argv[])
                 (1,1,0,0)           (1,1,0,0) (0,0,0,0)
                 ||| alpha_f (14,2,0) (1,1,1,1) >
   */
-  
+  /*
   n = 4; 
   ads = 2; 
   ats = 2;
@@ -61,7 +62,7 @@ int main(int argc, char* argv[])
   Omega_ats.push_back(T2);
 
   auto [rho0max, eta0max] = U3xU4::RhoEta(T1,T2,T);
-  
+  */
 
   /* Example 3:
                               (n,0,0)
@@ -108,12 +109,12 @@ int main(int argc, char* argv[])
   /* Example 6:          
     < alpha_i (5,3,2) (3,1,1,0) ||| I ||| alpha_f (5,3,2) (3,1,1,0) >
   */
-  /*
+  
   n = 2; 
   U3xU4::GammaElement i(n,{5,3,2},{3,1,1,0}), f(n,{5,3,2},{3,1,1,0});
   U3xU4::irrep T(0,0,0, 0,0,0,0);
   uint8_t rho0max = 1, eta0max = 1;
-  */
+  
 
   ////////////////// DON'T EDIT BELOW /////////////////////
 
@@ -124,7 +125,11 @@ int main(int argc, char* argv[])
   auto t0 = std::chrono::high_resolution_clock::now();
 
   auto RMEs = Tadxat.RME(f, i);
-
+/*
+  U3xU4::Table_gelfand gelfands(n);
+  U3xU4::RME_db RMEdb;
+  auto RMEs = RMEdb.get(Tadxat, f, i, gelfands);
+*/
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 

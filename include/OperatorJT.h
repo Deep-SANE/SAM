@@ -56,7 +56,10 @@ namespace JT
     std::string filename(const U3xU4::ManyNucleonBasis& basis) const;
 
     // expand into a sum of U3xU4::MultiShellTensor_phys
-    U3xU4::MultiShellTensors_phys expand();
+    U3xU4::MultiShellTensors_phys expand_old();
+
+    // expand into a sum of U3xU4::MultiShellTensor_phys
+    U3xU4::MultiShellTensors_ShareGammas_phys expand();
 
     // Matrix representation
     // symmetric

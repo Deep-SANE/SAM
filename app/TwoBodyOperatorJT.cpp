@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
   u3::initialize();
   u4::initialize();
 
-  int hw = 20, valenceShell = 0, Nmax = 14, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 8, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -35,9 +35,9 @@ int main(int argc, char* argv[])
   // std::string name = "Rrel";
 
   // Example 6: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
-  // std::string name = "N2LO_opt_bare";
+  std::string name = "N2LO_opt_bare";
   // std::string name = "N2LO_opt_srg1.0";
-  std::string name = "N2LO_opt_srg2.0";
+  // std::string name = "N2LO_opt_srg2.0";
   // std::string name = "N2LO_opt_srg4.0";
 
   // Example 7: Two-body potential (bare) with N3LO_EMN500_bare,srg1.0,2.0,4.0
@@ -74,11 +74,11 @@ int main(int argc, char* argv[])
   auto t1 = std::chrono::high_resolution_clock::now();
   
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
-  for (auto tensor : tensors)
+  for (const auto& tensor : tensors)
     std::cout << tensor << std::endl;
 
 /*
-  // This might be helpful for Daniel for comparison
+  // This might be helpful for comparison
   assert(tensors.size() == tensors_new.size());
   for (size_t i = 0; i < tensors.size(); i++)
   {

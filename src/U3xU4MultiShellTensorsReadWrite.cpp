@@ -214,4 +214,29 @@ namespace U3xU4
       for (auto& c : strengths) qcx_utils::readBinary(s, c);
     }
   }
+
+  std::ostream& operator<<(std::ostream& s, const MultiShellTensor_ShareGammas_phys& x)
+  {
+    for (const auto& G : x.Gammas_) s << G << "\t";
+    
+    for (const auto& [Omegas, LLSSTTstrengths] : x.Omegas_LLSSTTstrengths_)
+    {
+      s << "\n";
+      for (const auto& O : Omegas) s << O << "\t";
+
+      for (const auto& [kmax, LL, zmax, SS, TT, strengths] : LLSSTTstrengths)
+      {
+        s << "\n kappamax:" << static_cast<int>(kmax)
+          << " LL:" << static_cast<int>(LL)
+          << " zetamax:" << static_cast<int>(zmax)
+          << " SS:" << static_cast<int>(SS)
+          << " TT:" << static_cast<int>(TT)
+          << " strengths:";
+        for (const auto& c : strengths) s << c << " ";
+      }
+    }
+    s << "\n MMT:" << x.MMT() << " JJ:" << x.JJ() << " MMJ:" << x.MMJ();
+
+    return s;
+  }
 } // namespace U3xU4

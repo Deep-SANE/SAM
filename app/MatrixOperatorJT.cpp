@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
   std::cin >> write;
   */
 
-  int Z = 3, N = 3, JJ = 2, Nmax = 4, hw = 20, write = 0;
+  int Z = 3, N = 3, JJ = 2, Nmax = 6, hw = 20, write = 0;
 
   // Example 1: LL
   // std::string name = "L.L";

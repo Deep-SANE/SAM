@@ -1,4 +1,5 @@
 #include <cassert>
+#include <chrono>
 #include <stdexcept>
 #include <utility>
 
@@ -425,6 +426,11 @@ namespace U3xU4
                                   const U3xU4::GammaElement& i,
                                   const U3xU4::Table_gelfand& labels) const
   {
+    // static std::chrono::duration<double> total_time(0);
+    // static double last_print = 0.0;
+
+    // auto start = std::chrono::high_resolution_clock::now();
+
     auto& cgcs = qcx_utils::cgcs();
     auto& wigU3U2db = u3::wigU3U2db();
     auto& wigU4U3db = u4::wigU4U3db();
@@ -469,7 +475,7 @@ namespace U3xU4
         A_f = f.particles(), N_quanta_f = f.quanta(),
         n = shell();
 /*
-    // (3.1) Special case: <1||a+||0> ===> TAKE MORE TIME
+    // (3.1) Special case: <1||a+||0> ===> IMPLEMENTED IN DATABASE
 
     if (A_f == 1 && A_i == 0)
     {
@@ -481,7 +487,7 @@ namespace U3xU4
       return {{1.0}, 1, 1, 1, 1, 1};
     }
 
-    // (3.2) Special case: <0||a||1> ===> TAKE MORE TIME
+    // (3.2) Special case: <0||a||1> ===> IMPLEMENTED IN DATABASE
 
     if (A_f == 0 && A_i == 1)
     {
@@ -490,41 +496,45 @@ namespace U3xU4
       assert(af_max == 1);
       assert(ai_max == 1);
 
-      // U(3) -> U(2) -> U(1) coupling
-      auto [allowU3, accU3] = wigU3U2db.get(n, 0, 0, n, 0,
-                                            n, n, 0, n, 0,
-                                            0, 0, 0, 0, 0);
-      assert(allowU3);
-      double cgcU3 = cgcs.get({n, n, 0, n, -n, 0}) * accU3(0,0);
+      return {{std::sqrt(2.0 * (n + 1.0) * (n + 2.0))}, 1, 1, 1, 1, 1};
+    }
 
-      // U(4) -> U(3) -> U(2) -> U(1) coupling
-      auto [allowU4, accU4] = wigU4U3db.get(1, 0, 0, 0, 1, 0, 0,
-                                            1, 1, 1, 0, 1, 1, 0,
-                                            0, 0, 0, 0, 0, 0, 0);
-      assert(allowU4);
+    // (3.3) Special case: <2||a+ a+||0> ===> IMPLEMENTED IN DATABASE
 
-      auto [allowU3_4, accU3_4] = wigU3U2db.get(1, 0, 0, 1, 0,
-                                                1, 1, 0, 1, 0,
-                                                0, 0, 0, 0, 0);
-      assert(allowU3_4);
+    if (A_f == 2 && A_i == 0)
+    {
+      assert(num_ads() == 2);
+      assert(num_ats() == 0);
+      assert(af_max == 1);
+      assert(ai_max == 1);
 
-      double cgcU4 = cgcs.get({1, 1, 0, 1, -1, 0}) * accU4(0,0) * accU3_4(0,0);
+      return {{SQRT2}, 1, 1, 1, 1, 1};
+    }
 
-      return {{1.0 / (cgcU3 * cgcU4)}, 1, 1, 1, 1, 1};
+    // (3.4) Special case: <0||a a||2> ===> IMPLEMENTED IN DATABASE
+
+    if (A_f == 0 && A_i == 2)
+    {
+      assert(num_ads() == 0);
+      assert(num_ats() == 2);
+      assert(af_max == 1);
+      assert(ai_max == 1);
+
+      return {{- SQRT2 * std::sqrt(i.dim())}, 1, 1, 1, 1, 1};
     }
 */
-    // (3.3) General case
+    // (3.5) General case
 
-    // (3.3.1) Get outer multiplicities due to Wigner-Eckart theorem
+    // (3.5.1) Get outer multiplicities due to Wigner-Eckart theorem
     auto [rhomax, etamax] = U3xU4::RhoEta(i, T(), f);
 
-    // (3.3.2) Extract single-particle states
+    // (3.5.2) Extract single-particle states
     const auto& sps3 = labels.sps3(n);
     const auto& sps3_conj = labels.sps3_conj(n);
     const auto& sps4 = labels.sps4();
     const auto& sps4_conj = labels.sps4_conj();
 
-    // (3.3.3) Generate HWS for the ket irrep
+    // (3.5.3) Generate HWS for the ket irrep
     u3::gelfand i3hws(i.n13(), i.n23(), i.n33(), i.n13(), i.n23(), i.n13());
     u4::gelfand i4hws(i.n14(), i.n24(), i.n34(), i.n44(),
                       i.n14(), i.n24(), i.n34(), i.n14(), i.n24(), i.n14());
@@ -545,7 +555,7 @@ namespace U3xU4
     assert(ai_max == coeffs_i.cols());
     // std::cout << "coeffs_i:" << coeffs_i << std::endl;
 
-    // (3.3.4) Generate HWS for the bra irrep
+    // (3.5.4) Generate HWS for the bra irrep
     u3::gelfand f3hws(f.n13(), f.n23(), f.n33(), f.n13(), f.n23(), f.n13());
     u4::gelfand f4hws(f.n14(), f.n24(), f.n34(), f.n44(),
                       f.n14(), f.n24(), f.n34(), f.n14(), f.n24(), f.n14());
@@ -566,7 +576,7 @@ namespace U3xU4
     assert(af_max == coeffs_f.cols());
     // std::cout << "coeffs_f:" << coeffs_f << std::endl;
 
-    // (3.3.5) Generate tensor components of the tensor
+    // (3.5.5) Generate tensor components of the tensor
     u3::gelfands g3Arr = u3::gelfandBasis(T().u3());
     std::vector<int> g3Arr0;
     int missing3 = (N_quanta_i + T().u3().quanta() - N_quanta_f) / 3;
@@ -610,7 +620,7 @@ namespace U3xU4
         jj_i4 = i4hws.Lambdax2(), mm_i4 = i4hws.MLambdax2(),
         jj_f4 = f4hws.Lambdax2(), mm_f4 = f4hws.MLambdax2();
 
-    // Now run through tensor components
+    // (3.5.6) Now run through tensor components
     int row = 0;
     for (const auto& g3 : g3Arr0)
     {
@@ -754,7 +764,7 @@ namespace U3xU4
 
     // std::cout << "CGCs = " << CGCs << std::endl;
 
-    // Solve for RMEs
+    // (3.5.7) Solve for RMEs
     Eigen::ColPivHouseholderQR<Eigen::MatrixXd> factorize;
     factorize.compute(CGCs);
 
@@ -779,7 +789,16 @@ namespace U3xU4
               }
 
     size_t aT_max = rho0max() * eta0max();
+/*
+    auto end = std::chrono::high_resolution_clock::now();
+    total_time += end - start;  // duration in seconds
 
+    // Print occasionally 
+    if (total_time.count() - last_print >= 10.0) {
+        std::cout << "Accumulated time: " << total_time.count() << " s\n";
+        last_print = total_time.count();
+    }
+*/
     return {std::move(rmes),
             static_cast<size_t>(af_max),
             static_cast<size_t>(ai_max),

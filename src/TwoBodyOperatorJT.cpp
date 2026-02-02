@@ -261,6 +261,8 @@ namespace JT
         {
           for (int nd = 0; nd <= maxShell; nd++)
           {
+            if (parity_ == 1 && (na + nb - nc - nd) % 2 != 0) continue;
+            
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
             auto [sorted_ns, inverse, phase] = sort_shells(ns);
 
@@ -307,8 +309,7 @@ namespace JT
           adxad_Nhw += (na - valenceShell);
         if (nb > valenceShell)
           adxad_Nhw += (nb - valenceShell);
-        if (adxad_Nhw > Nmax)
-          continue;
+        if (adxad_Nhw > Nmax) continue;
 
         for (int nc = 0; nc <= maxShell; nc++)
         {
@@ -319,8 +320,9 @@ namespace JT
               atxat_Nhw += (nc - valenceShell);
             if (nd > valenceShell)
               atxat_Nhw += (nd - valenceShell);
-            if (atxat_Nhw > Nmax)
-              continue;
+            if (atxat_Nhw > Nmax) continue;
+
+            if (parity_ == 1 && (na + nb - nc - nd) % 2 != 0) continue;
 
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
             auto [sorted_ns, inverse, phase] = sort_shells(ns);

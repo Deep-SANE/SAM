@@ -74,6 +74,9 @@ namespace U3xU4
     // is vacuum?
     bool vacuum() const { return u3_.zero() && u4_.zero(); }
 
+    // dimension
+    int dim() const { return u3_.dim() * u4_.dim(); }
+
     // write to binary file
     void writeBinary(std::ostream& s) const
     {
