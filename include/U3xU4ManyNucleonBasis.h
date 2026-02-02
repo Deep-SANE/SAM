@@ -17,6 +17,7 @@
 
 #include <HOutilities.h>
 #include <U3xU4GammaOmega.h>
+#include <U3xU4gelfand.h>
 #include <U3xU4irrep.h>
 
 namespace U3xU4
@@ -81,6 +82,12 @@ namespace U3xU4
     // print to file
     void print_to_file(std::ostream& os) const;
   };
+
+  /**
+   * Declare class for holding multiple general U3xU4 multi-shell tensors,
+     which share the same U3xU4::SingleShellTensors
+  */
+  class MultiShellTensor_ShareGammas_phys;
 
   /**
    * Class that represents the many nucleon basis.
@@ -300,6 +307,14 @@ namespace U3xU4
 
     std::vector<hw_subspace> hw_subspaces_;
 
+    // (7) grouping ID's into distribution spaces
+
+    std::vector<                                      // index = dist_id
+      std::vector<                      
+        std::pair<uint32_t,                           // gamma_id
+                  std::vector<size_t>>>> group_dists; // list of irrep_id's
+
+
     // **** PRIVATE MEMBER FUNCTIONS ****
 
     // (1) distributions:
@@ -499,7 +514,8 @@ namespace U3xU4
      * @param dist_id ID of the gamma distribution.
      * @param gamma_id ID of the required gamma for which to generate omegas.
      */
-    void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id);
+    void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id,
+                                   std::vector<size_t>& irrep_ids);
   
   public:
     // get twice angular momentum
@@ -524,6 +540,14 @@ namespace U3xU4
       return LLSSTTs_;
     }
     std::vector<std::array<int,6>> decomposition(const Irrep& irr) const;
+
+    /////////////////// COMPUTING MATRIX ELEMENTS ///////////////////
+
+    // Symmetric matrix
+    friend Eigen::SparseMatrix<double> MatrixElements_new(
+      const std::vector<MultiShellTensor_ShareGammas_phys>& tensors, 
+      const U3xU4::ManyNucleonBasis& basis,
+      const U3xU4::Table_gelfand& gelfand_labels);
   };
 
   // class for unifying 2 irreps wrt to their shells:

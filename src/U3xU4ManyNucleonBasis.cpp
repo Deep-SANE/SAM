@@ -11,6 +11,7 @@
 
 #include <qcx_convert.h>
 #include <qcx_ND.h>
+#include <qcx_print.h>
 #include <qcx_tree_generator.h>
 #include <so3Coeffs/SO3_CGC.h>
 
@@ -342,6 +343,9 @@ namespace U3xU4
 
     auto dist = basis_.distribution(dist_id);
 
+    // qcx_utils::print("dist_id {}: {};\t", dist_id, dist);
+    // qcx_utils::print("gamma_id {};\t irrep_id {}\n", gamma_id, irrep_id);
+
     // active shells:
     active_shells_.clear();
     for (size_t n = 0; n < dist.size(); n++)
@@ -530,6 +534,8 @@ namespace U3xU4
 
   void ManyNucleonBasis::generate_gammas()
   {
+    group_dists.resize(n_distributions());
+
     for (size_t dist_id = 0; dist_id < n_distributions(); dist_id++)
       generate_gammas_for_distribution(dist_id);
   }
@@ -621,6 +627,9 @@ namespace U3xU4
         if (dim_gamma > 0)
         {
           // add irrep to basis:
+          group_dists[dist_id].push_back(
+            {static_cast<uint32_t>(gamma_id), {irreps_.size()}});
+
           irreps_.emplace_back(dist_id, gamma_id, INVALID_OMEGA_ID,
                                INVALID_OMEGA_ID, dim_);
 
@@ -631,8 +640,12 @@ namespace U3xU4
       }
       else
       {
+        std::vector<size_t> irrep_ids;
         // generate omegas for gamma:
-        generate_omegas_for_gamma(dist_id, gamma_id);
+        generate_omegas_for_gamma(dist_id, gamma_id, irrep_ids);
+
+        group_dists[dist_id].push_back(
+          {static_cast<uint32_t>(gamma_id), std::move(irrep_ids)});
       }
     }
   }
@@ -778,7 +791,8 @@ namespace U3xU4
   }
 
   void ManyNucleonBasis::generate_omegas_for_gamma(size_t dist_id,
-                                                   size_t gamma_id)
+                                                   size_t gamma_id,
+                                                   std::vector<size_t>& irrep_ids)
   {
     auto gamma = this->gamma(gamma_id);
     auto gamma_size = gamma.size();
@@ -925,6 +939,8 @@ namespace U3xU4
         if (dim_omega > 0)
         {
           // add irrep to basis:
+          irrep_ids.push_back(irreps_.size());
+
           irreps_.emplace_back(dist_id, gamma_id, omega_id_u4, omega_id_su3,
                                dim_);
 
