@@ -261,8 +261,8 @@ namespace JT
         {
           for (int nd = 0; nd <= maxShell; nd++)
           {
-            if (parity_ == 1 && (na + nb - nc - nd) % 2 != 0) continue;
-            
+            if (!HOShellselection(na, nb, nc, nd)) continue;
+
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
             auto [sorted_ns, inverse, phase] = sort_shells(ns);
 
@@ -322,7 +322,7 @@ namespace JT
               atxat_Nhw += (nd - valenceShell);
             if (atxat_Nhw > Nmax) continue;
 
-            if (parity_ == 1 && (na + nb - nc - nd) % 2 != 0) continue;
+            if (!HOShellselection(na, nb, nc, nd)) continue;
 
             std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
             auto [sorted_ns, inverse, phase] = sort_shells(ns);
@@ -519,66 +519,75 @@ namespace JT
   }
 
   // Selection rules
+  bool TwoBodyOperator::HOShellselection(int na, int nb, int nc, int nd) const
+  {
+    if (parity_ == 1)
+    {
+      int shift = na + nb - nc - nd;
+
+      if (name_ == "CoMNumberOp")
+        if (shift != 0) return false;
+      else if (name_ == "Rrel" || name_ == "Kinetic")
+        if (shift != 0 && abs(shift) != 2) return false;
+      else if (known_potentials.count(name_))
+        if (shift % 2 != 0) return false;
+    }
+    
+    return true;
+  }
+
   bool TwoBodyOperator::LLselection(const int& LL) const
   {
-    bool flag = true;
-
     if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
-      if (LL != 0) flag = false;
+      if (LL != 0) return false;
     }
     
-    return flag;
+    return true;
   }
   
   bool TwoBodyOperator::SSselection(const int& SS) const
   {
-    bool flag = true;
-
     if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
-      if (SS != 0) flag = false;
+      if (SS != 0) return false;
     }
     
-    return flag;
+    return true;
   }
 
   bool TwoBodyOperator::U3selection(const u3::irrep& irr) const
   {
-    bool flag = true;
-
     if (name_ == "L.L" || name_ == "L.S" || name_ == "CoMNumberOp")
     {
-      if (irr != u3::irrep(0, 0, 0)) flag = false;
+      if (irr != u3::irrep(0, 0, 0)) return false;
     }
     else if (name_ == "Rrel" || name_ == "Kinetic")
     {
       if (irr != u3::irrep(0, 0, 0) &&
           irr != u3::irrep(2, 0, 0) &&
           irr != u3::irrep(2, 2, 0)) 
-        flag = false;
+        return false;
     }
     else if (known_potentials.count(name_))
     {
-      if (irr.n13() % 2 != 0) flag = false;
+      if (irr.n13() % 2 != 0) return false;
     }
     
-    return flag;
+    return true;
   }
 
   bool TwoBodyOperator::U4selection(const u4::irrep& irr) const
   {
-    bool flag = true;
-
     if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
-      if (irr != u4::irrep(0, 0, 0, 0)) flag = false;
+      if (irr != u4::irrep(0, 0, 0, 0)) return false;
     }
     
-    return flag;
+    return true;
   }
 
   // Set strengths for U3xU4::MultiShellTensor_phys
@@ -587,6 +596,13 @@ namespace JT
       const std::vector<std::vector<int>>& inverse,
       const std::vector<int>& phase) const
   {
+    // std::cout << "Gammas count: " << tensor.Gammas().size() << std::endl;
+    /* if (tensor.Gammas().size() == 1)
+    {
+      print("Inverse: {}\n", inverse);
+      print("Phase: {}\n", phase);
+    } */
+
     std::vector<std::tuple<uint8_t,              // kappamax
                            HO::qn_t,             // LL
                            uint8_t,              // zetamax
@@ -616,12 +632,16 @@ namespace JT
         if (TT() >= 0 && TT() != TT0) continue;
 
         // couple LL and SS to JJ
-        // if (JJ() < std::fabs(LL0 - SS0) || JJ() > (LL0 + SS0)) continue;
         if (u2::mult(LL0, SS0, JJ()) == 0) continue;
 
+        auto strengths = tensor.getStrengths(LL0, SS0, TT0, *TBME, inverse, phase);
+
+/*
         std::vector<double> strengths(tensor.alphamax() * kappa0 * zeta0, 0.0);
 
         auto [coeffsArr, opsArr] = tensor.expand(LL0, SS0, TT0);
+
+        // std::cout << "Expansion size: " << opsArr.size() << std::endl;
 
         for (size_t i = 0; i < coeffsArr.size(); i++)
         {
@@ -664,7 +684,7 @@ namespace JT
           for (int c = 0; c < strengths.size(); c++)
             strengths[c] += me * coeffsArr[i][c];
         }
-
+*/
         double norm = 0.0;
         for (auto& s : strengths)
         {

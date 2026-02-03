@@ -414,6 +414,12 @@ namespace U3xU4
               std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
               expand(int LL, int SS, int TT) const;
 
+    // Get two-body strength directly during expand()
+    std::vector<double> getStrengths(int LL, int SS, int TT,
+                    const HO::TwBME_scalar& TBME,
+                    const std::vector<std::vector<int>>& inverse,
+                    const std::vector<int>& phase) const;
+
     // Setter: done after expanding and computing strengths
     void setLLSSTTstrengths(const std::vector<labels_type>& LLSSTTstrengths)
     {

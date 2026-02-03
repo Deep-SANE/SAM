@@ -91,6 +91,7 @@ namespace U3xU4
     std::vector<U3xU4::ads_gelfand> tensorsArr;
 
     auto num = num_ads();
+    int shell_dim = 2 * (n_ + 1) * (n_ + 2);
 
     // one ad
     if (num == 1)
@@ -106,6 +107,10 @@ namespace U3xU4
     // two ad's
     else if (num == 2)
     {
+      size_t estimate = shell_dim * shell_dim;
+      coeffs.reserve(estimate);
+      tensorsArr.reserve(estimate);
+
       std::vector<std::pair<int, int>> uncouple_g3 =
           u3::expand_to_uncoupled(g3_, sps3_, sps3_);
 
@@ -194,6 +199,10 @@ namespace U3xU4
     // three ad's
     else if (num == 3)
     {
+      size_t estimate = shell_dim * shell_dim * shell_dim;
+      coeffs.reserve(estimate);
+      tensorsArr.reserve(estimate);
+
       u3::gelfands g3Arr0 = u3::gelfandBasis(Omegas_[0].u3());
       u4::gelfands g4Arr0 = u4::gelfandBasis(Omegas_[0].u4());
 
@@ -306,6 +315,7 @@ namespace U3xU4
 
     auto num = num_ads();
     int ll_max = 2 * n_, ll_min = 2 * (n_ % 2);
+    int shell_dim = 2 * (n_ + 1) * (n_ + 2);
 
     // one ad
     if (num == 1)
@@ -321,6 +331,10 @@ namespace U3xU4
     // two ad's
     else if (num == 2)
     {
+      size_t estimate = shell_dim * shell_dim;
+      coeffsArr.reserve(estimate);
+      tensorsArr.reserve(estimate);
+
       int lam = Omegas_[0].lam(), mu = Omegas_[0].mu(),
           P1 = Omegas_[0].P1(), P2 = Omegas_[0].P2(), P3 = Omegas_[0].P3();
 
@@ -393,6 +407,10 @@ namespace U3xU4
     // three ad's
     else if (num == 3)
     {
+      size_t estimate = shell_dim * shell_dim * shell_dim;
+      coeffsArr.reserve(estimate);
+      tensorsArr.reserve(estimate);
+
       std::vector<u3::physicalvector> 
         pv3s0 = u3::physicalBasis(Omegas_[0].u3());
       std::vector<u4::physicalvector> 
@@ -515,6 +533,7 @@ namespace U3xU4
     std::vector<U3xU4::ats_gelfand> tensorsArr;
 
     auto num = num_ats();
+    int shell_dim = 2 * (n_ + 1) * (n_ + 2);
 
     // one at
     if (num == 1)
@@ -533,6 +552,10 @@ namespace U3xU4
     // two at's
     else if (num == 2)
     {
+      size_t estimate = shell_dim * shell_dim;
+      coeffs.reserve(estimate);
+      tensorsArr.reserve(estimate);
+
       std::vector<std::pair<int, int>> uncouple_g3 =
           u3::expand_to_uncoupled(g3_, sps3_conj_, sps3_conj_);
 
@@ -627,6 +650,10 @@ namespace U3xU4
     // three at's
     else if (num == 3)
     {
+      size_t estimate = shell_dim * shell_dim * shell_dim;
+      coeffs.reserve(estimate);
+      tensorsArr.reserve(estimate);
+
       std::vector<u3::gelfand> 
         g3Arr0 = u3::gelfandBasis(Omegas_[0].u3());
       std::vector<u4::gelfand> 
@@ -746,6 +773,7 @@ namespace U3xU4
 
     auto num = num_ats();
     int ll_max = 2 * n_, ll_min = 2 * (n_ % 2);
+    int shell_dim = 2 * (n_ + 1) * (n_ + 2);
 
     // one at
     if (num == 1)
@@ -760,6 +788,10 @@ namespace U3xU4
     // two at's
     else if (num == 2)
     {
+      size_t estimate = shell_dim * shell_dim;
+      coeffsArr.reserve(estimate);
+      tensorsArr.reserve(estimate);
+
       int lam = Omegas_[0].lam(), mu = Omegas_[0].mu(),
           P1 = Omegas_[0].P1(), P2 = Omegas_[0].P2(), P3 = Omegas_[0].P3();
 
@@ -839,6 +871,10 @@ namespace U3xU4
     // three at's
     else if (num == 3)
     {
+      size_t estimate = shell_dim * shell_dim * shell_dim;
+      coeffsArr.reserve(estimate);
+      tensorsArr.reserve(estimate);
+
       std::vector<u3::physicalvector> 
         pv3s0 = u3::physicalBasis(Omegas_[0].u3());
       std::vector<u4::physicalvector> 
@@ -1005,6 +1041,13 @@ namespace U3xU4
 
     else
     {
+      int shell_dim = 2 * (n + 1) * (n + 2), estimate = 1;
+      for (int i = 0; i < num_ads(); i++) estimate *= shell_dim;
+      for (int i = 0; i < num_ats(); i++) estimate *= shell_dim;
+      coeffs.reserve(estimate);
+      adsArr.reserve(estimate);
+      atsArr.reserve(estimate);
+
       u3::gelfands g3Arr1, g3Arr2;
       u4::gelfands g4Arr1, g4Arr2;
 
@@ -1169,6 +1212,13 @@ namespace U3xU4
 
     else
     {
+      int shell_dim = 2 * (n + 1) * (n + 2), estimate = 1;
+      for (int i = 0; i < num_ads(); i++) estimate *= shell_dim;
+      for (int i = 0; i < num_ats(); i++) estimate *= shell_dim;
+      coeffs.reserve(estimate);
+      adsArr.reserve(estimate);
+      atsArr.reserve(estimate);
+
       u3::physicalvectors pv3s1, pv3s2;
       u4::physicalvectors pv4s1, pv4s2;
 
@@ -1233,34 +1283,41 @@ namespace U3xU4
 
               for (int JJ1 = LL1 + SS1; JJ1 >= abs(LL1 - SS1); JJ1 -= 2)
               {
-                for (int JJ2 = LL2 + SS2; JJ2 >= abs(LL2 - SS2); JJ2 -= 2)
+                for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
                 {
-                  if (abs(JJ1 - JJ2) > JJ_ || (JJ1 + JJ2) < JJ_) continue;
-
-                  double U9j = racah9.get({LL1, LL2, LL(),
-                                              SS1, SS2, SS(),
-                                              JJ1, JJ2, JJ()});
-
-                  for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
+                  int MMJ2 = MMJ() - MMJ1;
+                  
+                  for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
                   {
-                    int MMJ2 = MMJ() - MMJ1;
-                    if (abs(MMJ2) > JJ2) continue;
+                    int MMT2 = MMT() - MMT1;
+                    if (abs(MMT2) > TT2) continue;
+                    double cgcT = cgcs.get({TT1, TT2, TT(), MMT1, MMT2, MMT()});
 
-                    double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
+                    U3xU4::Tad_phys 
+                      Tad(n, Omega_ads(), LL1, SS1, TT1, MMT1, JJ1, MMJ1, labels_);
 
-                    for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
+                    std::vector<Eigen::RowVectorXd> coeffs1;
+                    std::vector<U3xU4::ads_phys> adArr;
+
+                    for (int JJ2 = LL2 + SS2; JJ2 >= abs(LL2 - SS2); JJ2 -= 2)
                     {
-                      int MMT2 = MMT() - MMT1;
-                      if (abs(MMT2) > TT2) continue;
+                      if (u2::mult(JJ1, JJ2, JJ_) == 0) continue;
+                      if (abs(MMJ2) > JJ2) continue;
 
-                      double cgcT = cgcs.get({TT1, TT2, TT(), MMT1, MMT2, MMT()});
+                      double U9j = racah9.get({LL1, LL2, LL(),
+                                                SS1, SS2, SS(),
+                                                JJ1, JJ2, JJ()});
 
-                      U3xU4::Tad_phys Tad(n, Omega_ads(), LL1, SS1, TT1, MMT1, JJ1,
-                                          MMJ1, labels_);
-                      auto [coeffs1, adArr] = Tad.expand();
+                      double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
 
-                      U3xU4::Tat_phys Tat(n, Omega_ats(), LL2, SS2, TT2, MMT2, JJ2,
-                                          MMJ2, labels_);
+                      double cgcU2 = U9j * cgcJ * cgcT;
+                      
+                      if (coeffs1.empty())
+                        std::tie(coeffs1, adArr) = Tad.expand();
+
+                      U3xU4::Tat_phys 
+                        Tat(n, Omega_ats(), LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels_);
+                      
                       auto [coeffs2, atArr] = Tat.expand();
 
                       for (size_t i = 0; i < coeffs1.size(); i++)
@@ -1285,7 +1342,7 @@ namespace U3xU4
                                           cgcU3((k1 * kappa2 + k2) * kappamax_ +
                                                     k,
                                                 rho) *
-                                          cgcU4(z, eta) * U9j * cgcJ * cgcT *
+                                          cgcU4(z, eta) * cgcU2 *
                                           coeffs1[i](k1) * coeffs2[j](k2);
                                 }
 
@@ -1308,6 +1365,153 @@ namespace U3xU4
 
     return std::make_tuple(std::move(coeffs), 
                            std::move(adsArr), std::move(atsArr));
+  }
+
+  // get two-body strength directly during expand()
+  std::vector<double> SingleShellTensor_phys::getStrengths(
+                                    const HO::TwBME_scalar& TBME) const
+  {
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
+
+    assert(num_ads() == 2 && num_ats() == 2);
+
+    auto n = shell();
+    auto rhomax = rho0max();
+    auto etamax = eta0max();
+
+    std::vector<double> strengths(rhomax * etamax * kappamax_ * zetamax_, 0.0);
+
+    u3::physicalvectors
+      pv3s1 = u3::physicalBasis(Omega_ads().back().u3()), 
+      pv3s2 = u3::physicalBasis(Omega_ats().back().u3());
+
+    u4::physicalvectors 
+      pv4s1 = u4::physicalBasis(Omega_ads().back().u4()),
+      pv4s2 = u4::physicalBasis(Omega_ats().back().u4());
+
+    for (const auto& pv31 : pv3s1)
+    {
+      int lam1 = pv31.lam(), mu1 = pv31.mu(),
+          kappa1 = pv31.kappa(), LL1 = 2 * pv31.L();
+
+      for (const auto& pv32 : pv3s2)
+      {
+        int lam2 = pv32.lam(), mu2 = pv32.mu(),
+            kappa2 = pv32.kappa(), LL2 = 2 * pv32.L();
+
+        auto [allowU3, cgcU3] = wigU3SO3db.get(lam1, mu1, LL1 / 2, 
+                        lam2, mu2, LL2 / 2, lam(), mu(), LL() / 2);
+        if (allowU3 == false) continue;
+
+        for (const auto& pv41 : pv4s1)
+        {
+          int P11 = pv41.P1(), P21 = pv41.P2(), P31 = pv41.P3(), 
+              SS1 = pv41.SS(), TT1 = pv41.TT();
+
+          for (const auto& pv42 : pv4s2)
+          {
+            int P12 = pv42.P1(), P22 = pv42.P2(), P32 = pv42.P3(),
+                SS2 = pv42.SS(), TT2 = pv42.TT();
+
+            auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+                                  P11, P21, P31, SS1, TT1, 
+                                  P12, P22, P32, SS2, TT2, 
+                                  P1(), P2(), P3(), SS(), TT());
+            if (allowU4 == false) continue;
+
+            for (int JJ1 = LL1 + SS1; JJ1 >= abs(LL1 - SS1); JJ1 -= 2)
+            {
+              for (int MMJ1 = JJ1; MMJ1 >= -JJ1; MMJ1 -= 2)
+              {
+                int MMJ2 = MMJ() - MMJ1;
+
+                for (int MMT1 = TT1; MMT1 >= -TT1; MMT1 -= 2)
+                {
+                  int MMT2 = MMT() - MMT1;
+                  if (abs(MMT2) > TT2) continue;
+                  double cgcT = cgcs.get({TT1, TT2, TT(), MMT1, MMT2, MMT()});
+
+                  U3xU4::Tad_phys 
+                    Tad(n, Omega_ads(), LL1, SS1, TT1, MMT1, JJ1, MMJ1, labels_);
+
+                  std::vector<Eigen::RowVectorXd> coeffs1;
+                  std::vector<U3xU4::ads_phys> adArr;
+
+                  for (int JJ2 = LL2 + SS2; JJ2 >= abs(LL2 - SS2); JJ2 -= 2)
+                  {
+                    if (u2::mult(JJ1, JJ2, JJ_) == 0) continue;
+                    if (abs(MMJ2) > JJ2) continue;
+
+                    double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
+
+                    double U9j = racah9.get({LL1, LL2, LL(),
+                                              SS1, SS2, SS(),
+                                              JJ1, JJ2, JJ()});
+
+                    double cgcU2 = U9j * cgcJ * cgcT;
+                    
+                    if (coeffs1.empty())
+                      std::tie(coeffs1, adArr) = Tad.expand();
+
+                    U3xU4::Tat_phys Tat(n, Omega_ats(), LL2, SS2, TT2, MMT2, JJ2,
+                                          MMJ2, labels_);
+
+                    auto [coeffs2, atArr] = Tat.expand();
+
+                    for (size_t i = 0; i < coeffs1.size(); i++)
+                    {
+                      for (size_t j = 0; j < coeffs2.size(); j++)
+                      {
+                        std::array<int, 4> ns, lls, jjs, mmjs, mmts;
+                        // no phase, no permutation
+                        for (int o = 0; o < 2; o++)
+                        {
+                          std::tie(ns[o], lls[o], jjs[o], mmjs[o], mmts[o]) =
+                            adArr[i][o].getLabels();
+
+                          std::tie(ns[o + 2], lls[o + 2], jjs[o + 2], mmjs[o + 2], mmts[o + 2]) =
+                            atArr[j][o].getLabels();
+                        }
+
+                        double me = TBME.getME(
+                          ns[0], lls[0], jjs[0], mmjs[0], mmts[0],
+                          ns[1], lls[1], jjs[1], mmjs[1], mmts[1],
+                          ns[3], lls[3], jjs[3], mmjs[3], mmts[3],
+                          ns[2], lls[2], jjs[2], mmjs[2], mmts[2]) / 4.0;
+
+                        if (std::fabs(me) < 1e-10) continue;
+
+                        for (int rho = 0; rho < rhomax; rho++)
+                          for (int eta = 0; eta < etamax; eta++)
+                            for (int k = 0; k < kappamax_; k++)
+                              for (int z = 0; z < zetamax_; z++)
+                              {
+                                int index =
+                                      ((rho * etamax + eta) * kappamax_ + k) *
+                                          zetamax_ +
+                                      z;
+                                for (int k1 = 0; k1 < kappa1; k1++)
+                                  for (int k2 = 0; k2 < kappa2; k2++)
+                                    strengths[index] += me *
+                                      cgcU3((k1 * kappa2 + k2) * kappamax_ + k, rho) *
+                                      cgcU4(z, eta) * cgcU2 *
+                                      coeffs1[i](k1) * coeffs2[j](k2);
+                              }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return strengths;
   }
 
 } // namespace U3xU4

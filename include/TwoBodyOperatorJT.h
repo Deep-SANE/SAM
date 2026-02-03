@@ -130,7 +130,8 @@ namespace JT
                            const std::vector<std::vector<int>>& inverse,
                            const std::vector<int>& phase) const;
 
-    // selection rule
+    // selection rules
+    bool HOShellselection(int na, int nb, int nc, int nd) const;
     bool LLselection(const int& LL) const;
     bool SSselection(const int& SS) const;
     bool U3selection(const u3::irrep& irr) const;

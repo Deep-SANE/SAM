@@ -694,6 +694,10 @@ namespace U3xU4
                std::vector<U3xU4::ads_phys>,    // ad's
                std::vector<U3xU4::ats_phys>>    // a's
     expand() const;
+
+    // Get two-body strength directly during expand()
+    std::vector<double> getStrengths(const HO::TwBME_scalar& TBME) const;
+
   };
   using SingleShellTensors_phys = std::vector<SingleShellTensor_phys>;
   using ads_ats_phys = std::vector<std::variant<ad_phys, at_phys>>;
