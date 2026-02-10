@@ -580,7 +580,6 @@ namespace JT
     // auto tensors = expand_old();
     auto tensors = expand();
 
-    // return U3xU4::MatrixElements(tensors, basis);
     return U3xU4::MatrixElements(tensors, basis, gelfand_labels_);
   }
 
@@ -588,10 +587,9 @@ namespace JT
     const U3xU4::ManyNucleonBasis& bras,
     const U3xU4::ManyNucleonBasis& kets)
   {
-    auto tensors = expand_old();
-    // auto tensors = expand();
+    // auto tensors = expand_old();
+    auto tensors = expand();
     
-    // return U3xU4::MatrixElements(tensors, bras, kets);
     return U3xU4::MatrixElements(tensors, bras, kets, gelfand_labels_);
   }
 

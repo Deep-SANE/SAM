@@ -84,12 +84,6 @@ namespace U3xU4
   };
 
   /**
-   * Declare class for holding multiple general U3xU4 multi-shell tensors,
-     which share the same U3xU4::SingleShellTensors
-  */
-  class MultiShellTensor_ShareGammas_phys;
-
-  /**
    * Class that represents the many nucleon basis.
    */
   class ManyNucleonBasis
@@ -544,9 +538,29 @@ namespace U3xU4
     /////////////////// COMPUTING MATRIX ELEMENTS ///////////////////
 
     // Symmetric matrix
-    friend Eigen::SparseMatrix<double> MatrixElements_new(
+    /*
+    friend Eigen::SparseMatrix<double> MatrixElements(
+      const std::vector<MultiShellTensor_phys>& tensors, 
+      const U3xU4::ManyNucleonBasis& basis,
+      const U3xU4::Table_gelfand& gelfand_labels);
+
+    friend Eigen::SparseMatrix<double> MatrixElements(
       const std::vector<MultiShellTensor_ShareGammas_phys>& tensors, 
       const U3xU4::ManyNucleonBasis& basis,
+      const U3xU4::Table_gelfand& gelfand_labels);
+    */
+    template <typename TensorType>
+    friend Eigen::SparseMatrix<double> MatrixElements(
+      const std::vector<TensorType>& tensors, 
+      const U3xU4::ManyNucleonBasis& basis,
+      const U3xU4::Table_gelfand& gelfand_labels);
+
+    // Rectangular matrix
+    template <typename TensorType>
+    friend Eigen::SparseMatrix<double> MatrixElements(
+      const std::vector<TensorType>& tensors, 
+      const U3xU4::ManyNucleonBasis& bras,
+      const U3xU4::ManyNucleonBasis& kets,
       const U3xU4::Table_gelfand& gelfand_labels);
   };
 

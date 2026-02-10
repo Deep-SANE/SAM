@@ -9,7 +9,6 @@
 #include <RME.h>
 #include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
-#include <U3xU4SingleShellTensorsRME_Database.h>
 
 #define FRONT_CREATE // same as lsu3shell
 //#define REAR_CREATE
@@ -499,7 +498,8 @@ namespace U3xU4
   std::vector<sam::RME> MultiShellTensor_ShareGammas_phys::RME(
                                  const ManyNucleonBasis::Irrep& bra,
                                  const ManyNucleonBasis::Irrep& ket,
-                                 const U3xU4::Table_gelfand& labels) const
+                                 const U3xU4::Table_gelfand& labels,
+                                 U3xU4::RME_db& RMEdb) const
   {
     std::vector<sam::RME> RMEs, SingleShellRMEs;
 
@@ -519,8 +519,7 @@ namespace U3xU4
     auto phase = uncoupling_phase(Gammas_, bra, ket);
 
     // (4) calculate RMEs:
-    U3xU4::RME_db RMEdb;
-
+    
     for (const auto& [Omegas_, LLSSTTstrengths_] : Omegas_LLSSTTstrengths_)
     { 
       assert(bra.omega.size() == Omegas_.size());

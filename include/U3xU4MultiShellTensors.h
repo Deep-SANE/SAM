@@ -17,6 +17,7 @@
 #include <U3xU4irrep.h>
 #include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4SingleShellTensors.h>
+#include <U3xU4SingleShellTensorsRME_Database.h>
 
 #include <qcx_Int.h>
 
@@ -563,7 +564,8 @@ namespace U3xU4
     // list of RMEs
     std::vector<sam::RME> RME(const ManyNucleonBasis::Irrep& bra,
                               const ManyNucleonBasis::Irrep& ket,
-                              const U3xU4::Table_gelfand& labels) const;
+                              const U3xU4::Table_gelfand& labels,
+                              U3xU4::RME_db& RMEdb) const;
   };
   using MultiShellTensors_ShareGammas_phys = 
     std::vector<MultiShellTensor_ShareGammas_phys>;
@@ -596,10 +598,7 @@ namespace U3xU4
   /////////////////// COMPUTING MATRIX ELEMENTS ///////////////////
 
   // Symmetric matrix
-  Eigen::SparseMatrix<double> 
-    MatrixElements(const MultiShellTensors_phys& tensors, 
-                   const U3xU4::ManyNucleonBasis& basis);
-
+  /*
   Eigen::SparseMatrix<double> 
     MatrixElements(const MultiShellTensors_phys& tensors, 
                    const U3xU4::ManyNucleonBasis& basis,
@@ -609,20 +608,17 @@ namespace U3xU4
     MatrixElements(const MultiShellTensors_ShareGammas_phys& tensors, 
                    const U3xU4::ManyNucleonBasis& basis,
                    const U3xU4::Table_gelfand& gelfand_labels);
-
+  */
+  template <typename TensorType>
   Eigen::SparseMatrix<double> 
-    MatrixElements_new(const MultiShellTensors_ShareGammas_phys& tensors, 
-                       const U3xU4::ManyNucleonBasis& basis,
-                       const U3xU4::Table_gelfand& gelfand_labels);
+    MatrixElements(const std::vector<TensorType>& tensors, 
+                   const U3xU4::ManyNucleonBasis& basis,
+                   const U3xU4::Table_gelfand& gelfand_labels);
 
   // Rectangular matrix
+  template <typename TensorType>
   Eigen::SparseMatrix<double> 
-    MatrixElements(const MultiShellTensors_phys& tensors, 
-                   const U3xU4::ManyNucleonBasis& bras,
-                   const U3xU4::ManyNucleonBasis& kets);
-
-  Eigen::SparseMatrix<double> 
-    MatrixElements(const MultiShellTensors_phys& tensors, 
+    MatrixElements(const std::vector<TensorType>& tensors, 
                    const U3xU4::ManyNucleonBasis& bras,
                    const U3xU4::ManyNucleonBasis& kets,
                    const U3xU4::Table_gelfand& gelfand_labels);

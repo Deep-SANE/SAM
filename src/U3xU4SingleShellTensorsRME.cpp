@@ -1,7 +1,11 @@
 #include <cassert>
-#include <chrono>
 #include <stdexcept>
 #include <utility>
+
+// #define TIME_SINGLE_SHELL_TENSOR_RME
+#ifdef TIME_SINGLE_SHELL_TENSOR_RME
+#include <chrono>
+#endif
 
 #include <UNtoU3.h>
 
@@ -426,10 +430,11 @@ namespace U3xU4
                                   const U3xU4::GammaElement& i,
                                   const U3xU4::Table_gelfand& labels) const
   {
-    // static std::chrono::duration<double> total_time(0);
-    // static double last_print = 0.0;
-
-    // auto start = std::chrono::high_resolution_clock::now();
+#ifdef TIME_SINGLE_SHELL_TENSOR_RME
+    static std::chrono::duration<double> total_time(0);
+    static double last_print = 0.0;
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
 
     auto& cgcs = qcx_utils::cgcs();
     auto& wigU3U2db = u3::wigU3U2db();
@@ -789,16 +794,19 @@ namespace U3xU4
               }
 
     size_t aT_max = rho0max() * eta0max();
-/*
+
+#ifdef TIME_SINGLE_SHELL_TENSOR_RME
     auto end = std::chrono::high_resolution_clock::now();
     total_time += end - start;  // duration in seconds
 
     // Print occasionally 
-    if (total_time.count() - last_print >= 10.0) {
+    if (total_time.count() - last_print >= 10.0) 
+    {
         std::cout << "Accumulated time: " << total_time.count() << " s\n";
         last_print = total_time.count();
     }
-*/
+#endif
+
     return {std::move(rmes),
             static_cast<size_t>(af_max),
             static_cast<size_t>(ai_max),

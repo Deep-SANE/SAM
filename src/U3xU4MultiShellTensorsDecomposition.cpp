@@ -1202,7 +1202,6 @@ namespace U3xU4
                                       coeffsArr1[i]((alpha1 * kappa1 + k1) * zeta1 + z1) *
                                       coeffsArr2[j]((alpha2 * kappa2 + k2) * zeta2 + z2);
                                   }
-
                           }
                         }
                       }
