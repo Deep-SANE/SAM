@@ -1,8 +1,10 @@
 #pragma once
 
 #include <filesystem>
+#include <fstream>
 #include <string>
 
+#include <qcx_Cache.h>
 #include <qcx_readwrite.h>
 
 #include <RME.h>
@@ -17,39 +19,9 @@ namespace U3xU4
     std::string dir;
 
     // Get filename for a tensor
-    std::string filename(const U3xU4::SingleShellTensor& t)
-    {
-      using std::to_string;
+    std::string filename(const U3xU4::SingleShellTensor& t) const;
 
-      std::string shell = "n" + to_string(t.shell());
-
-      std::string ads = "_" + to_string(t.num_ads()) + "ads";
-      for (const auto& Omega : t.Omega_ads())
-        ads += "_" + to_string(Omega.lam()) + "-" 
-  	      		   + to_string(Omega.mu()) + "-" 
-  				   + to_string(Omega.P1()) + "-" 
-  				   + to_string(Omega.P2()) + "-" 
-  				   + to_string(Omega.P3());
-
-      std::string ats = "_" + to_string(t.num_ats()) + "ats";
-      for (const auto& Omega : t.Omega_ats())
-        ats += "_" + to_string(Omega.lam()) + "-" 
-  				   + to_string(Omega.mu()) + "-"
-  				   + to_string(Omega.P1()) + "-"
-  				   + to_string(Omega.P2()) + "-"
-  				   + to_string(Omega.P3());
-
-      std::string irr = "_" + to_string(t.rho0max()) + "-" 
-    					    + to_string(t.lam()) + "-"
-    					    + to_string(t.mu()) + "-" 
-    					    + to_string(t.eta0max()) + "-"
-    					    + to_string(t.P1()) + "-" 
-    					    + to_string(t.P2()) + "-" 
-    					    + to_string(t.P3());
-
-      return dir + "/" + shell + ads + ats + irr + ".bin";
-    }
-
+    // Key for RME
     struct RMEKey
     {
       uint32_t su3key;
@@ -57,25 +29,38 @@ namespace U3xU4
 
       RMEKey() = default;
 
-      RMEKey(const U3xU4::GammaElement& f, 
-             const U3xU4::GammaElement& i)
-      {
-        // Pack SU(3) labels into 32-bit key
-        std::array<qcx_utils::UInt8, 4> 
-          su3key_safe = {f.lam(), f.mu(), i.lam(), i.mu()};
-        su3key = (uint32_t(su3key_safe[0]) << 24) | (uint32_t(su3key_safe[1]) << 16) |
-                 (uint32_t(su3key_safe[2]) << 8)  | uint32_t(su3key_safe[3]);
+      RMEKey(uint32_t su3key_, uint64_t su4key_) 
+        : su3key(su3key_), su4key(su4key_) { }
 
-        // Pack SU(4) labels into 64-bit key
-        std::array<qcx_utils::UInt8, 6> 
-          su4key_safe = {f.P1(), f.P2(), f.P3(), i.P1(), i.P2(), i.P3()};
-        su4key = (uint64_t(su4key_safe[0]) << 56) | (uint64_t(su4key_safe[1]) << 48) |
-                 (uint64_t(su4key_safe[2]) << 40) | (uint64_t(su4key_safe[3]) << 32) |
-                 (uint64_t(su4key_safe[4]) << 24) | (uint64_t(su4key_safe[5]) << 16);
-      }
+      RMEKey(const U3xU4::GammaElement& f, const U3xU4::GammaElement& i);
 
-      bool operator<=> (const RMEKey& x) const = default;
+      auto operator<=>(const RMEKey&) const = default;
     };
+
+    // Cached file streams
+    struct RMEFile
+    {
+      std::fstream file;
+
+      // map key -> rmes
+      std::map<RMEKey, std::vector<double>> rmes_map;
+
+      // constructor
+      RMEFile(const std::string& path);
+
+      // check if key exists
+      bool contains(const RMEKey& key) const;
+
+      // get rmes from key
+      const std::vector<double>& get(const RMEKey& key) const;
+
+      // add new key and rmes
+      void append(const RMEKey& key, const std::vector<double>& rmes);
+    };
+
+    // Hash table of file streams
+    std::unordered_map<std::string, RMEFile> cache_;
+    RMEFile& getFile(const std::string& file);
 
   public:
   	RME_db()
@@ -91,151 +76,6 @@ namespace U3xU4
   	sam::RME get(const U3xU4::SingleShellTensor& t,
                  const U3xU4::GammaElement& f, 
                  const U3xU4::GammaElement& i,
-                 const U3xU4::Table_gelfand& labels)
-  	{
-      // std::cout << "Inside RME_db" << std::endl;
-
-  	  // (1) Check if this RME exists
-      if (t.RME_exist(f, i) == false) return {};
-
-      size_t ai_max = i.alphamax();
-      size_t af_max = f.alphamax();
-
-      // (2) If this is an identity tensor
-      if (t.identity() && i == f)
-      {
-        assert(t.Omega_ads().empty());
-        assert(t.Omega_ats().empty());
-        assert(t.T() == U3xU4::irrep(0,0,0, 0,0,0,0));
-      	assert(t.rho0max() == 1);
-        assert(t.eta0max() == 1);
-
-      	// Now calculate RMEs
-        std::vector<double> rmes;
-        for (int af = 0; af < af_max; af++)
-          for (int ai = 0; ai < ai_max; ai++)
-            rmes.push_back((ai == af) ? 1.0 : 0.0);
-
-        return {std::move(rmes),
-                static_cast<size_t>(af_max),
-                static_cast<size_t>(ai_max),
-                1,
-                1,
-                1};
-      }
-
-      // (3) If this is not an identity tensor
-
-      int A_i = i.particles(), A_f = f.particles(), n = t.shell();
-
-      // (3.1) Special case: <1||a+||0>
-
-      if (A_f == 1 && A_i == 0)
-      {
-      	assert(t.num_ads() == 1);
-      	assert(t.num_ats() == 0);
-      	assert(af_max == 1);
-      	assert(ai_max == 1);
-
-      	return {{1.0}, 1, 1, 1, 1, 1};
-      }
-
-      // (3.2) Special case: <0||a||1>
-
-      if (A_f == 0 && A_i == 1)
-      {
-        assert(t.num_ads() == 0);
-      	assert(t.num_ats() == 1);
-      	assert(af_max == 1);
-      	assert(ai_max == 1);
-
-      	return {{std::sqrt(2.0 * (n + 1.0) * (n + 2.0))}, 1, 1, 1, 1, 1};
-      }
-
-      // (3.3) Special case: <2||a+ a+||0>
-
-      if (A_f == 2 && A_i == 0)
-      {
-      	assert(t.num_ads() == 2);
-      	assert(t.num_ats() == 0);
-        assert(af_max == 1);
-        assert(ai_max == 1);
-
-      	return {{SQRT2}, 1, 1, 1, 1, 1};
-      }
-
-      // (3.4) Special case: <0||a a||2>
-
-      if (A_f == 0 && A_i == 2)
-      {
-        assert(t.num_ads() == 0);
-        assert(t.num_ats() == 2);
-        assert(af_max == 1);
-        assert(ai_max == 1);
-
-        return {{- SQRT2 * std::sqrt(i.dim())}, 1, 1, 1, 1, 1};
-      }
-
-      // (3.5) General case
-      auto key = RMEKey(f, i);
-  	  auto file = filename(t);
-
-  	  std::ifstream in(file, std::ios::binary);
-      
-      // std::cout << "About to find in binary file " << file << std::endl;
-  	  if (in)
-  	  {
-  	  	while (true)
-  	  	{
-  	  	  uint32_t su3key_;
-          qcx_utils::readBinary(in, su3key_);
-
-          uint64_t su4key_;
-          qcx_utils::readBinary(in, su4key_);
-
-  	  	  size_t num_rmes;
-  	  	  qcx_utils::readBinary(in, num_rmes);
-
-  	  	  std::vector<double> rmes(num_rmes);
-  	  	  qcx_utils::readBinary(in, rmes);
-
-  	  	  if (key.su3key == su3key_ && key.su4key == su4key_)
-  	  	  {
-  	  	  	size_t t_amax = t.rho0max() * t.eta0max();
-
-  	  	  	auto [rhomax, etamax] = U3xU4::RhoEta(i, t.T(), f);
-
-  	  	  	return {std::move(rmes),
-                	  af_max,
-                	  ai_max,
-                	  t_amax,
-                	  static_cast<size_t>(rhomax),
-            		    static_cast<size_t>(etamax)};
-          }
-
-          if (!in) break;
-  	  	}
-  	  }
-
-  	  auto rmes = t.RME(f, i, labels);
-
-  	  // (3.6) Append or create file
-
-      // std::cout << "About to write to binary file " << file << std::endl;
-  	  std::ofstream out(file, std::ios::binary | std::ios::app);
-  	  if (!out)
-      	throw std::runtime_error("Cannot open file for writing: " + file);
-
-      qcx_utils::writeBinary(out, key.su3key);
-      qcx_utils::writeBinary(out, key.su4key);
-
-      size_t num_rmes = rmes.size();
-  	  qcx_utils::writeBinary(out, num_rmes);
-
-  	  for (size_t i = 0; i < num_rmes; i++)
-  	  	qcx_utils::writeBinary(out, rmes[i]);
-
-      return rmes;
-  	}
+                 const U3xU4::Table_gelfand& labels);
   };
 } // namespace U3xU4
