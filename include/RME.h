@@ -51,6 +51,8 @@ namespace sam
       return operator[](i);
     }
 
+    const auto& get() const { return rmes_; }
+
     void phase(int ph)
     {
       assert((ph == 1) || (ph == -1));
