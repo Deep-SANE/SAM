@@ -5,17 +5,14 @@
 
 #include <eigensolver.h>
 #include <qcx_readwrite.h>
-#include <qcx_utils.h>
-#include <u3lib.h>
-#include <u4lib.h>
+
+#include <sam.h>
 
 #include <OperatorJT.h>
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
-  u3::initialize();
-  u4::initialize();
+  sam::initialize(&argc, &argv);
 
   // Specify Hamiltonian
   std::string Hamil_name = "Hamiltonian with N2LO_opt_bare";
@@ -25,7 +22,7 @@ int main(int argc, char* argv[])
   // std::string name = "E2";
 
   // Example 2: M1
-  // std::string name = "M1";
+  std::string name = "M1";
 
   // Example 3: instrinsic radius squared
   // std::string name = "Radius";
@@ -35,12 +32,12 @@ int main(int argc, char* argv[])
   // std::string name = "FermiPlus";
 
   // Example 12: Gamow-Teller for beta decay
-  std::string name = "GamowTellerMinus";
+  // std::string name = "GamowTellerMinus";
   // std::string name = "GamowTellerPlus";
 
   ////////////// WITHIN THE SAME BASIS //////////////
   /*
-  int Z = 3, N = 3, Nmax = 4, JJ = 2, hw = 20;
+  int Z = 3, N = 3, Nmax = 6, JJ = 2, hw = 20;
 
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
   basis.construct();
@@ -60,36 +57,36 @@ int main(int argc, char* argv[])
   auto filename = Hamil.filename(basis);
   auto mat = qcx_utils::readBinary(filename);
 
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, mat.rows());
-  */
+  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 3);
+  
   // moments
-  /*
+  
   auto vals = op.expectationValue(basis, 
     {{evecs.col(0), evecs.col(0)}, {evecs.col(1), evecs.col(1)}});
 
   std::cout << "Expectation values of " << name << " are" << std::endl;
   for (int i = 0; i < vals.size(); i++)
     std::cout << "State " << i << ": " << vals[i] << std::endl;
-  */
+  
 
   // transition
-  /*
+  
   auto strengths = op.transitionStrength(basis, 
     {{evecs.col(0), evecs.col(1)}});
 
   std::cout << "Transition strengths of " << name << " are" << std::endl;
   for (int i = 0; i < strengths.size(); i++)
     std::cout << "Channel " << i << ": " << strengths[i] << std::endl;
-  */
+  
 
   // End time measurement
-  // auto t1 = std::chrono::high_resolution_clock::now();
-  
+  auto t1 = std::chrono::high_resolution_clock::now();
+  */
 
   ////////////// BETWEEN TWO DIFFERENT BASES //////////////
   
-  int Nmax = 4, hw = 20, 
-      Zi = 2, Ni = 4, JJi = 0, Zf = 3, Nf = 3, JJf = 2;
+  int Nmax = 6, hw = 20, 
+      Zi = 3, Ni = 3, JJi = 4, Zf = 3, Nf = 3, JJf = 2;
 
   U3xU4::ManyNucleonBasis kets(Ni, Zi, Nmax, JJi);
   kets.construct();
@@ -115,13 +112,19 @@ int main(int argc, char* argv[])
   auto filename_i = Hamil_i.filename(kets);
   auto mat_i = qcx_utils::readBinary(filename_i);
 
-  auto [evals_i, evecs_i] = qcx_utils::eigensolver_symmetric(mat_i, mat_i.rows());
+  auto [evals_i, evecs_i] = qcx_utils::eigensolver_symmetric(mat_i, 2);
+  std::cout << "Initial energies: ";
+  for (const auto& val : evals_i) std::cout << val << "\t";
+  std::cout << std::endl;
 
   // read Hamiltonian matrix
   auto filename_f = Hamil_f.filename(bras);
   auto mat_f = qcx_utils::readBinary(filename_f);
 
-  auto [evals_f, evecs_f] = qcx_utils::eigensolver_symmetric(mat_f, mat_f.rows());
+  auto [evals_f, evecs_f] = qcx_utils::eigensolver_symmetric(mat_f, 2);
+  std::cout << "Final energies: ";
+  for (const auto& val : evals_f) std::cout << val << "\t";
+  std::cout << std::endl;
   
   // transition
   
@@ -130,9 +133,7 @@ int main(int argc, char* argv[])
 
   std::cout << "Transition strengths of " << name << " are" << std::endl;
   for (int i = 0; i < strengths.size(); i++)
-  {
     std::cout << "Channel " << i << ": " << strengths[i] << std::endl;
-  }
   
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -148,5 +149,5 @@ int main(int argc, char* argv[])
             << duration.count() / 60.0 << " minutes" << std::endl;
 
 
-  qcx_utils::finalize();
+  sam::finalize();
 }

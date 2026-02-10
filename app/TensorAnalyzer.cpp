@@ -1,17 +1,13 @@
-#include <qcx_utils.h>
-#include <u3lib.h>
-#include <u4lib.h>
+#include <sam.h>
 
 #include <OneBodyOperatorJT.h>
 #include <TwoBodyOperatorJT.h>
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
-  u3::initialize();
-  u4::initialize();
+  sam::initialize(&argc, &argv);
 
-  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 8, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -130,7 +126,6 @@ int main(int argc, char* argv[])
   for (const auto& [irr, stats] : tensors_SS_stats)
     std::cout << irr << ":\t" << stats << std::endl;
 */
-  u4::finalize();
-  u3::finalize();
-  qcx_utils::finalize();
+  
+  sam::finalize();
 }

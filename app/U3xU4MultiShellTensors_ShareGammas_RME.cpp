@@ -3,10 +3,7 @@
 #include <chrono>
 #include <iostream>
 
-#include <qcx_utils.h>
-
-#include <u3lib.h>
-#include <u4lib.h>
+#include <sam.h>
 
 #include <U3xU4irrep.h>
 #include <U3xU4GammaOmega.h>
@@ -15,9 +12,7 @@
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
-  u3::initialize();
-  u4::initialize();
+  sam::initialize(&argc, &argv);
 
   /* Example 1: n = 0, 1, 2 and 3 shells
    /                        1[3,2,0,0]     1[3,2,1,0]       1[3,1,0,0] |||
@@ -110,7 +105,8 @@ int main(int argc, char* argv[])
   auto t0 = std::chrono::high_resolution_clock::now();
 
   U3xU4::Table_gelfand gelfand_labels(3);
-  auto rmes = uT->RME(bra, ket, gelfand_labels);
+  U3xU4::RME_db RMEdb;
+  auto rmes = uT->RME(bra, ket, gelfand_labels, RMEdb);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -124,7 +120,5 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
-  u4::finalize();
-  u3::finalize();
-  qcx_utils::finalize();
+  sam::finalize();
 }

@@ -8,13 +8,11 @@
 #include <u3lib.h>
 #include <u4lib.h>
 
-#include <qcx_utils.h>
+#include <sam.h>
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
-  u3::initialize();
-  u4::initialize();
+  sam::initialize(&argc, &argv);
 
   int n = 0, ads = 0, ats = 0, 
       LL = 0, SS = 0, TT = 0, MMT = 0, JJ = 0, MMJ = 0;
@@ -155,7 +153,5 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
-  u4::finalize();
-  u3::finalize();
-  qcx_utils::finalize();
+  sam::finalize();
 }

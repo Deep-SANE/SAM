@@ -2,18 +2,13 @@
 #include <iostream>
 #include <tuple>
 
-#include <qcx_utils.h>
-
-#include <u3lib.h>
-#include <u4lib.h>
+#include <sam.h>
 
 #include <TwoBodyOperatorJT.h>
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
-  u3::initialize();
-  u4::initialize();
+  sam::initialize(&argc, &argv);
 
   int hw = 20, valenceShell = 0, Nmax = 8, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
@@ -107,7 +102,5 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
-  u4::finalize();
-  u3::finalize();
-  qcx_utils::finalize();
+  sam::finalize();
 }

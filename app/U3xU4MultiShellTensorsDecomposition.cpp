@@ -2,20 +2,16 @@
 #include <iostream>
 #include <utility>
 
-#include <qcx_utils.h>
 #include <qcx_convert.h>
 
-#include <u3lib.h>
-#include <u4lib.h>
+#include <sam.h>
 
 #include <U3xU4irrep.h>
 #include <U3xU4MultiShellTensors.h>
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
-  u3::initialize();
-  u4::initialize();
+  sam::initialize(&argc, &argv);
 
   int maxShell, LL = 0, SS = 0, TT = 0, MMT = 0, JJ = 0, MMJ = 0;
   U3xU4::SingleShellTensors Gammas;
@@ -242,7 +238,5 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
-  u4::finalize();
-  u3::finalize();
-  qcx_utils::finalize();
+  sam::finalize();
 }

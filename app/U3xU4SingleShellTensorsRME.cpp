@@ -2,21 +2,17 @@
 #include <fstream>
 #include <iostream>
 
-#include <u3lib.h>
-#include <u4lib.h>
+#include <sam.h>
 
 #include <U3xU4irrep.h>
 #include <U3xU4SingleShellTensors.h>
 #include <U3xU4SingleShellTensorsRME_Database.h>
 
 #include <qcx_ND.h>
-#include <qcx_utils.h>
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
-  u3::initialize();
-  u4::initialize();
+  sam::initialize(&argc, &argv);
 
   U3xU4::irreps Omega_ads, Omega_ats;
   int n = 0, ads = 0, ats = 0;
@@ -159,7 +155,5 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
-  u4::finalize();
-  u3::finalize();
-  qcx_utils::finalize();
+  sam::finalize();
 }

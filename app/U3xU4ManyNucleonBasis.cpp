@@ -3,17 +3,16 @@
 
 #include <qcx_print.h>
 #include <qcx_utils.h>
-#include <u3lib.h>
-#include <u4lib.h>
+
+#include <sam.h>
+
 #include <U3xU4ManyNucleonBasis.h>
 
 int main(int argc, char* argv[])
 {
   using qcx_utils::print;
 
-  qcx_utils::initialize(&argc, &argv);
-  u3::initialize();
-  u4::initialize();
+  sam::initialize(&argc, &argv);
 
   int Z, N, Nmax, JJ;
 
@@ -47,7 +46,5 @@ int main(int argc, char* argv[])
 
   print("\nBasis dimension: {}\n", basis.dim());
 
-  u4::finalize();
-  u3::finalize();
-  qcx_utils::finalize();
+  sam::finalize();
 }

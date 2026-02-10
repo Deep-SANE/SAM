@@ -4,18 +4,14 @@
 
 #include <eigensolver.h>
 #include <qcx_readwrite.h>
-#include <qcx_utils.h>
 
-#include <u3lib.h>
-#include <u4lib.h>
+#include <sam.h>
 
 #include <OperatorJT.h>
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
-  u3::initialize();
-  u4::initialize();
+  sam::initialize(&argc, &argv);
   /*
   int Z, N, Nmax, JJ, hw, write;
 
@@ -33,7 +29,7 @@ int main(int argc, char* argv[])
   std::cin >> write;
   */
 
-  int Z = 3, N = 3, JJ = 2, Nmax = 6, hw = 20, write = 0;
+  int Z = 3, N = 3, JJ = 2, Nmax = 4, hw = 20, write = 0;
 
   // Example 1: LL
   // std::string name = "L.L";
@@ -55,6 +51,9 @@ int main(int argc, char* argv[])
 
   // Example 8: Hamiltonian with N4LO_EMN500_bare
   // std::string name = "Hamiltonian with N4LO_EMN500_bare";
+
+  // Example 9: Hamiltonian with N2LO_opt_srg2.0
+  // std::string name = "Hamiltonian with N2LO_opt_srg2.0";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
@@ -145,7 +144,5 @@ int main(int argc, char* argv[])
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
 
-  u3::finalize();
-  u4::finalize();
-  qcx_utils::finalize();
+  sam::finalize();
 }

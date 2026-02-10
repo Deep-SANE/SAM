@@ -1,17 +1,12 @@
 #include <iostream>
 
-#include <qcx_utils.h>
-
-#include <u3lib.h>
-#include <u4lib.h>
+#include <sam.h>
 
 #include <U3xU4SingleShellTensors.h>
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
-  u3::initialize();
-  u4::initialize();
+  sam::initialize(&argc, &argv);
 
   int n = 2, num_ads = 1, num_ats = 3;
 
@@ -21,7 +16,5 @@ int main(int argc, char* argv[])
   for (auto t : tensors)
     std::cout << t << std::endl;
 
-  u4::finalize();
-  u3::finalize();
-  qcx_utils::finalize();
+  sam::finalize();
 }
