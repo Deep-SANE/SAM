@@ -41,7 +41,11 @@ namespace JT
 
     if (known_scalar_ops.count(name_)) { }
     else if (name_ == "E2") { JJ_ = 4; }
-    else if (name_ == "M1") { JJ_ = 2; }
+    else if (name_ == "M1")
+    { 
+      TT_ = -1;
+      JJ_ = 2;
+    }
     else if (name_ == "FermiPlus")
     {
       TT_ = 2;
@@ -927,9 +931,11 @@ namespace JT
                     P30 = pv4s[pv4].P3(), SS0 = pv4s[pv4].SS(),
                     TT0 = pv4s[pv4].TT();
 
+                // if the operator has definite isospin assignment
+                if (TT() >= 0 && TT() != TT0) continue;
+
                 // couple LL0 and SS0 to JJ0
-                // the sum over CGCs will kill JJ0 != JJ and TT0 != TT
-                if (JJ() < std::fabs(LL0 - SS0) || JJ() > (LL0 + SS0) || TT0 != TT())
+                if (JJ() < std::fabs(LL0 - SS0) || JJ() > (LL0 + SS0))
                   continue;
 
                 // the selection rule of CGCs also dictates that
@@ -1113,15 +1119,17 @@ namespace JT
 
         if (SSselection(SS0) == false) continue;
 
-        // if (JJ() < abs(LL0 - SS0) || JJ() > (LL0 + SS0) || TT0 != TT())
-        if (u2::mult(LL0, SS0, JJ()) == 0 || TT0 != TT())
-          continue;
+        // if the operator has definite isospin assignment
+        if (TT() >= 0 && TT() != TT0) continue;
+
+        // couple LL0 and SS0 to JJ0
+        if (u2::mult(LL0, SS0, JJ()) == 0) continue;
 
         auto [allowU4, cgcU4] = (na <= nb)
           ? wigU4SU2SU2db.get(
-              1, 0, 0, 1, 1, 0, 0, 1, 1, 1, P10, P20, P30, SS0, TT())
+              1, 0, 0, 1, 1, 0, 0, 1, 1, 1, P10, P20, P30, SS0, TT0)
           : wigU4SU2SU2db.get(
-              0, 0, 1, 1, 1, 1, 0, 0, 1, 1, P10, P20, P30, SS0, TT());
+              0, 0, 1, 1, 1, 1, 0, 0, 1, 1, P10, P20, P30, SS0, TT0);
 
         if (allowU4 == false) continue;
 
@@ -1170,8 +1178,8 @@ namespace JT
                     if (abs(mmtb) > 1) continue;
 
                     double cgcT = (na <= nb)
-                      ? cgcs.get({1, 1, TT(), mmta, -mmtb, MMT()})
-                      : cgcs.get({1, 1, TT(), -mmtb, mmta, MMT()});
+                      ? cgcs.get({1, 1, TT0, mmta, -mmtb, MMT()})
+                      : cgcs.get({1, 1, TT0, -mmtb, mmta, MMT()});
 
                     double me = sphericalME(na, lla, jja, mmja, mmta,
                                             nb, llb, jjb, mmjb, mmtb);
