@@ -482,6 +482,9 @@ namespace U3xU4
 
     // final tensor coupling stored in GammaElement base class
 
+    // name of binary file that stores RMEs
+    std::optional<std::string> filename_;
+
   public:
     // Constructor
     SingleShellTensor() : U3xU4::GammaElement(0, 0, {}, 0, {})
@@ -532,6 +535,13 @@ namespace U3xU4
 
     // Read from binary file
     void readBinary(std::istream& s);
+
+    // Get name of the binary RME file
+    const std::string& filename() const 
+    { 
+      assert(filename_.has_value());
+      return *filename_; 
+    }
 
     /* Compute RMEs of single-shell U(3)xU(4) tensors
                       rho0 U(3)_0

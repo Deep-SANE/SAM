@@ -111,7 +111,7 @@ namespace U3xU4
     }
 
     // RME database
-    U3xU4::RME_db RMEdb;
+    U3xU4::RME_db RMEdb(basis.maxShell());
 
     std::vector<Eigen::Triplet<double>> ija;
     
@@ -329,12 +329,18 @@ namespace U3xU4
                                                                  LL, SS, JJ_opt,
                                                                  bra_LL, bra_SS, JJ});
                           if (std::fabs(cgcU2) < 1e-12) continue;
-
+                          /*
                           auto [allowU3, cgcU3] = wigU3SO3db.get(
                             ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
                             irr.lam(), irr.mu(), LL / 2,
                             bra_irr.lam(), bra_irr.mu(), bra_LL / 2);
                           if (!allowU3) continue;
+                          */
+                          auto cgcU3 = wigU3SO3db.get_U3SO3(
+                            ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
+                            irr.lam(), irr.mu(), LL / 2,
+                            bra_irr.lam(), bra_irr.mu(), bra_LL / 2);
+                          if (cgcU3.empty()) continue;
 
                           auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
                             ket_irr.P1(), ket_irr.P2(), ket_irr.P3(), ket_SS, ket_TT, 
@@ -390,7 +396,9 @@ namespace U3xU4
                                                 auto rme = rmes.get(bra_a, ket_a, tensor_a, rho, eta);
                                                 //std::cout << rme << std::endl;
 
-                                                MEs(i, j) += strength * cgcU2 * cgcU3(cgcU3_row,rho) 
+                                                MEs(i, j) += strength * cgcU2 
+                                                           // * cgcU3(cgcU3_row,rho) 
+                                                           * cgcU3(ket_k, k, bra_k, rho)
                                                            * cgcU4(cgcU4_row,eta) * rme;
                                               }
                                             }
@@ -499,7 +507,7 @@ namespace U3xU4
     }
 
     // RME database
-    U3xU4::RME_db RMEdb;
+    U3xU4::RME_db RMEdb(std::max(bras.maxShell(), kets.maxShell()));
 
     std::vector<Eigen::Triplet<double>> ija;
     

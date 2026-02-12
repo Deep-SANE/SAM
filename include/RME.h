@@ -51,7 +51,7 @@ namespace sam
       return operator[](i);
     }
 
-    const auto& get() const { return rmes_; }
+    const auto& data() const { return rmes_; }
 
     void phase(int ph)
     {

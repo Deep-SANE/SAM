@@ -86,6 +86,29 @@ namespace U3xU4
 
     Omega_ats_.resize(std::max(0, static_cast<int>(ats_) - 1));
     for (auto& ir : Omega_ats_) ir.readBinary(s);
+
+    using std::to_string;
+
+    std::string shell = "n" + to_string(U3xU4::GammaElement::shell());
+
+    std::string ads = "_" + to_string(num_ads()) + "ads";
+    for (const auto& Omega : Omega_ads_)
+      ads += "_" + to_string(Omega.lam()) + "-" + to_string(Omega.mu()) + "-" +
+               to_string(Omega.P1()) + "-" + to_string(Omega.P2()) + "-" +
+               to_string(Omega.P3());
+
+    std::string ats = "_" + to_string(num_ats()) + "ats";
+    for (const auto& Omega : Omega_ats_)
+      ats += "_" + to_string(Omega.lam()) + "-" + to_string(Omega.mu()) + "-" +
+               to_string(Omega.P1()) + "-" + to_string(Omega.P2()) + "-" +
+               to_string(Omega.P3());
+
+    std::string irr = "_" + to_string(rho0max()) + "-" + to_string(lam()) +
+                      "-" + to_string(mu()) + "-" + to_string(eta0max()) +
+                      "-" + to_string(P1()) + "-" + to_string(P2()) + "-" +
+                      to_string(P3());
+
+    filename_ = shell + ads + ats + irr + ".bin";
   }
 
   std::ostream& operator<<(std::ostream& s, const SingleShellTensor_gelfand& x)

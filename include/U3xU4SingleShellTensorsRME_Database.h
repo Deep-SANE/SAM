@@ -2,9 +2,13 @@
 
 #include <filesystem>
 #include <fstream>
+#include <memory>
+#include <shared_mutex>
 #include <string>
 
-#include <qcx_Cache.h>
+#include <boost/container/flat_map.hpp>
+#include <boost/unordered/unordered_flat_map.hpp>
+
 #include <qcx_readwrite.h>
 
 #include <RME.h>
@@ -19,7 +23,7 @@ namespace U3xU4
     std::string dir;
 
     // Get filename for a tensor
-    std::string filename(const U3xU4::SingleShellTensor& t) const;
+    // std::string filename(const U3xU4::SingleShellTensor& t) const;
 
     // Key for RME
     struct RMEKey
@@ -37,41 +41,42 @@ namespace U3xU4
       auto operator<=>(const RMEKey&) const = default;
     };
 
-    // Cached file streams
+    // File for a U3xU4::SingleShellTensor
     struct RMEFile
     {
-      std::fstream file;
+      std::string path;
 
       // map key -> rmes
-      std::map<RMEKey, std::vector<double>> rmes_map;
+      boost::container::flat_map<RMEKey, std::vector<double>> rmes_map;
+      size_t initial_size;
+
+      mutable std::mutex file_mutex_;
 
       // constructor
-      RMEFile(const std::string& path);
+      explicit RMEFile(const std::string& path_);
 
       // check if key exists
       bool contains(const RMEKey& key) const;
 
       // get rmes from key
-      const std::vector<double>& get(const RMEKey& key) const;
+      std::vector<double> get_if_exist(const RMEKey& key) const;
 
       // add new key and rmes
-      void append(const RMEKey& key, const std::vector<double>& rmes);
+      std::vector<double> append_or_get(
+        const RMEKey& key, const std::vector<double>& rmes);
     };
 
-    // Hash table of file streams
-    std::unordered_map<std::string, RMEFile> cache_;
+    // Hash table of files (top-level cache)
+    boost::unordered_flat_map<std::string, std::unique_ptr<RMEFile>> cache_;
+
+    mutable std::shared_mutex cache_mutex_;
+
     RMEFile& getFile(const std::string& file);
 
   public:
-  	RME_db()
-    {
-      const char* sam_dir = std::getenv("SAM_DIR");
-      if (!sam_dir)
-        throw std::runtime_error("Environment variable SAM_DIR not set");
-
-      dir = std::string(sam_dir) + "/data/rmes";
-      std::filesystem::create_directories(dir);
-    }
+  	RME_db();
+    RME_db(int maxShell);
+    ~RME_db();
 
   	sam::RME get(const U3xU4::SingleShellTensor& t,
                  const U3xU4::GammaElement& f, 

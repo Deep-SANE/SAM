@@ -2,38 +2,12 @@
 
 namespace U3xU4
 {
-  std::string RME_db::filename(const U3xU4::SingleShellTensor& t) const
-  {
-    using std::to_string;
-
-    std::string shell = "n" + to_string(t.shell());
-
-    std::string ads = "_" + to_string(t.num_ads()) + "ads";
-    for (const auto& Omega : t.Omega_ads())
-      ads += "_" + to_string(Omega.lam()) + "-" + to_string(Omega.mu()) + "-" +
-             to_string(Omega.P1()) + "-" + to_string(Omega.P2()) + "-" +
-             to_string(Omega.P3());
-
-    std::string ats = "_" + to_string(t.num_ats()) + "ats";
-    for (const auto& Omega : t.Omega_ats())
-      ats += "_" + to_string(Omega.lam()) + "-" + to_string(Omega.mu()) + "-" +
-             to_string(Omega.P1()) + "-" + to_string(Omega.P2()) + "-" +
-             to_string(Omega.P3());
-
-    std::string irr = "_" + to_string(t.rho0max()) + "-" + to_string(t.lam()) +
-                      "-" + to_string(t.mu()) + "-" + to_string(t.eta0max()) +
-                      "-" + to_string(t.P1()) + "-" + to_string(t.P2()) + "-" +
-                      to_string(t.P3());
-
-    return dir + "/" + shell + ads + ats + irr + ".bin";
-  }
-
   RME_db::RMEKey::RMEKey(const U3xU4::GammaElement& f,
                          const U3xU4::GammaElement& i)
   {
     // Pack SU(3) labels into 32-bit key
-    std::array<qcx_utils::UInt8, 4> su3key_safe = {f.lam(), f.mu(), i.lam(),
-                                                   i.mu()};
+    std::array<qcx_utils::UInt8, 4> su3key_safe = {f.lam(), f.mu(), 
+                                                   i.lam(), i.mu()};
     su3key = (uint32_t(su3key_safe[0]) << 24) |
              (uint32_t(su3key_safe[1]) << 16) |
              (uint32_t(su3key_safe[2]) << 8) | uint32_t(su3key_safe[3]);
@@ -47,17 +21,19 @@ namespace U3xU4
         (uint64_t(su4key_safe[4]) << 24) | (uint64_t(su4key_safe[5]) << 16);
   }
 
-  RME_db::RMEFile::RMEFile(const std::string& path)
+  RME_db::RMEFile::RMEFile(const std::string& path_)
+    : path(path_)
   {
-    // Ensure file exists
-    if (!std::filesystem::exists(path))
-      std::ofstream(path, std::ios::binary).close();
-
-    file.open(path, std::ios::binary | std::ios::in | std::ios::out);
+    // Open file if exists
+    std::ifstream file(path, std::ios::binary);
     if (!file)
-      throw std::runtime_error("Cannot open RME file: " + path);
+    {
+      initial_size = 0;
+      return;
+    }
 
     // Load all RMEs into memory
+    // std::cout << "Start loading RMEFile" << std::endl;
     file.seekg(0);
     while (true)
     {
@@ -78,49 +54,167 @@ namespace U3xU4
 
       if (!file) break;
     }
+    // std::cout << "Finish loading RMEFile" << std::endl;
 
-    file.clear();                 // clear EOF
-    file.seekp(0, std::ios::end); // ready for appending
+    // Finalize
+    file.close();
+    initial_size = rmes_map.size();
   }
 
   bool RME_db::RMEFile::contains(const RMEKey& key) const
   {
+    std::lock_guard lock(file_mutex_);
     return rmes_map.find(key) != rmes_map.end();
   }
 
-  const std::vector<double>& RME_db::RMEFile::get(const RMEKey& key) const
+  std::vector<double> 
+  RME_db::RMEFile::get_if_exist(const RMEKey& key) const
   {
-    return rmes_map.at(key);
+    std::lock_guard lock(file_mutex_);
+
+    auto it = rmes_map.find(key);
+    if (it != rmes_map.end()) return it->second;
+
+    return {};
   }
 
   // add new key & rmes to map
-  void RME_db::RMEFile::append(const RMEKey& key,
-                               const std::vector<double>& rmes)
+  std::vector<double> RME_db::RMEFile::append_or_get(
+    const RMEKey& key, const std::vector<double>& rmes)
   {
-    if (contains(key))
-      return;
+    std::lock_guard lock(file_mutex_);
+    
+    auto [it, inserted] = rmes_map.emplace(key, rmes);
 
-    qcx_utils::writeBinary(file, key.su3key);
-    qcx_utils::writeBinary(file, key.su4key);
-
-    uint64_t num = rmes.size();
-    qcx_utils::writeBinary(file, num);
-    for (double v : rmes)
-      qcx_utils::writeBinary(file, v);
-
-    file.flush();
-    rmes_map.emplace(key, rmes);
+    return it->second;   // if already existed, returns old one
   }
 
   RME_db::RMEFile& RME_db::getFile(const std::string& file)
   {
-    auto it = cache_.find(file);
-    if (it == cache_.end())
+    // Fast read lock
     {
-      auto [new_it, inserted] = cache_.emplace(file, RMEFile(file));
-      return new_it->second;
+      std::shared_lock lock(cache_mutex_);
+      auto it = cache_.find(file);
+      if (it != cache_.end()) return *(it->second);
     }
-    return it->second;
+
+    // Create file OUTSIDE lock
+    auto path = dir + "/" + file;
+    auto new_file = std::make_unique<RMEFile>(path);
+
+    // Now exclusive lock to insert
+    std::unique_lock lock(cache_mutex_);
+
+    // if some thread inserted meanwhile
+    auto it = cache_.find(file);
+    if (it != cache_.end()) return *(it->second);  
+
+    auto [it_inserted, inserted] =
+      cache_.emplace(file, std::move(new_file));
+
+    return *(it_inserted->second);
+  }
+
+  RME_db::RME_db()
+  {
+    const char* sam_dir = std::getenv("SAM_DIR");
+    if (!sam_dir)
+      throw std::runtime_error("Environment variable SAM_DIR not set");
+
+    dir = std::string(sam_dir) + "/data/rmes";
+    std::filesystem::create_directories(dir);
+
+    // Preload all existing files
+    for (const auto& entry : std::filesystem::directory_iterator(dir))
+    {
+      if (entry.path().extension() != ".bin") continue;
+
+      std::string filename = entry.path().filename().string();
+      if (filename.empty() || filename[0] != 'n') continue;
+
+      std::string path = entry.path().string();
+
+      cache_.emplace(filename, std::make_unique<RMEFile>(path));
+    }
+
+    // Reserve to avoid rehash under concurrency
+    cache_.reserve(cache_.size() + 16);
+  }
+
+  RME_db::RME_db(int maxShell)
+  {
+    const char* sam_dir = std::getenv("SAM_DIR");
+    if (!sam_dir)
+      throw std::runtime_error("Environment variable SAM_DIR not set");
+
+    dir = std::string(sam_dir) + "/data/rmes";
+    std::filesystem::create_directories(dir);
+
+    // Preload all existing files
+    // std::cout << "Start loading existing files" << std::endl;
+    for (const auto& entry : std::filesystem::directory_iterator(dir))
+    {
+      if (entry.path().extension() != ".bin") continue;
+
+      std::string filename = entry.path().filename().string();
+      if (filename.empty() || filename[0] != 'n') continue;
+
+      std::string path = entry.path().string();
+
+      size_t pos = 1;
+      int shell = 0;
+
+      while (pos < filename.size())
+      {
+        if (std::isdigit(filename[pos]))
+        {
+          shell = shell * 10 + (filename[pos] - '0');
+          pos++;
+        }
+        else
+          break;
+      }
+
+      if (shell > maxShell) continue;
+
+      cache_.emplace(filename, std::make_unique<RMEFile>(path));
+    }
+    // std::cout << "Finish loading existing files" << std::endl;
+
+    // Reserve to avoid rehash under concurrency
+    cache_.reserve(cache_.size() + 16);
+  }
+
+  RME_db::~RME_db()
+  {
+    std::shared_lock cache_lock(cache_mutex_);
+
+    for (auto& [filename, file_ptr] : cache_)
+    {
+      auto& file = *file_ptr;
+
+      std::lock_guard file_lock(file.file_mutex_);
+
+      if (file.rmes_map.size() == file.initial_size) continue;
+
+      std::ofstream out(file.path, std::ios::binary | std::ios::trunc);
+      if (!out)
+      {
+        std::cerr << "Warning: Cannot open RME file for append: " 
+                  << file.path << std::endl;
+        continue;
+      }
+
+      for (const auto& [key, rmes] : file.rmes_map)
+      {
+        qcx_utils::writeBinary(out, key.su3key);
+        qcx_utils::writeBinary(out, key.su4key);
+
+        uint64_t num = rmes.size();
+        qcx_utils::writeBinary(out, num);
+        qcx_utils::writeBinary(out, rmes);
+      }
+    }
   }
 
   sam::RME RME_db::get(const U3xU4::SingleShellTensor& t,
@@ -208,37 +302,42 @@ namespace U3xU4
     }
 
     // (3.5) General case
-    auto key = RMEKey(f, i);
-    auto file = filename(t);
+    RMEKey key(f, i);
+    auto& file = t.filename();
     auto& rme_file = getFile(file);
 
     size_t t_amax = t.rho0max() * t.eta0max();
     auto [rhomax, etamax] = U3xU4::RhoEta(i, t.T(), f);
 
-    if (rme_file.contains(key))
+    // First check under lock (inside get_if_exist)
     {
-      // std::cout << "Found" << std::endl;
-      std::vector<double> rmes = rme_file.get(key);
+      std::vector<double> rmes = rme_file.get_if_exist(key);
 
-      return {std::move(rmes),
-              af_max,
-              ai_max,
-              t_amax,
-              static_cast<size_t>(rhomax),
-              static_cast<size_t>(etamax)};
+      if (!rmes.empty())
+      {
+        // std::cout << "Found" << std::endl;
+        return {std::move(rmes),
+                af_max,
+                ai_max,
+                t_amax,
+                static_cast<size_t>(rhomax),
+                static_cast<size_t>(etamax)};
+      }
     }
-    else
-    {
-      // std::cout << "Not Found" << std::endl;
-      std::vector<double> rmes = t.RME(f, i, labels).get();
-      rme_file.append(key, rmes);
+    
+    // Compute outside lock
+    // std::cout << "Compute" << std::endl;
+    auto rmes = t.RME(f, i, labels);
+    
+    // Insert (second check inside append_or_get)
+    auto final = rme_file.append_or_get(key, rmes.data());
 
-      return {std::move(rmes),
-              af_max,
-              ai_max,
-              t_amax,
-              static_cast<size_t>(rhomax),
-              static_cast<size_t>(etamax)};
-    }
+    // std::cout << "Return computed" << std::endl;
+    return {std::move(final),
+            af_max,
+            ai_max,
+            t_amax,
+            static_cast<size_t>(rhomax),
+            static_cast<size_t>(etamax)};
   }
 } // namespace U3xU4
