@@ -504,7 +504,17 @@ namespace U3xU4
     { }
 
     // comparison:
-    auto operator<=>(const SingleShellTensor&) const = default;
+    // auto operator<=>(const SingleShellTensor&) const = default;
+    bool operator==(const SingleShellTensor& other) const
+    {
+      return ads_ == other.ads_ &&
+             ats_ == other.ats_ &&
+             Omega_ads_ == other.Omega_ads_ &&
+             Omega_ats_ == other.Omega_ats_ &&
+             static_cast<const U3xU4::GammaElement&>(*this) ==
+             static_cast<const U3xU4::GammaElement&>(other);
+      // filename_ intentionally ignored
+    }
 
     // Getters
     const auto& Omega_ads() const { return Omega_ads_; }

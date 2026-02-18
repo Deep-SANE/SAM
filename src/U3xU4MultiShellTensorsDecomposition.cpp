@@ -83,10 +83,10 @@ namespace U3xU4
 
           // if (abs(LL1 - LL2) > LL_ || (LL1 + LL2) < LL_) continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(lam1, mu1, LL1 / 2, 
+          const auto cgcU3 = wigU3SO3db.get_U3SO3(lam1, mu1, LL1 / 2, 
             lam2, mu2, LL2 / 2, T.lam(), T.mu(), LL() / 2);
 
-          if (allowU3 == false) continue;
+          if (cgcU3.empty()) continue;
 
           for (const auto& pv41 : pv4s1)
           {
@@ -102,11 +102,11 @@ namespace U3xU4
               //     abs(TT1 - TT2) > TT_ || (TT1 + TT2) < TT_)
               //   continue;
 
-              auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+              const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
                   P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2,
                   T.P1(), T.P2(), T.P3(), SS(), TT());
 
-              if (allowU4 == false) continue;
+              if (cgcU4.empty()) continue;
 
               for (int JJ1 = LL1 + SS1; JJ1 >= abs(LL1 - SS1); JJ1 -= 2)
               {
@@ -168,14 +168,8 @@ namespace U3xU4
                                         for (int z2 = 0; z2 < zeta2; z2++)
                                         {
                                           x(index) +=
-                                              cgcU3((k1 * kappa2 + k2) *
-                                                            kappamax() +
-                                                        k,
-                                                    rho) *
-                                              cgcU4((z1 * zeta2 + z2) *
-                                                            zetamax() +
-                                                        z,
-                                                    eta) *
+                                              cgcU3(k1, k2, k, rho) *
+                                              cgcU4(z1, z2, z, eta) *
                                               U9j * cgcJ * cgcT *
                                               coeffsArr1[i](k1 * zeta1 + z1) *
                                               coeffsArr2[j](k2 * zeta2 + z2);
@@ -248,10 +242,10 @@ namespace U3xU4
 
           // if (abs(LL1 - LL2) > LL_ || (LL1 + LL2) < LL_) continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(lam1, mu1, LL1 / 2, 
+          const auto cgcU3 = wigU3SO3db.get_U3SO3(lam1, mu1, LL1 / 2, 
                       lam2, mu2, LL2 / 2, T.lam(), T.mu(), LL() / 2);
 
-          if (allowU3 == false) continue;
+          if (cgcU3.empty()) continue;
 
           for (const auto& pv41 : pv4s1)
           {
@@ -267,11 +261,11 @@ namespace U3xU4
               //     abs(TT1 - TT2) > TT_ || (TT1 + TT2) < TT_)
               //   continue;
 
-              auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+              const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
                   P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2,
                   T.P1(), T.P2(), T.P3(), SS(), TT());
 
-              if (allowU4 == false) continue;
+              if (cgcU4.empty()) continue;
 
               for (int JJ1 = LL1 + SS1; JJ1 >= abs(LL1 - SS1); JJ1 -= 2)
               {
@@ -338,14 +332,8 @@ namespace U3xU4
                                       for (int z1 = 0; z1 < zeta1; z1++)
                                         for (int z2 = 0; z2 < zeta2; z2++)
                                           x(index) +=
-                                              cgcU3((k1 * kappa2 + k2) *
-                                                            kappamax() +
-                                                        k,
-                                                    rho) *
-                                              cgcU4((z1 * zeta2 + z2) *
-                                                            zetamax() +
-                                                        z,
-                                                    eta) *
+                                              cgcU3(k1, k2, k, rho) *
+                                              cgcU4(z1, z2, z, eta) *
                                               U9j * cgcJ * cgcT *
                                               coeffsArr1[i](k1 * zeta1 + z1) *
                                               coeffsArr2[j](k2 * zeta2 + z2);
@@ -467,10 +455,10 @@ namespace U3xU4
 
           // if (abs(LL1 - LL2) > LL || (LL1 + LL2) < LL) continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(lam1, mu1, LL1 / 2, 
+          const auto cgcU3 = wigU3SO3db.get_U3SO3(lam1, mu1, LL1 / 2, 
             lam2, mu2, LL2 / 2, T.lam(), T.mu(), LL / 2);
 
-          if (allowU3 == false) continue;
+          if (cgcU3.empty()) continue;
 
           for (const auto& pv41 : pv4s1)
           {
@@ -486,11 +474,11 @@ namespace U3xU4
               //     abs(TT1 - TT2) > TT_ || (TT1 + TT2) < TT_)
               //   continue;
 
-              auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+              const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
                   P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2,
                   T.P1(), T.P2(), T.P3(), SS, TT);
 
-              if (allowU4 == false) continue;
+              if (cgcU4.empty()) continue;
 
               for (int JJ1 = LL1 + SS1; JJ1 >= abs(LL1 - SS1); JJ1 -= 2)
               {
@@ -563,8 +551,8 @@ namespace U3xU4
                                   for (int z2 = 0; z2 < zeta2; z2++)
                                   {
                                     x(k) +=
-                                      cgcU3((k1 * kappa2 + k2) * kappamax + kappa, rho) *
-                                      cgcU4((z1 * zeta2 + z2) * zetamax + zeta, eta) *
+                                      cgcU3(k1, k2, kappa, rho) *
+                                      cgcU4(z1, z2, zeta, eta) *
                                       cgcU2 *
                                       coeffsArr1[i]((alpha1 * kappa1 + k1) * zeta1 + z1) *
                                       coeffsArr2[j]((alpha2 * kappa2 + k2) * zeta2 + z2);
@@ -647,10 +635,10 @@ namespace U3xU4
           int lam2 = pv32.lam(), mu2 = pv32.mu(),
               kappa2 = pv32.kappa(), LL2 = 2 * pv32.L();
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(lam1, mu1, LL1 / 2, 
+          const auto cgcU3 = wigU3SO3db.get_U3SO3(lam1, mu1, LL1 / 2, 
                       lam2, mu2, LL2 / 2, T.lam(), T.mu(), LL / 2);
 
-          if (allowU3 == false) continue;
+          if (cgcU3.empty()) continue;
 
           for (const auto& pv41 : pv4s1)
           {
@@ -662,11 +650,11 @@ namespace U3xU4
               int P12 = pv42.P1(), P22 = pv42.P2(), P32 = pv42.P3(), 
                   zeta2 = pv42.zeta(), SS2 = pv42.SS(), TT2 = pv42.TT();
 
-              auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+              const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
                   P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2,
                   T.P1(), T.P2(), T.P3(), SS, TT);
 
-              if (allowU4 == false) continue;
+              if (cgcU4.empty()) continue;
 
               for (int JJ1 = LL1 + SS1; JJ1 >= abs(LL1 - SS1); JJ1 -= 2)
               {
@@ -737,8 +725,8 @@ namespace U3xU4
                                   for (int z2 = 0; z2 < zeta2; z2++)
                                   {
                                     x(k) +=
-                                      cgcU3((k1 * kappa2 + k2) * kappamax + kappa, rho) *
-                                      cgcU4((z1 * zeta2 + z2) * zetamax + zeta, eta) *
+                                      cgcU3(k1, k2, kappa, rho) *
+                                      cgcU4(z1, z2, zeta, eta) *
                                       cgcU2 *
                                       coeffsArr1[i]((alpha1 * kappa1 + k1) * zeta1 + z1) *
                                       coeffsArr2[j]((alpha2 * kappa2 + k2) * zeta2 + z2);
@@ -849,10 +837,10 @@ namespace U3xU4
           int lam2 = pv32.lam(), mu2 = pv32.mu(),
               kappa2 = pv32.kappa(), LL2 = 2 * pv32.L();
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(lam1, mu1, LL1 / 2, 
+          const auto cgcU3 = wigU3SO3db.get_U3SO3(lam1, mu1, LL1 / 2, 
             lam2, mu2, LL2 / 2, T.lam(), T.mu(), LL / 2);
 
-          if (allowU3 == false) continue;
+          if (cgcU3.empty()) continue;
 
           for (const auto& pv41 : pv4s1)
           {
@@ -864,11 +852,11 @@ namespace U3xU4
               int P12 = pv42.P1(), P22 = pv42.P2(), P32 = pv42.P3(), 
                   zeta2 = pv42.zeta(), SS2 = pv42.SS(), TT2 = pv42.TT();
 
-              auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+              const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
                   P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2,
                   T.P1(), T.P2(), T.P3(), SS, TT);
 
-              if (allowU4 == false) continue;
+              if (cgcU4.empty()) continue;
 
               for (int JJ1 = LL1 + SS1; JJ1 >= abs(LL1 - SS1); JJ1 -= 2)
               {
@@ -992,8 +980,8 @@ namespace U3xU4
                                   for (int z2 = 0; z2 < zeta2; z2++)
                                   {
                                     strengths[k] += me *
-                                      cgcU3((k1 * kappa2 + k2) * kappamax + kappa, rho) *
-                                      cgcU4((z1 * zeta2 + z2) * zetamax + zeta, eta) *
+                                      cgcU3(k1, k2, kappa, rho) *
+                                      cgcU4(z1, z2, zeta, eta) *
                                       cgcU2 *
                                       coeffsArr1[i]((alpha1 * kappa1 + k1) * zeta1 + z1) *
                                       coeffsArr2[j]((alpha2 * kappa2 + k2) * zeta2 + z2);
@@ -1061,10 +1049,10 @@ namespace U3xU4
           int lam2 = pv32.lam(), mu2 = pv32.mu(),
               kappa2 = pv32.kappa(), LL2 = 2 * pv32.L();
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(lam1, mu1, LL1 / 2, 
+          const auto cgcU3 = wigU3SO3db.get_U3SO3(lam1, mu1, LL1 / 2, 
                       lam2, mu2, LL2 / 2, T.lam(), T.mu(), LL / 2);
 
-          if (allowU3 == false) continue;
+          if (cgcU3.empty()) continue;
 
           for (const auto& pv41 : pv4s1)
           {
@@ -1076,11 +1064,11 @@ namespace U3xU4
               int P12 = pv42.P1(), P22 = pv42.P2(), P32 = pv42.P3(), 
                   zeta2 = pv42.zeta(), SS2 = pv42.SS(), TT2 = pv42.TT();
 
-              auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+              const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
                   P11, P21, P31, SS1, TT1, P12, P22, P32, SS2, TT2,
                   T.P1(), T.P2(), T.P3(), SS, TT);
 
-              if (allowU4 == false) continue;
+              if (cgcU4.empty()) continue;
 
               for (int JJ1 = LL1 + SS1; JJ1 >= abs(LL1 - SS1); JJ1 -= 2)
               {
@@ -1196,8 +1184,8 @@ namespace U3xU4
                                   for (int z2 = 0; z2 < zeta2; z2++)
                                   {
                                     strengths[k] += me *
-                                      cgcU3((k1 * kappa2 + k2) * kappamax + kappa, rho) *
-                                      cgcU4((z1 * zeta2 + z2) * zetamax + zeta, eta) *
+                                      cgcU3(k1, k2, kappa, rho) *
+                                      cgcU4(z1, z2, zeta, eta) *
                                       cgcU2 *
                                       coeffsArr1[i]((alpha1 * kappa1 + k1) * zeta1 + z1) *
                                       coeffsArr2[j]((alpha2 * kappa2 + k2) * zeta2 + z2);

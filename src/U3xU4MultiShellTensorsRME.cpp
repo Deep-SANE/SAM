@@ -180,7 +180,7 @@ namespace U3xU4
         return {};
       */
 
-      auto U3U9 =
+      const auto U3U9 =
           u3::u3u9db().get_U3U9(A.u3(), B.u3(), C.u3(), D.u3(), AB.u3(), CD.u3(),
                               AC.u3(), BD.u3(), ABCD.u3(), rhoACmax, rhoBDmax,
                               rhoABCDmax, rhoABmax, rhoCDmax, rhoACBDmax);
@@ -203,7 +203,7 @@ namespace U3xU4
         return {};
       */
 
-      auto U4U9 =
+      const auto U4U9 =
           u4::u4u9db().get_U4U9(A.u4(), B.u4(), C.u4(), D.u4(), AB.u4(), CD.u4(),
                               AC.u4(), BD.u4(), ABCD.u4(), etaACmax, etaBDmax,
                               etaABCDmax, etaABmax, etaCDmax, etaACBDmax);
@@ -251,14 +251,14 @@ namespace U3xU4
         for (size_t rhoAB = 0; rhoAB < rhoABmax; rhoAB++)
           for (size_t rhoCD = 0; rhoCD < rhoCDmax; rhoCD++)
           {
-            auto u3u9 = U3U9.get(rhoAC, rhoBD, rhoABCD, rhoAB, rhoCD, rhoACBD);
+            auto u3u9 = U3U9(rhoAC, rhoBD, rhoABCD, rhoAB, rhoCD, rhoACBD);
 
             for (size_t etaAB = 0; etaAB < etaABmax; etaAB++)
               for (size_t etaCD = 0; etaCD < etaCDmax; etaCD++)
               {
-                auto u4u9 = U4U9.get(etaAC, etaBD, etaABCD, etaAB, etaCD, etaACBD);
-                auto rmeL = RMEsL.get(aLf, aLi, aL0, rhoAB, etaAB);
-                auto rmeR = RMEsR.get(aRf, aRi, aR0, rhoCD, etaCD);
+                auto u4u9 = U4U9(etaAC, etaBD, etaABCD, etaAB, etaCD, etaACBD);
+                auto rmeL = RMEsL(aLf, aLi, aL0, rhoAB, etaAB);
+                auto rmeR = RMEsR(aRf, aRi, aR0, rhoCD, etaCD);
 
                 rmes[j] += u3u9 * u4u9 * rmeL * rmeR;
               }
@@ -367,7 +367,7 @@ namespace U3xU4
         return {};
       */
 
-      auto U3U9 =
+      const auto U3U9 =
           u3::u3u9db().get_U3U9(A.u3(), B.u3(), C.u3(), D.u3(), AB.u3(), CD.u3(),
                               AC.u3(), BD.u3(), ABCD.u3(), rhoACmax, rhoBDmax,
                               rhoABCDmax, rhoABmax, rhoCDmax, rhoACBDmax);
@@ -390,7 +390,7 @@ namespace U3xU4
         return {};
       */
 
-      auto U4U9 =
+      const auto U4U9 =
           u4::u4u9db().get_U4U9(A.u4(), B.u4(), C.u4(), D.u4(), AB.u4(), CD.u4(),
                               AC.u4(), BD.u4(), ABCD.u4(), etaACmax, etaBDmax,
                               etaABCDmax, etaABmax, etaCDmax, etaACBDmax);
@@ -438,14 +438,14 @@ namespace U3xU4
         for (size_t rhoAB = 0; rhoAB < rhoABmax; rhoAB++)
           for (size_t rhoCD = 0; rhoCD < rhoCDmax; rhoCD++)
           {
-            auto u3u9 = U3U9.get(rhoAC, rhoBD, rhoABCD, rhoAB, rhoCD, rhoACBD);
+            auto u3u9 = U3U9(rhoAC, rhoBD, rhoABCD, rhoAB, rhoCD, rhoACBD);
 
             for (size_t etaAB = 0; etaAB < etaABmax; etaAB++)
               for (size_t etaCD = 0; etaCD < etaCDmax; etaCD++)
               {
-                auto u4u9 = U4U9.get(etaAC, etaBD, etaABCD, etaAB, etaCD, etaACBD);
-                auto rmeL = RMEsL.get(aLf, aLi, aL0, rhoAB, etaAB);
-                auto rmeR = RMEsR.get(aRf, aRi, aR0, rhoCD, etaCD);
+                auto u4u9 = U4U9(etaAC, etaBD, etaABCD, etaAB, etaCD, etaACBD);
+                auto rmeL = RMEsL(aLf, aLi, aL0, rhoAB, etaAB);
+                auto rmeR = RMEsR(aRf, aRi, aR0, rhoCD, etaCD);
 
                 rmes[j] += u3u9 * u4u9 * rmeL * rmeR;
               }
@@ -577,7 +577,7 @@ namespace U3xU4
         auto rhoCDmax = RMEsR.rhomax();
         auto rhoACBDmax = u3::Rho(AC.u3(), BD.u3(), ABCD.u3());
 
-        auto U3U9 =
+        const auto U3U9 =
             u3::u3u9db().get_U3U9(A.u3(), B.u3(), C.u3(), D.u3(), AB.u3(), CD.u3(),
                                 AC.u3(), BD.u3(), ABCD.u3(), rhoACmax, rhoBDmax,
                                 rhoABCDmax, rhoABmax, rhoCDmax, rhoACBDmax);
@@ -593,7 +593,7 @@ namespace U3xU4
         auto etaCDmax = RMEsR.etamax();
         auto etaACBDmax = u4::Eta(AC.u4(), BD.u4(), ABCD.u4());
 
-        auto U4U9 =
+        const auto U4U9 =
             u4::u4u9db().get_U4U9(A.u4(), B.u4(), C.u4(), D.u4(), AB.u4(), CD.u4(),
                                 AC.u4(), BD.u4(), ABCD.u4(), etaACmax, etaBDmax,
                                 etaABCDmax, etaABmax, etaCDmax, etaACBDmax);
@@ -640,14 +640,14 @@ namespace U3xU4
           for (size_t rhoAB = 0; rhoAB < rhoABmax; rhoAB++)
             for (size_t rhoCD = 0; rhoCD < rhoCDmax; rhoCD++)
             {
-              auto u3u9 = U3U9.get(rhoAC, rhoBD, rhoABCD, rhoAB, rhoCD, rhoACBD);
+              auto u3u9 = U3U9(rhoAC, rhoBD, rhoABCD, rhoAB, rhoCD, rhoACBD);
 
               for (size_t etaAB = 0; etaAB < etaABmax; etaAB++)
                 for (size_t etaCD = 0; etaCD < etaCDmax; etaCD++)
                 {
-                  auto u4u9 = U4U9.get(etaAC, etaBD, etaABCD, etaAB, etaCD, etaACBD);
-                  auto rmeL = RMEsL.get(aLf, aLi, aL0, rhoAB, etaAB);
-                  auto rmeR = RMEsR.get(aRf, aRi, aR0, rhoCD, etaCD);
+                  auto u4u9 = U4U9(etaAC, etaBD, etaABCD, etaAB, etaCD, etaACBD);
+                  auto rmeL = RMEsL(aLf, aLi, aL0, rhoAB, etaAB);
+                  auto rmeR = RMEsR(aRf, aRi, aR0, rhoCD, etaCD);
 
                   rmes[j] += u3u9 * u4u9 * rmeL * rmeR;
                 }

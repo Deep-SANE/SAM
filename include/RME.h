@@ -44,7 +44,8 @@ namespace sam
       return rmes_[i];
     }
 
-    double get(size_t af, size_t ai, size_t a0, size_t rho, size_t eta) const 
+    double operator()(size_t af, size_t ai, size_t a0, 
+                      size_t rho, size_t eta) const 
     {
       std::array multi_index = {af, ai, a0, rho, eta};
       size_t i = ndi_.to_linear(multi_index);
@@ -65,9 +66,16 @@ namespace sam
     void print() const
     {
       std::cout << "rmes: ";
-      for (const auto rme : rmes_)
-        std::cout << rme << " ";
+      for (const auto& rme : rmes_) std::cout << rme << " ";
       std::cout << "\n";
+    }
+
+    friend std::ostream& operator<<(std::ostream& s, const RME& x)
+    {
+      s << "rmes: ";
+      for (const auto& rme : x.rmes_) s << rme << " ";
+      s << "\n";
+      return s;
     }
   };
 

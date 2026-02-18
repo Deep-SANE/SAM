@@ -670,28 +670,20 @@ namespace JT
             else // na > nb
               U9j = racah9.get({llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ()});
 
-            Eigen::MatrixXd Coeffs3, Coeffs4;
+            std::vector<double> Coeffs3, Coeffs4;
             if (na <= nb)
             {
-              Coeffs3 =
-                  wigU3SO3db
-                      .get(na, 0, lla / 2, 0, nb, llb / 2, lam0, mu0, LL0 / 2)
-                      .second;
-              Coeffs4 =
-                  wigU4SU2SU2db
-                      .get(1, 0, 0, 1, 1, 0, 0, 1, 1, 1, P10, P20, P30, SS0, TT())
-                      .second;
+              Coeffs3 = wigU3SO3db.get(
+                na, 0, lla / 2, 0, nb, llb / 2, lam0, mu0, LL0 / 2);
+              Coeffs4 = wigU4SU2SU2db.get(
+                1, 0, 0, 1, 1, 0, 0, 1, 1, 1, P10, P20, P30, SS0, TT());
             }
             else // na > nb
             {
-              Coeffs3 =
-                  wigU3SO3db
-                      .get(0, nb, llb / 2, na, 0, lla / 2, lam0, mu0, LL0 / 2)
-                      .second;
-              Coeffs4 =
-                  wigU4SU2SU2db
-                      .get(0, 0, 1, 1, 1, 1, 0, 0, 1, 1, P10, P20, P30, SS0, TT())
-                      .second;
+              Coeffs3 = wigU3SO3db.get(
+                0, nb, llb / 2, na, 0, lla / 2, lam0, mu0, LL0 / 2);
+              Coeffs4 = wigU4SU2SU2db.get(
+                0, 0, 1, 1, 1, 1, 0, 0, 1, 1, P10, P20, P30, SS0, TT());
             }
 
             // loop over projections
@@ -726,8 +718,8 @@ namespace JT
 
                   for (int k = 0; k < kappa0; k++)
                   {
-                    double y = phase * cgcJ * cgcT * U9j * Coeffs3(k, 0) *
-                                 Coeffs4(0, 0) * me;
+                    double y = phase * cgcJ * cgcT * U9j
+                             * Coeffs3[k] * Coeffs4[0] * me;
                     // std::cout << y << std::endl;
                     x[k] += y;
                   }
@@ -739,8 +731,8 @@ namespace JT
 
                   for (int k = 0; k < kappa0; k++)
                   {
-                    double y = phase * cgcJ * cgcT * U9j * Coeffs3(k, 0) *
-                                 Coeffs4(0, 0) * me;
+                    double y = phase * cgcJ * cgcT * U9j
+                             * Coeffs3[k] * Coeffs4[0] * me;
                     // std::cout << y << std::endl;
                     x[k] -= y;
                   }
@@ -800,17 +792,13 @@ namespace JT
             else // na > nb
               U9j = racah9.get({llb, 1, jjb, lla, 1, jja, LL0, SS0, JJ()});
 
-            Eigen::MatrixXd Coeffs3, Coeffs4;
+            std::vector<double> Coeffs3, Coeffs4;
             if (na <= nb)
             {
-              Coeffs3 =
-                  wigU3SO3db
-                      .get(na, 0, lla / 2, 0, nb, llb / 2, lam0, mu0, LL0 / 2)
-                      .second;
-              Coeffs4 =
-                  wigU4SU2SU2db
-                      .get(1, 0, 0, 1, 1, 0, 0, 1, 1, 1, P10, P20, P30, SS0, TT())
-                      .second;
+              Coeffs3 = wigU3SO3db.get(
+                na, 0, lla / 2, 0, nb, llb / 2, lam0, mu0, LL0 / 2);
+              Coeffs4 = wigU4SU2SU2db.get(
+                1, 0, 0, 1, 1, 0, 0, 1, 1, 1, P10, P20, P30, SS0, TT());
 
 #ifdef ADD_SU3LIB_PHASE_U3SO3
               double phase = ((nb + 1) % 2 == 0) ? 1.0 : -1.0;
@@ -821,7 +809,7 @@ namespace JT
                                           (TT() + 1.0));
               for (int k = 0; k < kappa0; k++)
               {
-                double y = phase * U9j * Coeffs3(k, 0) * Coeffs4(0, 0) * rme *
+                double y = phase * U9j * Coeffs3[k] * Coeffs4[0] * rme *
                            factor;
                 // std::cout << y << std::endl;
                 x[k] += y;
@@ -829,14 +817,10 @@ namespace JT
             }
             else // na > nb
             {
-              Coeffs3 =
-                  wigU3SO3db
-                      .get(0, nb, llb / 2, na, 0, lla / 2, lam0, mu0, LL0 / 2)
-                      .second;
-              Coeffs4 =
-                  wigU4SU2SU2db
-                      .get(0, 0, 1, 1, 1, 1, 0, 0, 1, 1, P10, P20, P30, SS0, TT())
-                      .second;
+              Coeffs3 = wigU3SO3db.get(
+                0, nb, llb / 2, na, 0, lla / 2, lam0, mu0, LL0 / 2);
+              Coeffs4 = wigU4SU2SU2db.get(
+                0, 0, 1, 1, 1, 1, 0, 0, 1, 1, P10, P20, P30, SS0, TT());
 
 #ifdef ADD_SU3LIB_PHASE_U3SO3
               double phase = ((2* nb + jja + jjb - JJ() - TT()) / 2 % 2 == 0)
@@ -852,7 +836,7 @@ namespace JT
                                           (TT() + 1.0));
               for (int k = 0; k < kappa0; k++)
               {
-                double y = phase * U9j * Coeffs3(k, 0) * Coeffs4(0, 0) * rme *
+                double y = phase * U9j * Coeffs3[k] * Coeffs4[0] * rme *
                            factor;
                 // std::cout << y << std::endl;
                 x[k] -= y;
@@ -1125,13 +1109,13 @@ namespace JT
         // couple LL0 and SS0 to JJ0
         if (u2::mult(LL0, SS0, JJ()) == 0) continue;
 
-        auto [allowU4, cgcU4] = (na <= nb)
+        const auto cgcU4 = (na <= nb)
           ? wigU4SU2SU2db.get(
               1, 0, 0, 1, 1, 0, 0, 1, 1, 1, P10, P20, P30, SS0, TT0)
           : wigU4SU2SU2db.get(
               0, 0, 1, 1, 1, 1, 0, 0, 1, 1, P10, P20, P30, SS0, TT0);
 
-        if (allowU4 == false) continue;
+        if (cgcU4.empty()) continue;
 
         std::vector<double> strengths(kappa0, 0.0);
 
@@ -1141,13 +1125,13 @@ namespace JT
           // loop over lb
           for (int llb = 2 * nb; llb >= 2 * (nb % 2); llb -= 4)
           {
-            auto [allowU3, cgcU3] = (na <= nb) 
+            const auto cgcU3 = (na <= nb) 
               ? wigU3SO3db.get(
                   na, 0, lla / 2, 0, nb, llb / 2, lam0, mu0, LL0 / 2)
               : wigU3SO3db.get(
                   0, nb, llb / 2, na, 0, lla / 2, lam0, mu0, LL0 / 2);
 
-            if (allowU3 == false) continue;
+            if (cgcU3.empty()) continue;
 
             // loop over jja
             for (int jja = lla + 1; jja >= abs(lla - 1); jja -= 2)
@@ -1195,12 +1179,12 @@ namespace JT
                       ((nb + llb / 2 + 1 - jjb + mmjb + mmtb) / 2 % 2 == 0)
                       ? 1.0 : -1.0;
 #endif
-                    double cgcU2 = phase * U9j * cgcJ * cgcT * cgcU4(0, 0) * me;
+                    double cgcU2 = phase * U9j * cgcJ * cgcT * cgcU4[0] * me;
                     if (na > nb) cgcU2 *= -1.0;
 
                     for (int k = 0; k < kappa0; k++)
                     {
-                      double y =  cgcU2 * cgcU3(k, 0);
+                      double y =  cgcU2 * cgcU3[k];
                       // std::cout << y << std::endl;
                       strengths[k] += y;
                     }
@@ -1277,7 +1261,8 @@ namespace JT
               U3xU4::SingleShellTensor ab(na, 1, 1, {}, {}, 
                             U3xU4::irrep(u3couple[i], u4couple[j]), 1, 1);
 
-              U3xU4::MultiShellTensor_phys tensor({ab}, {}, MMT_, JJ_, MMJ_, HO_labels_);
+              U3xU4::MultiShellTensor_phys 
+                tensor({ab}, {}, MMT_, JJ_, MMJ_, HO_labels_);
 
               setTensorStrength(tensor, na, nb);
 

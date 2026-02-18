@@ -48,8 +48,8 @@ int main(int argc, char* argv[])
   // std::string name = "FermiPlus";
 
   // Example 12: Gamow-Teller for beta decay
-  // std::string name = "GamowTellerMinus";
-  std::string name = "GamowTellerPlus";
+  std::string name = "GamowTellerMinus";
+  // std::string name = "GamowTellerPlus";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
@@ -66,8 +66,36 @@ int main(int argc, char* argv[])
   auto t1 = std::chrono::high_resolution_clock::now();
   
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
-  for (auto tensor : tensors)
-    std::cout << tensor << std::endl;
+  for (auto tensor : tensors) std::cout << tensor << std::endl;
+
+  /*
+  // This might be helpful for comparison
+  auto tensors_new = op.expand_new(); // expand on the fly
+
+  assert(tensors.size() == tensors_new.size());
+  for (size_t i = 0; i < tensors.size(); i++)
+  {
+    std::cout << "Old: " << tensors[i] << std::endl;
+    std::cout << "New: " << tensors_new[i] << std::endl;
+
+    assert(tensors[i] == tensors_new[i]);
+
+    assert(tensors[i].LLSSTTstrengths().size() == 
+           tensors_new[i].LLSSTTstrengths().size());
+
+    for (size_t j = 0; j < tensors[i].LLSSTTstrengths().size(); j++)
+    {
+      const auto& [k, LL, z, SS, TT, strengths] = tensors[i].LLSSTTstrengths()[j];
+      const auto& [k_, LL_, z_, SS_, TT_, strengths_] = tensors_new[i].LLSSTTstrengths()[j];
+
+      assert(k == k_ && LL == LL_ && z == z_ && SS == SS_ && TT == TT_);
+
+      assert(strengths.size() == strengths_.size());
+      for (size_t s = 0; s < strengths.size(); s++)
+        assert(std::fabs(strengths[s] - strengths_[s]) < 1e-8);
+    }
+  }
+  */
 
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;

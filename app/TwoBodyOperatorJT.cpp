@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
 {
   sam::initialize(&argc, &argv);
 
-  int hw = 20, valenceShell = 0, Nmax = 8, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -63,21 +63,25 @@ int main(int argc, char* argv[])
   op.is();
 
   auto tensors = op.expand();
-  // auto tensors_new = op.expand_new(); // expand on the fly
   
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
   
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
-  for (const auto& tensor : tensors)
-    std::cout << tensor << std::endl;
+  for (const auto& tensor : tensors)  std::cout << tensor << std::endl;
 
-/*
+  /*
   // This might be helpful for comparison
+  auto tensors_new = op.expand_new(); // expand on the fly
+
   assert(tensors.size() == tensors_new.size());
   for (size_t i = 0; i < tensors.size(); i++)
   {
+    std::cout << "Old: " << tensors[i] << std::endl;
+    std::cout << "New: " << tensors_new[i] << std::endl;
+
     assert(tensors[i] == tensors_new[i]);
+
     assert(tensors[i].LLSSTTstrengths().size() == 
            tensors_new[i].LLSSTTstrengths().size());
 
@@ -93,7 +97,7 @@ int main(int argc, char* argv[])
         assert(std::fabs(strengths[s] - strengths_[s]) < 1e-8);
     }
   }
-*/
+  */
 
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;

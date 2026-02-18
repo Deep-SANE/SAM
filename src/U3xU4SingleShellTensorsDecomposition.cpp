@@ -131,15 +131,12 @@ namespace U3xU4
         int jj3_1 = sp3_1.Lambdax2(), mm3_1 = sp3_1.MLambdax2(),
             jj3_2 = sp3_2.Lambdax2(), mm3_2 = sp3_2.MLambdax2();
 
-        auto [allowU3, accU3] = wigU3U2db.get(
+        const auto accU3 = wigU3U2db.get(
           sp3_1.n13(), sp3_1.n23(), sp3_1.n33(), sp3_1.n12(), sp3_1.n22(), 
           sp3_2.n13(), sp3_2.n23(), sp3_2.n33(), sp3_2.n12(), sp3_2.n22(), 
           g3_.n13(), g3_.n23(), g3_.n33(), g3_.n12(), g3_.n22());
 
-        if (allowU3 == false) continue;
-        
-        // accU3 should have only one element
-        assert(accU3.cols() == 1);        
+        if (accU3.size() == 0) continue;
 
         double cgc3 = cgcs.get({jj3_1, jj3_2, jj3, mm3_1, mm3_2, mm3});
 
@@ -158,7 +155,7 @@ namespace U3xU4
           int jj4_1 = sp4_1.Lambdax2(), mm4_1 = sp4_1.MLambdax2(),
               jj4_2 = sp4_2.Lambdax2(), mm4_2 = sp4_2.MLambdax2();
 
-          auto [allowU4, accU4] = wigU4U3db.get(
+          const auto accU4 = wigU4U3db.get(
             sp4_1.n14(), sp4_1.n24(), sp4_1.n34(), sp4_1.n44(), 
             sp4_1.n13(), sp4_1.n23(), sp4_1.n33(), 
             sp4_2.n14(), sp4_2.n24(), sp4_2.n34(), sp4_2.n44(), 
@@ -166,17 +163,14 @@ namespace U3xU4
             g4_.n14(), g4_.n24(), g4_.n34(), g4_.n44(), 
             g4_.n13(), g4_.n23(), g4_.n33());
 
-          if (allowU4 == false) continue;
-          
-          // accU4 should have only one column
-          assert(accU4.cols() == 1);          
+          if (accU4.size() == 0) continue;        
 
-          auto [allowU3_4, accU3_4] = wigU3U2db.get(
+          const auto accU3_4 = wigU3U2db.get(
             sp4_1.n13(), sp4_1.n23(), sp4_1.n33(), sp4_1.n12(), sp4_1.n22(), 
             sp4_2.n13(), sp4_2.n23(), sp4_2.n33(), sp4_2.n12(), sp4_2.n22(), 
             g4_.n13(), g4_.n23(), g4_.n33(), g4_.n12(), g4_.n22());
 
-          if (allowU3_4 == false) continue;
+          if (accU3_4.size() == 0) continue;
 
           double cgc4 = cgcs.get({jj4_1, jj4_2, jj4, mm4_1, mm4_2, mm4});
 
@@ -225,15 +219,12 @@ namespace U3xU4
         int jj3_0 = G3_0.Lambdax2(), mm3_0 = G3_0.MLambdax2(),
             jj3_3 = sp3_3.Lambdax2(), mm3_3 = sp3_3.MLambdax2();
 
-        auto [allowU3, accU3] = wigU3U2db.get(
+        const auto accU3 = wigU3U2db.get(
           G3_0.n13(), G3_0.n23(), G3_0.n33(), G3_0.n12(), G3_0.n22(), 
           sp3_3.n13(), sp3_3.n23(), sp3_3.n33(), sp3_3.n12(), sp3_3.n22(), 
           g3_.n13(), g3_.n23(), g3_.n33(), g3_.n12(), g3_.n22());
 
-        if (allowU3 == false) continue; 
-        
-        // accU3 should have only one element
-        assert(accU3.cols() == 1);        
+        if (accU3.size() == 0) continue;   
 
         double cgc3 = cgcs.get({jj3_0, jj3_3, jj3, mm3_0, mm3_3, mm3});
 
@@ -251,7 +242,7 @@ namespace U3xU4
           int jj4_0 = G4_0.Lambdax2(), mm4_0 = G4_0.MLambdax2(),
               jj4_3 = sp4_3.Lambdax2(), mm4_3 = sp4_3.MLambdax2();
 
-          auto [allowU4, accU4] = wigU4U3db.get(
+          const auto accU4 = wigU4U3db.get(
             G4_0.n14(), G4_0.n24(), G4_0.n34(), G4_0.n44(), 
             G4_0.n13(), G4_0.n23(), G4_0.n33(), 
             sp4_3.n14(), sp4_3.n24(), sp4_3.n34(), sp4_3.n44(), 
@@ -259,17 +250,14 @@ namespace U3xU4
             g4_.n14(), g4_.n24(), g4_.n34(), g4_.n44(), 
             g4_.n13(), g4_.n23(), g4_.n33());
 
-          if (allowU4 == false) continue;
+          if (accU4.size() == 0) continue;       
 
-          // accU4 should have only one column
-          assert(accU4.cols() == 1);          
-
-          auto [allowU3_4, accU3_4] = wigU3U2db.get(
+          const auto accU3_4 = wigU3U2db.get(
               G4_0.n13(), G4_0.n23(), G4_0.n33(), G4_0.n12(), G4_0.n22(), 
               sp4_3.n13(), sp4_3.n23(), sp4_3.n33(), sp4_3.n12(), sp4_3.n22(), 
               g4_.n13(), g4_.n23(), g4_.n33(), g4_.n12(), g4_.n22());
 
-          if (allowU3_4 == false) continue;
+          if (accU3_4.size() == 0) continue;
 
           double cgc4 = cgcs.get({jj4_0, jj4_3, jj4, mm4_0, mm4_3, mm4});
 
@@ -338,25 +326,21 @@ namespace U3xU4
       int lam = Omegas_[0].lam(), mu = Omegas_[0].mu(),
           P1 = Omegas_[0].P1(), P2 = Omegas_[0].P2(), P3 = Omegas_[0].P3();
 
+      const auto cgcU4 = wigU4SU2SU2db.get(
+        1, 0, 0, 1, 1, 1, 0, 0, 1, 1, P1, P2, P3, SS(), TT());
+
+      assert(cgcU4.size() == 1);
+
       for (int lla = ll_max; lla >= ll_min; lla -= 4)
       {
         for (int llb = ll_max; llb >= ll_min; llb -= 4)
         {
           // if (abs(lla - llb) > LL_ || (lla + llb) < LL_) continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(
+          const auto cgcU3 = wigU3SO3db.get(
             n_, 0, lla / 2, n_, 0, llb / 2, lam, mu, LL() / 2);
 
-          if (allowU3 == false) continue;
-
-          assert(cgcU3.cols() == 1);
-                
-          auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
-            1, 0, 0, 1, 1, 1, 0, 0, 1, 1, P1, P2, P3, SS(), TT());
-
-          if (allowU4 == false) continue;
-          
-          assert(cgcU4.cols() == 1);
+          if (cgcU3.size() == 0) continue;
 
           for (int jja = lla + 1; jja >= abs(lla - 1); jja -= 2)
           {
@@ -380,13 +364,11 @@ namespace U3xU4
 
                   double cgcJ = cgcs.get({jja, jjb, JJ(), mmja, mmjb, MMJ()}),
                          cgcT = cgcs.get({1, 1, TT(), mmta, mmtb, MMT()}),
-                         factor = cgcU4(0, 0) * U9j * cgcJ * cgcT;
+                         factor = cgcU4[0] * U9j * cgcJ * cgcT;
 
                   Eigen::RowVectorXd coeffs(kappamax());
-                  coeffs = cgcU3.col(0) * factor;
-                  // coeffs.setZero();
-                  // for (int k = 0; k < kappamax; k++)
-                  //   coeffs(k) += cgcU3(k, 0) * factor;
+                  for (int k = 0; k < kappamax(); k++)
+                    coeffs(k) = cgcU3[k] * factor;
 
                   if (coeffs.norm() < 1e-12) continue;
 
@@ -429,12 +411,10 @@ namespace U3xU4
 
           // if (abs(LL0 - llc) > LL_ || (LL0 + llc) < LL_) continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(
+          const auto cgcU3 = wigU3SO3db.get(
             lam0, mu0, LL0 / 2, n_, 0, llc / 2, lam, mu, LL() / 2);
 
-          if (allowU3 == false) continue;
-
-          assert(cgcU3.cols() == 1);          
+          if (cgcU3.size() == 0) continue;   
 
           for (size_t pv40 = 0; pv40 < pv4s0.size(); pv40++)
           {
@@ -444,12 +424,10 @@ namespace U3xU4
             //     abs(TT0 - 1) > TT_ || (TT0 + 1) < TT_)
             //   continue;
 
-            auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+            const auto cgcU4 = wigU4SU2SU2db.get(
               P10, P20, P30, SS0, TT0, 1, 0, 0, 1, 1, P1, P2, P3, SS(), TT());
 
-            if (allowU4 == false) continue;
-
-            assert(cgcU4.cols() == 1);      
+            if (cgcU4.size() == 0) continue;   
             
             for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
             {
@@ -458,8 +436,8 @@ namespace U3xU4
                 if (abs(JJ0 - jjc) > JJ_ || (JJ0 + jjc) < JJ_) continue;
 
                 double U9j = racah9.get({LL0, llc, LL(),
-                                            SS0, 1, SS(),
-                                            JJ0, jjc, JJ()});
+                                         SS0, 1, SS(),
+                                         JJ0, jjc, JJ()});
 
                 for (int mmjc = jjc; mmjc >= -jjc; mmjc -= 2)
                 {
@@ -473,7 +451,7 @@ namespace U3xU4
 
                     double cgcJ = cgcs.get({JJ0, jjc, JJ(), MMJ0, mmjc, MMJ()}),
                            cgcT = cgcs.get({TT0, 1, TT(), MMT0, mmtc, MMT()}),
-                           factor = cgcU4(0, 0) * U9j * cgcJ * cgcT;
+                           factor = cgcU4[0] * U9j * cgcJ * cgcT;
 
                     U3xU4::Tad_phys Tad0(n_, {Omegas_[0]}, LL0, SS0, TT0, MMT0, 
                                          JJ0, MMJ0, labels_);
@@ -487,7 +465,7 @@ namespace U3xU4
                       coeffs.setZero();
                       for (int k = 0; k < kappamax(); k++)
                         for (int k0 = 0; k0 < Tad0.kappamax(); k0++)
-                          coeffs(k) += cgcU3(k0 * kappamax() + k, 0) 
+                          coeffs(k) += cgcU3[k0 * kappamax() + k]
                                      * factor * coeffsArr0[i](k0);
 
                       if (coeffs.norm() < 1e-12) continue;
@@ -576,15 +554,12 @@ namespace U3xU4
         int jj3_1 = sp3_1.Lambdax2(), mm3_1 = sp3_1.MLambdax2(),
             jj3_2 = sp3_2.Lambdax2(), mm3_2 = sp3_2.MLambdax2();
 
-        auto [allowU3, accU3] = wigU3U2db.get(
+        const auto accU3 = wigU3U2db.get(
           sp3_1.n13(), sp3_1.n23(), sp3_1.n33(), sp3_1.n12(), sp3_1.n22(), 
           sp3_2.n13(), sp3_2.n23(), sp3_2.n33(), sp3_2.n12(), sp3_2.n22(), 
           g3_.n13(), g3_.n23(), g3_.n33(), g3_.n12(), g3_.n22());
 
-        if (allowU3 == false) continue;
-        
-        // accU3 should have only one element
-        assert(accU3.cols() == 1);        
+        if (accU3.size() == 0) continue;   
 
         double cgc3 = cgcs.get({jj3_1, jj3_2, jj3, mm3_1, mm3_2, mm3});
 
@@ -603,7 +578,7 @@ namespace U3xU4
           int jj4_1 = sp4_1.Lambdax2(), mm4_1 = sp4_1.MLambdax2(),
               jj4_2 = sp4_2.Lambdax2(), mm4_2 = sp4_2.MLambdax2();
 
-          auto [allowU4, accU4] = wigU4U3db.get(
+          const auto accU4 = wigU4U3db.get(
             sp4_1.n14(), sp4_1.n24(), sp4_1.n34(), sp4_1.n44(),
             sp4_1.n13(), sp4_1.n23(), sp4_1.n33(), 
             sp4_2.n14(), sp4_2.n24(), sp4_2.n34(), sp4_2.n44(), 
@@ -611,17 +586,14 @@ namespace U3xU4
             g4_.n14(), g4_.n24(), g4_.n34(), g4_.n44(), 
             g4_.n13(), g4_.n23(), g4_.n33());
 
-          if (allowU4 == false) continue;
+          if (accU4.size() == 0) continue;   
 
-          // accU4 should have only one column
-          assert(accU4.cols() == 1);          
-
-          auto [allowU3_4, accU3_4] = wigU3U2db.get(
+          const auto accU3_4 = wigU3U2db.get(
             sp4_1.n13(), sp4_1.n23(), sp4_1.n33(), sp4_1.n12(), sp4_1.n22(), 
             sp4_2.n13(), sp4_2.n23(), sp4_2.n33(), sp4_2.n12(), sp4_2.n22(),
             g4_.n13(), g4_.n23(), g4_.n33(), g4_.n12(), g4_.n22());
 
-          if (allowU3_4 == false) continue;
+          if (accU3_4.size() == 0) continue;
 
           double cgc4 = cgcs.get({jj4_1, jj4_2, jj4, mm4_1, mm4_2, mm4});
 
@@ -678,15 +650,12 @@ namespace U3xU4
         int jj3_0 = G3_0.Lambdax2(), mm3_0 = G3_0.MLambdax2(),
             jj3_3 = sp3_3.Lambdax2(), mm3_3 = sp3_3.MLambdax2();
 
-        auto [allowU3, accU3] = wigU3U2db.get(
+        const auto accU3 = wigU3U2db.get(
           G3_0.n13(), G3_0.n23(), G3_0.n33(), G3_0.n12(), G3_0.n22(), 
           sp3_3.n13(), sp3_3.n23(), sp3_3.n33(), sp3_3.n12(), sp3_3.n22(), 
           g3_.n13(), g3_.n23(), g3_.n33(), g3_.n12(), g3_.n22());
 
-        if (allowU3 == false) continue;
-
-        // accU3 should have only one element
-        assert(accU3.cols() == 1);        
+        if (accU3.size() == 0) continue;
 
         double cgc3 = cgcs.get({jj3_0, jj3_3, jj3, mm3_0, mm3_3, mm3});
 
@@ -704,7 +673,7 @@ namespace U3xU4
           int jj4_0 = G4_0.Lambdax2(), mm4_0 = G4_0.MLambdax2(),
               jj4_3 = sp4_3.Lambdax2(), mm4_3 = sp4_3.MLambdax2();
 
-          auto [allowU4, accU4] = wigU4U3db.get(
+          const auto accU4 = wigU4U3db.get(
             G4_0.n14(), G4_0.n24(), G4_0.n34(), G4_0.n44(), 
             G4_0.n13(), G4_0.n23(), G4_0.n33(), 
             sp4_3.n14(), sp4_3.n24(), sp4_3.n34(), sp4_3.n44(),
@@ -712,17 +681,14 @@ namespace U3xU4
             g4_.n14(), g4_.n24(), g4_.n34(), g4_.n44(),
             g4_.n13(), g4_.n23(), g4_.n33());
 
-          if (allowU4 == false) continue;
+          if (accU4.size() == 0) continue;       
 
-          // accU4 should have only one column
-          assert(accU4.cols() == 1);          
-
-          auto [allowU3_4, accU3_4] = wigU3U2db.get(
+          const auto accU3_4 = wigU3U2db.get(
             G4_0.n13(), G4_0.n23(), G4_0.n33(), G4_0.n12(), G4_0.n22(), 
             sp4_3.n13(), sp4_3.n23(), sp4_3.n33(), sp4_3.n12(), sp4_3.n22(), 
             g4_.n13(), g4_.n23(), g4_.n33(), g4_.n12(), g4_.n22());
 
-          if (allowU3_4 == false) continue;
+          if (accU3_4.size() == 0) continue;
 
           double cgc4 = cgcs.get({jj4_0, jj4_3, jj4, mm4_0, mm4_3, mm4});
 
@@ -795,25 +761,21 @@ namespace U3xU4
       int lam = Omegas_[0].lam(), mu = Omegas_[0].mu(),
           P1 = Omegas_[0].P1(), P2 = Omegas_[0].P2(), P3 = Omegas_[0].P3();
 
+      const auto cgcU4 = wigU4SU2SU2db.get(
+        0, 0, 1, 1, 1, 0, 0, 1, 1, 1, P1, P2, P3, SS(), TT());
+
+      assert(cgcU4.size() > 0);
+
       for (int lla = ll_max; lla >= ll_min; lla -= 4)
       {
         for (int llb = ll_max; llb >= ll_min; llb -= 4)
         {
           // if (abs(lla - llb) > LL_ || (lla + llb) < LL_) continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(
+          const auto cgcU3 = wigU3SO3db.get(
             0, n_, lla / 2, 0, n_, llb / 2, lam, mu, LL() / 2);
 
-          if (allowU3 == false) continue;
-
-          assert(cgcU3.cols() == 1);
-
-          auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
-            0, 0, 1, 1, 1, 0, 0, 1, 1, 1, P1, P2, P3, SS(), TT());
-
-          if (allowU4 == false) continue;
-
-          assert(cgcU4.cols() == 1);
+          if (cgcU3.size() == 0) continue;          
 
           for (int jja = lla + 1; jja >= abs(lla - 1); jja -= 2)
           {
@@ -842,14 +804,11 @@ namespace U3xU4
                                  at2(n_, llb, jjb, mmjb, mmtb, labels_);
                   double phase1 = at1.turnToAnnihilation(),
                          phase2 = at2.turnToAnnihilation(),
-                         factor =
-                             cgcU4(0, 0) * U9j * cgcJ * cgcT * phase1 * phase2;
+                         factor = cgcU4[0] * U9j * cgcJ * cgcT * phase1 * phase2;
 
                   Eigen::RowVectorXd coeffs(kappamax());
-                  coeffs = cgcU3.col(0) * factor;
-                  // coeffs.setZero();
-                  // for (int k = 0; k < kappamax; k++)
-                  //   coeffs(k) += cgcU3(k, 0) * factor;
+                  for (int k = 0; k < kappamax(); k++)
+                    coeffs(k) += cgcU3[k] * factor;
 
                   if (coeffs.norm() < 1e-12) continue;
 
@@ -893,12 +852,10 @@ namespace U3xU4
 
           // if (abs(LL0 - llc) > LL_ || (LL0 + llc) < LL_) continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(
+          const auto cgcU3 = wigU3SO3db.get(
             lam0, mu0, LL0 / 2, 0, n_, llc / 2, lam, mu, LL() / 2);
 
-          if (allowU3 == false) continue;
-
-          assert(cgcU3.cols() == 1);
+          if (cgcU3.empty()) continue;
 
           for (size_t pv40 = 0; pv40 < pv4s0.size(); pv40++)
           {
@@ -908,12 +865,10 @@ namespace U3xU4
             //     abs(TT0 - 1) > TT_ || (TT0 + 1) < TT_)
             //   continue;
 
-            auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+            const auto cgcU4 = wigU4SU2SU2db.get(
               P10, P20, P30, SS0, TT0, 0, 0, 1, 1, 1, P1, P2, P3, SS(), TT());
 
-            if (allowU4 == false) continue;
-
-            assert(cgcU4.cols() == 1);
+            if (cgcU4.empty()) continue;
 
             for (int jjc = llc + 1; jjc >= abs(llc - 1); jjc -= 2)
             {
@@ -937,7 +892,7 @@ namespace U3xU4
 
                     double cgcJ = cgcs.get({JJ0, jjc, JJ(), MMJ0, mmjc, MMJ()}),
                            cgcT = cgcs.get({TT0, 1, TT(), MMT0, mmtc, MMT()}),
-                           factor = cgcU4(0, 0) * U9j * cgcJ * cgcT;
+                           factor = cgcU4[0] * U9j * cgcJ * cgcT;
 
                     U3xU4::Tat_phys Tat0(n_, {Omegas_[0]}, LL0, SS0, TT0, MMT0, 
                                          JJ0, MMJ0, labels_);
@@ -954,7 +909,7 @@ namespace U3xU4
                       coeffs.setZero();
                       for (int k = 0; k < kappamax(); k++)
                         for (int k0 = 0; k0 < Tat0.kappamax(); k0++)
-                          coeffs(k) += cgcU3(k0 * kappamax() + k, 0) 
+                          coeffs(k) += cgcU3[k0 * kappamax() + k] 
                                      * factor * coeffsArr0[i](k0);
 
                       if (coeffs.norm() < 1e-12) continue;
@@ -1091,12 +1046,12 @@ namespace U3xU4
         int jj3_1 = g3_1.Lambdax2(), mm3_1 = g3_1.MLambdax2(),
             jj3_2 = g3_2.Lambdax2(), mm3_2 = g3_2.MLambdax2();
 
-        auto [allowU3, accU3] = wigU3U2db.get(
+        const auto accU3 = wigU3U2db.get(
           g3_1.n13(), g3_1.n23(), g3_1.n33(), g3_1.n12(), g3_1.n22(), 
           g3_2.n13(), g3_2.n23(), g3_2.n33(), g3_2.n12(), g3_2.n22(), 
-          g3_.n13(), g3_.n23(), g3_.n33(), g3_.n12(), g3_.n22()); 
+          g3_.n13(), g3_.n23(), g3_.n33(), g3_.n12(), g3_.n22());
         
-        if (allowU3 == false) continue;
+        if (accU3.size() == 0) continue;
 
         double cgc3 = cgcs.get({jj3_1, jj3_2, jj3, mm3_1, mm3_2, mm3});
 
@@ -1112,7 +1067,7 @@ namespace U3xU4
           int jj4_1 = g4_1.Lambdax2(), mm4_1 = g4_1.MLambdax2(),
               jj4_2 = g4_2.Lambdax2(), mm4_2 = g4_2.MLambdax2();
 
-          auto [allowU4, accU4] = wigU4U3db.get(
+          const auto accU4 = wigU4U3db.get(
             g4_1.n14(), g4_1.n24(), g4_1.n34(), g4_1.n44(), 
             g4_1.n13(), g4_1.n23(), g4_1.n33(), 
             g4_2.n14(), g4_2.n24(), g4_2.n34(), g4_2.n44(), 
@@ -1120,14 +1075,14 @@ namespace U3xU4
             g4_.n14(), g4_.n24(), g4_.n34(), g4_.n44(), 
             g4_.n13(), g4_.n23(), g4_.n33());
 
-          if (allowU4 == false) continue;
+          if (accU4.size() == 0) continue;
 
-          auto [allowU3_4, accU3_4] = wigU3U2db.get(
+          const auto accU3_4 = wigU3U2db.get(
             g4_1.n13(), g4_1.n23(), g4_1.n33(), g4_1.n12(), g4_1.n22(), 
             g4_2.n13(), g4_2.n23(), g4_2.n33(), g4_2.n12(), g4_2.n22(), 
             g4_.n13(), g4_.n23(), g4_.n33(), g4_.n12(), g4_.n22());
 
-          if (allowU3_4 == false) continue;
+          if (accU3_4.size() == 0) continue;
 
           double cgc4 = cgcs.get({jj4_1, jj4_2, jj4, mm4_1, mm4_2, mm4});
 
@@ -1257,9 +1212,9 @@ namespace U3xU4
 
           if (abs(LL1 - LL2) > LL_ || (LL1 + LL2) < LL_) continue;
 
-          auto [allowU3, cgcU3] = wigU3SO3db.get(lam1, mu1, LL1 / 2, 
+          const auto cgcU3 = wigU3SO3db.get_U3SO3(lam1, mu1, LL1 / 2, 
             lam2, mu2, LL2 / 2, lam(), mu(), LL() / 2);
-          if (allowU3 == false) continue;
+          if (cgcU3.empty()) continue;
 
           for (const auto& pv41 : pv4s1)
           {
@@ -1275,11 +1230,11 @@ namespace U3xU4
                   abs(TT1 - TT2) > TT_ || (TT1 + TT2) < TT_)
                 continue;
 
-              auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+              const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
                                   P11, P21, P31, SS1, TT1, 
                                   P12, P22, P32, SS2, TT2, 
                                   P1(), P2(), P3(), SS(), TT());
-              if (allowU4 == false) continue;
+              if (cgcU4.empty()) continue;
 
               for (int JJ1 = LL1 + SS1; JJ1 >= abs(LL1 - SS1); JJ1 -= 2)
               {
@@ -1339,10 +1294,8 @@ namespace U3xU4
                                   for (int k1 = 0; k1 < kappa1; k1++)
                                     for (int k2 = 0; k2 < kappa2; k2++)
                                       x(index) +=
-                                          cgcU3((k1 * kappa2 + k2) * kappamax_ +
-                                                    k,
-                                                rho) *
-                                          cgcU4(z, eta) * cgcU2 *
+                                          cgcU3(k1, k2, k, rho) *
+                                          cgcU4(0, 0, z, eta) * cgcU2 *
                                           coeffs1[i](k1) * coeffs2[j](k2);
                                 }
 
@@ -1402,9 +1355,9 @@ namespace U3xU4
         int lam2 = pv32.lam(), mu2 = pv32.mu(),
             kappa2 = pv32.kappa(), LL2 = 2 * pv32.L();
 
-        auto [allowU3, cgcU3] = wigU3SO3db.get(lam1, mu1, LL1 / 2, 
+        const auto cgcU3 = wigU3SO3db.get_U3SO3(lam1, mu1, LL1 / 2, 
                         lam2, mu2, LL2 / 2, lam(), mu(), LL() / 2);
-        if (allowU3 == false) continue;
+        if (cgcU3.empty()) continue;
 
         for (const auto& pv41 : pv4s1)
         {
@@ -1416,11 +1369,11 @@ namespace U3xU4
             int P12 = pv42.P1(), P22 = pv42.P2(), P32 = pv42.P3(),
                 SS2 = pv42.SS(), TT2 = pv42.TT();
 
-            auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+            const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
                                   P11, P21, P31, SS1, TT1, 
                                   P12, P22, P32, SS2, TT2, 
                                   P1(), P2(), P3(), SS(), TT());
-            if (allowU4 == false) continue;
+            if (cgcU4.empty()) continue;
 
             for (int JJ1 = LL1 + SS1; JJ1 >= abs(LL1 - SS1); JJ1 -= 2)
             {
@@ -1496,8 +1449,8 @@ namespace U3xU4
                                 for (int k1 = 0; k1 < kappa1; k1++)
                                   for (int k2 = 0; k2 < kappa2; k2++)
                                     strengths[index] += me *
-                                      cgcU3((k1 * kappa2 + k2) * kappamax_ + k, rho) *
-                                      cgcU4(z, eta) * cgcU2 *
+                                      cgcU3(k1 , k2, k, rho) *
+                                      cgcU4(0, 0, z, eta) * cgcU2 *
                                       coeffs1[i](k1) * coeffs2[j](k2);
                               }
                       }

@@ -329,24 +329,18 @@ namespace U3xU4
                                                                  LL, SS, JJ_opt,
                                                                  bra_LL, bra_SS, JJ});
                           if (std::fabs(cgcU2) < 1e-12) continue;
-                          /*
-                          auto [allowU3, cgcU3] = wigU3SO3db.get(
-                            ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
-                            irr.lam(), irr.mu(), LL / 2,
-                            bra_irr.lam(), bra_irr.mu(), bra_LL / 2);
-                          if (!allowU3) continue;
-                          */
-                          auto cgcU3 = wigU3SO3db.get_U3SO3(
+                          
+                          const auto cgcU3 = wigU3SO3db.get_U3SO3(
                             ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
                             irr.lam(), irr.mu(), LL / 2,
                             bra_irr.lam(), bra_irr.mu(), bra_LL / 2);
                           if (cgcU3.empty()) continue;
 
-                          auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+                          const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
                             ket_irr.P1(), ket_irr.P2(), ket_irr.P3(), ket_SS, ket_TT, 
                             irr.P1(), irr.P2(), irr.P3(), SS, TT,
                             bra_irr.P1(), bra_irr.P2(), bra_irr.P3(), bra_SS, bra_TT);
-                          if (!allowU4) continue;
+                          if (cgcU4.empty()) continue;
                           // std::cout << "Finish calculating coupling coeffs" << std::endl;
 
 
@@ -379,12 +373,8 @@ namespace U3xU4
                                       {
                                         for (size_t k = 0; k < kmax; k++)
                                         {
-                                          auto cgcU3_row = (ket_k * kmax + k) * bra_kmax + bra_k;
-
                                           for (size_t z = 0; z < zmax; z++)
                                           {
-                                            auto cgcU4_row = (ket_z * zmax + z) * bra_zmax + bra_z;
-
                                             double strength = strengths[(tensor_a * kmax + k) * zmax + z];
 
                                             // going through multiplicities of 
@@ -393,13 +383,12 @@ namespace U3xU4
                                             {
                                               for (size_t eta = 0; eta < etamax; eta++)
                                               {
-                                                auto rme = rmes.get(bra_a, ket_a, tensor_a, rho, eta);
+                                                auto rme = rmes(bra_a, ket_a, tensor_a, rho, eta);
                                                 //std::cout << rme << std::endl;
 
                                                 MEs(i, j) += strength * cgcU2 
-                                                           // * cgcU3(cgcU3_row,rho) 
                                                            * cgcU3(ket_k, k, bra_k, rho)
-                                                           * cgcU4(cgcU4_row,eta) * rme;
+                                                           * cgcU4(ket_z, z, bra_z, eta) * rme;
                                               }
                                             }
                                           }
@@ -726,20 +715,19 @@ namespace U3xU4
                                                                  LL, SS, JJ_opt,
                                                                  bra_LL, bra_SS, bras_JJ});
                           if (std::fabs(cgcU2) < 1e-12) continue;
-
-                          auto [allowU3, cgcU3] = wigU3SO3db.get(
+                          
+                          const auto cgcU3 = wigU3SO3db.get_U3SO3(
                             ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
                             irr.lam(), irr.mu(), LL / 2,
                             bra_irr.lam(), bra_irr.mu(), bra_LL / 2);
-                          if (!allowU3) continue;
+                          if (cgcU3.empty()) continue;
 
-                          auto [allowU4, cgcU4] = wigU4SU2SU2db.get(
+                          const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
                             ket_irr.P1(), ket_irr.P2(), ket_irr.P3(), ket_SS, ket_TT, 
                             irr.P1(), irr.P2(), irr.P3(), SS, TT,
                             bra_irr.P1(), bra_irr.P2(), bra_irr.P3(), bra_SS, bra_TT);
-                          if (!allowU4) continue;
+                          if (cgcU4.empty()) continue;
                           // std::cout << "Finish calculating coupling coeffs" << std::endl;
-
 
                           // std::cout << "Start to calculate FMEs" << std::endl;
                           for (size_t bra_a = 0; bra_a < bra_amax; bra_a++)
@@ -768,12 +756,8 @@ namespace U3xU4
                                       {
                                         for (size_t k = 0; k < kmax; k++)
                                         {
-                                          auto cgcU3_row = (ket_k * kmax + k) * bra_kmax + bra_k;
-
                                           for (size_t z = 0; z < zmax; z++)
                                           {
-                                            auto cgcU4_row = (ket_z * zmax + z) * bra_zmax + bra_z;
-
                                             double strength = strengths[(tensor_a * kmax + k) * zmax + z];
 
                                             // going through multiplicities of 
@@ -782,11 +766,12 @@ namespace U3xU4
                                             {
                                               for (size_t eta = 0; eta < etamax; eta++)
                                               {
-                                                auto rme = rmes.get(bra_a, ket_a, tensor_a, rho, eta);
+                                                auto rme = rmes(bra_a, ket_a, tensor_a, rho, eta);
                                                 //std::cout << rme << std::endl;
 
-                                                MEs(i, j) += strength * cgcU2 * cgcU3(cgcU3_row,rho) 
-                                                           * cgcU4(cgcU4_row,eta) * rme;
+                                                MEs(i, j) += strength * cgcU2 
+                                                           * cgcU3(ket_k, k, bra_k, rho)
+                                                           * cgcU4(ket_z, z, bra_z, eta) * rme;
                                               }
                                             }
                                           }

@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 
   ////////////// WITHIN THE SAME BASIS //////////////
   /*
-  int Z = 3, N = 3, Nmax = 6, JJ = 2, hw = 20;
+  int Z = 3, N = 3, Nmax = 6, JJ = 6, hw = 20;
 
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
   basis.construct();
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
   auto filename_i = Hamil_i.filename(kets);
   auto mat_i = qcx_utils::readBinary(filename_i);
 
-  auto [evals_i, evecs_i] = qcx_utils::eigensolver_symmetric(mat_i, 2);
+  auto [evals_i, evecs_i] = qcx_utils::eigensolver_symmetric(mat_i, 4);
   std::cout << "Initial energies: ";
   for (const auto& val : evals_i) std::cout << val << "\t";
   std::cout << std::endl;
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
   auto filename_f = Hamil_f.filename(bras);
   auto mat_f = qcx_utils::readBinary(filename_f);
 
-  auto [evals_f, evecs_f] = qcx_utils::eigensolver_symmetric(mat_f, 2);
+  auto [evals_f, evecs_f] = qcx_utils::eigensolver_symmetric(mat_f, 4);
   std::cout << "Final energies: ";
   for (const auto& val : evals_f) std::cout << val << "\t";
   std::cout << std::endl;
@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
   // transition
   
   auto strengths = op.transitionStrength(bras, kets, 
-    {{evecs_f.col(0), evecs_i.col(0)}});
+    {{evecs_f.col(0), evecs_i.col(1)}});
 
   std::cout << "Transition strengths of " << name << " are" << std::endl;
   for (int i = 0; i < strengths.size(); i++)

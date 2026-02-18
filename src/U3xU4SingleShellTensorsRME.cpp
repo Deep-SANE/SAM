@@ -254,11 +254,11 @@ namespace U3xU4
       // std::cout << gt3 << std::endl;
       int jj_t3 = gt3.Lambdax2(), mm_t3 = gt3.MLambdax2();
 
-      auto [allowU3, accU3] = wigU3U2db.get(
+      const auto accU3 = wigU3U2db.get(
           i3hws.n13(), i3hws.n23(), i3hws.n33(), i3hws.n12(), i3hws.n22(),
           gt3.n13(), gt3.n23(), gt3.n33(), gt3.n12(), gt3.n22(), f3hws.n13(),
           f3hws.n23(), f3hws.n33(), f3hws.n12(), f3hws.n22());
-      if (allowU3 == false) continue;
+      if (accU3.size() == 0) continue;
 
       double cgc3 = cgcs.get({jj_i3, jj_t3, jj_f3, mm_i3, mm_t3, mm_f3});
 
@@ -273,19 +273,19 @@ namespace U3xU4
         // std::cout << gt4 << std::endl;
         int jj_t4 = gt4.Lambdax2(), mm_t4 = gt4.MLambdax2();
 
-        auto [allowU4, accU4] =
+        const auto accU4 =
             wigU4U3db.get(i4hws.n14(), i4hws.n24(), i4hws.n34(), i4hws.n44(),
                           i4hws.n13(), i4hws.n23(), i4hws.n33(), gt4.n14(),
                           gt4.n24(), gt4.n34(), gt4.n44(), gt4.n13(), gt4.n23(),
                           gt4.n33(), f4hws.n14(), f4hws.n24(), f4hws.n34(),
                           f4hws.n44(), f4hws.n13(), f4hws.n23(), f4hws.n33());
-        if (allowU4 == false) continue;
+        if (accU4.size() == 0) continue;
 
-        auto [allowU3_4, accU3_4] = wigU3U2db.get(
+        const auto accU3_4 = wigU3U2db.get(
             i4hws.n13(), i4hws.n23(), i4hws.n33(), i4hws.n12(), i4hws.n22(),
             gt4.n13(), gt4.n23(), gt4.n33(), gt4.n12(), gt4.n22(), f4hws.n13(),
             f4hws.n23(), f4hws.n33(), f4hws.n12(), f4hws.n22());
-        if (allowU3_4 == false) continue;
+        if (accU3_4.size() == 0) continue;
 
         double cgc4 = cgcs.get({jj_i4, jj_t4, jj_f4, mm_i4, mm_t4, mm_f4});
 
@@ -633,11 +633,11 @@ namespace U3xU4
       // std::cout << gt3 << std::endl;
       int jj_t3 = gt3.Lambdax2(), mm_t3 = gt3.MLambdax2();
 
-      auto [allowU3, accU3] = wigU3U2db.get(
+      const auto accU3 = wigU3U2db.get(
           i3hws.n13(), i3hws.n23(), i3hws.n33(), i3hws.n12(), i3hws.n22(),
           gt3.n13(), gt3.n23(), gt3.n33(), gt3.n12(), gt3.n22(), f3hws.n13(),
           f3hws.n23(), f3hws.n33(), f3hws.n12(), f3hws.n22());
-      if (allowU3 == false) continue;
+      if (accU3.size() == 0) continue;
 
       double cgc3 = cgcs.get({jj_i3, jj_t3, jj_f3, mm_i3, mm_t3, mm_f3});
 
@@ -651,19 +651,19 @@ namespace U3xU4
         // std::cout << gt4 << std::endl;
         int jj_t4 = gt4.Lambdax2(), mm_t4 = gt4.MLambdax2();
 
-        auto [allowU4, accU4] =
+        const auto accU4 =
             wigU4U3db.get(i4hws.n14(), i4hws.n24(), i4hws.n34(), i4hws.n44(),
                           i4hws.n13(), i4hws.n23(), i4hws.n33(), gt4.n14(),
                           gt4.n24(), gt4.n34(), gt4.n44(), gt4.n13(), gt4.n23(),
                           gt4.n33(), f4hws.n14(), f4hws.n24(), f4hws.n34(),
                           f4hws.n44(), f4hws.n13(), f4hws.n23(), f4hws.n33());
-        if (allowU4 == false) continue;
+        if (accU4.size() == 0) continue;
 
-        auto [allowU3_4, accU3_4] = wigU3U2db.get(
+        const auto accU3_4 = wigU3U2db.get(
             i4hws.n13(), i4hws.n23(), i4hws.n33(), i4hws.n12(), i4hws.n22(),
             gt4.n13(), gt4.n23(), gt4.n33(), gt4.n12(), gt4.n22(), f4hws.n13(),
             f4hws.n23(), f4hws.n33(), f4hws.n12(), f4hws.n22());
-        if (allowU3_4 == false) continue;
+        if (accU3_4.size() == 0) continue;
 
         double cgc4 = cgcs.get({jj_i4, jj_t4, jj_f4, mm_i4, mm_t4, mm_f4});
 

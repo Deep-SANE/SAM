@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   std::cin >> write;
   */
 
-  int Z = 3, N = 3, JJ = 2, Nmax = 4, hw = 20, write = 0;
+  int Z = 2, N = 2, JJ = 0, Nmax = 8, hw = 20, solve = 1, write = 0;
 
   // Example 1: LL
   // std::string name = "L.L";
@@ -75,14 +75,17 @@ int main(int argc, char* argv[])
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 10);
-  std::cout << "Eigenvalues are" << std::endl;
-  for (auto ev : evals)
-  {
-    if (std::fabs(ev) < 1e-10)
-      std::cout << 0 << std::endl;
-    else
-      std::cout << std::setprecision(8) << ev << std::endl;
+  if (solve == 1)
+  {  
+    auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 10);
+    std::cout << "Eigenvalues are" << std::endl;
+    for (auto ev : evals)
+    {
+      if (std::fabs(ev) < 1e-10)
+        std::cout << 0 << std::endl;
+      else
+        std::cout << std::setprecision(8) << ev << std::endl;
+    }
   }
 
   if (write == 1)
