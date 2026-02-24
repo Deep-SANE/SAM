@@ -18,7 +18,7 @@ namespace U3xU4
     su4key =
         (uint64_t(su4key_safe[0]) << 56) | (uint64_t(su4key_safe[1]) << 48) |
         (uint64_t(su4key_safe[2]) << 40) | (uint64_t(su4key_safe[3]) << 32) |
-        (uint64_t(su4key_safe[4]) << 24) | (uint64_t(su4key_safe[5]) << 16);
+        (uint64_t(su4key_safe[4]) << 24) | (uint64_t(su4key_safe[5]) << 16) | 0;
   }
 
   RME_db::RMEFile::RMEFile(const std::string& path_)
