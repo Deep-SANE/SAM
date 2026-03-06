@@ -105,7 +105,7 @@ namespace JT
     return dir;
   }
   
-  std::string Operator::filename(const U3xU4::ManyNucleonBasis& basis) const
+  std::string Operator::matrix_file(const U3xU4::ManyNucleonBasis& basis) const
   {
     std::string dir = dirname() + "/Z" + std::to_string(Z_) 
                                 + "/N" + std::to_string(N_)
@@ -114,7 +114,47 @@ namespace JT
 
     std::filesystem::create_directories(dir);
 
-    return dir + "/hw" + std::to_string(hw_);       
+    return dir + "/hw" + std::to_string(hw_) + ".mat";
+  }
+
+  std::string Operator::wfns_file(const U3xU4::ManyNucleonBasis& basis) const
+  {
+    std::string dir = dirname() + "/Z" + std::to_string(Z_) 
+                                + "/N" + std::to_string(N_)
+                                + "/JJ" + std::to_string(basis.JJ()) 
+                                + "/Nmax" + std::to_string(Nmax_);
+
+    std::filesystem::create_directories(dir);
+
+    return dir + "/hw" + std::to_string(hw_) + ".wfns";
+  }
+
+  std::string Operator::matrix_file(const U3xU4::ManyNucleonBasis& basis,
+                                    std::string custom_dir) const
+  {
+    std::string dir = dirname() + "/Z" + std::to_string(Z_) 
+                                + "/N" + std::to_string(N_)
+                                + "/JJ" + std::to_string(basis.JJ()) 
+                                + "/Nmax" + std::to_string(Nmax_)
+                                + "/" + custom_dir;
+
+    std::filesystem::create_directories(dir);
+
+    return dir + "/hw" + std::to_string(hw_) + ".mat";
+  }
+
+  std::string Operator::wfns_file(const U3xU4::ManyNucleonBasis& basis,
+                                    std::string custom_dir) const
+  {
+    std::string dir = dirname() + "/Z" + std::to_string(Z_) 
+                                + "/N" + std::to_string(N_)
+                                + "/JJ" + std::to_string(basis.JJ()) 
+                                + "/Nmax" + std::to_string(Nmax_)
+                                + "/" + custom_dir;
+
+    std::filesystem::create_directories(dir);
+
+    return dir + "/hw" + std::to_string(hw_) + ".wfns";
   }
 
   U3xU4::MultiShellTensors_phys Operator::expand_old()

@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
                     N, Z, Nmax, JJ, hw, Hamil_name);
 
   // read Hamiltonian matrix
-  auto filename = Hamil.filename(basis);
+  auto filename = Hamil.matrix_file(basis);
   auto mat = qcx_utils::readBinary(filename);
 
   // Start time measurement

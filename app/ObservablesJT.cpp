@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
   auto t0 = std::chrono::high_resolution_clock::now();
 
   // read Hamiltonian matrix
-  auto filename = Hamil.filename(basis);
+  auto filename = Hamil.matrix_file(basis);
   auto mat = qcx_utils::readBinary(filename);
 
   auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 3);
@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
   auto t0 = std::chrono::high_resolution_clock::now();
 
   // read Hamiltonian matrix
-  auto filename_i = Hamil_i.filename(kets);
+  auto filename_i = Hamil_i.matrix_file(kets);
   auto mat_i = qcx_utils::readBinary(filename_i);
 
   auto [evals_i, evecs_i] = qcx_utils::eigensolver_symmetric(mat_i, 4);
@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
   std::cout << std::endl;
 
   // read Hamiltonian matrix
-  auto filename_f = Hamil_f.filename(bras);
+  auto filename_f = Hamil_f.matrix_file(bras);
   auto mat_f = qcx_utils::readBinary(filename_f);
 
   auto [evals_f, evecs_f] = qcx_utils::eigensolver_symmetric(mat_f, 4);

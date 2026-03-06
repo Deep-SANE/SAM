@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
 {
   sam::initialize(&argc, &argv);
 
-  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 8, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
   // std::string name = "Rrel";
 
   // Example 6: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
-  std::string name = "N2LO_opt_bare";
+  // std::string name = "N2LO_opt_bare";
   // std::string name = "N2LO_opt_srg1.0";
   // std::string name = "N2LO_opt_srg2.0";
   // std::string name = "N2LO_opt_srg4.0";
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
   // std::string name = "N2LO_sat_srg4.0";
   
   // Example 9: Two-body potential (bare) with N4LO_EMN500_bare,srg1.0,2.0,4.0
-  // std::string name = "N4LO_EMN500_bare";
+  std::string name = "N4LO_EMN500_bare";
   // std::string name = "N4LO_EMN500_srg1.0";
   // std::string name = "N4LO_EMN500_srg2.0"
   // std::string name = "N4LO_EMN500_srg4.0";
@@ -63,6 +63,7 @@ int main(int argc, char* argv[])
   op.is();
 
   auto tensors = op.expand();
+  // auto tensors = op.expand_new();
   
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -72,30 +73,42 @@ int main(int argc, char* argv[])
 
   /*
   // This might be helpful for comparison
-  auto tensors_new = op.expand_new(); // expand on the fly
+  std::string filename = op.dirname() + "/Expansion/" + name + "_hw" 
+                         + std::to_string(hw) + "_Nmax6_DL";
+  auto tensors_old = op.readBinary(filename);
 
-  assert(tensors.size() == tensors_new.size());
-  for (size_t i = 0; i < tensors.size(); i++)
+  // assert(tensors.size() == tensors_old.size());
+  for (const auto& tensor : tensors)
   {
-    std::cout << "Old: " << tensors[i] << std::endl;
-    std::cout << "New: " << tensors_new[i] << std::endl;
-
-    assert(tensors[i] == tensors_new[i]);
-
-    assert(tensors[i].LLSSTTstrengths().size() == 
-           tensors_new[i].LLSSTTstrengths().size());
-
-    for (size_t j = 0; j < tensors[i].LLSSTTstrengths().size(); j++)
+    bool found = false;
+    for (const auto& tensor_old : tensors_old)
     {
-      const auto& [k, LL, z, SS, TT, strengths] = tensors[i].LLSSTTstrengths()[j];
-      const auto& [k_, LL_, z_, SS_, TT_, strengths_] = tensors_new[i].LLSSTTstrengths()[j];
+      if (tensor == tensor_old)
+      {
+        found = true;
 
-      assert(k == k_ && LL == LL_ && z == z_ && SS == SS_ && TT == TT_);
+        std::cout << "New: " << tensor << std::endl;
+        std::cout << "Old: " << tensor_old << std::endl;
 
-      assert(strengths.size() == strengths_.size());
-      for (size_t s = 0; s < strengths.size(); s++)
-        assert(std::fabs(strengths[s] - strengths_[s]) < 1e-8);
+        assert(tensor.LLSSTTstrengths().size() == 
+               tensor_old.LLSSTTstrengths().size());
+
+        for (size_t j = 0; j < tensor.LLSSTTstrengths().size(); j++)
+        {
+          const auto& [k, LL, z, SS, TT, strengths] = tensor.LLSSTTstrengths()[j];
+          const auto& [k_, LL_, z_, SS_, TT_, strengths_] = tensor_old.LLSSTTstrengths()[j];
+
+          assert(k == k_ && LL == LL_ && z == z_ && SS == SS_ && TT == TT_);
+
+          assert(strengths.size() == strengths_.size());
+          for (size_t s = 0; s < strengths.size(); s++)
+            assert(std::fabs(strengths[s] - strengths_[s]) < 1e-8);
+        }
+
+        break;
+      }
     }
+    assert(found);
   }
   */
 

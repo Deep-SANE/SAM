@@ -51,9 +51,14 @@ namespace JT
     void is() const;
     friend std::ostream& operator<<(std::ostream& s, const Operator& x);
 
-    // Get binary file name for writing matrix
+    // Get binary file names
     std::string dirname() const;
-    std::string filename(const U3xU4::ManyNucleonBasis& basis) const;
+    std::string matrix_file(const U3xU4::ManyNucleonBasis& basis) const;
+    std::string wfns_file(const U3xU4::ManyNucleonBasis& basis) const;
+    std::string matrix_file(const U3xU4::ManyNucleonBasis& basis,
+                            std::string custom_dir) const;
+    std::string wfns_file(const U3xU4::ManyNucleonBasis& basis,
+                          std::string custom_dir) const;
 
     // expand into a sum of U3xU4::MultiShellTensor_phys
     U3xU4::MultiShellTensors_phys expand_old();
