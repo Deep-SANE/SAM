@@ -111,7 +111,9 @@ namespace U3xU4
     }
 
     // RME database
+    // print("Start reading RME database\n");
     U3xU4::RME_db RMEdb(basis.maxShell());
+    // print("Finish reading RME database\n");
 
     std::vector<Eigen::Triplet<double>> ija;
     
@@ -225,8 +227,6 @@ namespace U3xU4
 
             for (const auto& bra_id : bra_irrep_ids)
             {
-              // std::cout << "bra_id: " << bra_id << std::endl;
-
               const auto& bra = irreps[bra_id];
 
               // get alphamax
@@ -239,12 +239,15 @@ namespace U3xU4
               const auto& bra_labels = labels[bra_id];
               size_t bra_dim = bra_labels.back()[5] +
                               bra_labels.back()[0] * bra_labels.back()[2];
-
+/*
+              print("bra id {} : ", bra_id);
+              print(" gamma = {}", bra.gamma);
+              print(" ; omega = {}", bra.omega);
+              print(" ; kappamax LL zetamax SS TT offset = {}\n", bra_labels);
+*/
               for (const auto& ket_id : ket_irrep_ids)
               {
                 if (bra_id < ket_id) continue;
-
-                // std::cout << "ket_id: " << ket_id << std::endl;
 
                 const auto& ket = irreps[ket_id];
 
@@ -258,7 +261,12 @@ namespace U3xU4
                 const auto& ket_labels = labels[ket_id];
                 size_t ket_dim = ket_labels.back()[5] +
                               ket_labels.back()[0] * ket_labels.back()[2];
-
+/*
+                print("ket id {} : ", ket_id);
+                print(" gamma = {}", ket.gamma);
+                print(" ; omega = {}", ket.omega);
+                print(" ; kappamax LL zetamax SS TT offset = {}\n", ket_labels);
+*/
                 // unify bra and ket irreps
                 U3xU4::IrrepUnifier iu;
                 const auto& [ubra, uket] = iu.unify(bra, ket);
