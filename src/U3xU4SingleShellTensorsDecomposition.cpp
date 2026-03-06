@@ -808,7 +808,7 @@ namespace U3xU4
 
                   Eigen::RowVectorXd coeffs(kappamax());
                   for (int k = 0; k < kappamax(); k++)
-                    coeffs(k) += cgcU3[k] * factor;
+                    coeffs(k) = cgcU3[k] * factor;
 
                   if (coeffs.norm() < 1e-12) continue;
 
