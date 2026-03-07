@@ -10,6 +10,8 @@
 using qcx_utils::print;
 #include <so3Coeffs/SO3_CGC.h>
 
+#include <sam.h>
+
 #include <TwoBodyOperatorJT.h>
 
 namespace JT
@@ -871,6 +873,8 @@ namespace JT
     auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
 #endif
 
+std::cerr << all_na_nb_nc_nd.size() << std::endl;
+
     for (size_t i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
       // auto groups_ns = group_same_shell(sorted_ns);
@@ -887,8 +891,22 @@ namespace JT
       U3xU4::GenerateMultiShellTensors(
         Gammas_lists, 0, {}, {}, {}, {}, all_results);
 
-      for (const auto& [Gammas, Omegas] : all_results)
+std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() << std::endl;
+
+      // for (const auto& [Gammas, Omegas] : all_results)
+
+#pragma omp parallel
+{
+  sam::initialize_thread();
+
+  U3xU4::MultiShellTensors_phys tensors_tl;
+
+#pragma omp for schedule(dynamic,1)
+      for (size_t j = 0; j < all_results.size(); j++)
       {
+        const auto& Gammas = all_results[j].first;
+        const auto& Omegas = all_results[j].second;
+
         U3xU4::MultiShellTensor_phys tensor(Gammas, Omegas, 
                                             MMT_, JJ_, MMJ_, HO_labels_);
 
@@ -898,8 +916,20 @@ namespace JT
         setTensorStrength(tensor, all_inverse[i], all_phase[i]);
 
         if (!tensor.LLSSTTstrengths().empty())
-          tensors.push_back(std::move(tensor));
+          tensors_tl.push_back(std::move(tensor));
+          // tensors.push_back(std::move(tensor));
       }
+
+#pragma omp critical
+  {
+    tensors.reserve(tensors.size() + tensors_tl.size());
+
+    for (auto& t : tensors_tl)
+      tensors.push_back(std::move(t));
+  }
+
+  sam::finalize_thread();
+}
     }
 
     return tensors;
