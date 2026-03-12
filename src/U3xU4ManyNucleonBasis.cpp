@@ -358,6 +358,7 @@ namespace U3xU4
     for (size_t i = 0; i < gamma.size(); i++)
     {
       // find next active shell:
+      assert(n < dist.size());
       while (dist[n] == 0)
       {
         n++;
@@ -372,6 +373,8 @@ namespace U3xU4
       u3::irrep u3(ge.su3, N);
 
       res.gamma.emplace_back(n, ge.alphamax, u3, ge.u4);
+
+      n++;
     }
 
     assert(res.gamma.size() == gamma.size());
