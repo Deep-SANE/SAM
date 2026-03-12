@@ -115,10 +115,12 @@ namespace U3xU4
     {
       const ManyNucleonBasis& basis_;
 
+      /*
       // storage for resulting gamma and omega elements:
       std::vector<uint16_t> active_shells_;
       std::vector<U3xU4::GammaElement> gamma_;
       std::vector<U3xU4::OmegaElement> omega_;
+      */
 
     public:
       /**
@@ -142,7 +144,7 @@ namespace U3xU4
        *
        * @return A required basis irrep.
        */
-      Irrep operator[](size_t irrep_id);
+      Irrep operator[](size_t irrep_id) const;
 
       size_t offset(size_t irrep_id) const;
     };

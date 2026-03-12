@@ -334,7 +334,7 @@ namespace U3xU4
       : basis_(basis)
   { }
 
-  ManyNucleonBasis::Irrep ManyNucleonBasis::IrrepDB::operator[](size_t irrep_id)
+  ManyNucleonBasis::Irrep ManyNucleonBasis::IrrepDB::operator[](size_t irrep_id) const
   {
     assert(irrep_id < basis_.irreps_.size());
 
@@ -346,22 +346,24 @@ namespace U3xU4
     // qcx_utils::print("dist_id {}: {};\t", dist_id, dist);
     // qcx_utils::print("gamma_id {};\t irrep_id {}\n", gamma_id, irrep_id);
 
-    // active shells:
-    active_shells_.clear();
-    for (size_t n = 0; n < dist.size(); n++)
-      if (dist[n] > 0)
-        active_shells_.push_back(n);
+    size_t n = 0; // active shell candidate
 
     auto gamma = basis_.gamma(gamma_id);
 
     assert(gamma.size() > 0);
-    assert(gamma.size() == active_shells_.size());
+
+    ManyNucleonBasis::Irrep res; // resulting irrep
 
     // create resulting gamma:
-    gamma_.clear();
     for (size_t i = 0; i < gamma.size(); i++)
     {
-      auto n = active_shells_[i];
+      // find next active shell:
+      while (dist[n] == 0)
+      {
+        n++;
+        assert(n < dist.size());
+      }
+
       const auto& ge = gamma[i];
 
       auto A = ge.u4.quanta(); // particles
@@ -369,17 +371,17 @@ namespace U3xU4
 
       u3::irrep u3(ge.su3, N);
 
-      gamma_.emplace_back(n, ge.alphamax, u3, ge.u4);
+      res.gamma.emplace_back(n, ge.alphamax, u3, ge.u4);
     }
 
-    assert(gamma_.size() == gamma.size());
+    assert(res.gamma.size() == gamma.size());
 
     if (gamma.size() == 1)
     {
       assert(omega_u4_id == INVALID_OMEGA_ID);
       assert(omega_su3_id == INVALID_OMEGA_ID);
 
-      return {std::move(gamma_), {}};
+      return res;
     }
     else
     {
@@ -390,16 +392,15 @@ namespace U3xU4
       assert(omega_su3.size() == gamma.size() - 1);
 
       // combine omega U(4) and SU(3) parts:
-      omega_.clear();
       for (size_t i = 0; i < omega_u4.size(); i++)
       {
         const auto& oe_u4 = omega_u4[i];
         const auto& oe_su3 = omega_su3[i];
 
-        omega_.emplace_back(oe_su3.rhomax, oe_su3.su3, oe_u4.etamax, oe_u4.u4);
+        res.omega.emplace_back(oe_su3.rhomax, oe_su3.su3, oe_u4.etamax, oe_u4.u4);
       }
 
-      return {std::move(gamma_), std::move(omega_)};
+      return res;
     }
   }
 
