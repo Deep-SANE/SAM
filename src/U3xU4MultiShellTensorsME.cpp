@@ -88,21 +88,21 @@ namespace U3xU4
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
     // basis info
-    auto irreps = basis.irreps();
-    auto dim = basis.dim();
+    const auto irreps = basis.irreps();
+    const auto dim = basis.dim();
     const auto& labels = basis.decomposition();
-    auto JJ = basis.JJ();
-    auto MMJ = JJ;
-    auto MMT = basis.MMT();
+    const auto JJ = basis.JJ();
+    const auto MMJ = JJ;
+    const auto MMT = basis.MMT();
     // tensors info
-    auto tensors_count = tensors.size();
+    const auto tensors_count = tensors.size();
     // all tensors have the same J, MJ, MT, but T may vary
-    auto JJ_opt = tensors[0].JJ();
-    auto MMJ_opt = tensors[0].MMJ();
+    const auto JJ_opt = tensors[0].JJ();
+    const auto MMJ_opt = tensors[0].MMJ();
     assert(MMJ_opt == 0);
-    auto MMT_opt = tensors[0].MMT();
+    const auto MMT_opt = tensors[0].MMT();
 
-    auto cgcJ = cgcs.get({JJ, JJ_opt, JJ, MMJ, MMJ_opt, MMJ});
+    const auto cgcJ = cgcs.get({JJ, JJ_opt, JJ, MMJ, MMJ_opt, MMJ});
 
     if (tensors_count == 0 || std::fabs(cgcJ) == 0.0)
     {
