@@ -16,6 +16,8 @@ using qcx_utils::print;
 
 #include <slepceps.h>
 
+#include <sam.h>
+
 namespace U3xU4
 {
   // Helper function to map distribution to indices of gamma elements
@@ -116,7 +118,14 @@ namespace U3xU4
     // print("Finish reading RME database\n");
 
     std::vector<Eigen::Triplet<double>> ija;
-    
+
+    // PREPARATION PHASE --- BEGIN
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    std::vector<std::vector<size_t>> connected_tensors;
+    std::vector<std::tuple<size_t, size_t, size_t>> connected_irreps;
+
     for (size_t bra_dist_id = 0; 
          bra_dist_id < basis.n_distributions(); 
          bra_dist_id++)
@@ -226,6 +235,50 @@ namespace U3xU4
             // print("Finish checking single shell couplings\n");
 
             for (const auto& bra_id : bra_irrep_ids)
+              for (const auto& ket_id : ket_irrep_ids)
+              {
+                if (bra_id < ket_id)
+                  continue;
+
+                connected_irreps.emplace_back(bra_id, ket_id,
+                                              connected_tensors.size());
+              }
+
+            connected_tensors.push_back(std::move(tensors2));
+          }
+        }
+      }
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    print("Matrix elements preparation time: {:.2f} [s]\n", elapsed.count());
+    print("Number of connected irreps: {}\n", connected_irreps.size());
+
+    // PREPARATION PHASE --- END
+
+#ifdef USE_OPENMP
+#pragma omp parallel
+{
+    sam::initialize_thread();
+
+    std::vector<Eigen::Triplet<double>> ija_local;
+#endif
+
+#pragma omp for schedule(runtime)
+    for (size_t ci = 0; ci < connected_irreps.size(); ci++)
+    // for (auto [bra_id, ket_id, connected_tensors_id] : connected_irreps)
+    {
+      auto bra_id = std::get<0>(connected_irreps[ci]);
+      auto ket_id = std::get<1>(connected_irreps[ci]);
+      auto connected_tensors_id = std::get<2>(connected_irreps[ci]);
+
+      const auto& tensors2 = connected_tensors[connected_tensors_id];
+
+      {
+        {
+          {
+            // for (const auto& bra_id : bra_irrep_ids)
             {
               const auto& bra = irreps[bra_id];
 
@@ -245,7 +298,7 @@ namespace U3xU4
               print(" ; omega = {}", bra.omega);
               print(" ; kappamax LL zetamax SS TT offset = {}\n", bra_labels);
 */
-              for (const auto& ket_id : ket_irrep_ids)
+              // for (const auto& ket_id : ket_irrep_ids)
               {
                 if (bra_id < ket_id) continue;
 
@@ -414,6 +467,13 @@ namespace U3xU4
                     }
                   }
                 }
+
+#ifdef USE_OPENMP
+                auto& ija_ = ija_local;
+#else
+                auto& ija_ = ija;
+#endif
+
                 // std::cout << "Start to fill sparse matrix" << std::endl;
                 for (size_t i = 0; i < MEs.rows(); i++)
                 {
@@ -424,8 +484,8 @@ namespace U3xU4
 
                     if (std::fabs(MEs(i, j)) > 1e-12)
                     {
-                      ija.emplace_back(i_, j_, MEs(i, j)); // for i_ >= j_
-                      if (i_ > j_) ija.emplace_back(j_, i_, MEs(i, j));
+                      ija_.emplace_back(i_, j_, MEs(i, j)); // for i_ >= j_
+                      if (i_ > j_) ija_.emplace_back(j_, i_, MEs(i, j));
                     }
                   }
                 }
@@ -436,6 +496,17 @@ namespace U3xU4
         }
       }
     }
+
+#ifdef USE_OPENMP
+#pragma omp critical(matrixelements)
+    {
+      ija.insert(ija.end(), ija_local.begin(), ija_local.end());
+    }
+
+    sam::finalize_thread();
+
+} // pragma omp parallel
+#endif
 
     Eigen::SparseMatrix<double> mat(dim, dim);
     mat.setFromTriplets(ija.begin(), ija.end());
