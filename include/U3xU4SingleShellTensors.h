@@ -716,7 +716,10 @@ namespace U3xU4
     expand() const;
 
     // Get two-body strength directly during expand()
-    std::vector<double> getStrengths(const HO::TwBME_scalar& TBME) const;
+    std::vector<double> 
+      getStrengths(const HO::TwBME_scalar& TBME) const;
+    std::vector<std::vector<double>> 
+      getStrengths(const std::vector<HO::TwBME_scalar>& TBMEs) const;
 
   };
   using SingleShellTensors_phys = std::vector<SingleShellTensor_phys>;
