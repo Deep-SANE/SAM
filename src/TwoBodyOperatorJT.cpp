@@ -921,6 +921,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
         if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
+        if (tensor.shift_quanta() < 0) continue;
 
         setTensorStrength(tensor, all_inverse[i], all_phase[i]);
 
