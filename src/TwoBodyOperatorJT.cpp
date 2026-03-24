@@ -1282,6 +1282,18 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       return tensors;
     }
 
+    if (maxShell_ > maxShell)
+    {
+      std::cout << "File doesn't reach your maxShell, so it will be expanded now"
+                << std::endl;
+      valenceShell_ = 0;
+      Nmax_ = maxShell_;
+
+      auto tensors = expand_new();
+      writeBinary(filename, tensors);
+      return tensors;
+    }
+
     // Read number of tensors
     size_t n_tensors;
     qcx_utils::readBinary(s, n_tensors);
