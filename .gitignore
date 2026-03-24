@@ -6,13 +6,17 @@
 *.blg
 *.docx
 *.exe
+*.e*
 *.fdb_latexmk
 *.fls
 *.gz
 *.log
 *.o
+*.o*
 *.out
+*.pbs
 *.pdf
+*.slurm
 *.so
 *.swp
 *.xlsx
