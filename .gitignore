@@ -16,6 +16,7 @@
 *.o*
 *.out
 *.pbs
+*.slurm
 *.pdf
 *.so
 *.swp

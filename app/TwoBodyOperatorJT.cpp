@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
 {
   sam::initialize(&argc, &argv);
 
-  int hw = 20, valenceShell = 0, Nmax = 8, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 10, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
   // std::string name = "L.S";
 
   // Example 3: Two-body part of relative kinetic energy
-  // std::string name = "Kinetic";  
+  // std::string name = "Kinetic";
 
   // Example 4: Two-body part of the CoM HO operator
   // std::string name = "CoMNumberOp";
@@ -29,29 +29,35 @@ int main(int argc, char* argv[])
   // Example 5: Intrinsic mass radius squared
   // std::string name = "Rrel";
 
-  // Example 6: Two-body potential (bare) with N2LO_opt_bare,srg1.0,2.0,4.0
+  // Example 6: Two-body potential N2LO_opt_bare,srg1.0,2.0,4.0
   // std::string name = "N2LO_opt_bare";
   // std::string name = "N2LO_opt_srg1.0";
   // std::string name = "N2LO_opt_srg2.0";
   // std::string name = "N2LO_opt_srg4.0";
 
-  // Example 7: Two-body potential (bare) with N3LO_EMN500_bare,srg1.0,2.0,4.0
-  // std::string name = "N3LO_EMN500_bare";
+  // Example 7: Two-body potential N3LO_EMN500_bare,srg1.0,2.0,4.0
+  std::string name = "N3LO_EMN500_bare";
   // std::string name = "N3LO_EMN500_srg1.0";
   // std::string name = "N3LO_EMN500_srg2.0";
   // std::string name = "N3LO_EMN500_srg4.0";
 
-  // Example 8: Two-body potential (bare) with N2LO_sat_bare,srg1.0,2.0,4.0
+  // Example 8: Two-body potential N2LO_sat_bare,srg1.0,2.0,4.0
   // std::string name = "N2LO_sat_bare";
   // std::string name = "N2LO_sat_srg1.0";
   // std::string name = "N2LO_sat_srg2.0";
   // std::string name = "N2LO_sat_srg4.0";
-  
-  // Example 9: Two-body potential (bare) with N4LO_EMN500_bare,srg1.0,2.0,4.0
-  std::string name = "N4LO_EMN500_bare";
+
+  // Example 9: Two-body potential N4LO_EMN500_bare,srg1.0,2.0,4.0
+  // std::string name = "N4LO_EMN500_bare";
   // std::string name = "N4LO_EMN500_srg1.0";
   // std::string name = "N4LO_EMN500_srg2.0"
   // std::string name = "N4LO_EMN500_srg4.0";
+
+  // Example 10: Two-body potential N3LO_EM500_bare,srg1.0,2.0,4.0
+  // std::string name = "N3LO_EM500_bare";
+  // std::string name = "N3LO_EM500_srg1.0";
+  // std::string name = "N3LO_EM500_srg2.0";
+  // std::string name = "N3LO_EM500_srg4.0";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
