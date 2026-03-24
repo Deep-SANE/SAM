@@ -25,6 +25,7 @@ namespace U3xU4
     map_by_positive_order(const std::span<const uint16_t>& v)
   {
     std::vector<int> res;
+    // std::cout << "map_by_positive_order: " << v.size() << std::endl;
     res.reserve(v.size());
 
     int counter = 0;
@@ -179,6 +180,7 @@ namespace U3xU4
         };
 
         std::vector<size_t> tensors1;
+        // std::cout << "tensors1: " << tensors.size() << std::endl;
         tensors1.reserve(tensors.size());
         for (size_t i = 0; i < tensors.size(); i++)
           if (all_shells_particles(tensors[i])) tensors1.push_back(i);
@@ -228,6 +230,7 @@ namespace U3xU4
             };
 
             std::vector<size_t> tensors2;
+            // std::cout << "tensors2: " << tensors1.size() << std::endl;
             tensors2.reserve(tensors1.size());
             for (const auto& i : tensors1)
               if (all_shells_coupling(tensors[i])) tensors2.push_back(i);
@@ -252,8 +255,8 @@ namespace U3xU4
 
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
-    print("Matrix elements preparation time: {:.2f} [s]\n", elapsed.count());
-    print("Number of connected irreps: {}\n", connected_irreps.size());
+    std::cout << "Matrix elements preparation time: " << elapsed.count()/60 << "min" << std::endl;
+    std::cout << "Number of connected irreps: " << connected_irreps.size() << std::endl;
 
     // PREPARATION PHASE --- END
 

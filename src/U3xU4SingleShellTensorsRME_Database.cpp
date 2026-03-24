@@ -152,7 +152,7 @@ namespace U3xU4
     std::filesystem::create_directories(dir);
 
     // Preload all existing files
-    // std::cout << "Start loading existing files" << std::endl;
+    std::cout << "Start loading existing RMEs" << std::endl;
     for (const auto& entry : std::filesystem::directory_iterator(dir))
     {
       if (entry.path().extension() != ".bin") continue;
@@ -180,7 +180,7 @@ namespace U3xU4
 
       cache_.emplace(filename, std::make_unique<RMEFile>(path));
     }
-    // std::cout << "Finish loading existing files" << std::endl;
+    std::cout << "Finish loading existing RMEs" << std::endl;
 
     // Reserve to avoid rehash under concurrency
     cache_.reserve(cache_.size() + 16);
