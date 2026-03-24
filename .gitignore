@@ -5,13 +5,17 @@
 *.bbl
 *.blg
 *.docx
+*.e
+*.e*
 *.exe
 *.fdb_latexmk
 *.fls
 *.gz
 *.log
 *.o
+*.o*
 *.out
+*.pbs
 *.pdf
 *.so
 *.swp
