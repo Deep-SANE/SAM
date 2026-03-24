@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   std::cin >> write;
   */
 
-  int Z = 2, N = 2, JJ = 0, Nmax = 8, hw = 20, solve = 1, write = 0;
+  int Z = 3, N = 3, JJ = 2, Nmax = 6, hw = 20, solve = 1, write = 1;
 
   // Example 1: LL
   // std::string name = "L.L";
