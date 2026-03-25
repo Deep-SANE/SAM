@@ -111,12 +111,11 @@ namespace U3xU4
     }
 
     // RME database
-    // print("Start reading RME database\n");
     U3xU4::RME_db RMEdb(basis.maxShell());
-    // print("Finish reading RME database\n");
 
     std::vector<Eigen::Triplet<double>> ija;
     
+    std::cout << "Start computing matrix" << std::endl;
     for (size_t bra_dist_id = 0; 
          bra_dist_id < basis.n_distributions(); 
          bra_dist_id++)
@@ -436,6 +435,7 @@ namespace U3xU4
         }
       }
     }
+    std::cout << "Finish computing matrix" << std::endl;
 
     Eigen::SparseMatrix<double> mat(dim, dim);
     mat.setFromTriplets(ija.begin(), ija.end());

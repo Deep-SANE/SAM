@@ -421,6 +421,11 @@ namespace U3xU4
                     const std::vector<std::vector<int>>& inverse,
                     const std::vector<int>& phase) const;
 
+    std::vector<std::vector<double>> getStrengths(int LL, int SS, int TT,
+                    const std::vector<HO::TwBME_scalar>& TBMEs,
+                    const std::vector<std::vector<int>>& inverse,
+                    const std::vector<int>& phase) const;
+
     // Setter: done after expanding and computing strengths
     void setLLSSTTstrengths(const std::vector<labels_type>& LLSSTTstrengths)
     {

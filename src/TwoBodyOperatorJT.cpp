@@ -10,6 +10,8 @@
 using qcx_utils::print;
 #include <so3Coeffs/SO3_CGC.h>
 
+#include <sam.h>
+
 #include <TwoBodyOperatorJT.h>
 
 namespace JT
@@ -51,6 +53,37 @@ namespace JT
           "Name is incorrect or operator is not implemented");
   }
 
+  TwoBodyOperator::TwoBodyOperator(const std::vector<std::string>& names, int hw,
+                                   int Nmax, int valenceShell, int maxShell,
+                                   const HO::Table_nljmjmt& HO_labels,
+                                   const U3xU4::Table_gelfand& gelfand_labels)
+      : HO_labels_(HO_labels), gelfand_labels_(gelfand_labels)
+  {
+    if (maxShell > 14)
+      throw std::out_of_range(
+          "Sorry, we only have maxShell up to 14 at the moment");
+
+    hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
+    Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
+    valenceShell_ = (valenceShell > 0) ? qcx_utils::ito8(valenceShell) : 0;
+    maxShell_ = (maxShell >= 0) ? qcx_utils::ito8(maxShell) : 14;
+
+    names_ = names;
+    JJ_ = 0;
+    MMJ_ = 0;
+    TT_ = -1;
+    MMT_ = 0;
+    parity_ = 1;
+    on_the_fly = false;
+
+    TBMEs.emplace();
+    for (const auto& name : names)
+    {
+      assert(known_potentials.count(name));
+      TBMEs->emplace_back(name, hw, Nmax, valenceShell, maxShell);
+    }
+  }
+
   void TwoBodyOperator::is() const
   {
     if (name_ == "L.L")
@@ -68,8 +101,13 @@ namespace JT
           << "Two-body part of the intrinsic mass radius squared without -1/A"
           << std::endl;
     else if (on_the_fly == false)
-      std::cout << "Two-body potential with " << name_ << std::endl;
-      //TBME->is();
+    {
+      if (names_.empty())
+        std::cout << "Two-body potential with " << name_ << std::endl;
+      else
+        for (const auto& name : names_)
+          std::cout << "Two-body potential with " << name << std::endl;
+    }
     else
       throw std::invalid_argument("This operator has not been implemented");
   }
@@ -87,8 +125,13 @@ namespace JT
     else if (x.name_ == "Rrel")
       s << "Two-body part of the intrinsic mass radius squared without -1/A";
     else if (x.on_the_fly == false)
-      s << "Two-body potential with " << x.name_;
-      //TBME->is();
+    {
+      if (x.names_.empty())
+        s << "Two-body potential with " << x.name_;
+      else
+        for (const auto& name : x.names_)
+          std::cout << "Two-body potential with " << name << std::endl;
+    } 
     else
       throw std::invalid_argument("This operator has not been implemented");
 
@@ -97,14 +140,53 @@ namespace JT
 
   std::string TwoBodyOperator::dirname() const
   {
+#ifdef SAM_DATA_DIR
+    const char* sam_data = std::getenv("SAM_DATA_DIR");    
+    if (!sam_data)
+      throw std::runtime_error(
+        "Environment variable SAM_DATA_DIR is not set");
+
+    std::string dir = std::string(sam_data) + "/TwoBodyOperatorJT/" + name_;
+#else
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
       throw std::runtime_error("Environment variable SAM_DIR not set");
       
     std::string dir = std::string(sam_dir) + "/data/TwoBodyOperatorJT/" + name_;
+#endif
+    
     std::filesystem::create_directories(dir);
-
     return dir;
+  }
+
+  std::vector<std::string> TwoBodyOperator::dirnames() const
+  {
+    std::vector<std::string> dirs(names_.size());
+
+#ifdef SAM_DATA_DIR
+    const char* sam_data = std::getenv("SAM_DATA_DIR");    
+    if (!sam_data)
+      throw std::runtime_error(
+        "Environment variable SAM_DATA_DIR is not set");
+
+    for (int i = 0; i < names_.size(); i++)
+    {
+      dirs[i] = std::string(sam_data) + "/TwoBodyOperatorJT/" + names_[i];
+      std::filesystem::create_directories(dirs[i]);
+    }
+#else
+    const char* sam_dir = std::getenv("SAM_DIR");
+    if (!sam_dir)
+      throw std::runtime_error("Environment variable SAM_DIR not set");
+      
+    for (int i = 0; i < names_.size(); i++)
+    {
+      dirs[i] = std::string(sam_dir) + "/data/TwoBodyOperatorJT/" + names_[i];
+      std::filesystem::create_directories(dirs[i]);
+    }
+#endif
+    
+    return dirs;
   }
 
   // ME: / na lla jja mmja mmta | O | nc llc jjc mmjc mmtc \
@@ -704,6 +786,69 @@ namespace JT
     tensor.setLLSSTTstrengths(LLSSTTstrengths);
   }
 
+  std::vector<TwoBodyOperator::LLSSTTstrengths_t> 
+    TwoBodyOperator::getTensorStrengths(
+                           U3xU4::MultiShellTensor_phys& tensor,
+                           const std::vector<std::vector<int>>& inverse,
+                           const std::vector<int>& phase) const
+  {
+    // std::cout << "Gammas count: " << tensor.Gammas().size() << std::endl;
+    /* if (tensor.Gammas().size() == 1)
+    {
+      print("Inverse: {}\n", inverse);
+      print("Phase: {}\n", phase);
+    } */
+
+    std::vector<LLSSTTstrengths_t> LLSSTTstrengths(names_.size());
+
+    // decompose into L
+    u3::physicalvectors pv3s = u3::physicalBasis(tensor.getLastIrrep().u3());
+
+    // decompose into 2S and 2T
+    u4::physicalvectors pv4s = u4::physicalBasis(tensor.getLastIrrep().u4());
+
+    for (const auto& pv3 : pv3s)
+    {
+      int kappa0 = pv3.kappa(), LL0 = 2 * pv3.L();
+
+      if (LLselection(LL0) == false) continue;
+
+      for (const auto& pv4 : pv4s)
+      {
+        int zeta0 = pv4.zeta(), SS0 = pv4.SS(), TT0 = pv4.TT();
+
+        if (SSselection(SS0) == false) continue;
+
+        // if the operator has definite isospin assignment
+        if (TT() >= 0 && TT() != TT0) continue;
+
+        // couple LL and SS to JJ
+        if (u2::mult(LL0, SS0, JJ()) == 0) continue;
+
+        auto strengths = tensor.getStrengths(LL0, SS0, TT0, *TBMEs, inverse, phase);
+
+        for (int i = 0; i < names_.size(); i++)
+        {
+          double norm = 0.0;
+          for (auto& s : strengths[i])
+          {
+            if (std::fabs(s) < 1e-10)
+            {
+              s = 0.0;
+              continue;
+            }
+            norm += std::fabs(s);
+          }
+
+          if (std::fabs(norm) > 1e-8)
+            LLSSTTstrengths[i].emplace_back(kappa0, LL0, zeta0, SS0, TT0, strengths[i]);
+        }
+      }
+    }
+
+    return LLSSTTstrengths;
+  }
+
 #define RESTRICT_WITH_NMAX
 #define RESTRICT_JJ
   U3xU4::TwoBodyMultiShellTensors 
@@ -871,6 +1016,8 @@ namespace JT
     auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
 #endif
 
+std::cerr << all_na_nb_nc_nd.size() << std::endl;
+
     for (size_t i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
       // auto groups_ns = group_same_shell(sorted_ns);
@@ -887,19 +1034,46 @@ namespace JT
       U3xU4::GenerateMultiShellTensors(
         Gammas_lists, 0, {}, {}, {}, {}, all_results);
 
-      for (const auto& [Gammas, Omegas] : all_results)
+std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() << std::endl;
+
+      // for (const auto& [Gammas, Omegas] : all_results)
+
+#pragma omp parallel
+{
+  sam::initialize_thread();
+
+  U3xU4::MultiShellTensors_phys tensors_tl;
+
+#pragma omp for schedule(dynamic,1)
+      for (size_t j = 0; j < all_results.size(); j++)
       {
+        const auto& Gammas = all_results[j].first;
+        const auto& Omegas = all_results[j].second;
+
         U3xU4::MultiShellTensor_phys tensor(Gammas, Omegas, 
                                             MMT_, JJ_, MMJ_, HO_labels_);
 
         if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
+        if (tensor.shift_quanta() < 0) continue;
 
         setTensorStrength(tensor, all_inverse[i], all_phase[i]);
 
         if (!tensor.LLSSTTstrengths().empty())
-          tensors.push_back(std::move(tensor));
+          tensors_tl.push_back(std::move(tensor));
+          // tensors.push_back(std::move(tensor));
       }
+
+#pragma omp critical
+  {
+    tensors.reserve(tensors.size() + tensors_tl.size());
+
+    for (auto& t : tensors_tl)
+      tensors.push_back(std::move(t));
+  }
+
+  sam::finalize_thread();
+}
     }
 
     return tensors;
@@ -908,6 +1082,8 @@ namespace JT
   U3xU4::MultiShellTensors_phys 
     TwoBodyOperator::expand()
   {
+    assert(names_.empty());
+
     std::string base_dir = dirname() + "/Expansion";
     std::filesystem::create_directories(base_dir);
 
@@ -927,6 +1103,131 @@ namespace JT
     }
   }
 
+  std::vector<U3xU4::MultiShellTensors_phys>
+    TwoBodyOperator::expand_potentials(bool write)
+  {
+    assert(!names_.empty());
+
+    for (auto& tbme : *TBMEs) tbme.read();
+
+    std::vector<U3xU4::MultiShellTensors_phys> tensors(names_.size());
+
+#ifdef RESTRICT_WITH_NMAX
+    auto [all_na_nb_nc_nd, all_inverse, all_phase] =
+        GenerateAllCombinationsHOShells(Nmax_, valenceShell_, maxShell_);
+#else
+    auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
+#endif
+
+std::cerr << all_na_nb_nc_nd.size() << std::endl;
+
+    for (size_t i = 0; i < all_na_nb_nc_nd.size(); i++)
+    {
+      // auto groups_ns = group_same_shell(sorted_ns);
+      auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
+      std::vector<U3xU4::SingleShellTensors> Gammas_lists;
+      for (const auto& g : groups_ns)
+      {
+        auto Gammas = U3xU4::GenerateSingleShellTensors(
+            std::get<0>(g), std::get<1>(g), std::get<2>(g));
+        Gammas_lists.push_back(std::move(Gammas));
+      }
+
+      std::vector<U3xU4::CouplingPath> all_results;
+      U3xU4::GenerateMultiShellTensors(
+        Gammas_lists, 0, {}, {}, {}, {}, all_results);
+
+std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() << std::endl;
+
+      // for (const auto& [Gammas, Omegas] : all_results)
+
+#pragma omp parallel
+{
+  sam::initialize_thread();
+
+  std::vector<U3xU4::MultiShellTensors_phys> tensors_tl(names_.size());
+
+#pragma omp for schedule(dynamic,1)
+      for (size_t j = 0; j < all_results.size(); j++)
+      {
+        const auto& Gammas = all_results[j].first;
+        const auto& Omegas = all_results[j].second;
+
+        U3xU4::MultiShellTensor_phys tensor(Gammas, Omegas, 
+                                            MMT_, JJ_, MMJ_, HO_labels_);
+
+        if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
+        if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
+        if (tensor.shift_quanta() < 0) continue;
+
+        auto LLSSTTstrengths = 
+          getTensorStrengths(tensor, all_inverse[i], all_phase[i]);
+
+        for (int k = 0; k < names_.size(); k++)
+        {
+          if (!LLSSTTstrengths[k].empty())
+          {
+            tensor.setLLSSTTstrengths(LLSSTTstrengths[k]);
+            tensors_tl[k].push_back(tensor);
+          }
+        }
+      }
+
+#pragma omp critical
+  {
+    for (int k = 0; k < names_.size(); k++)
+    {
+      tensors[k].reserve(tensors[k].size() + tensors_tl[k].size());
+
+      for (auto& t : tensors_tl[k])
+        tensors[k].push_back(std::move(t));
+    }
+  }
+
+  sam::finalize_thread();
+}
+    }
+
+    // write to binary file
+    if (write == true)
+    {
+      if (valenceShell_ > 0)
+        throw std::runtime_error("Set valenceShell to 0 for reusability");
+
+      if (Nmax_ != maxShell_)
+        throw std::runtime_error("Set Nmax and maxShell equal");
+
+      auto dirs = dirnames();
+
+      for (int id = 0; id < names_.size(); id++)
+      {
+        std::string base_dir = dirs[id] + "/Expansion";
+        std::filesystem::create_directories(base_dir);
+
+        std::string filename = base_dir + "/" + names_[id] + "_hw" 
+                             + std::to_string(static_cast<int>(hw_));
+
+        std::cout << "Start writing " << names_[id] << " to binary file" << std::endl;
+
+        std::ofstream s(filename, std::ios::binary);
+        if (!s)
+          throw std::runtime_error("Failed to open file for writing: " + filename);
+
+        qcx_utils::writeBinary(s, maxShell_);
+
+        // Number of tensors
+        size_t n_tensors = tensors[id].size();
+        qcx_utils::writeBinary(s, n_tensors);
+
+        for (const auto& tensor : tensors[id]) tensor.writeBinary(s);
+
+        std::cout << "Finish writing to binary file" << std::endl;
+      }
+    }
+
+    return tensors;
+  }
+
   // Write to binary file
   void TwoBodyOperator::writeBinary(const std::string& filename, 
                      const U3xU4::MultiShellTensors_phys& tensors) const
@@ -939,7 +1240,7 @@ namespace JT
     if (Nmax_ != maxShell_)
       throw std::runtime_error("Set Nmax and maxShell equal");
 
-    std::ofstream s(filename,std::ios::binary);
+    std::ofstream s(filename, std::ios::binary);
     if (!s)
       throw std::runtime_error("Failed to open file for writing: " + filename);
 
@@ -972,6 +1273,18 @@ namespace JT
     if (maxShell_ - 2 * valenceShell_ > maxShell /* Nmax */)
     {
       std::cout << "File doesn't reach your Nmax, so it will be expanded now"
+                << std::endl;
+      valenceShell_ = 0;
+      Nmax_ = maxShell_;
+
+      auto tensors = expand_new();
+      writeBinary(filename, tensors);
+      return tensors;
+    }
+
+    if (maxShell_ > maxShell)
+    {
+      std::cout << "File doesn't reach your maxShell, so it will be expanded now"
                 << std::endl;
       valenceShell_ = 0;
       Nmax_ = maxShell_;

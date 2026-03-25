@@ -30,6 +30,12 @@ namespace JT
     std::optional<HO::TwBME_scalar> TBME; // only read input file during
                                          // expand() or writeBinary()
 
+
+    // For expansion of multiple potentials simultaneously
+    std::vector<std::string> names_;
+    std::optional<std::vector<HO::TwBME_scalar>> TBMEs;
+
+    // List of available operators
     const std::unordered_set<std::string> known_scalar_ops = {
                         "L.L", "L.S", "CoMNumberOp", "Kinetic", "Rrel"};
 
@@ -50,6 +56,12 @@ namespace JT
                     const HO::Table_nljmjmt& HO_labels,
                     const U3xU4::Table_gelfand& gelfand_labels);
 
+    // Constructor for multiple potentials
+    TwoBodyOperator(const std::vector<std::string>& names, int hw, int Nmax, 
+                    int valenceShell, int maxShell,
+                    const HO::Table_nljmjmt& HO_labels,
+                    const U3xU4::Table_gelfand& gelfand_labels);
+
     // Getters
     int JJ() const { return static_cast<int>(JJ_); }
     int MMJ() const { return static_cast<int>(MMJ_); }
@@ -64,6 +76,7 @@ namespace JT
 
     // Name of the directory that contains data of this operator
     std::string dirname() const;
+    std::vector<std::string> dirnames() const;
 
   private:
     // ME: / na lla jja mmja mmta | O | nc llc jjc mmjc mmtc \
@@ -130,6 +143,19 @@ namespace JT
                            const std::vector<std::vector<int>>& inverse,
                            const std::vector<int>& phase) const;
 
+    // Get strengths for U3xU4::MultiShellTensor_phys for multiple potentials
+    using LLSSTTstrengths_t = std::vector<std::tuple<uint8_t,  // kappamax
+                                                     HO::qn_t, // LL
+                                                     uint8_t,  // zetamax
+                                                     HO::qn_t, // SS
+                                                     HO::qn_t, // TT
+                                                     std::vector<double>>>;
+
+    std::vector<LLSSTTstrengths_t> getTensorStrengths(
+                           U3xU4::MultiShellTensor_phys& tensor,
+                           const std::vector<std::vector<int>>& inverse,
+                           const std::vector<int>& phase) const;
+
     // selection rules
     bool HOShellselection(int na, int nb, int nc, int nd) const;
     bool LLselection(const int& LL) const;
@@ -144,6 +170,9 @@ namespace JT
     // expand into a sum of U3xU4::MultiShellTensor_phys
     U3xU4::MultiShellTensors_phys expand_new();
     U3xU4::MultiShellTensors_phys expand();
+
+    // expand into a sum of U3xU4::MultiShellTensor_phys for multiple potentials
+    std::vector<U3xU4::MultiShellTensors_phys> expand_potentials(bool write = false);
 
     // Write to binary file
     void writeBinary(const std::string& filename, 

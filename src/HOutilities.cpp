@@ -330,10 +330,23 @@ namespace HO
           "/exe/TwBME-HO_NN-only_" + name_ + "_hw" +
           std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
 #else
+
+#ifdef SAM_DATA_DIR
+      const char* sam_data = std::getenv("SAM_DATA_DIR");    
+      if (!sam_data)
+        throw std::runtime_error(
+          "Environment variable SAM_DATA_DIR is not set");
+
+      std::string filename = std::string(sam_data) +
+        "/Ab-initio_Interactions/TwBME-HO_NN-only_" + name_ + "_hw" +
+        std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
+#else
       std::string filename =
           "data/Ab-initio_Interactions/TwBME-HO_NN-only_" + name_ + "_hw" +
           std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
-#endif     
+#endif
+
+#endif
 
     std::cout << "Start reading matrix elements from file" << std::endl;
 #ifdef READ_TWBME_FROM_BINARY

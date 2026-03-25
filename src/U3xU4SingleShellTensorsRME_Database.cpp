@@ -118,14 +118,25 @@ namespace U3xU4
 
   RME_db::RME_db()
   {
+#ifdef SAM_DATA_DIR
+    const char* sam_data = std::getenv("SAM_DATA_DIR");    
+    if (!sam_data)
+      throw std::runtime_error(
+        "Environment variable SAM_DATA_DIR is not set");
+
+    dir = std::string(sam_data) + "/rmes";
+#else
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
       throw std::runtime_error("Environment variable SAM_DIR not set");
 
     dir = std::string(sam_dir) + "/data/rmes";
+#endif
+
     std::filesystem::create_directories(dir);
 
     // Preload all existing files
+    std::cout << "Start loading rme files" << std::endl;
     for (const auto& entry : std::filesystem::directory_iterator(dir))
     {
       if (entry.path().extension() != ".bin") continue;
@@ -137,6 +148,7 @@ namespace U3xU4
 
       cache_.emplace(filename, std::make_unique<RMEFile>(path));
     }
+    std::cout << "Finish loading rme files" << std::endl;
 
     // Reserve to avoid rehash under concurrency
     cache_.reserve(cache_.size() + 16);
@@ -144,15 +156,25 @@ namespace U3xU4
 
   RME_db::RME_db(int maxShell)
   {
+#ifdef SAM_DATA_DIR
+    const char* sam_data = std::getenv("SAM_DATA_DIR");    
+    if (!sam_data)
+      throw std::runtime_error(
+        "Environment variable SAM_DATA_DIR is not set");
+
+    dir = std::string(sam_data) + "/rmes";
+#else
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
       throw std::runtime_error("Environment variable SAM_DIR not set");
 
     dir = std::string(sam_dir) + "/data/rmes";
+#endif
+    
     std::filesystem::create_directories(dir);
 
     // Preload all existing files
-    // std::cout << "Start loading existing files" << std::endl;
+    std::cout << "Start loading rme files" << std::endl;
     for (const auto& entry : std::filesystem::directory_iterator(dir))
     {
       if (entry.path().extension() != ".bin") continue;
@@ -180,7 +202,7 @@ namespace U3xU4
 
       cache_.emplace(filename, std::make_unique<RMEFile>(path));
     }
-    // std::cout << "Finish loading existing files" << std::endl;
+    std::cout << "Finish loading rme files" << std::endl;
 
     // Reserve to avoid rehash under concurrency
     cache_.reserve(cache_.size() + 16);
