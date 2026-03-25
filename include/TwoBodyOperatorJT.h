@@ -167,8 +167,12 @@ namespace JT
     // Expand into a sum of U3xU4::TwoBodyMultiShellTensors
     U3xU4::TwoBodyMultiShellTensors expand_old();
 
-    // expand into a sum of U3xU4::MultiShellTensor_phys
+    // Expand into a sum of U3xU4::MultiShellTensor_phys
     U3xU4::MultiShellTensors_phys expand_new();
+    void expand_exist(U3xU4::MultiShellTensors_phys& tensors);
+
+    // If non-exisitng, expand into a sum of U3xU4::MultiShellTensor_phys
+    // Otherwise, call readBinary()
     U3xU4::MultiShellTensors_phys expand();
 
     // expand into a sum of U3xU4::MultiShellTensor_phys for multiple potentials

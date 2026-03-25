@@ -1053,6 +1053,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         U3xU4::MultiShellTensor_phys tensor(Gammas, Omegas, 
                                             MMT_, JJ_, MMJ_, HO_labels_);
 
+        // selection rules
         if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
         if (tensor.shift_quanta() < 0) continue;
@@ -1077,6 +1078,92 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     }
 
     return tensors;
+  }
+
+  void TwoBodyOperator::expand_exist(U3xU4::MultiShellTensors_phys& tensors)
+  {
+    if (on_the_fly == false)
+      TBME->read();
+
+#ifdef RESTRICT_WITH_NMAX
+    auto [all_na_nb_nc_nd, all_inverse, all_phase] =
+        GenerateAllCombinationsHOShells(Nmax_, valenceShell_, maxShell_);
+#else
+    auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
+#endif
+
+std::cerr << all_na_nb_nc_nd.size() << std::endl;
+
+    for (size_t i = 0; i < all_na_nb_nc_nd.size(); i++)
+    {
+      // auto groups_ns = group_same_shell(sorted_ns);
+      auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
+      std::vector<U3xU4::SingleShellTensors> Gammas_lists;
+      for (const auto& g : groups_ns)
+      {
+        auto Gammas = U3xU4::GenerateSingleShellTensors(
+            std::get<0>(g), std::get<1>(g), std::get<2>(g));
+        Gammas_lists.push_back(std::move(Gammas));
+      }
+
+      std::vector<U3xU4::CouplingPath> all_results;
+      U3xU4::GenerateMultiShellTensors(
+        Gammas_lists, 0, {}, {}, {}, {}, all_results);
+
+std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() << std::endl;
+
+      // for (const auto& [Gammas, Omegas] : all_results)
+
+#pragma omp parallel
+{
+  sam::initialize_thread();
+
+  U3xU4::MultiShellTensors_phys tensors_tl;
+
+#pragma omp for schedule(dynamic,1)
+      for (size_t j = 0; j < all_results.size(); j++)
+      {
+        const auto& Gammas = all_results[j].first;
+        const auto& Omegas = all_results[j].second;
+
+        U3xU4::MultiShellTensor_phys tensor(Gammas, Omegas, 
+                                            MMT_, JJ_, MMJ_, HO_labels_);
+
+        // selection rules
+        if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
+        if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
+        if (tensor.shift_quanta() < 0) continue;
+
+        // ignore if already exists
+        bool found = false;
+        for (const auto& tensor_old : tensors)
+        {
+          if (tensor == tensor_old)
+          {
+            found = true;
+            break;
+          }
+        }
+        if (found) continue;
+
+        setTensorStrength(tensor, all_inverse[i], all_phase[i]);
+
+        if (!tensor.LLSSTTstrengths().empty())
+          tensors_tl.push_back(std::move(tensor));
+          // tensors.push_back(std::move(tensor));
+      }
+
+#pragma omp critical
+  {
+    tensors.reserve(tensors.size() + tensors_tl.size());
+
+    for (auto& t : tensors_tl)
+      tensors.push_back(std::move(t));
+  }
+
+  sam::finalize_thread();
+}
+    }
   }
 
   U3xU4::MultiShellTensors_phys 
@@ -1269,30 +1356,6 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     std::cout << "Start reading " << name_ 
               << " from binary file with capacity maxShell = " 
               << static_cast<int>(maxShell) << std::endl;
-    
-    if (maxShell_ - 2 * valenceShell_ > maxShell /* Nmax */)
-    {
-      std::cout << "File doesn't reach your Nmax, so it will be expanded now"
-                << std::endl;
-      valenceShell_ = 0;
-      Nmax_ = maxShell_;
-
-      auto tensors = expand_new();
-      writeBinary(filename, tensors);
-      return tensors;
-    }
-
-    if (maxShell_ > maxShell)
-    {
-      std::cout << "File doesn't reach your maxShell, so it will be expanded now"
-                << std::endl;
-      valenceShell_ = 0;
-      Nmax_ = maxShell_;
-
-      auto tensors = expand_new();
-      writeBinary(filename, tensors);
-      return tensors;
-    }
 
     // Read number of tensors
     size_t n_tensors;
@@ -1327,6 +1390,32 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     }
 
     std::cout << "Finish reading from binary file" << std::endl;
+
+    if (maxShell_ > maxShell)
+    {
+      std::cout << "File doesn't reach your maxShell, so it will be expanded now"
+                << std::endl;
+      valenceShell_ = 0;
+      Nmax_ = maxShell_;
+
+      // auto tensors = expand_new();
+      expand_exist(tensors);
+      writeBinary(filename, tensors);
+      return tensors;
+    }
+
+    if (maxShell_ - 2 * valenceShell_ > maxShell /* Nmax */)
+    {
+      std::cout << "File doesn't reach your Nmax, so it will be expanded now"
+                << std::endl;
+      valenceShell_ = 0;
+      Nmax_ = maxShell_;
+
+      // auto tensors = expand_new();
+      expand_exist(tensors);
+      writeBinary(filename, tensors);
+      return tensors;
+    }
 
     return tensors;
   }
