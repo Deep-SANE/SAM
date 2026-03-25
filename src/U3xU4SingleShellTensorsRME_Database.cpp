@@ -325,15 +325,20 @@ namespace U3xU4
                 static_cast<size_t>(etamax)};
       }
     }
-    
-    // Compute outside lock
-    // std::cout << "Compute" << std::endl;
-    auto rmes = t.RME(f, i, labels);
-    
-    // Insert (second check inside append_or_get)
-    auto final = rme_file.append_or_get(key, rmes.data());
 
-    // std::cout << "Return computed" << std::endl;
+    //  Compute outside lock
+    std::vector<double> final;
+#pragma omp critical(compute_rme)
+{
+    // std::cout << "Compute for f:" << f << " i:" << i << " tensor:" << t << std::endl;
+
+    auto rmes = t.RME(f, i, labels);
+
+    // Insert (second check inside append_or_get)
+    final = rme_file.append_or_get(key, rmes.data());
+
+    // std::cout << "Finish computing" << std::endl;
+}
     return {std::move(final),
             af_max,
             ai_max,
