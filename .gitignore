@@ -5,6 +5,8 @@
 *.bbl
 *.blg
 *.docx
+*.e
+*.e*
 *.exe
 *.e*
 *.fdb_latexmk

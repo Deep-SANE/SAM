@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
   */
 
   // Example 6
-  /*
+  
   U3xU4::irrep Gamma(2, 1, 0, 0, 0, 0, 0);
 
   U3xU4::SingleShellTensor 
@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
   maxShell = 3;
   LL = 2;
   JJ = 2;
-  */
+  
 
   // Example 7
   /*
@@ -156,8 +156,8 @@ int main(int argc, char* argv[])
   JJ = 2;
   */
   
-  // Example 8
-  
+  // Example 8: should not run
+  /*
   U3xU4::irrep Gamma1(0, 0, 0, 1, 0, 0, 0), 
                Gamma2(2, 2, 0, 1, 1, 1, 0),
                Gamma3(3, 3, 0, 1, 1, 1, 0),
@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
   maxShell = 6;
   LL = 2;
   JJ = 2;
-  
+  */
 
   ////////////////// DO NOT EDIT ANYTHING BELOW ///////////////////
   

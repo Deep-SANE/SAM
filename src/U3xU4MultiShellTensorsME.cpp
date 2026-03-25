@@ -114,9 +114,7 @@ namespace U3xU4
     }
 
     // RME database
-    // print("Start reading RME database\n");
     U3xU4::RME_db RMEdb(basis.maxShell());
-    // print("Finish reading RME database\n");
 
     std::vector<Eigen::Triplet<double>> ija;
 
@@ -259,6 +257,8 @@ namespace U3xU4
     std::cout << "Number of connected irreps: " << connected_irreps.size() << std::endl;
 
     // PREPARATION PHASE --- END
+
+    std::cout << "Start computing matrix" << std::endl;
 
 #ifdef USE_OPENMP
 #pragma omp parallel
@@ -407,7 +407,6 @@ namespace U3xU4
                           if (cgcU4.empty()) continue;
                           // std::cout << "Finish calculating coupling coeffs" << std::endl;
 
-
                           // std::cout << "Start to calculate FMEs" << std::endl;
                           for (size_t bra_a = 0; bra_a < bra_amax; bra_a++)
                           {
@@ -510,6 +509,8 @@ namespace U3xU4
 
 } // pragma omp parallel
 #endif
+
+    std::cout << "Finish computing matrix" << std::endl;
 
     Eigen::SparseMatrix<double> mat(dim, dim);
     mat.setFromTriplets(ija.begin(), ija.end());

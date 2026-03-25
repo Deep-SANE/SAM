@@ -15,8 +15,8 @@ namespace sam
 
   inline void finalize() 
   {
-    u3::finalize();
-  	u4::finalize();
+    u4::finalize();
+    u3::finalize();  	
   	qcx_utils::finalize();
   }
 
@@ -29,8 +29,8 @@ namespace sam
 
   inline void finalize_thread()
   {
-    qcx_utils::finalize_thread();
-    u3::finalize_thread();
     u4::finalize_thread();
+    u3::finalize_thread();
+    qcx_utils::finalize_thread();
   }
 } // namespace sam
