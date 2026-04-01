@@ -116,8 +116,6 @@ namespace U3xU4
     // RME database
     U3xU4::RME_db RMEdb(basis.maxShell());
 
-    std::vector<Eigen::Triplet<double>> ija;
-
     // PREPARATION PHASE --- BEGIN
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -204,7 +202,7 @@ namespace U3xU4
 
               su3::irrep i3, f3;
               u4::irrep i4, f4;
-                
+
               if (bra_dist_to_gamma[n] >= 0)
               {
                 f3 = bra_gamma[bra_dist_to_gamma[n]].su3;
@@ -259,6 +257,24 @@ namespace U3xU4
     // PREPARATION PHASE --- END
 
     std::cout << "Start computing matrix" << std::endl;
+
+    Eigen::SparseMatrix<double> mat(dim, dim);
+
+    const size_t CHUNK_SIZE = 10000000;
+    std::vector<Eigen::Triplet<double>> chunk;
+    chunk.reserve(CHUNK_SIZE);
+
+    auto flush_chunk = [&]()
+    {
+      if (chunk.empty()) return;
+
+      Eigen::SparseMatrix<double> temp(dim, dim);
+      temp.setFromTriplets(chunk.begin(), chunk.end());
+
+      chunk.clear();
+      mat += temp;
+      mat.makeCompressed();
+    };
 
 #ifdef USE_OPENMP
 #pragma omp parallel
@@ -357,14 +373,14 @@ namespace U3xU4
                     const auto& Omegas = Omegas_LLSSTTstrengths[rme_id].first;
                     const auto& LLSSTTstrengths = Omegas_LLSSTTstrengths[rme_id].second;
 
-                    const auto& irr = (Omegas.empty()) 
+                    const auto& irr = (Omegas.empty())
                                     ? Gammas.back().u3u4() : Omegas.back().u3u4();
 
                     size_t tensor_amax = U3xU4::alphamax(Gammas, Omegas);
                     auto rhomax = rmes.rhomax(), etamax = rmes.etamax();
 
                     // going through subgroup labels of the tensor
-                    for (const auto& [kmax, LL, zmax, SS, TT, strengths] 
+                    for (const auto& [kmax, LL, zmax, SS, TT, strengths]
                                                         : LLSSTTstrengths)
                     {
                       // going through bra labels
@@ -393,7 +409,7 @@ namespace U3xU4
                                                                  LL, SS, JJ_opt,
                                                                  bra_LL, bra_SS, JJ});
                           if (std::fabs(cgcU2) < 1e-12) continue;
-                          
+
                           const auto cgcU3 = wigU3SO3db.get_U3SO3(
                             ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
                             irr.lam(), irr.mu(), LL / 2,
@@ -484,7 +500,7 @@ namespace U3xU4
                   {
                     size_t j_ = j + ket_offset;
 
-                    if (std::fabs(MEs(i, j)) > 1e-12)
+                    if (std::fabs(MEs(i, j)) > 1e-10)
                     {
                       ija_.emplace_back(i_, j_, MEs(i, j)); // for i_ >= j_
                       if (i_ > j_) ija_.emplace_back(j_, i_, MEs(i, j));
@@ -502,7 +518,10 @@ namespace U3xU4
 #ifdef USE_OPENMP
 #pragma omp critical(matrixelements)
     {
-      ija.insert(ija.end(), ija_local.begin(), ija_local.end());
+      // ija.insert(ija.end(), ija_local.begin(), ija_local.end());
+      chunk.insert(chunk.end(), ija_local.begin(), ija_local.end());
+
+      if (chunk.size() >= CHUNK_SIZE) flush_chunk();
     }
 
     sam::finalize_thread();
@@ -510,11 +529,17 @@ namespace U3xU4
 } // pragma omp parallel
 #endif
 
-    std::cout << "Finish computing matrix" << std::endl;
+    // Final flush
+    flush_chunk();
+/*
+    std::cout << "Finish computing " << ija.size() << " matrix elements" << std::endl;
 
     Eigen::SparseMatrix<double> mat(dim, dim);
+    mat.reserve(ija.size());
     mat.setFromTriplets(ija.begin(), ija.end());
     mat.makeCompressed();
+*/
+    std::cout << "Finish computing matrix" << std::endl;
 
     return mat;
   }

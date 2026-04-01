@@ -212,6 +212,7 @@ namespace U3xU4
   {
     std::shared_lock cache_lock(cache_mutex_);
 
+    std::cout << "Start destructing RME database" << std::endl;
     for (auto& [filename, file_ptr] : cache_)
     {
       auto& file = *file_ptr;
@@ -238,6 +239,7 @@ namespace U3xU4
         qcx_utils::writeBinary(out, rmes);
       }
     }
+    std::cout << "Finish destructing RME database" << std::endl;
   }
 
   sam::RME RME_db::get(const U3xU4::SingleShellTensor& t,
