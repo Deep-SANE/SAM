@@ -259,22 +259,7 @@ namespace U3xU4
     std::cout << "Start computing matrix" << std::endl;
 
     Eigen::SparseMatrix<double> mat(dim, dim);
-
-    const size_t CHUNK_SIZE = 10000000;
-    std::vector<Eigen::Triplet<double>> chunk;
-    chunk.reserve(CHUNK_SIZE);
-
-    auto flush_chunk = [&]()
-    {
-      if (chunk.empty()) return;
-
-      Eigen::SparseMatrix<double> temp(dim, dim);
-      temp.setFromTriplets(chunk.begin(), chunk.end());
-
-      chunk.clear();
-      mat += temp;
-      mat.makeCompressed();
-    };
+    std::vector<Eigen::Triplet<double>> ija;
 
 #ifdef USE_OPENMP
 #pragma omp parallel
@@ -282,6 +267,23 @@ namespace U3xU4
     sam::initialize_thread();
 
     std::vector<Eigen::Triplet<double>> ija_local;
+    const size_t SIZE_LIMIT = 1000000;
+    ija_local.reserve(SIZE_LIMIT);
+
+    auto flush = [&]()
+    {
+      if (ija_local.empty()) return;
+
+      Eigen::SparseMatrix<double> temp(dim, dim);
+      temp.setFromTriplets(ija_local.begin(), ija_local.end());
+
+      ija_local.clear();
+
+#pragma omp critical(flushing)
+{
+      mat += temp;
+}
+    };
 #endif
 
 #pragma omp for schedule(runtime)
@@ -293,7 +295,6 @@ namespace U3xU4
       auto connected_tensors_id = std::get<2>(connected_irreps[ci]);
 
       const auto& tensors2 = connected_tensors[connected_tensors_id];
-
       {
         {
           {
@@ -508,6 +509,10 @@ namespace U3xU4
                   }
                 }
                 // std::cout << "Finish filling sparse matrix; " << std::endl;
+
+#ifdef USE_OPENMP
+                if (ija_local.size() >= SIZE_LIMIT) flush();
+#endif
               }
             }
           }
@@ -516,29 +521,21 @@ namespace U3xU4
     }
 
 #ifdef USE_OPENMP
-#pragma omp critical(matrixelements)
-    {
-      // ija.insert(ija.end(), ija_local.begin(), ija_local.end());
-      chunk.insert(chunk.end(), ija_local.begin(), ija_local.end());
-
-      if (chunk.size() >= CHUNK_SIZE) flush_chunk();
-    }
+    // Final flush from local thread
+    flush();
 
     sam::finalize_thread();
 
 } // pragma omp parallel
-#endif
+#else
+    std::cout << "Finish computing " << ija.size() << " elements" << std::endl;
 
-    // Final flush
-    flush_chunk();
-/*
-    std::cout << "Finish computing " << ija.size() << " matrix elements" << std::endl;
-
-    Eigen::SparseMatrix<double> mat(dim, dim);
     mat.reserve(ija.size());
     mat.setFromTriplets(ija.begin(), ija.end());
+#endif
+
     mat.makeCompressed();
-*/
+
     std::cout << "Finish computing matrix" << std::endl;
 
     return mat;
