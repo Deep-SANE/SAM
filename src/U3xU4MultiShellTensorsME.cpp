@@ -281,6 +281,7 @@ namespace U3xU4
 
 #pragma omp critical(flushing)
 {
+      std::cerr << "Flushing" << std::endl;
       mat += temp;
 }
     };
