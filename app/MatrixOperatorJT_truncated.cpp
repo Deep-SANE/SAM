@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 
   sam::initialize(&argc, &argv);
 
-  int Z = 2, N = 4, JJ = 4, TT = 2, Nmax = 8, hw = 20, write = 1;
+  int Z = 2, N = 4, JJ = 4, TT = 2, Nmax = 8, hw = 20, write = 1;\
 
   u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}, {3,2,1,0}};
 
@@ -61,9 +61,9 @@ int main(int argc, char* argv[])
 */
   // Diagonalize
   auto t2 = std::chrono::high_resolution_clock::now();
-  print("Start diagonalizing\n");
+
   auto [evals, evecs] = qcx_utils::eigensolver_symmetric_spectra(mat, 10, 1e-6);
-  print("Finish diagonalizing\n");
+
   auto t3 = std::chrono::high_resolution_clock::now();
 
   print("Eigenvalues are\n");

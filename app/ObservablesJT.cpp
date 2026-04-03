@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
   // std::string name = "E2";
 
   // Example 2: M1
-  std::string name = "M1";
+  // std::string name = "M1";
 
   // Example 3: instrinsic radius squared
   // std::string name = "Radius";
@@ -32,16 +32,26 @@ int main(int argc, char* argv[])
   // std::string name = "FermiPlus";
 
   // Example 12: Gamow-Teller for beta decay
-  // std::string name = "GamowTellerMinus";
+  std::string name = "GamowTellerMinus";
   // std::string name = "GamowTellerPlus";
 
   ////////////// WITHIN THE SAME BASIS //////////////
   /*
-  int Z = 3, N = 3, Nmax = 6, JJ = 6, hw = 20;
+  int Z = 3, N = 3, Nmax = 8, JJ = 2, TT = 0, hw = 20;
 
-  U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
+  u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}, {3,2,1,0}};
+
+  U3xU4::hw_subspace
+    hw0(0, {}, {}, {}, {TT}),
+    hw2(2, {}, {}, {}, {TT}),
+    hw4(4, {}, {}, {}, {TT}),
+    hw6(6, {}, {}, {}, {TT}),
+    hw8(8, {}, {irrs}, {}, {TT});
+
+  U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ, {hw0, hw2, hw4, hw6, hw8});
   basis.construct();
-  std::cout << "Basis dimension: " << basis.dim() << std::endl;
+
+  std::string custom_dir = "Truncation_TT0_6to8_31Mar26";
 
   HO::Table_nljmjmt HO_labels(basis.maxShell());
   U3xU4::Table_gelfand gelfand_labels(basis.maxShell());
@@ -53,11 +63,9 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  // read Hamiltonian matrix
-  auto filename = Hamil.matrix_file(basis);
-  auto mat = qcx_utils::readBinary(filename);
-
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 3);
+  // read wave functions
+  auto wfns_file = Hamil.wfns_file(basis, custom_dir);
+  auto [evals, evecs] = qcx_utils::readEigenBinary(wfns_file);
   
   // moments
   
@@ -84,15 +92,34 @@ int main(int argc, char* argv[])
   */
 
   ////////////// BETWEEN TWO DIFFERENT BASES //////////////
-  
-  int Nmax = 6, hw = 20, 
-      Zi = 3, Ni = 3, JJi = 4, Zf = 3, Nf = 3, JJf = 2;
 
-  U3xU4::ManyNucleonBasis kets(Ni, Zi, Nmax, JJi);
+  int Zi = 2, Ni = 4, Nmax = 8, JJi = 0, TTi = 2, hw = 20;
+  std::string dir_i = "Truncation_TT2_6to8_31Mar26";
+
+  u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}, {3,2,1,0}};
+
+  U3xU4::hw_subspace
+    hw0i(0, {}, {}, {}, {TTi}),
+    hw2i(2, {}, {}, {}, {TTi}),
+    hw4i(4, {}, {}, {}, {TTi}),
+    hw6i(6, {}, {}, {}, {TTi}),
+    hw8i(8, {}, {irrs}, {}, {TTi});
+
+  U3xU4::ManyNucleonBasis kets(Ni, Zi, Nmax, JJi, {hw0i, hw2i, hw4i, hw6i, hw8i});
   kets.construct();
   std::cout << "Ket basis dimension: " << kets.dim() << std::endl;
+  
+  int Zf = 3, Nf = 3, JJf = 2, TTf = 0;
+  std::string dir_f = "Truncation_TT0_6to8_31Mar26";
 
-  U3xU4::ManyNucleonBasis bras(Nf, Zf, Nmax, JJf);
+  U3xU4::hw_subspace
+    hw0f(0, {}, {}, {}, {TTf}),
+    hw2f(2, {}, {}, {}, {TTf}),
+    hw4f(4, {}, {}, {}, {TTf}),
+    hw6f(6, {}, {}, {}, {TTf}),
+    hw8f(8, {}, {irrs}, {}, {TTf});
+
+  U3xU4::ManyNucleonBasis bras(Nf, Zf, Nmax, JJf, {hw0f, hw2f, hw4f, hw6f, hw8f});
   bras.construct();
   std::cout << "Bra basis dimension: " << bras.dim() << std::endl;
 
@@ -108,28 +135,18 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  // read Hamiltonian matrix
-  auto filename_i = Hamil_i.matrix_file(kets);
-  auto mat_i = qcx_utils::readBinary(filename_i);
+  // read initial wave functions
+  auto wfns_file_i = Hamil_i.wfns_file(kets, dir_i);
+  auto [evals_i, evecs_i] = qcx_utils::readEigenBinary(wfns_file_i);
 
-  auto [evals_i, evecs_i] = qcx_utils::eigensolver_symmetric(mat_i, 4);
-  std::cout << "Initial energies: ";
-  for (const auto& val : evals_i) std::cout << val << "\t";
-  std::cout << std::endl;
-
-  // read Hamiltonian matrix
-  auto filename_f = Hamil_f.matrix_file(bras);
-  auto mat_f = qcx_utils::readBinary(filename_f);
-
-  auto [evals_f, evecs_f] = qcx_utils::eigensolver_symmetric(mat_f, 4);
-  std::cout << "Final energies: ";
-  for (const auto& val : evals_f) std::cout << val << "\t";
-  std::cout << std::endl;
+  // read final wave functions
+  auto wfns_file_f = Hamil_f.wfns_file(bras, dir_f);
+  auto [evals_f, evecs_f] = qcx_utils::readEigenBinary(wfns_file_f);
   
   // transition
   
   auto strengths = op.transitionStrength(bras, kets, 
-    {{evecs_f.col(0), evecs_i.col(1)}});
+    {{evecs_f.col(0), evecs_i.col(0)}});
 
   std::cout << "Transition strengths of " << name << " are" << std::endl;
   for (int i = 0; i < strengths.size(); i++)
