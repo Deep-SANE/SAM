@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <ostream>
 
+#include <qcx_matrix.h>
 #include <qcx_ND.h>
 #include <qcx_print.h>
 using qcx_utils::print;
@@ -13,8 +14,6 @@ using qcx_utils::print;
 
 #include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4MultiShellTensors.h>
-
-#include <slepceps.h>
 
 #include <sam.h>
 
@@ -258,39 +257,14 @@ namespace U3xU4
 
     std::cout << "Start computing matrix" << std::endl;
 
-    Eigen::SparseMatrix<double> mat(dim, dim);
-    mat.reserve(connected_irreps.size() * 100);
-
-    std::vector<Eigen::Triplet<double>> ija;
-
-    const size_t SIZE_LIMIT = 20000000;
-    size_t cnt = 0;
+    qcx_utils::CSRMatrix global(dim);
 
 #ifdef USE_OPENMP
 #pragma omp parallel
 {
     sam::initialize_thread();
 
-    std::vector<Eigen::Triplet<double>> ija_local;
-    ija_local.reserve(SIZE_LIMIT);
-
-    auto flush = [&]()
-    {
-      if (ija_local.empty()) return;
-
-      Eigen::SparseMatrix<double> temp(dim, dim);
-      temp.setFromTriplets(ija_local.begin(), ija_local.end());
-
-#pragma omp critical(flushing)
-{
-      std::cerr << cnt++ << ": " << ija_local.size() << std::endl;
-      mat += temp;
-
-      // for (auto& t : ija_local) mat.insert(t.row(), t.col()) = t.value();
-}
-
-      ija_local.clear();
-    };
+    qcx_utils::CSRMatrix local(dim);
 #endif
 
 #pragma omp for schedule(runtime)
@@ -495,31 +469,24 @@ namespace U3xU4
                 }
 
 #ifdef USE_OPENMP
-                auto& ija_ = ija_local;
+                auto& local_ = local;
 #else
-                auto& ija_ = ija;
+                auto& local_ = global;
 #endif
 
                 // std::cout << "Start to fill sparse matrix" << std::endl;
                 for (size_t i = 0; i < MEs.rows(); i++)
                 {
-                  size_t i_ = i + bra_offset;
+                  Eigen::Index i_ = i + bra_offset;
                   for (size_t j = 0; j < MEs.cols(); j++)
                   {
-                    size_t j_ = j + ket_offset;
+                    Eigen::Index j_ = j + ket_offset;
+                    double v = MEs(i, j);
 
-                    if (std::fabs(MEs(i, j)) > 1e-10)
-                    {
-                      ija_.emplace_back(i_, j_, MEs(i, j)); // for i_ >= j_
-                      if (i_ > j_) ija_.emplace_back(j_, i_, MEs(i, j));
-                    }
+                    if (std::fabs(v) > 1e-10) local_.add_symmetric(i_, j_, v);
                   }
                 }
                 // std::cout << "Finish filling sparse matrix; " << std::endl;
-
-#ifdef USE_OPENMP
-                if (ija_local.size() >= SIZE_LIMIT) flush();
-#endif
               }
             }
           }
@@ -528,22 +495,30 @@ namespace U3xU4
     }
 
 #ifdef USE_OPENMP
-    // Final flush from local thread
-    flush();
+    // Merge to global from local thread
+#pragma omp critical
+    {
+      for (Eigen::Index i = 0; i < dim; i++)
+      {
+        auto& l_row = local.rows[i];
+        if (l_row.empty()) continue;
+
+        auto& g_row = global.rows[i];
+
+        g_row.insert(g_row.end(),
+                     std::make_move_iterator(l_row.begin()),
+                     std::make_move_iterator(l_row.end()));
+      }
+    }
 
     sam::finalize_thread();
-
 } // pragma omp parallel
-#else
-    std::cout << "Finish computing " << ija.size() << " elements" << std::endl;
-
-    mat.reserve(ija.size());
-    mat.setFromTriplets(ija.begin(), ija.end());
 #endif
 
-    mat.makeCompressed();
+    global.finalize();
+    auto mat = global.toEigen();
 
-    std::cout << "Finish computing matrix" << std::endl;
+    std::cout << "Finish computing " << global.size() << " matrix elements" << std::endl;
 
     return mat;
   }
