@@ -259,7 +259,12 @@ namespace U3xU4
     std::cout << "Start computing matrix" << std::endl;
 
     Eigen::SparseMatrix<double> mat(dim, dim);
+    mat.reserve(connected_irreps.size() * 100);
+
     std::vector<Eigen::Triplet<double>> ija;
+
+    const size_t SIZE_LIMIT = 20000000;
+    size_t cnt = 0;
 
 #ifdef USE_OPENMP
 #pragma omp parallel
@@ -267,7 +272,6 @@ namespace U3xU4
     sam::initialize_thread();
 
     std::vector<Eigen::Triplet<double>> ija_local;
-    const size_t SIZE_LIMIT = 1000000;
     ija_local.reserve(SIZE_LIMIT);
 
     auto flush = [&]()
@@ -277,13 +281,15 @@ namespace U3xU4
       Eigen::SparseMatrix<double> temp(dim, dim);
       temp.setFromTriplets(ija_local.begin(), ija_local.end());
 
-      ija_local.clear();
-
 #pragma omp critical(flushing)
 {
-      std::cerr << "Flushing" << std::endl;
+      std::cerr << cnt++ << ": " << ija_local.size() << std::endl;
       mat += temp;
+
+      // for (auto& t : ija_local) mat.insert(t.row(), t.col()) = t.value();
 }
+
+      ija_local.clear();
     };
 #endif
 
@@ -325,7 +331,7 @@ namespace U3xU4
 
                 const auto& ket = irreps[ket_id];
 
-                // get alphamax 
+                // get alphamax
                 size_t ket_amax = ket.alphamax();
 
                 // get offset
@@ -345,7 +351,7 @@ namespace U3xU4
                 U3xU4::IrrepUnifier iu;
                 const auto& [ubra, uket] = iu.unify(bra, ket);
                 // extract the last irreps
-                const auto& ket_irr = (ubra.omega.empty()) 
+                const auto& ket_irr = (ubra.omega.empty())
                              ? uket.gamma[0].u3u4() : uket.omega.back().u3u4();
                 const auto& bra_irr = (ubra.omega.empty())
                              ? ubra.gamma[0].u3u4() : ubra.omega.back().u3u4();
@@ -419,7 +425,7 @@ namespace U3xU4
                           if (cgcU3.empty()) continue;
 
                           const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
-                            ket_irr.P1(), ket_irr.P2(), ket_irr.P3(), ket_SS, ket_TT, 
+                            ket_irr.P1(), ket_irr.P2(), ket_irr.P3(), ket_SS, ket_TT,
                             irr.P1(), irr.P2(), irr.P3(), SS, TT,
                             bra_irr.P1(), bra_irr.P2(), bra_irr.P3(), bra_SS, bra_TT);
                           if (cgcU4.empty()) continue;
@@ -433,7 +439,7 @@ namespace U3xU4
                               for (size_t bra_z = 0; bra_z < bra_zmax; bra_z++)
                               {
                                 // bra index in the matrix
-                                size_t i =  bra_a * bra_dim 
+                                size_t i =  bra_a * bra_dim
                                     + bra_label_offset + (bra_k * bra_zmax + bra_z);
 
                                 for (size_t ket_a = 0; ket_a < ket_amax; ket_a++)
@@ -443,7 +449,7 @@ namespace U3xU4
                                     for (size_t ket_z = 0; ket_z < ket_zmax; ket_z++)
                                     {
                                       // ket index in the matrix
-                                      size_t j = ket_a * ket_dim 
+                                      size_t j = ket_a * ket_dim
                                         + ket_label_offset + (ket_k * ket_zmax + ket_z);
 
                                       if (bra_offset == ket_offset && i < j) continue;
