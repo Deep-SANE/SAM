@@ -478,9 +478,13 @@ namespace U3xU4
                 for (size_t i = 0; i < MEs.rows(); i++)
                 {
                   Eigen::Index i_ = i + bra_offset;
+		  assert(i_ >= 0 && i_ < dim);
+
                   for (size_t j = 0; j < MEs.cols(); j++)
                   {
                     Eigen::Index j_ = j + ket_offset;
+		    assert(j_ >= 0 && j_ < dim);
+
                     double v = MEs(i, j);
 
                     if (std::fabs(v) > 1e-10) local_.add_symmetric(i_, j_, v);
@@ -498,16 +502,22 @@ namespace U3xU4
     // Merge to global from local thread
 #pragma omp critical
     {
+      std::cerr << "Merge thread " << omp_get_thread_num() << std::endl;
+
       for (Eigen::Index i = 0; i < dim; i++)
       {
         auto& l_row = local.rows[i];
         if (l_row.empty()) continue;
+
+        for (auto& elem : l_row) assert(elem.first >= 0 && elem.first < dim);
 
         auto& g_row = global.rows[i];
 
         g_row.insert(g_row.end(),
                      std::make_move_iterator(l_row.begin()),
                      std::make_move_iterator(l_row.end()));
+
+        l_row.clear();
       }
     }
 
@@ -515,11 +525,15 @@ namespace U3xU4
 } // pragma omp parallel
 #endif
 
+    std::cerr << "Finalize global CSR" << std::endl;
     global.finalize();
+
+    std::cerr << "Convert to Eigen::SparseMatrix" << std::endl;
     auto mat = global.toEigen();
 
     std::cout << "Finish computing " << global.size() << " matrix elements" << std::endl;
 
+    global.clear();
     return mat;
   }
 

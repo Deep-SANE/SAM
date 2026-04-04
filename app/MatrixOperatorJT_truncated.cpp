@@ -15,9 +15,9 @@ int main(int argc, char* argv[])
 
   sam::initialize(&argc, &argv);
 
-  int Z = 2, N = 4, JJ = 4, TT = 2, Nmax = 8, hw = 20, write = 1;\
+  int Z = 2, N = 4, JJ = 4, TT = 2, Nmax = 8, hw = 20, write = 1;
 
-  u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}, {3,2,1,0}};
+  u4::irreps irrs = {{1,1,0,0}, {3,2,1,0}, {3,3,0,0}};
 
   U3xU4::hw_subspace
     hw0(0, {}, {}, {}, {TT}),
@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ, {hw0, hw2, hw4, hw6, hw8});
   basis.construct();
 
-  std::string custom_dir = "Truncation_TT2";
+  // std::string custom_dir = "Truncation_TT2_6to8_3Apr26";
 
   std::string name = "Hamiltonian with N2LO_opt_bare";
   print("N={}, Z={}, Nmax={}, JJ={}, TT={}, hw={} with {}\n", 
@@ -71,7 +71,8 @@ int main(int argc, char* argv[])
 
   if (write == 1)
   {
-    auto wfns_file = op.wfns_file(basis, custom_dir);
+    auto wfns_file = op.wfns_file(basis);
+    // auto wfns_file = op.wfns_file(basis, custom_dir);
     qcx_utils::writeEigenBinary(wfns_file, evals, evecs);
   }
 
