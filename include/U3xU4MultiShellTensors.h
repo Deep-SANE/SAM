@@ -615,7 +615,7 @@ namespace U3xU4
                    const U3xU4::Table_gelfand& gelfand_labels);
   */
   template <typename TensorType>
-  Eigen::SparseMatrix<double> 
+  qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
     MatrixElements(const std::vector<TensorType>& tensors, 
                    const U3xU4::ManyNucleonBasis& basis,
                    const U3xU4::Table_gelfand& gelfand_labels);

@@ -11,6 +11,7 @@
 
 #include <qcx_convert.h>
 #include <qcx_Int.h>
+#include <qcx_matrix.h>
 
 #include <U3irrep.h>
 #include <U4irrep.h>
@@ -552,18 +553,18 @@ namespace U3xU4
       const U3xU4::Table_gelfand& gelfand_labels);
     */
     template <typename TensorType>
-    friend Eigen::SparseMatrix<double> MatrixElements(
-      const std::vector<TensorType>& tensors, 
-      const U3xU4::ManyNucleonBasis& basis,
-      const U3xU4::Table_gelfand& gelfand_labels);
+    friend qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
+    MatrixElements(const std::vector<TensorType>& tensors, 
+                   const U3xU4::ManyNucleonBasis& basis,
+                   const U3xU4::Table_gelfand& gelfand_labels);
 
     // Rectangular matrix
     template <typename TensorType>
-    friend Eigen::SparseMatrix<double> MatrixElements(
-      const std::vector<TensorType>& tensors, 
-      const U3xU4::ManyNucleonBasis& bras,
-      const U3xU4::ManyNucleonBasis& kets,
-      const U3xU4::Table_gelfand& gelfand_labels);
+    friend Eigen::SparseMatrix<double> 
+    MatrixElements(const std::vector<TensorType>& tensors, 
+                   const U3xU4::ManyNucleonBasis& bras,
+                   const U3xU4::ManyNucleonBasis& kets,
+                   const U3xU4::Table_gelfand& gelfand_labels);
   };
 
   // class for unifying 2 irreps wrt to their shells:

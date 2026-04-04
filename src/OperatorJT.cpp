@@ -624,8 +624,8 @@ namespace JT
   }
 
   // Matrix representation
-  Eigen::SparseMatrix<double> Operator::matrix(
-    const U3xU4::ManyNucleonBasis& basis)
+  qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
+  Operator::matrix(const U3xU4::ManyNucleonBasis& basis)
   {
     // auto tensors = expand_old();
     auto tensors = expand();
@@ -655,7 +655,7 @@ namespace JT
 
     auto dim = basis.dim();
     
-    auto mat = matrix(basis);
+    auto mat = matrix(basis, basis);
     
     for (auto& [bra, ket] : states)
     {

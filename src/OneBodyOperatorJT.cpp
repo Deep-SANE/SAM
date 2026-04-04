@@ -1398,8 +1398,8 @@ namespace JT
   }
 
   // Matrix representation
-  Eigen::SparseMatrix<double> OneBodyOperator::matrix(
-    const U3xU4::ManyNucleonBasis& basis)
+  qcx_utils::CSRMatrix // Eigen::SparseMatrix<double>
+  OneBodyOperator::matrix(const U3xU4::ManyNucleonBasis& basis)
   {
     auto tensors = expand();
     // return U3xU4::MatrixElements(tensors, basis);

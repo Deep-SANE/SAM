@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   std::cin >> write;
   */
 
-  int Z = 3, N = 3, JJ = 2, Nmax = 6, hw = 20, solve = 1, write = 1;
+  int Z = 3, N = 3, JJ = 2, Nmax = 6, hw = 20, solve = 1, write = 0;
 
   // Example 1: LL
   // std::string name = "L.L";
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
 
   if (solve == 1)
   {  
-    auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 10);
+    auto [evals, evecs] = qcx_utils::eigensolver_symmetric_spectra(mat, 10);
     std::cout << "Eigenvalues are" << std::endl;
     for (auto ev : evals)
     {
@@ -90,13 +90,13 @@ int main(int argc, char* argv[])
     if (write == 1)
     {
       auto matrix_file = op.matrix_file(basis);
-      qcx_utils::writeBinary(matrix_file, mat);
+      // qcx_utils::writeBinary(matrix_file, mat);
 
       auto wfns_file = op.wfns_file(basis);
       qcx_utils::writeEigenBinary(wfns_file, evals, evecs);
     }
   }
-
+/*
   // L.L and L.S are analytical
   if (name == "L.L" || name == "L.S")
   {
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
         }
       }
   }
- 
+*/
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;
 

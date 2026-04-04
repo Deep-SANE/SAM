@@ -77,7 +77,7 @@ namespace U3xU4
 
   /////////////////// COMPUTING SYMMETRIC MATRIX ///////////////////
   template <typename TensorType>
-  Eigen::SparseMatrix<double> 
+  qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
     MatrixElements(const std::vector<TensorType>& tensors, 
                    const U3xU4::ManyNucleonBasis& basis,
                    const U3xU4::Table_gelfand& gelfand_labels)
@@ -108,7 +108,8 @@ namespace U3xU4
 
     if (tensors_count == 0 || std::fabs(cgcJ) == 0.0)
     {
-      Eigen::SparseMatrix<double> mat(dim, dim);
+      // Eigen::SparseMatrix<double> mat(dim, dim);
+      qcx_utils::CSRMatrix mat(dim);
       return mat;
     }
 
@@ -527,7 +528,7 @@ namespace U3xU4
 
     std::cerr << "Finalize global CSR" << std::endl;
     global.finalize();
-
+/*
     std::cerr << "Convert to Eigen::SparseMatrix" << std::endl;
     auto mat = global.toEigen();
 
@@ -535,14 +536,16 @@ namespace U3xU4
 
     global.clear();
     return mat;
+*/
+    return global;
   }
 
-  template Eigen::SparseMatrix<double> 
+  template qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
     MatrixElements(const MultiShellTensors_phys& tensors, 
                    const U3xU4::ManyNucleonBasis& basis,
                    const U3xU4::Table_gelfand& gelfand_labels);
 
-  template Eigen::SparseMatrix<double> 
+  template qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
     MatrixElements(const MultiShellTensors_ShareGammas_phys& tensors, 
                    const U3xU4::ManyNucleonBasis& basis,
                    const U3xU4::Table_gelfand& gelfand_labels);

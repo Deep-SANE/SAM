@@ -1421,8 +1421,8 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
   }
 
   // Matrix representation
-  Eigen::SparseMatrix<double> TwoBodyOperator::matrix(
-    const U3xU4::ManyNucleonBasis& basis)
+  qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
+  TwoBodyOperator::matrix(const U3xU4::ManyNucleonBasis& basis)
   {
     auto tensors = expand();
 
