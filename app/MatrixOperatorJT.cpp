@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   std::cin >> write;
   */
 
-  int Z = 3, N = 3, JJ = 2, Nmax = 6, hw = 20, solve = 1, write = 0;
+  int Z = 3, N = 3, JJ = 2, Nmax = 6, hw = 20, write = 0;
 
   // Example 1: LL
   // std::string name = "L.L";
@@ -67,34 +67,34 @@ int main(int argc, char* argv[])
   JT::Operator op(name, N, Z, hw, Nmax, HO_labels, gelfand_labels);
   op.is();
 
-  // Start time measurement
+  // Compute matrix
   auto t0 = std::chrono::high_resolution_clock::now();
 
   auto mat = op.matrix(basis);
 
-  // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  if (solve == 1)
-  {  
-    auto [evals, evecs] = qcx_utils::eigensolver_symmetric_spectra(mat, 10);
-    std::cout << "Eigenvalues are" << std::endl;
-    for (auto ev : evals)
-    {
-      if (std::fabs(ev) < 1e-10)
-        std::cout << 0 << std::endl;
-      else
-        std::cout << std::setprecision(8) << ev << std::endl;
-    }
+  // Diagonalize
+  auto t2 = std::chrono::high_resolution_clock::now();
 
-    if (write == 1)
-    {
-      auto matrix_file = op.matrix_file(basis);
-      // qcx_utils::writeBinary(matrix_file, mat);
+  auto [evals, evecs] = qcx_utils::eigensolver_symmetric_spectra(mat, 10, 1e-6);
 
-      auto wfns_file = op.wfns_file(basis);
-      qcx_utils::writeEigenBinary(wfns_file, evals, evecs);
-    }
+  auto t3 = std::chrono::high_resolution_clock::now();
+
+  std::cout << "Eigenvalues are" << std::endl;
+  for (auto ev : evals)
+  {
+    if (std::fabs(ev) < 1e-10) std::cout << 0 << std::endl;
+    else std::cout << std::setprecision(8) << ev << std::endl;
+  }
+
+  if (write == 1)
+  {
+    // auto matrix_file = op.matrix_file(basis);
+    // qcx_utils::writeBinary(matrix_file, mat);
+
+    auto wfns_file = op.wfns_file(basis);
+    qcx_utils::writeEigenBinary(wfns_file, evals, evecs);
   }
 /*
   // L.L and L.S are analytical
@@ -144,11 +144,16 @@ int main(int argc, char* argv[])
   }
 */
   // Calculate the duration
-  std::chrono::duration<double> duration = t1 - t0;
+  std::chrono::duration<double> duration1 = t1 - t0, duration2 = t3 - t2;
 
   // Output the time in seconds
-  std::cout << "Elapsed time: " << duration.count() << " seconds or "
-            << duration.count() / 60.0 << " minutes" << std::endl;
+  std::cout << "Elapsed time for matrix elements: "
+            << duration1.count() << " seconds or "
+            << duration1.count() / 60.0 << " minutes" << std::endl;
+
+  std::cout << "Elapsed time for diagonalizing: "
+            << duration2.count() << " seconds or "
+            << duration2.count() / 60.0 << " minutes" << std::endl;
 
   sam::finalize();
 }
