@@ -137,7 +137,7 @@ namespace HO
   public:
     // Constructor
     OrbitsMap() : emax_(0), orbits(), index_map() { }
-    OrbitsMap(int emax);
+    OrbitsMap(int emax, std::string style); // style: "NuHamil" or "IMSRG"
 
     size_t num_orbits() const { return orbits.size(); }
 
@@ -157,6 +157,45 @@ namespace HO
     }
   };
 
+
+  //////////// CLASS OBME_scalar /////////////
+  class OBME_scalar
+  {
+  private:
+    // key: mmta a mmtb b
+    using key_type = std::tuple<int, int, int, int>;
+    std::unordered_map<key_type, double, boost::hash<key_type>> me_map;
+
+    // nlj orbit
+    using nlj = std::tuple<qn_t, qn_t, qn_t>;
+    std::map<nlj, int> nlj_map;
+
+    std::string name_;
+    bool custom_name;
+    qn_t hw_, Nmax_, valenceShell_, maxShell_;
+
+  public:
+    // Constructor
+    OBME_scalar();
+    OBME_scalar(const std::string& name, 
+      int hw, int Nmax, int valenceShell, int maxShell);
+
+    // Read options during construction
+    void read();
+    void read_from_file_nuhamil(const std::string& filename);
+
+    // Print out name
+    void is() const;
+    friend std::ostream& operator<<(std::ostream& s, const OBME_scalar& x);
+
+    // Total number of matrix elements
+    size_t num_mes() const { return me_map.size();; }
+
+    // Get ME from quantum numbers
+    double getME(
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta, 
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb) const;
+  };
 
   //////////// CLASS TwBME_scalar /////////////
 
@@ -180,6 +219,7 @@ namespace HO
     OrbitsMap orbit_map;
 
     std::string name_;
+    bool custom_name;
     qn_t hw_, Nmax_, valenceShell_, maxShell_;
 
   public:
@@ -190,8 +230,9 @@ namespace HO
 
     // Read options during construction
     void read();
-    void read_from_binary(const std::string& filename);
-    void read_from_file(const std::string& filename);
+    void read_from_binary_nuhamil(const std::string& filename);
+    void read_from_binary_imsrg(const std::string& filename);
+    void read_from_file_nuhamil(const std::string& filename);
 
     // Print out name
     void is() const;

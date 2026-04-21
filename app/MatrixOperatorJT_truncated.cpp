@@ -15,9 +15,9 @@ int main(int argc, char* argv[])
 
   sam::initialize(&argc, &argv);
 
-  int Z = 2, N = 4, JJ = 4, TT = 2, Nmax = 8, hw = 20, write = 1;
+  int Z = 3, N = 4, JJ = 3, TT = 1, Nmax = 2, hw = 16, write = 1;
 
-  u4::irreps irrs = {{1,1,0,0}, {3,2,1,0}, {3,3,0,0}};
+  u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}};
 
   U3xU4::hw_subspace
     hw0(0, {}, {}, {}, {TT}),
@@ -29,14 +29,15 @@ int main(int argc, char* argv[])
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ, {hw0, hw2, hw4, hw6, hw8});
   basis.construct();
 
-  // std::string custom_dir = "Truncation_TT2_6to8_3Apr26";
+  std::string custom_dir = "Truncation_TT1";
 
-  std::string name = "Hamiltonian with N2LO_opt_bare";
+  // std::string name = "Hamiltonian with N3LO_EM500_srg2.0";
+  std::string name = "HO_Li7_e3_hw16_E39";
   print("N={}, Z={}, Nmax={}, JJ={}, TT={}, hw={} with {}\n", 
                                 N, Z, Nmax, JJ, TT, hw, name);
 
   print("Basis dimension: {}\n", basis.dim());
-  // print("Keep only u4::irreps: {} in N=8\n", irrs);
+  // print("Keep only u4::irreps: {} in N=0,2,4,6,8\n", irrs);
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
@@ -71,8 +72,8 @@ int main(int argc, char* argv[])
 
   if (write == 1)
   {
-    auto wfns_file = op.wfns_file(basis);
-    // auto wfns_file = op.wfns_file(basis, custom_dir);
+    // auto wfns_file = op.wfns_file(basis);
+    auto wfns_file = op.wfns_file(basis, custom_dir);
     qcx_utils::writeEigenBinary(wfns_file, evals, evecs);
   }
 

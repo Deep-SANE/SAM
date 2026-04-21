@@ -528,15 +528,16 @@ namespace U3xU4
 
     std::cerr << "Finalize global CSR" << std::endl;
     global.finalize();
+    
+    std::cout << "Finish computing " << global.size() << " matrix elements" << std::endl;
 /*
     std::cerr << "Convert to Eigen::SparseMatrix" << std::endl;
     auto mat = global.toEigen();
 
-    std::cout << "Finish computing " << global.size() << " matrix elements" << std::endl;
-
     global.clear();
     return mat;
 */
+
     return global;
   }
 

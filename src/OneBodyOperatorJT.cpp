@@ -38,6 +38,7 @@ namespace JT
     TT_ = 0;
     MMT_ = 0;
     parity_ = 1;
+    on_the_fly = true;
 
     if (known_scalar_ops.count(name_)) { }
     else if (name_ == "E2") { JJ_ = 4; }
@@ -70,8 +71,11 @@ namespace JT
     }
     else
     {
-      throw std::invalid_argument(
-        "Name is incorrect or operator is not implemented");
+      std::cout << "WARNING: This operator isn't known" << std::endl;
+      
+      TT_ = -1;
+      OBME.emplace(name_, hw, Nmax, valenceShell, maxShell);
+      on_the_fly = false;
     }
   }
 
@@ -117,6 +121,8 @@ namespace JT
       std::cout << "Gamow-Teller for beta+" << std::endl;
     else if (name_ == "GamowTellerMinus")
       std::cout << "Gamow-Teller for beta-" << std::endl;
+    else if (on_the_fly == false)
+      std::cout << "One-body potential with " << name_ << std::endl;
     else
       throw std::invalid_argument("This operator has not been implemented");
   }
@@ -153,6 +159,8 @@ namespace JT
       s << "Gamow-Teller for beta+";
     else if (x.name_ == "GamowTellerMinus")
       s << "Gamow-Teller for beta-";
+    else if (x.on_the_fly == false)
+      s << "One-body potential with " << x.name_ << std::endl;
     else
       throw std::invalid_argument("This operator has not been implemented");
 
@@ -502,7 +510,8 @@ namespace JT
             racah.get({1, llb, 2, jja, jjb, 1});
       }
     }
-
+    else if (on_the_fly == false)
+      x = OBME->getME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb);
     else
       throw std::invalid_argument("ME has not been implemented");
 
@@ -864,8 +873,10 @@ namespace JT
   }
 
   U3xU4::OneBodyMultiShellTensors
-    OneBodyOperator::expand_old() const
+    OneBodyOperator::expand_old()
   {
+    if (on_the_fly == false) OBME->read();
+
     U3xU4::OneBodyMultiShellTensors tensors;
 
     // loop for ad
@@ -1216,8 +1227,10 @@ namespace JT
   }
 
   U3xU4::MultiShellTensors_phys 
-    OneBodyOperator::expand_new() const
+    OneBodyOperator::expand_new()
   {
+    if (on_the_fly == false) OBME->read();
+
     U3xU4::MultiShellTensors_phys tensors;
 
     u4::irrep u4a(1, 0, 0, 0), u4b(1, 1, 1, 0);

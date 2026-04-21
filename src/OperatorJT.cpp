@@ -17,22 +17,19 @@ namespace JT
     if (name.find("Hamiltonian") != std::string::npos)
     {
       for (const auto& potential : two_body)
-      {
       	if (name.find(potential) != std::string::npos)
-      	{
+        {
+          Hamiltonian_type = true;
       	  potential_name_ = potential;
-      	  Hamiltonian_type = true;
-      	}
-      }
+        }
     }
 
     if (!one_body.count(name) && !two_body.count(name) &&
         !one_plus_two_body.count(name) && !Hamiltonian_type)
-      throw std::invalid_argument(
-          "Name is incorrect or operator is not implemented");
+      potential_name_ = "custom_potential";
 
     for (auto& c : name_) 
-        if (c == ' ') c = '_';
+      if (c == ' ') c = '_';
   }
 
   void Operator::is() const
@@ -488,7 +485,109 @@ namespace JT
 
       return tensors;
     }
-    else // Hamiltonian
+    else if (potential_name_ == "custom_potential")
+    {
+      JT::OneBodyOperator 
+        CoM1("CoMNumberOp", 20, Nmax_, valenceShell_, maxShell_,
+                                    HO_labels_, gelfand_labels_),
+        V1(name_, hw_, Nmax_, valenceShell_, maxShell_,
+                                    HO_labels_, gelfand_labels_);
+
+      auto com1s = CoM1.expand();
+      auto v1s = V1.expand();
+
+      JT::TwoBodyOperator 
+        CoM2("CoMNumberOp", 20, Nmax_, valenceShell_, maxShell_,
+                                    HO_labels_, gelfand_labels_),
+        V2(name_, hw_, Nmax_, valenceShell_, maxShell_,
+                                    HO_labels_, gelfand_labels_);
+
+      auto com2s = CoM2.expand();
+      auto v2s = V2.expand();
+
+      U3xU4::MultiShellTensors_ShareGammas_phys tensors;
+      tensors.reserve(com1s.size() + com2s.size() + 
+                v1s.size() + v2s.size());
+
+      double A = N_ + Z_, com_coeff = 1000.0 / A;
+  
+      for (auto& com1 : com1s)
+      {
+        if (com1.shift_quanta() < 0) continue;
+
+        com1.enhanceStrengths(com_coeff);
+        bool found = false;
+        for (auto& tensor : tensors | std::views::reverse)
+        {
+          if (tensor.shareGammas(com1))
+          {
+            tensor.addOmegasLLSSTTstrengths(com1);
+            found = true;
+            break;
+          }
+        }
+        if (!found)
+          tensors.push_back(std::move(com1));
+      }
+
+      for (auto& v1 : v1s)
+      {
+        if (v1.shift_quanta() < 0) continue;
+
+        bool found = false;
+        for (auto& tensor : tensors | std::views::reverse)
+        {
+          if (tensor.shareGammas(v1))
+          {
+            tensor.addOmegasLLSSTTstrengths(v1);
+            found = true;
+            break;
+          }
+        }
+        if (!found)
+          tensors.push_back(std::move(v1));
+      }
+
+      for (auto& com2 : com2s)
+      {
+        if (com2.shift_quanta() < 0) continue;
+
+        com2.enhanceStrengths(com_coeff);
+        bool found = false;
+        for (auto& tensor : tensors | std::views::reverse)
+        {
+          if (tensor.shareGammas(com2))
+          {
+            tensor.addOmegasLLSSTTstrengths(com2);
+            found = true;
+            break;
+          }
+        }
+        if (!found)
+          tensors.push_back(std::move(com2));
+      }
+
+      for (auto& v2 : v2s)
+      {
+        if (v2.shift_quanta() < 0) continue;
+
+        bool found = false;
+        for (auto& tensor : tensors | std::views::reverse)
+        {
+          if (tensor.shareGammas(v2))
+          {
+            tensor.addOmegasLLSSTTstrengths(v2);
+            found = true;
+            break;
+          }
+        }
+        if (!found)
+          tensors.push_back(std::move(v2));
+      }
+
+      return tensors;
+    }
+    else // Hamiltonian with known potential
     {
       // For Hamiltonian-type operators, the matrix is computed only in 
       // the lower triangle.
@@ -745,6 +844,7 @@ namespace JT
 
     return res;
   }
+  
   // transition between two bases; users can pass multiple eigenstate pairs
   std::vector<double> Operator::transitionStrength(
     const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,

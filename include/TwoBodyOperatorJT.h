@@ -24,7 +24,6 @@ namespace JT
     // Note that nuclear potentials mix isospin, thus we assign TT = -1
 
     std::string name_;
-
     bool on_the_fly;
 
     std::optional<HO::TwBME_scalar> TBME; // only read input file during
@@ -105,6 +104,11 @@ namespace JT
                std::vector<std::vector<int>>>
     GenerateAllCombinationsHOShells(int Nmax, int valenceShell,
                                     int maxShell) const;
+    std::tuple<std::vector<std::array<int, 4>>,
+               std::vector<std::vector<std::vector<int>>>,
+               std::vector<std::vector<int>>>
+    GenerateAllCombinationsHOShells(int Nmax, int valenceShell,
+                  int maxShell, int Nmax_old, int maxShell_old) const;
     // Note that for both cases, permutation on {na, nb, nc, nd} is applied
     // to obtain a combination in the order of increasing shells. Different
     // unpermuted combinations may be permuted to the same one. These two
@@ -158,6 +162,8 @@ namespace JT
 
     // selection rules
     bool HOShellselection(int na, int nb, int nc, int nd) const;
+    bool HOShellselection(int na, int nb, int nc, int nd,
+                          int Nmax_old, int maxShell_old) const;
     bool LLselection(const int& LL) const;
     bool SSselection(const int& SS) const;
     bool U3selection(const u3::irrep& irr) const;
@@ -169,7 +175,8 @@ namespace JT
 
     // Expand into a sum of U3xU4::MultiShellTensor_phys
     U3xU4::MultiShellTensors_phys expand_new();
-    void expand_exist(U3xU4::MultiShellTensors_phys& tensors);
+    void expand_exist(int Nmax_old, int maxShell_old,
+      U3xU4::MultiShellTensors_phys& tensors);
 
     // If non-exisitng, expand into a sum of U3xU4::MultiShellTensor_phys
     // Otherwise, call readBinary()

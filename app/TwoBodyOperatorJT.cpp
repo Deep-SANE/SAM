@@ -10,7 +10,7 @@ int main(int argc, char* argv[])
 {
   sam::initialize(&argc, &argv);
 
-  int hw = 20, valenceShell = 0, Nmax = 10, maxShell = Nmax;
+  int hw = 16, valenceShell = 0, Nmax = 4, maxShell = 3;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -56,8 +56,11 @@ int main(int argc, char* argv[])
   // Example 10: Two-body potential N3LO_EM500_bare,srg1.0,2.0,4.0
   // std::string name = "N3LO_EM500_bare";
   // std::string name = "N3LO_EM500_srg1.0";
-  std::string name = "N3LO_EM500_srg2.0";
+  // std::string name = "N3LO_EM500_srg2.0";
   // std::string name = "N3LO_EMN500_srg4.0";
+
+  // Example 11: Two-body potential with custom name
+  std::string name = "HO_Li7_e3_hw16_E39";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
@@ -77,7 +80,7 @@ int main(int argc, char* argv[])
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
   for (const auto& tensor : tensors)  std::cout << tensor << std::endl;
 
-  /*
+/*
   // This might be helpful for comparison
   std::string filename = op.dirname() + "/Expansion/" + name + "_hw" 
                          + std::to_string(hw) + "_Nmax6_DL";
@@ -114,9 +117,11 @@ int main(int argc, char* argv[])
         break;
       }
     }
+    // if (found) std::cout << std::endl;
+    // else std::cout << "Not found: " << tensor << "\n" << std::endl;
     assert(found);
   }
-  */
+*/
 
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;

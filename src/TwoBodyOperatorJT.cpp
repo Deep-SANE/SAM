@@ -49,8 +49,13 @@ namespace JT
       on_the_fly = false;
     }
     else
-      throw std::runtime_error(
-          "Name is incorrect or operator is not implemented");
+    {
+      std::cout << "WARNING: This operator isn't known" << std::endl;
+
+      TT_ = -1;
+      TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
+      on_the_fly = false;
+    }
   }
 
   TwoBodyOperator::TwoBodyOperator(const std::vector<std::string>& names, int hw,
@@ -434,6 +439,68 @@ namespace JT
     }
     return std::make_tuple(na_nb_nc_nds, inverses, phases);
   }
+  std::tuple<std::vector<std::array<int, 4>>,
+             std::vector<std::vector<std::vector<int>>>,
+             std::vector<std::vector<int>>>
+  TwoBodyOperator::GenerateAllCombinationsHOShells(int Nmax, int valenceShell,
+                            int maxShell, int Nmax_old, int maxShell_old) const
+  {
+    std::vector<std::array<int, 4>> na_nb_nc_nds;
+    std::vector<std::vector<std::vector<int>>> inverses;
+    std::vector<std::vector<int>> phases;
+
+    for (int na = 0; na <= maxShell; na++)
+    {
+      for (int nb = 0; nb <= maxShell; nb++)
+      {
+        int adxad_Nhw = 0;
+        if (na > valenceShell)
+          adxad_Nhw += (na - valenceShell);
+        if (nb > valenceShell)
+          adxad_Nhw += (nb - valenceShell);
+        if (adxad_Nhw > Nmax) continue;
+
+        for (int nc = 0; nc <= maxShell; nc++)
+        {
+          for (int nd = 0; nd <= maxShell; nd++)
+          {
+            int atxat_Nhw = 0;
+            if (nc > valenceShell)
+              atxat_Nhw += (nc - valenceShell);
+            if (nd > valenceShell)
+              atxat_Nhw += (nd - valenceShell);
+            if (atxat_Nhw > Nmax) continue;
+
+            if (!HOShellselection(na, nb, nc, nd, Nmax_old, maxShell_old)) continue;
+
+            std::array<int, 4> ns = {na + 1, nb + 1, -nc - 1, -nd - 1};
+            auto [sorted_ns, inverse, phase] = sort_shells(ns);
+/*
+            print("ns: {}\n", ns);
+            print("sorted ns: {}\n", sorted_ns);
+            print("inverse permutation: {}\n", inverse);
+            print("phase: {}\n", phase);
+*/
+            auto it =
+                std::find(na_nb_nc_nds.begin(), na_nb_nc_nds.end(), sorted_ns);
+            if (it != na_nb_nc_nds.end())
+            {
+              int index = std::distance(na_nb_nc_nds.begin(), it);
+              inverses[index].push_back(inverse);
+              phases[index].push_back(phase);
+            }
+            else
+            {
+              na_nb_nc_nds.push_back(sorted_ns);
+              inverses.push_back({inverse});
+              phases.push_back({phase});
+            }
+          }
+        }
+      }
+    }
+    return std::make_tuple(na_nb_nc_nds, inverses, phases);
+  }
 
   // Perform permutation of tensor in increasing shell.
   // For tensors of the same shell, ad's are in the front of at's.
@@ -611,7 +678,32 @@ namespace JT
         if (shift != 0) return false;
       else if (name_ == "Rrel" || name_ == "Kinetic")
         if (shift != 0 && abs(shift) != 2) return false;
-      else if (known_potentials.count(name_))
+      else // if (known_potentials.count(name_))
+        if (shift % 2 != 0) return false;
+    }
+    
+    return true;
+  }
+
+  bool TwoBodyOperator::HOShellselection(int na, int nb, int nc, int nd,
+                                         int Nmax_old, int maxShell_old) const
+  {
+    // Check if already exists
+    if (na <= maxShell_old && nb <= maxShell_old &&
+        nc <= maxShell_old && nd <= maxShell_old &&
+        (na + nb) <= Nmax_old && (nc + nd) <= Nmax_old)
+      return false;
+
+    if (parity_ == 1)
+    {
+      // Check shift
+      int shift = na + nb - nc - nd;
+
+      if (name_ == "CoMNumberOp")
+        if (shift != 0) return false;
+      else if (name_ == "Rrel" || name_ == "Kinetic")
+        if (shift != 0 && abs(shift) != 2) return false;
+      else // if (known_potentials.count(name_))
         if (shift % 2 != 0) return false;
     }
     
@@ -667,6 +759,14 @@ namespace JT
         name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (irr != u4::irrep(0, 0, 0, 0)) return false;
+    }
+    else if (known_potentials.count(name_))
+    {
+      if (irr != u4::irrep(0, 0, 0, 0) &&
+          irr != u4::irrep(2, 1, 1, 0) &&
+          irr != u4::irrep(2, 2, 0, 0) &&
+          irr != u4::irrep(4, 2, 2, 0)) 
+        return false;
     }
     
     return true;
@@ -850,7 +950,7 @@ namespace JT
   }
 
 #define RESTRICT_WITH_NMAX
-#define RESTRICT_JJ
+#define RESTRICT_JJ // only used in expand_old()
   U3xU4::TwoBodyMultiShellTensors 
     TwoBodyOperator::expand_old()
   {
@@ -1063,6 +1163,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         if (!tensor.LLSSTTstrengths().empty())
           tensors_tl.push_back(std::move(tensor));
           // tensors.push_back(std::move(tensor));
+        // else std::cerr << "Ignore" << std::endl;
       }
 
 #pragma omp critical
@@ -1080,14 +1181,16 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     return tensors;
   }
 
-  void TwoBodyOperator::expand_exist(U3xU4::MultiShellTensors_phys& tensors)
+  void TwoBodyOperator::expand_exist(int Nmax_old, int maxShell_old,
+                              U3xU4::MultiShellTensors_phys& tensors)
   {
     if (on_the_fly == false)
       TBME->read();
 
 #ifdef RESTRICT_WITH_NMAX
     auto [all_na_nb_nc_nd, all_inverse, all_phase] =
-        GenerateAllCombinationsHOShells(Nmax_, valenceShell_, maxShell_);
+        GenerateAllCombinationsHOShells(Nmax_, valenceShell_, maxShell_,
+                                        Nmax_old, maxShell_old);
 #else
     auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
 #endif
@@ -1133,18 +1236,6 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
         if (tensor.shift_quanta() < 0) continue;
-
-        // ignore if already exists
-        bool found = false;
-        for (const auto& tensor_old : tensors)
-        {
-          if (tensor == tensor_old)
-          {
-            found = true;
-            break;
-          }
-        }
-        if (found) continue;
 
         setTensorStrength(tensor, all_inverse[i], all_phase[i]);
 
@@ -1399,12 +1490,12 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       Nmax_ = maxShell_;
 
       // auto tensors = expand_new();
-      expand_exist(tensors);
+      expand_exist(maxShell, maxShell, tensors); // maxShell is from file
       writeBinary(filename, tensors);
       return tensors;
     }
 
-    if (maxShell_ - 2 * valenceShell_ > maxShell /* Nmax */)
+    if (maxShell_ - 2 * valenceShell_ > maxShell /* = Nmax */)
     {
       std::cout << "File doesn't reach your Nmax, so it will be expanded now"
                 << std::endl;
@@ -1412,7 +1503,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       Nmax_ = maxShell_;
 
       // auto tensors = expand_new();
-      expand_exist(tensors);
+      expand_exist(maxShell, maxShell, tensors); // maxShell is from file
       writeBinary(filename, tensors);
       return tensors;
     }

@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 
   // Specify operator name
   // Example 1: E2
-  std::string name = "E2";
+  // std::string name = "E2";
 
   // Example 2: M1
   // std::string name = "M1";
@@ -32,11 +32,11 @@ int main(int argc, char* argv[])
   // std::string name = "FermiPlus";
 
   // Example 12: Gamow-Teller for beta decay
-  // std::string name = "GamowTellerMinus";
+  std::string name = "GamowTellerMinus";
   // std::string name = "GamowTellerPlus";
 
   ////////////// WITHIN THE SAME BASIS //////////////
-  
+  /*
   int Z = 3, N = 3, Nmax = 6, JJ = 2, TT = 0, hw = 20;
 
   u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}, {3,2,1,0}};
@@ -78,31 +78,31 @@ int main(int argc, char* argv[])
   
 
   // transition
-  /*
+  
   auto strengths = op.transitionStrength(basis, 
     {{evecs.col(0), evecs.col(1)}});
 
   std::cout << "Transition strengths of " << name << " are" << std::endl;
   for (int i = 0; i < strengths.size(); i++)
     std::cout << "Channel " << i << ": " << strengths[i] << std::endl;
-  */
+  
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  
+  */
 
   ////////////// BETWEEN TWO DIFFERENT BASES //////////////
-  /*
-  int Zi = 2, Ni = 4, Nmax = 8, JJi = 0, TTi = 2, hw = 20;
-  std::string dir_i = "Truncation_TT2_6to8_31Mar26";
+  
+  int Zi = 2, Ni = 4, Nmax = 6, JJi = 0, TTi = 2, hw = 20;
+  std::string dir_i = "Truncation_TT2_below6_9Apr26";
 
-  u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}, {3,2,1,0}};
+  u4::irreps irrs = {{1,1,0,0}};
 
   U3xU4::hw_subspace
-    hw0i(0, {}, {}, {}, {TTi}),
-    hw2i(2, {}, {}, {}, {TTi}),
-    hw4i(4, {}, {}, {}, {TTi}),
-    hw6i(6, {}, {}, {}, {TTi}),
+    hw0i(0, {}, {irrs}, {}, {TTi}),
+    hw2i(2, {}, {irrs}, {}, {TTi}),
+    hw4i(4, {}, {irrs}, {}, {TTi}),
+    hw6i(6, {}, {irrs}, {}, {TTi}),
     hw8i(8, {}, {irrs}, {}, {TTi});
 
   U3xU4::ManyNucleonBasis kets(Ni, Zi, Nmax, JJi, {hw0i, hw2i, hw4i, hw6i, hw8i});
@@ -110,13 +110,13 @@ int main(int argc, char* argv[])
   std::cout << "Ket basis dimension: " << kets.dim() << std::endl;
   
   int Zf = 3, Nf = 3, JJf = 2, TTf = 0;
-  std::string dir_f = "Truncation_TT0_6to8_31Mar26";
+  std::string dir_f = "Truncation_TT0_below6_9Apr26";
 
   U3xU4::hw_subspace
-    hw0f(0, {}, {}, {}, {TTf}),
-    hw2f(2, {}, {}, {}, {TTf}),
-    hw4f(4, {}, {}, {}, {TTf}),
-    hw6f(6, {}, {}, {}, {TTf}),
+    hw0f(0, {}, {irrs}, {}, {TTf}),
+    hw2f(2, {}, {irrs}, {}, {TTf}),
+    hw4f(4, {}, {irrs}, {}, {TTf}),
+    hw6f(6, {}, {irrs}, {}, {TTf}),
     hw8f(8, {}, {irrs}, {}, {TTf});
 
   U3xU4::ManyNucleonBasis bras(Nf, Zf, Nmax, JJf, {hw0f, hw2f, hw4f, hw6f, hw8f});
@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
   
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  */
+  
 
   ////////////// DON'T EDIT ANYTHING HERE //////////////
   

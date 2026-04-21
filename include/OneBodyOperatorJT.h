@@ -27,6 +27,9 @@ namespace JT
              hw_, Nmax_, valenceShell_, maxShell_;
 
     std::string name_;
+    bool on_the_fly;
+
+    std::optional<HO::OBME_scalar> OBME;
 
     const std::unordered_set<std::string> known_scalar_ops = {
         "NumberOp", "L.L", "L.S", "CoMNumberOp", "Kinetic", "Rrel", 
@@ -85,10 +88,10 @@ namespace JT
 
   public:
     // Expand into a sum of U3xU4::OneBodyMultiShellTensor
-    U3xU4::OneBodyMultiShellTensors expand_old() const;
+    U3xU4::OneBodyMultiShellTensors expand_old();
 
     // Expand into a sum of U3xU4::MultiShellTensor_phys
-    U3xU4::MultiShellTensors_phys expand_new() const;
+    U3xU4::MultiShellTensors_phys expand_new();
     U3xU4::MultiShellTensors_phys expand();
 
     // Write to binary file
