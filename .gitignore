@@ -42,3 +42,8 @@ doxygen/html/
 # GDB history file:
 
 .gdb_history
+
+
+# AI agent:
+
+.claude/
