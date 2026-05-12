@@ -1296,6 +1296,7 @@ namespace JT
               U3xU4::MultiShellTensor_phys tensor(
                 (na < nb) ? std::vector({a, b}) : std::vector({b, a}), 
                 {t}, MMT_, JJ_, MMJ_, HO_labels_);
+              if (tensor.shift_quanta() < 0) continue;
 
               setTensorStrength(tensor, na, nb);
 

@@ -10,7 +10,13 @@ int main(int argc, char* argv[])
 {
   sam::initialize(&argc, &argv);
 
-  int hw = 16, valenceShell = 0, Nmax = 4, maxShell = 3;
+#ifdef USE_MPI
+  int mpi_rank, mpi_size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+#endif
+
+  int hw = 16, valenceShell = 0, Nmax = 8, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -60,7 +66,7 @@ int main(int argc, char* argv[])
   // std::string name = "N3LO_EMN500_srg4.0";
 
   // Example 11: Two-body potential with custom name
-  std::string name = "HO_Li7_e3_hw16_E39";
+  std::string name = "HO_Be7_e10_hw16_E342";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
@@ -69,7 +75,11 @@ int main(int argc, char* argv[])
 
   JT::TwoBodyOperator 
     op(name, hw, Nmax, valenceShell, maxShell, HO_labels, gelfand_labels);
-  op.is();
+
+#ifdef USE_MPI
+  if (mpi_rank == 0)
+#endif
+    op.is();
 
   auto tensors = op.expand();
   // auto tensors = op.expand_new();
@@ -77,13 +87,17 @@ int main(int argc, char* argv[])
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
+#ifdef USE_MPI
+  if (mpi_rank == 0)
+  {
+#endif
   std::cout << "There are " << tensors.size() << " tensors" << std::endl;
   for (const auto& tensor : tensors)  std::cout << tensor << std::endl;
 
 /*
   // This might be helpful for comparison
   std::string filename = op.dirname() + "/Expansion/" + name + "_hw" 
-                         + std::to_string(hw) + "_Nmax6_DL";
+                         + std::to_string(hw) + "_Nmax10";
   auto tensors_old = op.readBinary(filename);
 
   // assert(tensors.size() == tensors_old.size());
@@ -129,6 +143,10 @@ int main(int argc, char* argv[])
   // Output the time in seconds
   std::cout << "Elapsed time: " << duration.count() << " seconds or "
             << duration.count() / 60.0 << " minutes" << std::endl;
+
+#ifdef USE_MPI
+  }
+#endif
 
   sam::finalize();
 }

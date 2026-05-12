@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
 {
   sam::initialize(&argc, &argv);
 
-  int hw = 16, valenceShell = 0, Nmax = 3, maxShell = Nmax;
+  int hw = 16, valenceShell = 0, Nmax = 10, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
   // std::string name = "GamowTellerPlus";
 
   // Example 11: Two-body potential with custom name
-  std::string name = "HO_Li7_e3_hw16_E39";
+  std::string name = "HO_Be7_e10_hw16_E342";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 

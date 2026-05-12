@@ -169,28 +169,36 @@ namespace JT
     bool U3selection(const u3::irrep& irr) const;
     bool U4selection(const u4::irrep& irr) const;
 
-  public:
-    // Expand into a sum of U3xU4::TwoBodyMultiShellTensors
-    U3xU4::TwoBodyMultiShellTensors expand_old();
-
-    // Expand into a sum of U3xU4::MultiShellTensor_phys
-    U3xU4::MultiShellTensors_phys expand_new();
-    void expand_exist(int Nmax_old, int maxShell_old,
-      U3xU4::MultiShellTensors_phys& tensors);
-
-    // If non-exisitng, expand into a sum of U3xU4::MultiShellTensor_phys
-    // Otherwise, call readBinary()
-    U3xU4::MultiShellTensors_phys expand();
-
-    // expand into a sum of U3xU4::MultiShellTensor_phys for multiple potentials
-    std::vector<U3xU4::MultiShellTensors_phys> expand_potentials(bool write = false);
-
     // Write to binary file
     void writeBinary(const std::string& filename, 
                      const U3xU4::MultiShellTensors_phys& tensors) const;
 
     // Read from binary file
     U3xU4::MultiShellTensors_phys readBinary(const std::string& filename);
+    U3xU4::MultiShellTensors_phys readBinary_MPI(const std::string& filename);
+
+  public:
+    // Expand into a sum of U3xU4::TwoBodyMultiShellTensors
+    U3xU4::TwoBodyMultiShellTensors expand_old();
+
+    // Expand into a sum of U3xU4::MultiShellTensor_phys with OpenMP
+    U3xU4::MultiShellTensors_phys expand_new();
+    void expand_exist(int Nmax_old, int maxShell_old,
+      U3xU4::MultiShellTensors_phys& tensors);
+
+    // Expand into a sum of U3xU4::MultiShellTensor_phys with hybrid MPI + OpenMP
+    // writeBinary and readBinary are carried out on each MPI rank upon complete
+    U3xU4::MultiShellTensors_phys expand_new_MPI(const std::string& filename);
+    void expand_exist_MPI(const std::string& filename,
+                                                  int Nmax_old, int maxShell_old);
+
+    // If non-exisitng, expand into a sum of U3xU4::MultiShellTensor_phys
+    // Otherwise, expand only the new ones
+    U3xU4::MultiShellTensors_phys expand();
+
+    // Expand into a sum of U3xU4::MultiShellTensor_phys for multiple potentials
+    // I don't recommend this, it's very slow
+    std::vector<U3xU4::MultiShellTensors_phys> expand_potentials(bool write = false);
 
     // Matrix representation
     // symmetric

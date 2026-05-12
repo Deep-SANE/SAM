@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
   std::cin >> hw;
 */
 
-  int N = 3, Z = 3, Nmax = 6, JJ = 2, hw = 20;
+  int N = 3, Z = 3, Nmax = 6, JJ = 0, hw = 20;
 
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
   basis.construct();
