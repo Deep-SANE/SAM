@@ -1412,20 +1412,26 @@ namespace JT
   }
 
   // Matrix representation
-  qcx_utils::CSRMatrix // Eigen::SparseMatrix<double>
-  OneBodyOperator::matrix(const U3xU4::ManyNucleonBasis& basis)
+  qcx_utils::CSRMatrix
+  OneBodyOperator::matrix_CSR(const U3xU4::ManyNucleonBasis& basis)
   {
     auto tensors = expand();
-    // return U3xU4::MatrixElements(tensors, basis);
-    return U3xU4::MatrixElements(tensors, basis, gelfand_labels_);
+    return U3xU4::MatrixElements_CSR(tensors, basis, gelfand_labels_);
   }
 
-  Eigen::SparseMatrix<double> OneBodyOperator::matrix(
+  Eigen::SparseMatrix<double>
+  OneBodyOperator::matrix_Eigen(const U3xU4::ManyNucleonBasis& basis)
+  {
+    auto tensors = expand();
+    return U3xU4::MatrixElements_Eigen(tensors, basis, gelfand_labels_);
+  }
+
+  Eigen::SparseMatrix<double> OneBodyOperator::matrix_Eigen(
     const U3xU4::ManyNucleonBasis& bras,
     const U3xU4::ManyNucleonBasis& kets)
   {
     auto tensors = expand();
-    return U3xU4::MatrixElements(tensors, bras, kets, gelfand_labels_);
+    return U3xU4::MatrixElements_Eigen(tensors, bras, kets, gelfand_labels_);
   }
 
   // Tensor Analyzers

@@ -1950,23 +1950,26 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
   }
 
   // Matrix representation
-  qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
-  TwoBodyOperator::matrix(const U3xU4::ManyNucleonBasis& basis)
+  qcx_utils::CSRMatrix 
+  TwoBodyOperator::matrix_CSR(const U3xU4::ManyNucleonBasis& basis)
   {
     auto tensors = expand();
+    return U3xU4::MatrixElements_CSR(tensors, basis, gelfand_labels_);
+  }
 
-    // return U3xU4::MatrixElements(tensors, basis);
-    return U3xU4::MatrixElements(tensors, basis, gelfand_labels_);
+  Eigen::SparseMatrix<double> 
+  TwoBodyOperator::matrix_Eigen(const U3xU4::ManyNucleonBasis& basis)
+  {
+    auto tensors = expand();
+    return U3xU4::MatrixElements_Eigen(tensors, basis, gelfand_labels_);
   }
   
-  Eigen::SparseMatrix<double> TwoBodyOperator::matrix(
+  Eigen::SparseMatrix<double> TwoBodyOperator::matrix_Eigen(
     const U3xU4::ManyNucleonBasis& bras, 
     const U3xU4::ManyNucleonBasis& kets)
   {
     auto tensors = expand();
-
-    // return U3xU4::MatrixElements(tensors, bras, kets);
-    return U3xU4::MatrixElements(tensors, bras, kets, gelfand_labels_);
+    return U3xU4::MatrixElements_Eigen(tensors, bras, kets, gelfand_labels_);
   }
 
   // Tensor Analyzers

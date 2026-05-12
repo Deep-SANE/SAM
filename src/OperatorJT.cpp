@@ -723,23 +723,30 @@ namespace JT
   }
 
   // Matrix representation
-  qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
-  Operator::matrix(const U3xU4::ManyNucleonBasis& basis)
+  qcx_utils::CSRMatrix
+  Operator::matrix_CSR(const U3xU4::ManyNucleonBasis& basis)
   {
     // auto tensors = expand_old();
     auto tensors = expand();
-
-    return U3xU4::MatrixElements(tensors, basis, gelfand_labels_);
+    return U3xU4::MatrixElements_CSR(tensors, basis, gelfand_labels_);
   }
 
-  Eigen::SparseMatrix<double> Operator::matrix(
+  Eigen::SparseMatrix<double> 
+  Operator::matrix_Eigen(const U3xU4::ManyNucleonBasis& basis)
+  {
+    // auto tensors = expand_old();
+    auto tensors = expand();
+    return U3xU4::MatrixElements_Eigen(tensors, basis, gelfand_labels_);
+  }
+
+  Eigen::SparseMatrix<double> Operator::matrix_Eigen(
     const U3xU4::ManyNucleonBasis& bras,
     const U3xU4::ManyNucleonBasis& kets)
   {
     // auto tensors = expand_old();
     auto tensors = expand();
     
-    return U3xU4::MatrixElements(tensors, bras, kets, gelfand_labels_);
+    return U3xU4::MatrixElements_Eigen(tensors, bras, kets, gelfand_labels_);
   }
 
   // Expectation value
@@ -754,7 +761,7 @@ namespace JT
 
     auto dim = basis.dim();
     
-    auto mat = matrix(basis, basis);
+    auto mat = matrix_Eigen(basis);
     
     for (auto& [bra, ket] : states)
     {
@@ -802,7 +809,7 @@ namespace JT
     auto bras_dim = bras.dim();
     auto kets_dim = kets.dim();
     
-    auto mat = matrix(bras, kets);
+    auto mat = matrix_Eigen(bras, kets);
 
     for (auto& [bra, ket] : states)
     {

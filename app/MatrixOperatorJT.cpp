@@ -8,6 +8,7 @@
 #include <sam.h>
 
 #include <OperatorJT.h>
+#include <WavefunctionAnalyzer.h>
 
 int main(int argc, char* argv[])
 {
@@ -29,7 +30,7 @@ int main(int argc, char* argv[])
   std::cin >> write;
   */
 
-  int Z = 2, N = 3, JJ = 3, Nmax = 4, hw = 20, write = 1;
+  int Z = 3, N = 4, JJ = 7, Nmax = 2, hw = 16, write = 1, analyze = 1;
 
   // Example 1: LL
   // std::string name = "L.L";
@@ -44,7 +45,7 @@ int main(int argc, char* argv[])
   // std::string name = "CoMNumberOp";  
 
   // Example 6: Hamiltonian with N2LO_opt_bare
-  std::string name = "Hamiltonian with N2LO_opt_bare";
+  // std::string name = "Hamiltonian with N2LO_opt_bare";
 
   // Example 7: Hamiltonian with N3LO_EMN500_bare
   // std::string name = "Hamiltonian with N3LO_EMN500_bare";
@@ -52,8 +53,11 @@ int main(int argc, char* argv[])
   // Example 8: Hamiltonian with N4LO_EMN500_bare
   // std::string name = "Hamiltonian with N4LO_EMN500_bare";
 
-  // Example 9: Hamiltonian with N2LO_opt_srg2.0
-  // std::string name = "Hamiltonian with N2LO_opt_srg2.0";
+  // Example 9: Hamiltonian with N3LO_EM500_srg2.0.0
+  // std::string name = "Hamiltonian with N3LO_EM500_srg2.0";
+
+  // Example 10: NO2B interactions
+  std::string name = "HO_Li7_e10_hw16_E342";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
@@ -70,7 +74,7 @@ int main(int argc, char* argv[])
   // Compute matrix
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto mat = op.matrix(basis);
+  auto mat = op.matrix_CSR(basis);
 
   auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -96,6 +100,21 @@ int main(int argc, char* argv[])
     auto wfns_file = op.wfns_file(basis);
     qcx_utils::writeEigenBinary(wfns_file, evals, evecs);
   }
+
+  // Analyze wfns
+  if (analyze == 1)
+  {
+    std::cout << "Analyze the first two states" << std::endl;
+
+    auto subspaces_u3 = sam::U3_wavefunction_analyzer(basis, evecs, 2);
+    for (const auto& subspace : subspaces_u3)
+      std::cout << subspace << std::endl;
+
+    auto subspaces_u4 = sam::U4_wavefunction_analyzer(basis, evecs, 2);
+    for (const auto& subspace : subspaces_u4)
+      std::cout << subspace << std::endl;
+  }
+
 /*
   // L.L and L.S are analytical
   if (name == "L.L" || name == "L.S")

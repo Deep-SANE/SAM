@@ -68,12 +68,16 @@ namespace JT
 
     // Matrix representation
     // symmetric
-    qcx_utils::CSRMatrix // Eigen::SparseMatrix<double>
-    matrix(const U3xU4::ManyNucleonBasis& basis);
+    qcx_utils::CSRMatrix
+    matrix_CSR(const U3xU4::ManyNucleonBasis& basis);
+
+    Eigen::SparseMatrix<double>
+    matrix_Eigen(const U3xU4::ManyNucleonBasis& basis);
+
     // rectangular
     Eigen::SparseMatrix<double>
-    matrix(const U3xU4::ManyNucleonBasis& bras, 
-           const U3xU4::ManyNucleonBasis& kets);
+    matrix_Eigen(const U3xU4::ManyNucleonBasis& bras, 
+                 const U3xU4::ManyNucleonBasis& kets);
 
     // Expectation value
     using Col_t = Eigen::MatrixXd::ColXpr;

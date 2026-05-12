@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
   sam::initialize(&argc, &argv);
 
   // Specify Hamiltonian
-  std::string Hamil_name = "Hamiltonian with N3LO_EM500_srg2.0";
+  std::string Hamil_name = "Hamiltonian with N2LO_opt_bare";
 
   // Specify operator name
   std::string name = "GamowTellerMinus";
@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 
   u4::irreps irrs_trunc = {{1,1,0,0}, {2,0,0,0}};
   
-  int Zi = 2, Ni = 4, Nmax = 8, JJi = 0, TTi = 2, hw = 20;
+  int Zi = 2, Ni = 4, Nmax = 6, JJi = 0, TTi = 2, hw = 20;
   std::string dir_i = "Truncation_TT2";
 
   U3xU4::hw_subspace
@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
   auto strengths = op.transitionStrength(bras, kets, 
     {{evecs_f.col(0), evecs_i.col(0)}});
 
-  auto mat = op.matrix(bras, kets);
+  auto mat = op.matrix_Eigen(bras, kets);
 
   std::cout << "Transition strengths of " << name << " are" << std::endl;
   for (int i = 0; i < strengths.size(); i++)

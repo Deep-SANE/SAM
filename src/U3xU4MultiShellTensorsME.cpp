@@ -76,11 +76,13 @@ namespace U3xU4
   */
 
   /////////////////// COMPUTING SYMMETRIC MATRIX ///////////////////
+
+  // Custom sparse format defined in qcx_matrix.h with OpenMP
   template <typename TensorType>
-  qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
-    MatrixElements(const std::vector<TensorType>& tensors, 
-                   const U3xU4::ManyNucleonBasis& basis,
-                   const U3xU4::Table_gelfand& gelfand_labels)
+  qcx_utils::CSRMatrix MatrixElements_CSR(
+                  const std::vector<TensorType>& tensors, 
+                  const U3xU4::ManyNucleonBasis& basis,
+                  const U3xU4::Table_gelfand& gelfand_labels)
   {
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
@@ -541,23 +543,508 @@ namespace U3xU4
     return global;
   }
 
-  template qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
-    MatrixElements(const MultiShellTensors_phys& tensors, 
-                   const U3xU4::ManyNucleonBasis& basis,
-                   const U3xU4::Table_gelfand& gelfand_labels);
+  template qcx_utils::CSRMatrix MatrixElements_CSR(
+                  const MultiShellTensors_phys& tensors, 
+                  const U3xU4::ManyNucleonBasis& basis,
+                  const U3xU4::Table_gelfand& gelfand_labels);
 
-  template qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
-    MatrixElements(const MultiShellTensors_ShareGammas_phys& tensors, 
-                   const U3xU4::ManyNucleonBasis& basis,
-                   const U3xU4::Table_gelfand& gelfand_labels);
+  template qcx_utils::CSRMatrix MatrixElements_CSR(
+                  const MultiShellTensors_ShareGammas_phys& tensors, 
+                  const U3xU4::ManyNucleonBasis& basis,
+                  const U3xU4::Table_gelfand& gelfand_labels);
+
+  // Sparse format provided by Eigen with OpenMP
+  template <typename TensorType>
+  Eigen::SparseMatrix<double> MatrixElements_Eigen(
+                  const std::vector<TensorType>& tensors, 
+                  const U3xU4::ManyNucleonBasis& basis,
+                  const U3xU4::Table_gelfand& gelfand_labels)
+  {
+    // for (auto tensor : tensors) std::cout << tensor << std::endl;
+
+    auto& cgcs = qcx_utils::cgcs();
+    auto& racah9 = qcx_utils::racahs9();
+    auto& wigU3SO3db = u3::wigU3SO3db();
+    auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
+
+    // basis info
+    const auto irreps = basis.irreps();
+    const auto dim = basis.dim();
+    const auto& labels = basis.decomposition();
+    const auto JJ = basis.JJ();
+    const auto MMJ = JJ;
+    const auto MMT = basis.MMT();
+    // tensors info
+    const auto tensors_count = tensors.size();
+    // all tensors have the same J, MJ, MT, but T may vary
+    const auto JJ_opt = tensors[0].JJ();
+    const auto MMJ_opt = tensors[0].MMJ();
+    assert(MMJ_opt == 0);
+    const auto MMT_opt = tensors[0].MMT();
+
+    const auto cgcJ = cgcs.get({JJ, JJ_opt, JJ, MMJ, MMJ_opt, MMJ});
+
+    if (tensors_count == 0 || std::fabs(cgcJ) == 0.0)
+    {
+      Eigen::SparseMatrix<double> mat(dim, dim);
+      return mat;
+    }
+
+    // RME database
+    U3xU4::RME_db RMEdb(basis.maxShell());
+
+    // PREPARATION PHASE --- BEGIN
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    std::vector<std::vector<size_t>> connected_tensors;
+    std::vector<std::tuple<size_t, size_t, size_t>> connected_irreps;
+
+    for (size_t bra_dist_id = 0; 
+         bra_dist_id < basis.n_distributions(); 
+         bra_dist_id++)
+    {
+      auto bra_dist = basis.distribution(bra_dist_id);
+      const auto& bra_gamma_irreps_ids = basis.group_dists[bra_dist_id];
+      auto bra_dist_to_gamma = map_by_positive_order(bra_dist);
+
+      // print("\nbra_dist_id: {}\t", bra_dist_id);
+      // print("bra_dist_to_gamma: {}\n", bra_dist_to_gamma)
+
+      for (size_t ket_dist_id = 0; 
+           ket_dist_id < basis.n_distributions(); 
+           ket_dist_id++)
+      {
+        if (bra_dist_id < ket_dist_id) continue;
+
+        auto ket_dist = basis.distribution(ket_dist_id);
+        const auto& ket_gamma_irreps_ids = basis.group_dists[ket_dist_id];
+        auto ket_dist_to_gamma = map_by_positive_order(ket_dist);
+
+        // print("ket_dist_id: {} \t", ket_dist_id);
+        // print("ket_dist_to_gamma: {}\n", ket_dist_to_gamma);
+
+        // Predicate to check if particles are conserved in all shells
+        auto all_shells_particles = [&](const auto& tensor)
+        {
+          // in a shell:
+          // ket_dist[n] - G.num_ats() + G.num_ads()) == bra_dist[n] &&
+          // ket_dist[n] >= G.num_ats()
+
+          std::vector<int> delta(ket_dist.size(), 0);
+
+          // Accumulate net changes from Gammas
+          for (const auto& G : tensor.Gammas())
+          {
+            auto n = G.shell();
+            if (n >= ket_dist.size()) return false;
+
+            delta[n] = G.num_ads() - G.num_ats();
+
+            // Early failure: destroying more than available
+            if (ket_dist[n] < G.num_ats()) return false;
+          }
+
+          // Check all shells (including untouched ones)
+          for (size_t n = 0; n < ket_dist.size(); ++n)
+            if (ket_dist[n] + delta[n] != bra_dist[n]) return false;
+
+          return true;
+        };
+
+        std::vector<size_t> tensors1;
+        // std::cout << "tensors1: " << tensors.size() << std::endl;
+        tensors1.reserve(tensors.size());
+        for (size_t i = 0; i < tensors.size(); i++)
+          if (all_shells_particles(tensors[i])) tensors1.push_back(i);
+        if (tensors1.empty()) continue;
+        // print("Finish checking distributions\n");
+
+        for (const auto& [bra_gamma_id, bra_irrep_ids] : bra_gamma_irreps_ids)
+        {
+          auto bra_gamma = basis.gamma(bra_gamma_id);
+          // print("bra_gamma_id: {}\n", bra_gamma_id);
+
+          for (const auto& [ket_gamma_id, ket_irrep_ids] : ket_gamma_irreps_ids)
+          {
+            if (bra_gamma_id < ket_gamma_id) continue;
+
+            auto ket_gamma = basis.gamma(ket_gamma_id);
+            // print("ket_gamma_id: {}\n", ket_gamma_id);
+
+            // Predicate to check if single-shell coupling is allowed
+            auto single_shell_coupling = [&](const auto& G)
+            {
+              auto n = G.shell();
+
+              su3::irrep i3, f3;
+              u4::irrep i4, f4;
+
+              if (bra_dist_to_gamma[n] >= 0)
+              {
+                f3 = bra_gamma[bra_dist_to_gamma[n]].su3;
+                f4 = bra_gamma[bra_dist_to_gamma[n]].u4;
+              }
+
+              if (ket_dist_to_gamma[n] >= 0)
+              {
+                i3 = ket_gamma[ket_dist_to_gamma[n]].su3;
+                i4 = ket_gamma[ket_dist_to_gamma[n]].u4;
+              }
+
+              return u3::Rho(i3, G.u3(), f3) > 0 && u4::Eta(i4, G.u4(), f4) > 0;
+            };
+            // Predicate to check if all single-shell coupings are allowed
+            auto all_shells_coupling = [&](const auto& tensor)
+            {
+              return std::all_of(tensor.Gammas().begin(),
+                                 tensor.Gammas().end(),
+                                 single_shell_coupling);
+            };
+
+            std::vector<size_t> tensors2;
+            // std::cout << "tensors2: " << tensors1.size() << std::endl;
+            tensors2.reserve(tensors1.size());
+            for (const auto& i : tensors1)
+              if (all_shells_coupling(tensors[i])) tensors2.push_back(i);
+            if (tensors2.empty()) continue;
+            // print("Finish checking single shell couplings\n");
+
+            for (const auto& bra_id : bra_irrep_ids)
+              for (const auto& ket_id : ket_irrep_ids)
+              {
+                if (bra_id < ket_id)
+                  continue;
+
+                connected_irreps.emplace_back(bra_id, ket_id,
+                                              connected_tensors.size());
+              }
+
+            connected_tensors.push_back(std::move(tensors2));
+          }
+        }
+      }
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    std::cout << "Matrix elements preparation time: " << elapsed.count()/60 << "min" << std::endl;
+    std::cout << "Number of connected irreps: " << connected_irreps.size() << std::endl;
+
+    // PREPARATION PHASE --- END
+
+    std::cout << "Start computing matrix" << std::endl;
+
+    Eigen::SparseMatrix<double> mat(dim, dim);
+    mat.reserve(connected_irreps.size() * 100);
+
+    std::vector<Eigen::Triplet<double>> ija;
+
+    const size_t SIZE_LIMIT = 20000000;
+    size_t cnt = 0;
+
+#ifdef USE_OPENMP
+#pragma omp parallel
+{
+    sam::initialize_thread();
+
+    std::vector<Eigen::Triplet<double>> ija_local;
+    ija_local.reserve(SIZE_LIMIT);
+
+    auto flush = [&]()
+    {
+      if (ija_local.empty()) return;
+
+      Eigen::SparseMatrix<double> temp(dim, dim);
+      temp.setFromTriplets(ija_local.begin(), ija_local.end());
+
+#pragma omp critical(flushing)
+{
+      std::cerr << cnt++ << ": " << ija_local.size() << std::endl;
+      mat += temp;
+
+      // for (auto& t : ija_local) mat.insert(t.row(), t.col()) = t.value();
+}
+
+      ija_local.clear();
+    };
+#endif
+
+#pragma omp for schedule(runtime)
+    for (size_t ci = 0; ci < connected_irreps.size(); ci++)
+    // for (auto [bra_id, ket_id, connected_tensors_id] : connected_irreps)
+    {
+      auto bra_id = std::get<0>(connected_irreps[ci]);
+      auto ket_id = std::get<1>(connected_irreps[ci]);
+      auto connected_tensors_id = std::get<2>(connected_irreps[ci]);
+
+      const auto& tensors2 = connected_tensors[connected_tensors_id];
+      {
+        {
+          {
+            // for (const auto& bra_id : bra_irrep_ids)
+            {
+              const auto& bra = irreps[bra_id];
+
+              // get alphamax
+              size_t bra_amax = bra.alphamax();
+
+              // get offset
+              auto bra_offset = irreps.offset(bra_id);
+
+              // get labels
+              const auto& bra_labels = labels[bra_id];
+              size_t bra_dim = bra_labels.back()[5] +
+                              bra_labels.back()[0] * bra_labels.back()[2];
+/*
+              print("bra id {} : ", bra_id);
+              print(" gamma = {}", bra.gamma);
+              print(" ; omega = {}", bra.omega);
+              print(" ; kappamax LL zetamax SS TT offset = {}\n", bra_labels);
+*/
+              // for (const auto& ket_id : ket_irrep_ids)
+              {
+                if (bra_id < ket_id) continue;
+
+                const auto& ket = irreps[ket_id];
+
+                // get alphamax
+                size_t ket_amax = ket.alphamax();
+
+                // get offset
+                auto ket_offset = irreps.offset(ket_id);
+
+                // get labels
+                const auto& ket_labels = labels[ket_id];
+                size_t ket_dim = ket_labels.back()[5] +
+                              ket_labels.back()[0] * ket_labels.back()[2];
+/*
+                print("ket id {} : ", ket_id);
+                print(" gamma = {}", ket.gamma);
+                print(" ; omega = {}", ket.omega);
+                print(" ; kappamax LL zetamax SS TT offset = {}\n", ket_labels);
+*/
+                // unify bra and ket irreps
+                U3xU4::IrrepUnifier iu;
+                const auto& [ubra, uket] = iu.unify(bra, ket);
+                // extract the last irreps
+                const auto& ket_irr = (ubra.omega.empty())
+                             ? uket.gamma[0].u3u4() : uket.omega.back().u3u4();
+                const auto& bra_irr = (ubra.omega.empty())
+                             ? ubra.gamma[0].u3u4() : ubra.omega.back().u3u4();
+
+                // initialize a matrix for storing MEs
+                Eigen::MatrixXd MEs(bra_amax * bra_dim, ket_amax * ket_dim);
+                MEs.setZero();
+
+                for (const auto& tensor_id : tensors2)
+                {
+                  const auto& tensor = tensors[tensor_id];
+
+                  // std::cout << "Before unified: " << tensor << std::endl;
+                  auto uT = U3xU4::unify_tensor(tensor, ubra, uket);
+                  if (!uT.has_value()) continue;
+                  // std::cout << "After unified: " << tensor << std::endl;
+
+                  const auto& Gammas = uT->Gammas();
+                  const auto& Omegas_LLSSTTstrengths = uT->Omegas_LLSSTTstrengths();
+
+                  auto RMEs = uT->RME(ubra, uket, gelfand_labels, RMEdb);
+                  assert(RMEs.size() == Omegas_LLSSTTstrengths.size());
+
+                  for (size_t rme_id = 0; rme_id < RMEs.size(); rme_id++)
+                  {
+                    const auto& rmes = RMEs[rme_id];
+                    const auto& Omegas = Omegas_LLSSTTstrengths[rme_id].first;
+                    const auto& LLSSTTstrengths = Omegas_LLSSTTstrengths[rme_id].second;
+
+                    const auto& irr = (Omegas.empty())
+                                    ? Gammas.back().u3u4() : Omegas.back().u3u4();
+
+                    size_t tensor_amax = U3xU4::alphamax(Gammas, Omegas);
+                    auto rhomax = rmes.rhomax(), etamax = rmes.etamax();
+
+                    // going through subgroup labels of the tensor
+                    for (const auto& [kmax, LL, zmax, SS, TT, strengths]
+                                                        : LLSSTTstrengths)
+                    {
+                      // going through bra labels
+                      for (const auto& bra_label : bra_labels)
+                      {
+                        const auto& bra_kmax = bra_label[0];
+                        const auto& bra_LL = bra_label[1];
+                        const auto& bra_zmax = bra_label[2];
+                        const auto& bra_SS = bra_label[3];
+                        const auto& bra_TT = bra_label[4];
+                        const auto& bra_label_offset = bra_label[5];
+
+                        // going through ket labels
+                        for (const auto& ket_label : ket_labels)
+                        {
+                          const auto& ket_kmax = ket_label[0];
+                          const auto& ket_LL = ket_label[1];
+                          const auto& ket_zmax = ket_label[2];
+                          const auto& ket_SS = ket_label[3];
+                          const auto& ket_TT = ket_label[4];
+                          const auto& ket_label_offset = ket_label[5];
+
+                          // std::cout << "Start to calculate coupling coeffs" << std::endl;
+                          auto cgcT = cgcs.get({ket_TT, TT, bra_TT, MMT, MMT_opt, MMT});
+                          auto cgcU2 = cgcJ * cgcT * racah9.get({ket_LL, ket_SS, JJ,
+                                                                 LL, SS, JJ_opt,
+                                                                 bra_LL, bra_SS, JJ});
+                          if (std::fabs(cgcU2) < 1e-12) continue;
+
+                          const auto cgcU3 = wigU3SO3db.get_U3SO3(
+                            ket_irr.lam(), ket_irr.mu(), ket_LL / 2,
+                            irr.lam(), irr.mu(), LL / 2,
+                            bra_irr.lam(), bra_irr.mu(), bra_LL / 2);
+                          if (cgcU3.empty()) continue;
+
+                          const auto cgcU4 = wigU4SU2SU2db.get_U4SU2SU2(
+                            ket_irr.P1(), ket_irr.P2(), ket_irr.P3(), ket_SS, ket_TT,
+                            irr.P1(), irr.P2(), irr.P3(), SS, TT,
+                            bra_irr.P1(), bra_irr.P2(), bra_irr.P3(), bra_SS, bra_TT);
+                          if (cgcU4.empty()) continue;
+                          // std::cout << "Finish calculating coupling coeffs" << std::endl;
+
+                          // std::cout << "Start to calculate FMEs" << std::endl;
+                          for (size_t bra_a = 0; bra_a < bra_amax; bra_a++)
+                          {
+                            for (size_t bra_k = 0; bra_k < bra_kmax; bra_k++)
+                            {
+                              for (size_t bra_z = 0; bra_z < bra_zmax; bra_z++)
+                              {
+                                // bra index in the matrix
+                                size_t i =  bra_a * bra_dim
+                                    + bra_label_offset + (bra_k * bra_zmax + bra_z);
+
+                                for (size_t ket_a = 0; ket_a < ket_amax; ket_a++)
+                                {
+                                  for (size_t ket_k = 0; ket_k < ket_kmax; ket_k++)
+                                  {
+                                    for (size_t ket_z = 0; ket_z < ket_zmax; ket_z++)
+                                    {
+                                      // ket index in the matrix
+                                      size_t j = ket_a * ket_dim
+                                        + ket_label_offset + (ket_k * ket_zmax + ket_z);
+
+                                      if (bra_offset == ket_offset && i < j) continue;
+
+                                      // std::cout << "i:" << i << " j:" << j << std::endl;
+
+                                      for (size_t tensor_a = 0; tensor_a < tensor_amax; tensor_a++)
+                                      {
+                                        for (size_t k = 0; k < kmax; k++)
+                                        {
+                                          for (size_t z = 0; z < zmax; z++)
+                                          {
+                                            double strength = strengths[(tensor_a * kmax + k) * zmax + z];
+
+                                            // going through multiplicities of 
+                                            // Wigner-Eckart theorem
+                                            for (size_t rho = 0; rho < rhomax; rho++)
+                                            {
+                                              for (size_t eta = 0; eta < etamax; eta++)
+                                              {
+                                                auto rme = rmes(bra_a, ket_a, tensor_a, rho, eta);
+                                                //std::cout << rme << std::endl;
+
+                                                MEs(i, j) += strength * cgcU2 
+                                                           * cgcU3(ket_k, k, bra_k, rho)
+                                                           * cgcU4(ket_z, z, bra_z, eta) * rme;
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                          // std::cout << "Finish calculating FMEs" << std::endl;
+                        }
+                      }
+                    }
+                  }
+                }
+
+#ifdef USE_OPENMP
+                auto& ija_ = ija_local;
+#else
+                auto& ija_ = ija;
+#endif
+
+                // std::cout << "Start to fill sparse matrix" << std::endl;
+                for (size_t i = 0; i < MEs.rows(); i++)
+                {
+                  size_t i_ = i + bra_offset;
+                  for (size_t j = 0; j < MEs.cols(); j++)
+                  {
+                    size_t j_ = j + ket_offset;
+
+                    if (std::fabs(MEs(i, j)) > 1e-10)
+                    {
+                      ija_.emplace_back(i_, j_, MEs(i, j)); // for i_ >= j_
+                      if (i_ > j_) ija_.emplace_back(j_, i_, MEs(i, j));
+                    }
+                  }
+                }
+                // std::cout << "Finish filling sparse matrix; " << std::endl;
+
+#ifdef USE_OPENMP
+                if (ija_local.size() >= SIZE_LIMIT) flush();
+#endif
+              }
+            }
+          }
+        }
+      }
+    }
+
+#ifdef USE_OPENMP
+    // Final flush from local thread
+    flush();
+
+    sam::finalize_thread();
+
+} // pragma omp parallel
+#else
+    std::cout << "Finish computing " << ija.size() << " elements" << std::endl;
+
+    mat.reserve(ija.size());
+    mat.setFromTriplets(ija.begin(), ija.end());
+#endif
+
+    mat.makeCompressed();
+
+    std::cout << "Finish computing matrix" << std::endl;
+
+    return mat;
+  }
+
+  template Eigen::SparseMatrix<double> MatrixElements_Eigen(
+                  const MultiShellTensors_phys& tensors, 
+                  const U3xU4::ManyNucleonBasis& basis,
+                  const U3xU4::Table_gelfand& gelfand_labels);
+
+  template Eigen::SparseMatrix<double> MatrixElements_Eigen(
+                  const MultiShellTensors_ShareGammas_phys& tensors, 
+                  const U3xU4::ManyNucleonBasis& basis,
+                  const U3xU4::Table_gelfand& gelfand_labels);
+
 
   /////////////////// COMPUTING RECTANGULAR MATRIX ///////////////////
+
+  // Sparse format provided by Eigen with OpenMP
   template <typename TensorType>
-  Eigen::SparseMatrix<double> 
-    MatrixElements(const std::vector<TensorType>& tensors, 
-                   const U3xU4::ManyNucleonBasis& bras,
-                   const U3xU4::ManyNucleonBasis& kets,
-                   const U3xU4::Table_gelfand& gelfand_labels)
+  Eigen::SparseMatrix<double> MatrixElements_Eigen(
+                  const std::vector<TensorType>& tensors, 
+                  const U3xU4::ManyNucleonBasis& bras,
+                  const U3xU4::ManyNucleonBasis& kets,
+                  const U3xU4::Table_gelfand& gelfand_labels)
   {
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
@@ -603,7 +1090,12 @@ namespace U3xU4
     // RME database
     U3xU4::RME_db RMEdb(std::max(bras.maxShell(), kets.maxShell()));
 
-    std::vector<Eigen::Triplet<double>> ija;
+    // PREPARATION PHASE --- BEGIN
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    std::vector<std::vector<size_t>> connected_tensors;
+    std::vector<std::tuple<size_t, size_t, size_t>> connected_irreps;
     
     for (size_t bra_dist_id = 0; 
          bra_dist_id < bras.n_distributions(); 
@@ -717,6 +1209,72 @@ namespace U3xU4
             // print("Finish checking single shell couplings\n");
 
             for (const auto& bra_id : bra_irrep_ids)
+              for (const auto& ket_id : ket_irrep_ids)
+                connected_irreps.emplace_back(bra_id, ket_id,
+                                              connected_tensors.size());
+            
+            connected_tensors.push_back(std::move(tensors2));
+          }
+        }
+      }
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    std::cout << "Matrix elements preparation time: " << elapsed.count()/60 << "min" << std::endl;
+    std::cout << "Number of connected irreps: " << connected_irreps.size() << std::endl;
+
+    // PREPARATION PHASE --- END
+
+    std::cout << "Start computing matrix" << std::endl;
+
+    Eigen::SparseMatrix<double> mat(bras_dim, kets_dim);
+    
+    std::vector<Eigen::Triplet<double>> ija;
+
+#ifdef USE_OPENMP
+    mat.reserve(connected_irreps.size() * 100);
+    const size_t SIZE_LIMIT = 20000000;
+    size_t cnt = 0;
+
+#pragma omp parallel
+{
+    sam::initialize_thread();
+
+    std::vector<Eigen::Triplet<double>> ija_local;
+    ija_local.reserve(SIZE_LIMIT);
+
+    auto flush = [&]()
+    {
+      if (ija_local.empty()) return;
+
+      Eigen::SparseMatrix<double> temp(bras_dim, kets_dim);
+      temp.setFromTriplets(ija_local.begin(), ija_local.end());
+
+#pragma omp critical(flushing)
+{
+      std::cerr << cnt++ << ": " << ija_local.size() << std::endl;
+      mat += temp;
+
+      // for (auto& t : ija_local) mat.insert(t.row(), t.col()) = t.value();
+}
+
+      ija_local.clear();
+    };
+#endif
+
+#pragma omp for schedule(runtime)
+    for (size_t ci = 0; ci < connected_irreps.size(); ci++)
+    {
+      auto bra_id = std::get<0>(connected_irreps[ci]);
+      auto ket_id = std::get<1>(connected_irreps[ci]);
+      auto connected_tensors_id = std::get<2>(connected_irreps[ci]);
+
+      const auto& tensors2 = connected_tensors[connected_tensors_id];
+      {
+        {
+          {
+            // for (const auto& bra_id : bra_irrep_ids)
             {
               // std::cout << "bra_id: " << bra_id << std::endl;
 
@@ -733,7 +1291,7 @@ namespace U3xU4
               size_t bra_dim = bra_labels.back()[5] +
                               bra_labels.back()[0] * bra_labels.back()[2];
 
-              for (const auto& ket_id : ket_irrep_ids)
+              // for (const auto& ket_id : ket_irrep_ids)
               {
                 // std::cout << "ket_id: " << ket_id << std::endl;
 
@@ -894,6 +1452,13 @@ namespace U3xU4
                     }
                   }
                 }
+                
+#ifdef USE_OPENMP
+                auto& ija_ = ija_local;
+#else
+                auto& ija_ = ija;
+#endif
+
                 // std::cout << "Start to fill sparse matrix" << std::endl;
                 for (size_t i = 0; i < MEs.rows(); i++)
                 {
@@ -902,11 +1467,16 @@ namespace U3xU4
                   {
                     size_t j_ = j + ket_offset;
 
-                    if (std::fabs(MEs(i, j)) > 1e-12)
-                      ija.emplace_back(i_, j_, MEs(i, j));
+                    if (std::fabs(MEs(i, j)) > 1e-10)
+                      ija_.emplace_back(i_, j_, MEs(i, j));
                   }
                 }
                 // std::cout << "Finish filling sparse matrix; " << std::endl;
+
+#ifdef USE_OPENMP
+                if (ija_local.size() >= SIZE_LIMIT) flush();
+#endif
+
               }
             }
           }
@@ -914,24 +1484,37 @@ namespace U3xU4
       }
     }
 
-    Eigen::SparseMatrix<double> mat(bras_dim, kets_dim);
+#ifdef USE_OPENMP
+    // Final flush from local thread
+    flush();
+
+    sam::finalize_thread();
+} // pragma omp parallel
+#else
+    std::cout << "Finish computing " << ija.size() << " elements" << std::endl;
+
+    mat.reserve(ija.size());
     mat.setFromTriplets(ija.begin(), ija.end());
+#endif
+
     mat.makeCompressed();
+
+    std::cout << "Finish finalizing matrix" << std::endl;
 
     return mat;
   }
 
   template Eigen::SparseMatrix<double> 
-    MatrixElements(const MultiShellTensors_phys& tensors, 
-                   const U3xU4::ManyNucleonBasis& bras,
-                   const U3xU4::ManyNucleonBasis& kets,
-                   const U3xU4::Table_gelfand& gelfand_labels);
+    MatrixElements_Eigen(const MultiShellTensors_phys& tensors, 
+                  const U3xU4::ManyNucleonBasis& bras,
+                  const U3xU4::ManyNucleonBasis& kets,
+                  const U3xU4::Table_gelfand& gelfand_labels);
 
   template Eigen::SparseMatrix<double> 
-    MatrixElements(const MultiShellTensors_ShareGammas_phys& tensors, 
-                   const U3xU4::ManyNucleonBasis& bras,
-                   const U3xU4::ManyNucleonBasis& kets,
-                   const U3xU4::Table_gelfand& gelfand_labels);
+    MatrixElements_Eigen(const MultiShellTensors_ShareGammas_phys& tensors, 
+                  const U3xU4::ManyNucleonBasis& bras,
+                  const U3xU4::ManyNucleonBasis& kets,
+                  const U3xU4::Table_gelfand& gelfand_labels);
 
 } // namespace U3xU4
 

@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 #endif
 
-  int hw = 16, valenceShell = 0, Nmax = 8, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
   // std::string name = "Rrel";
 
   // Example 6: Two-body potential N2LO_opt_bare,srg1.0,2.0,4.0
-  // std::string name = "N2LO_opt_bare";
+  std::string name = "N2LO_opt_bare";
   // std::string name = "N2LO_opt_srg1.0";
   // std::string name = "N2LO_opt_srg2.0";
   // std::string name = "N2LO_opt_srg4.0";
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
   // std::string name = "N3LO_EMN500_srg4.0";
 
   // Example 11: Two-body potential with custom name
-  std::string name = "HO_Be7_e10_hw16_E342";
+  // std::string name = "HO_Be7_e10_hw16_E342";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 

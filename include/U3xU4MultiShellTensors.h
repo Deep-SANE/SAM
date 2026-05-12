@@ -603,29 +603,24 @@ namespace U3xU4
   /////////////////// COMPUTING MATRIX ELEMENTS ///////////////////
 
   // Symmetric matrix
-  /*
-  Eigen::SparseMatrix<double> 
-    MatrixElements(const MultiShellTensors_phys& tensors, 
-                   const U3xU4::ManyNucleonBasis& basis,
-                   const U3xU4::Table_gelfand& gelfand_labels);
-
-  Eigen::SparseMatrix<double> 
-    MatrixElements(const MultiShellTensors_ShareGammas_phys& tensors, 
-                   const U3xU4::ManyNucleonBasis& basis,
-                   const U3xU4::Table_gelfand& gelfand_labels);
-  */
   template <typename TensorType>
-  qcx_utils::CSRMatrix // Eigen::SparseMatrix<double> 
-    MatrixElements(const std::vector<TensorType>& tensors, 
-                   const U3xU4::ManyNucleonBasis& basis,
-                   const U3xU4::Table_gelfand& gelfand_labels);
+  qcx_utils::CSRMatrix MatrixElements_CSR(
+                  const std::vector<TensorType>& tensors, 
+                  const U3xU4::ManyNucleonBasis& basis,
+                  const U3xU4::Table_gelfand& gelfand_labels);
+
+  template <typename TensorType>
+  Eigen::SparseMatrix<double> MatrixElements_Eigen(
+                  const std::vector<TensorType>& tensors, 
+                  const U3xU4::ManyNucleonBasis& basis,
+                  const U3xU4::Table_gelfand& gelfand_labels);
 
   // Rectangular matrix
   template <typename TensorType>
-  Eigen::SparseMatrix<double> 
-    MatrixElements(const std::vector<TensorType>& tensors, 
-                   const U3xU4::ManyNucleonBasis& bras,
-                   const U3xU4::ManyNucleonBasis& kets,
-                   const U3xU4::Table_gelfand& gelfand_labels);
+  Eigen::SparseMatrix<double> MatrixElements_Eigen(
+                  const std::vector<TensorType>& tensors, 
+                  const U3xU4::ManyNucleonBasis& bras,
+                  const U3xU4::ManyNucleonBasis& kets,
+                  const U3xU4::Table_gelfand& gelfand_labels);
 
 } // namespace U3xU4
