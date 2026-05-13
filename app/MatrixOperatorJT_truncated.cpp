@@ -15,7 +15,11 @@ int main(int argc, char* argv[])
 
   sam::initialize(&argc, &argv);
 
+<<<<<<< HEAD
   int Z = 4, N = 3, JJ = 3, TT = 1, Nmax = 2, hw = 16, write = 1;
+=======
+  int Z = 6, N = 4, JJ = 0, TT = 2, Nmax = 6, hw = 20, write = 1;
+>>>>>>> 188bd2a (Debugging)
 
   u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}};
 
@@ -32,9 +36,9 @@ int main(int argc, char* argv[])
   std::string custom_dir = "Truncation_TT1";
 
   // std::string name = "Hamiltonian with N2LO_opt_bare";
-  // std::string name = "Hamiltonian with N3LO_EM500_srg2.0";
-  std::string name = "HO_Be7_e10_hw16_E342";
-  
+  std::string name = "Hamiltonian_with_N3LO_EM500_srg2.0";
+  // std::string name = "HO_Li7_e3_hw16_E39";
+
   print("N={}, Z={}, Nmax={}, JJ={}, TT={}, hw={} with {}\n", 
                                 N, Z, Nmax, JJ, TT, hw, name);
 
@@ -65,7 +69,7 @@ int main(int argc, char* argv[])
   // Diagonalize
   auto t2 = std::chrono::high_resolution_clock::now();
 
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric_spectra(mat, 10, 1e-6);
+  auto [evals, evecs] = qcx_utils::eigensolver_symmetric_spectra(mat, 50, 1e-10, 100000);
 
   auto t3 = std::chrono::high_resolution_clock::now();
 

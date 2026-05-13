@@ -1537,9 +1537,10 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     {
       MPI_Barrier(MPI_COMM_WORLD);
 
-      if (mpi_rank == turn)
+      if (mpi_rank == turn && tensors_local.size() > 0)
       {
-        std::cerr << "Start printing on the " << turn << "-th rank" << std::endl;
+        std::cerr << "Start printing on the " << turn << "-th rank: " 
+		  << tensors_local.size() << " tensors" << std::endl;
 
         // --- fill in with your file API ---
         // 1. Open file and read existing metadata + tensors into `all_tensors`
@@ -1557,30 +1558,41 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         acc_tensors.reserve(n_tensors_prev);
 
         for (size_t i = 0; i < n_tensors_prev; ++i)
-        { 
+        {
+          if (i % 1000 == 0)
+            std::cerr << "Reading tensor " << i << "/" << n_tensors_prev << std::endl;
+
           U3xU4::MultiShellTensor_phys tensor(HO_labels_);
           tensor.readBinary(in);
 
           acc_tensors.push_back(std::move(tensor));
         }
         in.close();
+        std::cerr << "Read " << acc_tensors.size() << " tensors from file" << std::endl;
 
         // 2. Append this rank's tensors
         acc_tensors.reserve(acc_tensors.size() + tensors_local.size());
         for (auto& t : tensors_local) acc_tensors.push_back(std::move(t));
+        std::cerr << "Finish appending new tensors" << std::endl;
 
         // 3. Write everything back (metadata + all tensors)
         std::ofstream out(filename, std::ios::binary);
         if (!out) throw std::runtime_error("Failed to open: " + filename);
-        
+
         qcx_utils::writeBinary(out, maxShell_);
 
         // Number of tensors
         size_t n_tensors = acc_tensors.size();
         qcx_utils::writeBinary(out, n_tensors);
 
-        for (const auto& t : acc_tensors) t.writeBinary(out);
+        // for (const auto& t : acc_tensors) t.writeBinary(out);
+	for (size_t i = 0; i < acc_tensors.size(); ++i)
+	{
+          if (i % 1000 == 0)
+            std::cerr << "Writing tensor " << i << "/" << acc_tensors.size() << std::endl;
 
+	  acc_tensors[i].writeBinary(out);
+	}
         std::cerr << "Finish printing on the " << turn << "-th rank" << std::endl;
       }
     }

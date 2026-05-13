@@ -596,6 +596,8 @@ namespace JT
       // larger or equal than that of the ket irrep. Thus the tensors must
       // always either create or keep quanta.
 
+      std::cout << "Trying only 1000*Lawson" << std::endl;
+
       JT::OneBodyOperator 
         CoM1("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_,
                                     HO_labels_, gelfand_labels_),
@@ -623,7 +625,7 @@ namespace JT
 
       double A = N_ + Z_, com_coeff = 1000.0 / A, 
            ke1_coeff = (A - 1.0) / A, ke2_coeff = 1.0 / A;
-  
+
       for (auto& com1 : com1s)
       {
         if (com1.shift_quanta() < 0) continue;
@@ -642,7 +644,7 @@ namespace JT
         if (!found)
           tensors.push_back(std::move(com1));
       }
-
+/*
       for (auto& ke1 : ke1s)
       {
         if (ke1.shift_quanta() < 0) continue;
@@ -661,7 +663,7 @@ namespace JT
         if (!found)
           tensors.push_back(std::move(ke1));
       }
-
+*/
       for (auto& com2 : com2s)
       {
         if (com2.shift_quanta() < 0) continue;
@@ -680,7 +682,7 @@ namespace JT
         if (!found)
           tensors.push_back(std::move(com2));
       }
-
+/*
       for (auto& ke2 : ke2s)
       {
         if (ke2.shift_quanta() < 0) continue;
@@ -717,7 +719,7 @@ namespace JT
         if (!found)
           tensors.push_back(std::move(nn));
       }
-
+*/
       return tensors;
     }
   }
