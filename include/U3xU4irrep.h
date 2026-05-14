@@ -76,6 +76,13 @@ namespace U3xU4
 
     // dimension
     int dim() const { return u3_.dim() * u4_.dim(); }
+      
+    // normalize
+    void normalize()
+    {
+      u3_.normalize();
+      u4_.normalize();
+    }
 
     // write to binary file
     void writeBinary(std::ostream& s) const
