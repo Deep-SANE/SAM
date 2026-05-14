@@ -76,6 +76,7 @@ namespace U3xU4
   */
 
   /////////////////// COMPUTING SYMMETRIC MATRIX ///////////////////
+#define EXPLOIT_SYMMETRIC 
 
   // Custom sparse format defined in qcx_matrix.h with OpenMP
   template <typename TensorType>
@@ -140,8 +141,9 @@ namespace U3xU4
            ket_dist_id < basis.n_distributions(); 
            ket_dist_id++)
       {
+#ifdef EXPLOIT_SYMMETRIC
         if (bra_dist_id < ket_dist_id) continue;
-
+#endif
         auto ket_dist = basis.distribution(ket_dist_id);
         const auto& ket_gamma_irreps_ids = basis.group_dists[ket_dist_id];
         auto ket_dist_to_gamma = map_by_positive_order(ket_dist);
@@ -192,8 +194,9 @@ namespace U3xU4
 
           for (const auto& [ket_gamma_id, ket_irrep_ids] : ket_gamma_irreps_ids)
           {
+#ifdef EXPLOIT_SYMMETRIC
             if (bra_gamma_id < ket_gamma_id) continue;
-
+#endif
             auto ket_gamma = basis.gamma(ket_gamma_id);
             // print("ket_gamma_id: {}\n", ket_gamma_id);
 
@@ -238,9 +241,9 @@ namespace U3xU4
             for (const auto& bra_id : bra_irrep_ids)
               for (const auto& ket_id : ket_irrep_ids)
               {
-                if (bra_id < ket_id)
-                  continue;
-
+#ifdef EXPLOIT_SYMMETRIC
+                if (bra_id < ket_id) continue;
+#endif
                 connected_irreps.emplace_back(bra_id, ket_id,
                                               connected_tensors.size());
               }
@@ -304,8 +307,9 @@ namespace U3xU4
 */
               // for (const auto& ket_id : ket_irrep_ids)
               {
+#ifdef EXPLOIT_SYMMETRIC
                 if (bra_id < ket_id) continue;
-
+#endif
                 const auto& ket = irreps[ket_id];
 
                 // get alphamax
@@ -428,9 +432,9 @@ namespace U3xU4
                                       // ket index in the matrix
                                       size_t j = ket_a * ket_dim
                                         + ket_label_offset + (ket_k * ket_zmax + ket_z);
-
+#ifdef EXPLOIT_SYMMETRIC
                                       if (bra_offset == ket_offset && i < j) continue;
-
+#endif
                                       // std::cout << "i:" << i << " j:" << j << std::endl;
 
                                       for (size_t tensor_a = 0; tensor_a < tensor_amax; tensor_a++)
@@ -481,16 +485,19 @@ namespace U3xU4
                 for (size_t i = 0; i < MEs.rows(); i++)
                 {
                   Eigen::Index i_ = i + bra_offset;
-		  assert(i_ >= 0 && i_ < dim);
+		              assert(i_ >= 0 && i_ < dim);
 
                   for (size_t j = 0; j < MEs.cols(); j++)
                   {
                     Eigen::Index j_ = j + ket_offset;
-		    assert(j_ >= 0 && j_ < dim);
+		                assert(j_ >= 0 && j_ < dim);
 
                     double v = MEs(i, j);
-
-                    if (std::fabs(v) > 1e-10) local_.add_symmetric(i_, j_, v);
+#ifdef EXPLOIT_SYMMETRIC
+                    if (std::fabs(v) > 1e-8) local_.add_symmetric(i_, j_, v);
+#else
+                    if (std::fabs(v) > 1e-8) local_.add(i_, j_, v);
+#endif
                   }
                 }
                 // std::cout << "Finish filling sparse matrix; " << std::endl;
@@ -532,13 +539,6 @@ namespace U3xU4
     global.finalize();
     
     std::cout << "Finish computing " << global.size() << " matrix elements" << std::endl;
-/*
-    std::cerr << "Convert to Eigen::SparseMatrix" << std::endl;
-    auto mat = global.toEigen();
-
-    global.clear();
-    return mat;
-*/
 
     return global;
   }
@@ -615,7 +615,9 @@ namespace U3xU4
            ket_dist_id < basis.n_distributions(); 
            ket_dist_id++)
       {
+#ifdef EXPLOIT_SYMMETRIC
         if (bra_dist_id < ket_dist_id) continue;
+#endif
 
         auto ket_dist = basis.distribution(ket_dist_id);
         const auto& ket_gamma_irreps_ids = basis.group_dists[ket_dist_id];
@@ -667,7 +669,9 @@ namespace U3xU4
 
           for (const auto& [ket_gamma_id, ket_irrep_ids] : ket_gamma_irreps_ids)
           {
+#ifdef EXPLOIT_SYMMETRIC
             if (bra_gamma_id < ket_gamma_id) continue;
+#endif
 
             auto ket_gamma = basis.gamma(ket_gamma_id);
             // print("ket_gamma_id: {}\n", ket_gamma_id);
@@ -713,8 +717,9 @@ namespace U3xU4
             for (const auto& bra_id : bra_irrep_ids)
               for (const auto& ket_id : ket_irrep_ids)
               {
-                if (bra_id < ket_id)
-                  continue;
+#ifdef EXPLOIT_SYMMETRIC
+                if (bra_id < ket_id) continue;
+#endif
 
                 connected_irreps.emplace_back(bra_id, ket_id,
                                               connected_tensors.size());
@@ -804,8 +809,9 @@ namespace U3xU4
 */
               // for (const auto& ket_id : ket_irrep_ids)
               {
+#ifdef EXPLOIT_SYMMETRIC
                 if (bra_id < ket_id) continue;
-
+#endif
                 const auto& ket = irreps[ket_id];
 
                 // get alphamax
@@ -928,9 +934,9 @@ namespace U3xU4
                                       // ket index in the matrix
                                       size_t j = ket_a * ket_dim
                                         + ket_label_offset + (ket_k * ket_zmax + ket_z);
-
+#ifdef EXPLOIT_SYMMETRIC
                                       if (bra_offset == ket_offset && i < j) continue;
-
+#endif
                                       // std::cout << "i:" << i << " j:" << j << std::endl;
 
                                       for (size_t tensor_a = 0; tensor_a < tensor_amax; tensor_a++)
@@ -985,10 +991,12 @@ namespace U3xU4
                   {
                     size_t j_ = j + ket_offset;
 
-                    if (std::fabs(MEs(i, j)) > 1e-10)
+                    if (std::fabs(MEs(i, j)) > 1e-8)
                     {
                       ija_.emplace_back(i_, j_, MEs(i, j)); // for i_ >= j_
+#ifdef EXPLOIT_SYMMETRIC
                       if (i_ > j_) ija_.emplace_back(j_, i_, MEs(i, j));
+#endif
                     }
                   }
                 }
