@@ -816,57 +816,59 @@ namespace JT
         // couple LL and SS to JJ
         if (u2::mult(LL0, SS0, JJ()) == 0) continue;
 
-        auto strengths = tensor.getStrengths(LL0, SS0, TT0, *TBME, inverse, phase);
-
-/*
         std::vector<double> strengths(tensor.alphamax() * kappa0 * zeta0, 0.0);
 
-        auto [coeffsArr, opsArr] = tensor.expand(LL0, SS0, TT0);
-
-        // std::cout << "Expansion size: " << opsArr.size() << std::endl;
-
-        for (size_t i = 0; i < coeffsArr.size(); i++)
+        if (on_the_fly)
         {
-          assert(opsArr[i].size() == 4);
+          auto [coeffsArr, opsArr] = tensor.expand(LL0, SS0, TT0);
 
-          std::array<int, 4> ns, lls, jjs, mmjs, mmts;
+          // std::cout << "Expansion size: " << opsArr.size() << std::endl;
 
-          int j = 0;
-          for (const auto& op : opsArr[i])
+          for (size_t i = 0; i < coeffsArr.size(); i++)
           {
-            std::visit([&](auto&& o)
+            assert(opsArr[i].size() == 4);
+
+            std::array<int, 4> ns, lls, jjs, mmjs, mmts;
+
+            int j = 0;
+            for (const auto& op : opsArr[i])
             {
-              std::tie(ns[j], lls[j], jjs[j], mmjs[j], mmts[j]) = o.getLabels();
-            }, op);
-            j++;
+              std::visit([&](auto&& o)
+              {
+                std::tie(ns[j], lls[j], jjs[j], mmjs[j], mmts[j]) = o.getLabels();
+              }, op);
+              j++;
+            }
+
+            double me = 0.0;
+
+            for (int k = 0; k < inverse.size(); k++)
+            {
+              std::array<int, 4> ns_orig = inverse_permutation(ns, inverse[k]),
+                                 lls_orig = inverse_permutation(lls, inverse[k]),
+                                 jjs_orig = inverse_permutation(jjs, inverse[k]),
+                                 mmjs_orig = inverse_permutation(mmjs, inverse[k]),
+                                 mmts_orig = inverse_permutation(mmts, inverse[k]);
+
+              // me needs computing with normal ordering
+              me += phase[k] * sphericalME_AS(ns_orig[0], lls_orig[0], jjs_orig[0],
+                                          mmjs_orig[0], mmts_orig[0], ns_orig[1],
+                                          lls_orig[1], jjs_orig[1], mmjs_orig[1],
+                                          mmts_orig[1], ns_orig[3], lls_orig[3],
+                                          jjs_orig[3], mmjs_orig[3], mmts_orig[3],
+                                          ns_orig[2], lls_orig[2], jjs_orig[2],
+                                          mmjs_orig[2], mmts_orig[2]);
+            }
+
+            if (std::fabs(me) < 1e-10) continue;
+
+            for (int c = 0; c < strengths.size(); c++)
+              strengths[c] += me * coeffsArr[i][c];
           }
-
-          double me = 0.0;
-
-          for (int k = 0; k < inverse.size(); k++)
-          {
-            std::array<int, 4> ns_orig = inverse_permutation(ns, inverse[k]),
-                               lls_orig = inverse_permutation(lls, inverse[k]),
-                               jjs_orig = inverse_permutation(jjs, inverse[k]),
-                               mmjs_orig = inverse_permutation(mmjs, inverse[k]),
-                               mmts_orig = inverse_permutation(mmts, inverse[k]);
-
-            // me needs computing with normal ordering
-            me += phase[k] * sphericalME_AS(ns_orig[0], lls_orig[0], jjs_orig[0],
-                                        mmjs_orig[0], mmts_orig[0], ns_orig[1],
-                                        lls_orig[1], jjs_orig[1], mmjs_orig[1],
-                                        mmts_orig[1], ns_orig[3], lls_orig[3],
-                                        jjs_orig[3], mmjs_orig[3], mmts_orig[3],
-                                        ns_orig[2], lls_orig[2], jjs_orig[2],
-                                        mmjs_orig[2], mmts_orig[2]);
-          }
-
-          if (std::fabs(me) < 1e-10) continue;
-
-          for (int c = 0; c < strengths.size(); c++)
-            strengths[c] += me * coeffsArr[i][c];
         }
-*/
+        else
+          strengths = tensor.getStrengths(LL0, SS0, TT0, *TBME, inverse, phase);
+
         double norm = 0.0;
         for (auto& s : strengths)
         {
