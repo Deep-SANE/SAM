@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 
   sam::initialize(&argc, &argv);
 
-  int Z = 6, N = 4, JJ = 4, TT = 2, Nmax = 6, hw = 20, write = 1;
+  int Z = 5, N = 5, JJ = 6, TT = 0, Nmax = 4, hw = 20, write = 0;
 
   u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}};
 
@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ, {hw0, hw2, hw4, hw6, hw8});
   basis.construct();
 
-  std::string custom_dir = "Truncation_TT2";
+  std::string custom_dir = "Truncation_TT0";
 
   // std::string name = "Hamiltonian with N2LO_opt_bare";
   std::string name = "Hamiltonian_with_N3LO_EM500_srg2.0";
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
   auto t3 = std::chrono::high_resolution_clock::now();
 
   print("Eigenvalues are\n");
-  for (auto ev : evals) print("{}\n", ev);
+  for (auto ev : evals) print("{:.6f}\n", ev);
 
   if (write == 1)
   {

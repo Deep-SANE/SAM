@@ -122,14 +122,40 @@ namespace U3xU4
     // PREPARATION PHASE --- BEGIN
 
     auto start = std::chrono::high_resolution_clock::now();
-
     std::vector<std::vector<size_t>> connected_tensors;
     std::vector<std::tuple<size_t, size_t, size_t>> connected_irreps;
 
-    for (size_t bra_dist_id = 0; 
-         bra_dist_id < basis.n_distributions(); 
-         bra_dist_id++)
+    // (I) flatten the outer two loops into a 1D vector of pairs
+    std::vector<std::pair<size_t,size_t>> dist_pairs;
+    for (size_t b = 0; b < basis.n_distributions(); b++)
     {
+#ifdef EXPLOIT_SYMMETRIC
+      for (size_t k = 0; k <= b; k++)  // k <= b replaces the continue
+#else
+      for (size_t k = 0; k < basis.n_distributions(); k++)
+#endif
+      {
+        dist_pairs.push_back({b, k});
+      }
+    }
+
+    // (II) define a result struct for one (bra_gamma, ket_gamma) hit
+    struct GammaResult {
+      std::vector<size_t>                    tensors2;
+      std::vector<std::pair<size_t,size_t>>  irrep_pairs; // (bra_id, ket_id)
+    };
+    std::vector<std::vector<GammaResult>> all_results(dist_pairs.size());
+    //          ^                         ^
+    //          one slot per dist pair    each slot holds all GammaResults
+    //                                    found for that pair
+
+    // (III) parallel for over dist_pairs 
+#pragma omp parallel for schedule(dynamic)
+    // for (size_t bra_dist_id = 0; bra_dist_id < basis.n_distributions(); bra_dist_id++)
+    for (size_t p = 0; p < dist_pairs.size(); p++)
+    {
+      auto [bra_dist_id, ket_dist_id] = dist_pairs[p];
+
       auto bra_dist = basis.distribution(bra_dist_id);
       const auto& bra_gamma_irreps_ids = basis.group_dists[bra_dist_id];
       auto bra_dist_to_gamma = map_by_positive_order(bra_dist);
@@ -137,13 +163,12 @@ namespace U3xU4
       // print("\nbra_dist_id: {}\t", bra_dist_id);
       // print("bra_dist_to_gamma: {}\n", bra_dist_to_gamma)
 
-      for (size_t ket_dist_id = 0; 
-           ket_dist_id < basis.n_distributions(); 
-           ket_dist_id++)
+      // for (size_t ket_dist_id = 0; ket_dist_id < basis.n_distributions(); ket_dist_id++)
       {
-#ifdef EXPLOIT_SYMMETRIC
-        if (bra_dist_id < ket_dist_id) continue;
-#endif
+// #ifdef EXPLOIT_SYMMETRIC
+//         if (bra_dist_id < ket_dist_id) continue;
+// #endif
+
         auto ket_dist = basis.distribution(ket_dist_id);
         const auto& ket_gamma_irreps_ids = basis.group_dists[ket_dist_id];
         auto ket_dist_to_gamma = map_by_positive_order(ket_dist);
@@ -180,12 +205,11 @@ namespace U3xU4
         };
 
         std::vector<size_t> tensors1;
-        // std::cout << "tensors1: " << tensors.size() << std::endl;
         tensors1.reserve(tensors.size());
         for (size_t i = 0; i < tensors.size(); i++)
           if (all_shells_particles(tensors[i])) tensors1.push_back(i);
         if (tensors1.empty()) continue;
-        // print("Finish checking distributions\n");
+        // print("tensors1: {}\n", tensors1.size());
 
         for (const auto& [bra_gamma_id, bra_irrep_ids] : bra_gamma_irreps_ids)
         {
@@ -231,26 +255,49 @@ namespace U3xU4
             };
 
             std::vector<size_t> tensors2;
-            // std::cout << "tensors2: " << tensors1.size() << std::endl;
             tensors2.reserve(tensors1.size());
             for (const auto& i : tensors1)
               if (all_shells_coupling(tensors[i])) tensors2.push_back(i);
             if (tensors2.empty()) continue;
-            // print("Finish checking single shell couplings\n");
+            // print("tensors2: {}\n", tensors2.size());
 
+
+            // instead of pushing to connected_irreps/connected_tensors,
+            // collect the irrep pairs locally
+            std::vector<std::pair<size_t,size_t>> irrep_pairs;
             for (const auto& bra_id : bra_irrep_ids)
               for (const auto& ket_id : ket_irrep_ids)
               {
 #ifdef EXPLOIT_SYMMETRIC
                 if (bra_id < ket_id) continue;
 #endif
-                connected_irreps.emplace_back(bra_id, ket_id,
-                                              connected_tensors.size());
+                // connected_irreps.emplace_back(bra_id, ket_id, connected_tensors.size());
+
+                irrep_pairs.push_back({bra_id, ket_id});
               }
 
-            connected_tensors.push_back(std::move(tensors2));
+            // connected_tensors.push_back(std::move(tensors2));
+
+            // write only to dist_pair's own slot — no race
+            all_results[p].push_back({std::move(tensors2), std::move(irrep_pairs)});
           }
         }
+      }
+    }
+
+    // (IV) serial assembly
+    for (size_t p = 0; p < dist_pairs.size(); p++)
+    {
+      for (auto& all_result : all_results[p])
+      {
+        // connected_tensors.size() is now correct because we're
+        // doing this sequentially in the original loop order
+        size_t tensors2_id = connected_tensors.size();
+
+        for (auto& [bra_id, ket_id] : all_result.irrep_pairs)
+          connected_irreps.emplace_back(bra_id, ket_id, tensors2_id);
+
+        connected_tensors.push_back(std::move(all_result.tensors2));
       }
     }
 
@@ -596,14 +643,40 @@ namespace U3xU4
     // PREPARATION PHASE --- BEGIN
 
     auto start = std::chrono::high_resolution_clock::now();
-
     std::vector<std::vector<size_t>> connected_tensors;
     std::vector<std::tuple<size_t, size_t, size_t>> connected_irreps;
 
-    for (size_t bra_dist_id = 0; 
-         bra_dist_id < basis.n_distributions(); 
-         bra_dist_id++)
+    // (I) flatten the outer two loops into a 1D vector of pairs
+    std::vector<std::pair<size_t,size_t>> dist_pairs;
+    for (size_t b = 0; b < basis.n_distributions(); b++)
     {
+#ifdef EXPLOIT_SYMMETRIC
+      for (size_t k = 0; k <= b; k++)  // k <= b replaces the continue
+#else
+      for (size_t k = 0; k < basis.n_distributions(); k++)
+#endif
+      {
+        dist_pairs.push_back({b, k});
+      }
+    }
+
+    // (II) define a result struct for one (bra_gamma, ket_gamma) hit
+    struct GammaResult {
+      std::vector<size_t>                    tensors2;
+      std::vector<std::pair<size_t,size_t>>  irrep_pairs; // (bra_id, ket_id)
+    };
+    std::vector<std::vector<GammaResult>> all_results(dist_pairs.size());
+    //          ^                         ^
+    //          one slot per dist pair    each slot holds all GammaResults
+    //                                    found for that pair
+
+    // (III) parallel for over dist_pairs 
+#pragma omp parallel for schedule(dynamic)
+    // for (size_t bra_dist_id = 0; bra_dist_id < basis.n_distributions(); bra_dist_id++)
+    for (size_t p = 0; p < dist_pairs.size(); p++)
+    {
+      auto [bra_dist_id, ket_dist_id] = dist_pairs[p];
+
       auto bra_dist = basis.distribution(bra_dist_id);
       const auto& bra_gamma_irreps_ids = basis.group_dists[bra_dist_id];
       auto bra_dist_to_gamma = map_by_positive_order(bra_dist);
@@ -611,13 +684,11 @@ namespace U3xU4
       // print("\nbra_dist_id: {}\t", bra_dist_id);
       // print("bra_dist_to_gamma: {}\n", bra_dist_to_gamma)
 
-      for (size_t ket_dist_id = 0; 
-           ket_dist_id < basis.n_distributions(); 
-           ket_dist_id++)
+      // for (size_t ket_dist_id = 0; ket_dist_id < basis.n_distributions(); ket_dist_id++)
       {
-#ifdef EXPLOIT_SYMMETRIC
-        if (bra_dist_id < ket_dist_id) continue;
-#endif
+// #ifdef EXPLOIT_SYMMETRIC
+//         if (bra_dist_id < ket_dist_id) continue;
+// #endif
 
         auto ket_dist = basis.distribution(ket_dist_id);
         const auto& ket_gamma_irreps_ids = basis.group_dists[ket_dist_id];
@@ -655,12 +726,11 @@ namespace U3xU4
         };
 
         std::vector<size_t> tensors1;
-        // std::cout << "tensors1: " << tensors.size() << std::endl;
         tensors1.reserve(tensors.size());
         for (size_t i = 0; i < tensors.size(); i++)
           if (all_shells_particles(tensors[i])) tensors1.push_back(i);
         if (tensors1.empty()) continue;
-        // print("Finish checking distributions\n");
+        // print("tensors1: {}\n", tensors1.size());
 
         for (const auto& [bra_gamma_id, bra_irrep_ids] : bra_gamma_irreps_ids)
         {
@@ -672,7 +742,6 @@ namespace U3xU4
 #ifdef EXPLOIT_SYMMETRIC
             if (bra_gamma_id < ket_gamma_id) continue;
 #endif
-
             auto ket_gamma = basis.gamma(ket_gamma_id);
             // print("ket_gamma_id: {}\n", ket_gamma_id);
 
@@ -707,27 +776,49 @@ namespace U3xU4
             };
 
             std::vector<size_t> tensors2;
-            // std::cout << "tensors2: " << tensors1.size() << std::endl;
             tensors2.reserve(tensors1.size());
             for (const auto& i : tensors1)
               if (all_shells_coupling(tensors[i])) tensors2.push_back(i);
             if (tensors2.empty()) continue;
-            // print("Finish checking single shell couplings\n");
+            // print("tensors2: {}\n", tensors2.size());
 
+
+            // instead of pushing to connected_irreps/connected_tensors,
+            // collect the irrep pairs locally
+            std::vector<std::pair<size_t,size_t>> irrep_pairs;
             for (const auto& bra_id : bra_irrep_ids)
               for (const auto& ket_id : ket_irrep_ids)
               {
 #ifdef EXPLOIT_SYMMETRIC
                 if (bra_id < ket_id) continue;
 #endif
+                // connected_irreps.emplace_back(bra_id, ket_id, connected_tensors.size());
 
-                connected_irreps.emplace_back(bra_id, ket_id,
-                                              connected_tensors.size());
+                irrep_pairs.push_back({bra_id, ket_id});
               }
 
-            connected_tensors.push_back(std::move(tensors2));
+            // connected_tensors.push_back(std::move(tensors2));
+
+            // write only to dist_pair's own slot — no race
+            all_results[p].push_back({std::move(tensors2), std::move(irrep_pairs)});
           }
         }
+      }
+    }
+
+    // (IV) serial assembly
+    for (size_t p = 0; p < dist_pairs.size(); p++)
+    {
+      for (auto& all_result : all_results[p])
+      {
+        // connected_tensors.size() is now correct because we're
+        // doing this sequentially in the original loop order
+        size_t tensors2_id = connected_tensors.size();
+
+        for (auto& [bra_id, ket_id] : all_result.irrep_pairs)
+          connected_irreps.emplace_back(bra_id, ket_id, tensors2_id);
+
+        connected_tensors.push_back(std::move(all_result.tensors2));
       }
     }
 
@@ -1101,14 +1192,32 @@ namespace U3xU4
     // PREPARATION PHASE --- BEGIN
 
     auto start = std::chrono::high_resolution_clock::now();
-
     std::vector<std::vector<size_t>> connected_tensors;
     std::vector<std::tuple<size_t, size_t, size_t>> connected_irreps;
-    
-    for (size_t bra_dist_id = 0; 
-         bra_dist_id < bras.n_distributions(); 
-         bra_dist_id++)
+
+    // (I) flatten the outer two loops into a 1D vector of pairs
+    std::vector<std::pair<size_t,size_t>> dist_pairs;
+    for (size_t b = 0; b < bras.n_distributions(); b++)
+      for (size_t k = 0; k < kets.n_distributions(); k++)
+        dist_pairs.push_back({b, k});
+
+    // (II) define a result struct for one (bra_gamma, ket_gamma) hit
+    struct GammaResult {
+      std::vector<size_t>                    tensors2;
+      std::vector<std::pair<size_t,size_t>>  irrep_pairs; // (bra_id, ket_id)
+    };
+    std::vector<std::vector<GammaResult>> all_results(dist_pairs.size());
+    //          ^                         ^
+    //          one slot per dist pair    each slot holds all GammaResults
+    //                                    found for that pair
+
+    // (III) parallel for over dist_pairs 
+#pragma omp parallel for schedule(dynamic)
+    // for (size_t bra_dist_id = 0; bra_dist_id < bras.n_distributions(); bra_dist_id++)
+    for (size_t p = 0; p < dist_pairs.size(); p++)
     {
+      auto [bra_dist_id, ket_dist_id] = dist_pairs[p];
+       
       auto bra_dist = bras.distribution(bra_dist_id);
       const auto& bra_gamma_irreps_ids = bras.group_dists[bra_dist_id];
       auto bra_dist_to_gamma = map_by_positive_order(bra_dist);
@@ -1116,9 +1225,7 @@ namespace U3xU4
       // print("\nbra_dist_id: {}\t", bra_dist_id);
       // print("bra_dist_to_gamma: {}\n", bra_dist_to_gamma)
 
-      for (size_t ket_dist_id = 0; 
-           ket_dist_id < kets.n_distributions(); 
-           ket_dist_id++)
+      // for (size_t ket_dist_id = 0; ket_dist_id < kets.n_distributions(); ket_dist_id++)
       {
         auto ket_dist = kets.distribution(ket_dist_id);
         const auto& ket_gamma_irreps_ids = kets.group_dists[ket_dist_id];
@@ -1168,6 +1275,7 @@ namespace U3xU4
           if (all_shells_particles(tensors[i])) tensors1.push_back(i);
         if (tensors1.empty()) continue;
         // print("Finish checking distributions\n");
+        // print("tensors1: {}\n", tensors1.size());
 
         for (const auto& [bra_gamma_id, bra_irrep_ids] : bra_gamma_irreps_ids)
         {
@@ -1187,13 +1295,13 @@ namespace U3xU4
               su3::irrep i3, f3;
               u4::irrep i4, f4;
                 
-              if (bra_dist_to_gamma[n] >= 0 && n < bra_dist_to_gamma.size())
+              if (n < bra_dist_to_gamma.size() && bra_dist_to_gamma[n] >= 0)
               {
                 f3 = bra_gamma[bra_dist_to_gamma[n]].su3;
                 f4 = bra_gamma[bra_dist_to_gamma[n]].u4;
               }
 
-              if (ket_dist_to_gamma[n] >= 0 && n < ket_dist_to_gamma.size())
+              if (n < ket_dist_to_gamma.size() && ket_dist_to_gamma[n] >= 0)
               {
                 i3 = ket_gamma[ket_dist_to_gamma[n]].su3;
                 i4 = ket_gamma[ket_dist_to_gamma[n]].u4;
@@ -1215,15 +1323,38 @@ namespace U3xU4
               if (all_shells_coupling(tensors[i])) tensors2.push_back(i);
             if (tensors2.empty()) continue;
             // print("Finish checking single shell couplings\n");
+            // print("tensors2: {}\n", tensors2.size());
 
+            // instead of pushing to connected_irreps/connected_tensors,
+            // collect the irrep pairs locally
+            std::vector<std::pair<size_t,size_t>> irrep_pairs;
             for (const auto& bra_id : bra_irrep_ids)
               for (const auto& ket_id : ket_irrep_ids)
-                connected_irreps.emplace_back(bra_id, ket_id,
-                                              connected_tensors.size());
+              {
+                // connected_irreps.emplace_back(bra_id, ket_id, connected_tensors.size());
+                irrep_pairs.push_back({bra_id, ket_id});
+              }
             
-            connected_tensors.push_back(std::move(tensors2));
+            // connected_tensors.push_back(std::move(tensors2));
+            all_results[p].push_back({std::move(tensors2), std::move(irrep_pairs)});
           }
         }
+      }
+    }
+
+    // (IV) serial assembly
+    for (size_t p = 0; p < dist_pairs.size(); p++)
+    {
+      for (auto& all_result : all_results[p])
+      {
+        // connected_tensors.size() is now correct because we're
+        // doing this sequentially in the original loop order
+        size_t tensors2_id = connected_tensors.size();
+
+        for (auto& [bra_id, ket_id] : all_result.irrep_pairs)
+          connected_irreps.emplace_back(bra_id, ket_id, tensors2_id);
+
+        connected_tensors.push_back(std::move(all_result.tensors2));
       }
     }
 

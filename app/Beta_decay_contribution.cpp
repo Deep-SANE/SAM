@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
   sam::initialize(&argc, &argv);
 
   // Specify Hamiltonian
-  std::string Hamil_name = "Hamiltonian with N2LO_opt_bare";
+  std::string Hamil_name = "Hamiltonian with N3LO_EM500_srg2.0";
 
   // Specify operator name
   std::string name = "GamowTellerMinus";
