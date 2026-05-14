@@ -18,6 +18,7 @@ namespace JT
     const U3xU4::Table_gelfand& gelfand_labels_;
 
     int N_, Z_, hw_, Nmax_, valenceShell_, maxShell_;
+    double Lawson;
 
     std::string name_;
 
@@ -65,6 +66,9 @@ namespace JT
 
     // expand into a sum of U3xU4::MultiShellTensor_phys
     U3xU4::MultiShellTensors_ShareGammas_phys expand();
+
+    // set scale for Lawson operator
+    void set_Lawson(double beta) { Lawson = beta; }
 
     // Matrix representation
     // symmetric

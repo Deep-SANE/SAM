@@ -12,6 +12,7 @@ namespace JT
   {
     valenceShell_ = HO::valenceShell(N + Z);
     maxShell_ = valenceShell_ + Nmax_;
+    Lawson = 100.0;
 
     bool Hamiltonian_type = false;
     if (name.find("Hamiltonian") != std::string::npos)
@@ -61,7 +62,7 @@ namespace JT
     else if (name_ == "Radius_n")
       std::cout << "Point-neutron root-mean-squared radius" << std::endl;
   	else
-  	  std::cout << name_ << " with Lawson term x 1000" << std::endl;
+  	  std::cout << name_ << " with Lawson term x " << Lawson << std::endl;
   }
 
   std::ostream& operator<<(std::ostream& s, const Operator& x)
@@ -85,7 +86,7 @@ namespace JT
     else if (x.name_ == "Radius") s << "Point-nucleon root-mean-squared radius";
     else if (x.name_ == "Radius_p") s << "Point-proton root-mean-squared radius";
     else if (x.name_ == "Radius_n") s << "Point-neutron root-mean-squared radius";
-  	else s << x.name_ << " with Lawson term x 1000";
+  	else s << x.name_ << " with Lawson term x " << x.Lawson;
 
   	return s;
   }
@@ -269,7 +270,7 @@ namespace JT
       tensors.reserve(com1s.size() + com2s.size() + 
       				  ke1s.size() + ke2s.size() + nns.size());
 
-      double A = N_ + Z_, com_coeff = 1000.0 / A, 
+      double A = N_ + Z_, com_coeff = Lawson / A, 
       		 ke1_coeff = (A - 1.0) / A, ke2_coeff = 1.0 / A;
 
       for (auto& com1 : com1s)
@@ -509,7 +510,7 @@ namespace JT
       tensors.reserve(com1s.size() + com2s.size() + 
                 v1s.size() + v2s.size());
 
-      double A = N_ + Z_, com_coeff = 1000.0 / A;
+      double A = N_ + Z_, com_coeff = Lawson / A;
   
       for (auto& com1 : com1s)
       {
@@ -596,8 +597,6 @@ namespace JT
       // larger or equal than that of the ket irrep. Thus the tensors must
       // always either create or keep quanta.
 
-      std::cout << "Trying only 1000*Lawson" << std::endl;
-
       JT::OneBodyOperator 
         CoM1("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_,
                                     HO_labels_, gelfand_labels_),
@@ -623,7 +622,7 @@ namespace JT
       tensors.reserve(com1s.size() + com2s.size() + 
                 ke1s.size() + ke2s.size() + nns.size());
 
-      double A = N_ + Z_, com_coeff = 1000.0 / A, 
+      double A = N_ + Z_, com_coeff = Lawson / A, 
            ke1_coeff = (A - 1.0) / A, ke2_coeff = 1.0 / A;
 
       for (auto& com1 : com1s)
@@ -644,7 +643,7 @@ namespace JT
         if (!found)
           tensors.push_back(std::move(com1));
       }
-/*
+
       for (auto& ke1 : ke1s)
       {
         if (ke1.shift_quanta() < 0) continue;
@@ -663,7 +662,7 @@ namespace JT
         if (!found)
           tensors.push_back(std::move(ke1));
       }
-*/
+
       for (auto& com2 : com2s)
       {
         if (com2.shift_quanta() < 0) continue;
@@ -682,7 +681,7 @@ namespace JT
         if (!found)
           tensors.push_back(std::move(com2));
       }
-/*
+
       for (auto& ke2 : ke2s)
       {
         if (ke2.shift_quanta() < 0) continue;
@@ -719,7 +718,7 @@ namespace JT
         if (!found)
           tensors.push_back(std::move(nn));
       }
-*/
+
       return tensors;
     }
   }
