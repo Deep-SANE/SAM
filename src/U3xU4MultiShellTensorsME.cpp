@@ -119,7 +119,14 @@ namespace U3xU4
     // RME database
     U3xU4::RME_db RMEdb(basis.maxShell());
 
-    // PREPARATION PHASE --- BEGIN
+    // Get MPI info
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+#endif
+
+    // PREPARATION PHASE --- BEGIN --- Identical across all ranks
 
     auto start = std::chrono::high_resolution_clock::now();
     std::vector<std::vector<size_t>> connected_tensors;
@@ -303,12 +310,20 @@ namespace U3xU4
 
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+#ifdef USE_MPI
+    std::cout << "Matrix elements preparation time: " << elapsed.count()/60 
+              << "min on rank " << mpi_rank << std::endl;
+#else
     std::cout << "Matrix elements preparation time: " << elapsed.count()/60 << "min" << std::endl;
+#endif
     std::cout << "Number of connected irreps: " << connected_irreps.size() << std::endl;
 
     // PREPARATION PHASE --- END
-
+#ifdef USE_MPI
+    std::cout << "Start computing matrix on rank " << mpi_rank << std::endl;
+#else
     std::cout << "Start computing matrix" << std::endl;
+#endif
 
     qcx_utils::CSRMatrix global(dim);
 
@@ -324,6 +339,10 @@ namespace U3xU4
     for (size_t ci = 0; ci < connected_irreps.size(); ci++)
     // for (auto [bra_id, ket_id, connected_tensors_id] : connected_irreps)
     {
+#ifdef USE_MPI
+      if (ci % mpi_size != static_cast<size_t>(mpi_rank)) continue;
+#endif
+
       auto bra_id = std::get<0>(connected_irreps[ci]);
       auto ket_id = std::get<1>(connected_irreps[ci]);
       auto connected_tensors_id = std::get<2>(connected_irreps[ci]);
@@ -559,7 +578,12 @@ namespace U3xU4
     // Merge to global from local thread
 #pragma omp critical
     {
+#ifdef USE_MPI
+      std::cerr << "Merge thread " << omp_get_thread_num()
+                << " on rank " << mpi_rank << std::endl;
+#else
       std::cerr << "Merge thread " << omp_get_thread_num() << std::endl;
+#endif
 
       for (Eigen::Index i = 0; i < dim; i++)
       {
@@ -582,10 +606,17 @@ namespace U3xU4
 } // pragma omp parallel
 #endif
 
+#ifdef USE_MPI
+    std::cerr << "Finalize global CSR on rank " << mpi_rank << std::endl;
+    global.finalize();
+    std::cout << "Finish computing " << global.size() << " matrix elements" << std::endl;
+
+    MPI_Barrier(MPI_COMM_WORLD);
+#else
     std::cerr << "Finalize global CSR" << std::endl;
     global.finalize();
-    
     std::cout << "Finish computing " << global.size() << " matrix elements" << std::endl;
+#endif
 
     return global;
   }

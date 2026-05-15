@@ -35,6 +35,14 @@ namespace JT
 
   void Operator::is() const
   {
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    if (mpi_rank == 0)
+    {
+#endif
     if (one_body.count(name_))
     {
       JT::OneBodyOperator 
@@ -63,6 +71,9 @@ namespace JT
       std::cout << "Point-neutron root-mean-squared radius" << std::endl;
   	else
   	  std::cout << name_ << " with Lawson term x " << Lawson << std::endl;
+#ifdef USE_MPI
+    }
+#endif
   }
 
   std::ostream& operator<<(std::ostream& s, const Operator& x)

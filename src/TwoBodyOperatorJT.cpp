@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <tuple>
+#include <omp.h>
 
 #include <qcx_convert.h>
 #include <qcx_print.h>
@@ -91,6 +92,14 @@ namespace JT
 
   void TwoBodyOperator::is() const
   {
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    if (mpi_rank == 0)
+    {
+#endif
     if (name_ == "L.L")
       std::cout << "Two-body part of L.L" << std::endl;
     else if (name_ == "L.S")
@@ -115,6 +124,9 @@ namespace JT
     }
     else
       throw std::invalid_argument("This operator has not been implemented");
+#ifdef USE_MPI
+    }
+#endif
   }
 
   std::ostream& operator<<(std::ostream& s, const TwoBodyOperator& x)
@@ -1115,7 +1127,8 @@ namespace JT
     auto [all_na_nb_nc_nd, all_inverse, all_phase] =
         GenerateAllCombinationsHOShells(Nmax_, valenceShell_, maxShell_);
 #else
-    auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
+    auto [all_na_nb_nc_nd, all_inverse, all_phase] = 
+        GenerateAllCombinationsHOShells(maxShell_);
 #endif
 
 std::cerr << all_na_nb_nc_nd.size() << std::endl;
@@ -1203,14 +1216,19 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     auto [all_na_nb_nc_nd, all_inverse, all_phase] =
         GenerateAllCombinationsHOShells(Nmax_, valenceShell_, maxShell_);
 #else
-    auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
+    auto [all_na_nb_nc_nd, all_inverse, all_phase] = 
+        GenerateAllCombinationsHOShells(maxShell_);
 #endif
 
-std::cerr << all_na_nb_nc_nd.size() << std::endl;
+// std::cerr << all_na_nb_nc_nd.size() << std::endl;
 
-    U3xU4::MultiShellTensors_phys tensors_local;
+    // (I) Generate the entire list of tensors --- identical for all ranks
 
-    for (size_t i = mpi_rank; i < all_na_nb_nc_nd.size(); i += mpi_size)
+    // U3xU4::MultiShellTensors_phys tensors_rank;
+    std::vector<std::pair<size_t, U3xU4::MultiShellTensor_phys>> tensors_rank;
+
+    // for (size_t i = mpi_rank; i < all_na_nb_nc_nd.size(); i += mpi_size)
+    for (size_t i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
       // auto groups_ns = group_same_shell(sorted_ns);
       auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
@@ -1226,17 +1244,9 @@ std::cerr << all_na_nb_nc_nd.size() << std::endl;
       U3xU4::GenerateMultiShellTensors(
         Gammas_lists, 0, {}, {}, {}, {}, all_results);
 
-std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() << std::endl;
+// std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() << std::endl;
 
       // for (const auto& [Gammas, Omegas] : all_results)
-
-#pragma omp parallel
-{
-  sam::initialize_thread();
-
-  U3xU4::MultiShellTensors_phys tensors_tl;
-
-#pragma omp for schedule(dynamic,1)
       for (size_t j = 0; j < all_results.size(); j++)
       {
         const auto& Gammas = all_results[j].first;
@@ -1250,14 +1260,42 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
         if (tensor.shift_quanta() < 0) continue;
 
-        setTensorStrength(tensor, all_inverse[i], all_phase[i]);
+        // setTensorStrength(tensor, all_inverse[i], all_phase[i]);
 
-        if (!tensor.LLSSTTstrengths().empty())
-          tensors_tl.push_back(std::move(tensor));
-          // tensors.push_back(std::move(tensor));
-        // else std::cerr << "Ignore" << std::endl;
+        // if (!tensor.LLSSTTstrengths().empty())
+          tensors_rank.emplace_back(i, std::move(tensor));
       }
+    }
 
+    // (II) Run tensor expansion via OpenMP + MPI
+
+    size_t my_count = (mpi_rank < (int)tensors_rank.size())
+                      ? (tensors_rank.size() - mpi_rank + mpi_size - 1) / mpi_size
+                      : 0;
+    std::cerr << "Rank " << mpi_rank << ": processing " << my_count
+              << " / " << tensors_rank.size() << " tensors" << std::endl;
+
+#pragma omp parallel
+{
+  sam::initialize_thread();
+
+#pragma omp for schedule(dynamic,1)
+      for (size_t it = mpi_rank; it < tensors_rank.size(); it += mpi_size)
+    {
+      auto& [i, tensor] = tensors_rank[it];
+
+      setTensorStrength(tensor, all_inverse[i], all_phase[i]);
+
+      size_t local_idx = (it - (size_t)mpi_rank) / (size_t)mpi_size;
+      if (local_idx % 1000 == 0)
+      {
+#pragma omp critical
+        std::cerr << "Rank " << mpi_rank << " [thread " << omp_get_thread_num()
+                  << "]: " << local_idx << " / " << my_count << std::endl;
+      }
+    }
+      
+/*
 #pragma omp critical
   {
     tensors_local.reserve(tensors_local.size() + tensors_tl.size());
@@ -1265,10 +1303,12 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     for (auto& t : tensors_tl)
       tensors_local.push_back(std::move(t));
   }
+*/
 
   sam::finalize_thread();
 }
-    }
+
+    // (III) Writing all ranks to binary file
 
     // std::cout << "Start writing " << name_ << " to binary file" << std::endl;
     // Sequential barrier-ordered writes
@@ -1278,7 +1318,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
       if (mpi_rank == turn)
       {
-        std::cerr << "Start printing on the " << turn << "-th rank" << std::endl;
+        std::cerr << "Start printing on rank " << turn << std::endl;
 
         if (turn == 0)
         {
@@ -1288,13 +1328,17 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
           qcx_utils::writeBinary(s, maxShell_);
 
           // Number of tensors
-          size_t n_tensors = tensors_local.size();
+          size_t n_tensors = 0;
+          for (const auto& [i, t] : tensors_rank)
+            if (!t.LLSSTTstrengths().empty()) n_tensors++;
+
           qcx_utils::writeBinary(s, n_tensors);
 
-          for (const auto& t : tensors_local) t.writeBinary(s);
+          for (const auto& [i, t] : tensors_rank)
+            if (!t.LLSSTTstrengths().empty()) t.writeBinary(s);
 
           s.close();
-        } 
+        }
         else
         {
           // --- fill in with your file API ---
@@ -1320,10 +1364,16 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
             acc_tensors.push_back(std::move(tensor));
           }
           in.close();
+          std::cerr << "Read " << acc_tensors.size() << " tensors from file" << std::endl;
 
           // 2. Append this rank's tensors
-          acc_tensors.reserve(acc_tensors.size() + tensors_local.size());
-          for (auto& t : tensors_local) acc_tensors.push_back(std::move(t));
+          acc_tensors.reserve(acc_tensors.size() + tensors_rank.size());
+          for (auto& [i, t] : tensors_rank)
+          {
+            if (!t.LLSSTTstrengths().empty())
+              acc_tensors.push_back(std::move(t));
+          }
+          std::cerr << "Finish appending new tensors" << std::endl;
 
           // 3. Write everything back (metadata + all tensors)
           std::ofstream out(filename, std::ios::binary);
@@ -1338,7 +1388,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
           for (const auto& t : acc_tensors) t.writeBinary(out);
         }
 
-        std::cerr << "Finish printing on the " << turn << "-th rank" << std::endl;
+        std::cerr << "Finish printing on rank " << turn << std::endl;
       }
     }
     MPI_Barrier(MPI_COMM_WORLD); // ensure all ranks finish before returning
@@ -1380,7 +1430,8 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         GenerateAllCombinationsHOShells(Nmax_, valenceShell_, maxShell_,
                                         Nmax_old, maxShell_old);
 #else
-    auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
+    auto [all_na_nb_nc_nd, all_inverse, all_phase] = 
+        GenerateAllCombinationsHOShells(maxShell_);
 #endif
 
 std::cerr << all_na_nb_nc_nd.size() << std::endl;
@@ -1466,14 +1517,19 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         GenerateAllCombinationsHOShells(Nmax_, valenceShell_, maxShell_,
                                         Nmax_old, maxShell_old);
 #else
-    auto all_na_nb_nc_nd = GenerateAllCombinationsHOShells(maxShell_);
+    auto [all_na_nb_nc_nd, all_inverse, all_phase] = 
+                      GenerateAllCombinationsHOShells(maxShell_);
 #endif
 
-std::cerr << all_na_nb_nc_nd.size() << std::endl;
+// std::cerr << all_na_nb_nc_nd.size() << std::endl;
 
-    U3xU4::MultiShellTensors_phys tensors_local;
+    // (I) Generate the entire list of tensors --- identical for all ranks
 
-    for (size_t i = mpi_rank; i < all_na_nb_nc_nd.size(); i += mpi_size)
+    // U3xU4::MultiShellTensors_phys tensors_rank;
+    std::vector<std::pair<size_t, U3xU4::MultiShellTensor_phys>> tensors_rank;
+
+    // for (size_t i = mpi_rank; i < all_na_nb_nc_nd.size(); i += mpi_size)
+    for (size_t i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
       // auto groups_ns = group_same_shell(sorted_ns);
       auto groups_ns = group_same_shell(all_na_nb_nc_nd[i]);
@@ -1489,17 +1545,9 @@ std::cerr << all_na_nb_nc_nd.size() << std::endl;
       U3xU4::GenerateMultiShellTensors(
         Gammas_lists, 0, {}, {}, {}, {}, all_results);
 
-std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() << std::endl;
+// std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() << std::endl;
 
       // for (const auto& [Gammas, Omegas] : all_results)
-
-#pragma omp parallel
-{
-  sam::initialize_thread();
-
-  U3xU4::MultiShellTensors_phys tensors_tl;
-
-#pragma omp for schedule(dynamic,1)
       for (size_t j = 0; j < all_results.size(); j++)
       {
         const auto& Gammas = all_results[j].first;
@@ -1513,14 +1561,42 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
         if (tensor.shift_quanta() < 0) continue;
 
-        setTensorStrength(tensor, all_inverse[i], all_phase[i]);
+        // setTensorStrength(tensor, all_inverse[i], all_phase[i]);
 
-        if (!tensor.LLSSTTstrengths().empty())
-          tensors_tl.push_back(std::move(tensor));
-          // tensors.push_back(std::move(tensor));
-        // else std::cerr << "Ignore" << std::endl;
+        // if (!tensor.LLSSTTstrengths().empty())
+          tensors_rank.emplace_back(i, std::move(tensor));
       }
+    }
 
+    // (II) Run tensor expansion via OpenMP + MPI
+
+    size_t my_count = (mpi_rank < (int)tensors_rank.size())
+                      ? (tensors_rank.size() - mpi_rank + mpi_size - 1) / mpi_size
+                      : 0;
+    std::cerr << "Rank " << mpi_rank << ": processing " << my_count
+              << " / " << tensors_rank.size() << " tensors" << std::endl;
+
+#pragma omp parallel
+{
+  sam::initialize_thread();
+
+#pragma omp for schedule(dynamic,1)
+    for (size_t it = mpi_rank; it < tensors_rank.size(); it += mpi_size)
+    {
+      auto& [i, tensor] = tensors_rank[it];
+
+      setTensorStrength(tensor, all_inverse[i], all_phase[i]);
+
+      size_t local_idx = (it - (size_t)mpi_rank) / (size_t)mpi_size;
+      if (local_idx % 1000 == 0)
+      {
+#pragma omp critical
+        std::cerr << "Rank " << mpi_rank << " [thread " << omp_get_thread_num()
+                  << "]: " << local_idx << " / " << my_count << std::endl;
+      }
+    }
+
+/*
 #pragma omp critical
   {
     tensors_local.reserve(tensors_local.size() + tensors_tl.size());
@@ -1528,10 +1604,12 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     for (auto& t : tensors_tl)
       tensors_local.push_back(std::move(t));
   }
+*/
 
   sam::finalize_thread();
 }
-    }
+
+    // (III) Writing all ranks to binary file
 
     // std::cout << "Start writing " << name_ << " to binary file" << std::endl;
     // Sequential barrier-ordered writes
@@ -1539,10 +1617,9 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     {
       MPI_Barrier(MPI_COMM_WORLD);
 
-      if (mpi_rank == turn && tensors_local.size() > 0)
+      if (mpi_rank == turn)
       {
-        std::cerr << "Start printing on the " << turn << "-th rank: " 
-		  << tensors_local.size() << " tensors" << std::endl;
+        std::cerr << "Start printing on rank " << turn << std::endl;
 
         // --- fill in with your file API ---
         // 1. Open file and read existing metadata + tensors into `all_tensors`
@@ -1561,8 +1638,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
         for (size_t i = 0; i < n_tensors_prev; ++i)
         {
-          if (i % 1000 == 0)
-            std::cerr << "Reading tensor " << i << "/" << n_tensors_prev << std::endl;
+          // if (i % 1000 == 0) std::cerr << "Reading tensor " << i << "/" << n_tensors_prev << std::endl;
 
           U3xU4::MultiShellTensor_phys tensor(HO_labels_);
           tensor.readBinary(in);
@@ -1573,8 +1649,12 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         std::cerr << "Read " << acc_tensors.size() << " tensors from file" << std::endl;
 
         // 2. Append this rank's tensors
-        acc_tensors.reserve(acc_tensors.size() + tensors_local.size());
-        for (auto& t : tensors_local) acc_tensors.push_back(std::move(t));
+        acc_tensors.reserve(acc_tensors.size() + tensors_rank.size());
+        for (auto& [i, t] : tensors_rank) 
+        {
+          if (!t.LLSSTTstrengths().empty())
+            acc_tensors.push_back(std::move(t));
+        }
         std::cerr << "Finish appending new tensors" << std::endl;
 
         // 3. Write everything back (metadata + all tensors)
@@ -1588,14 +1668,13 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         qcx_utils::writeBinary(out, n_tensors);
 
         // for (const auto& t : acc_tensors) t.writeBinary(out);
-	for (size_t i = 0; i < acc_tensors.size(); ++i)
-	{
-          if (i % 1000 == 0)
-            std::cerr << "Writing tensor " << i << "/" << acc_tensors.size() << std::endl;
+	      for (size_t i = 0; i < acc_tensors.size(); ++i)
+	      {
+          // if (i % 1000 == 0) std::cerr << "Writing tensor " << i << "/" << acc_tensors.size() << std::endl;
 
-	  acc_tensors[i].writeBinary(out);
-	}
-        std::cerr << "Finish printing on the " << turn << "-th rank" << std::endl;
+	        acc_tensors[i].writeBinary(out);
+	      }
+        std::cerr << "Finish printing on rank " << turn << std::endl;
       }
     }
     MPI_Barrier(MPI_COMM_WORLD); // ensure all ranks finish before returning
@@ -1789,7 +1868,16 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
   void TwoBodyOperator::writeBinary(const std::string& filename, 
                      const U3xU4::MultiShellTensors_phys& tensors) const
   {
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    std::cout << "Start writing " << name_ 
+              << " to binary file on rank " << mpi_rank << std::endl;
+#else
     std::cout << "Start writing " << name_ << " to binary file" << std::endl;
+#endif
 
     if (valenceShell_ > 0)
       throw std::runtime_error("Set valenceShell to 0 for reusability");
@@ -1809,7 +1897,11 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
     for (const auto& tensor : tensors) tensor.writeBinary(s);
 
+#ifdef USE_MPI
+      std::cout << "Finish writing to binary file on rank " << mpi_rank << std::endl;
+#else
     std::cout << "Finish writing to binary file" << std::endl;
+#endif
   }
 
   // Read from binary file
@@ -1823,9 +1915,19 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     HO::qn_t maxShell;
     qcx_utils::readBinary(s, maxShell);
 
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    std::cout << "Start reading " << name_ 
+              << " from binary file with capacity maxShell = " 
+              << static_cast<int>(maxShell) << " on rank " << mpi_rank << std::endl;
+#else
     std::cout << "Start reading " << name_ 
               << " from binary file with capacity maxShell = " 
               << static_cast<int>(maxShell) << std::endl;
+#endif
 
     // Read number of tensors
     size_t n_tensors;
@@ -1859,7 +1961,11 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       tensors.push_back(std::move(tensor));
     }
 
-    std::cout << "Finish reading from binary file" << std::endl;
+#ifdef USE_MPI
+      std::cout << "Finish reading to binary file on rank " << mpi_rank << std::endl;
+#else
+    std::cout << "Finish reading to binary file" << std::endl;
+#endif
 
     if (maxShell_ > maxShell)
     {
@@ -1920,10 +2026,9 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       qcx_utils::readBinary(s, maxShell); // re-read header
     }
 
-    if (mpi_rank == 0)
-      std::cout << "Start reading " << name_ 
-                << " from binary file with capacity maxShell = " 
-                << static_cast<int>(maxShell) << std::endl;
+    std::cout << "Start reading " << name_ 
+              << " from binary file with capacity maxShell = " 
+              << static_cast<int>(maxShell) << " on rank " << mpi_rank << std::endl;
 
     // Read number of tensors
     size_t n_tensors;
@@ -1957,8 +2062,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       tensors.push_back(std::move(tensor));
     }
 
-    if (mpi_rank == 0)
-      std::cout << "Finish reading from binary file" << std::endl;
+    std::cout << "Finish reading from binary file on rank " << mpi_rank << std::endl;
 
     return tensors;
   }

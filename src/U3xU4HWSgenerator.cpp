@@ -10,6 +10,10 @@
 
 #include <UNtoU3.h>
 
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
+
 #include <U3xU4HWSgenerator.h>
 #ifdef USE_SLEPC
 #include <Eigen/Sparse>
@@ -401,11 +405,20 @@ namespace U3xU4
     // If file doesn't exist, create it and save it with data
     if (!std::filesystem::exists(full_path))
     {
+#ifdef USE_MPI
+      int mpi_rank = 0;
+      MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+      std::filesystem::path tmp_path = 
+        full_path.string() + ".tmp." + std::to_string(mpi_rank);
+#else
+      std::filesystem::path tmp_path = full_path.string() + ".tmp";
+#endif
+
       // std::ofstream file(full_path);
-      std::ofstream file(full_path, std::ios::binary);
+      std::ofstream file(tmp_path, std::ios::binary);
       if (!file)
         throw std::runtime_error("Failed to open file for writing: " +
-                                 full_path.string());
+                                 tmp_path.string());
 
       auto [SDarr, coeffs] = HWS_to_SD(G, sps3, sps4);
 
@@ -428,6 +441,9 @@ namespace U3xU4
 
       // for (std::size_t i = 0; i < SDarr.size(); ++i)
       // file << SDarr[i].bits << " " << coeffs.row(i) << '\n';
+
+      file.close();
+      std::filesystem::rename(tmp_path, full_path); // atomic: last writer wins, content is identical
     }
 
     return full_path;

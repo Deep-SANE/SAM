@@ -82,6 +82,14 @@ namespace JT
   // Check the type of this operator
   void OneBodyOperator::is() const
   {
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    if (mpi_rank == 0)
+    {
+#endif
     if (name_ == "NumberOp")
       std::cout << "Number operator N" << std::endl;
     else if (name_ == "L.L")
@@ -125,6 +133,9 @@ namespace JT
       std::cout << "One-body potential with " << name_ << std::endl;
     else
       throw std::invalid_argument("This operator has not been implemented");
+#ifdef USE_MPI
+    }
+#endif
   }
 
   std::ostream& operator<<(std::ostream& s, const OneBodyOperator& x)
@@ -1328,6 +1339,14 @@ namespace JT
     else
     {
       auto tensors = expand_new();
+
+#ifdef USE_MPI
+      int mpi_rank = 0, mpi_size = 1;
+      MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+      MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+      if (mpi_rank == 0)
+#endif
       writeBinary(filename, tensors);
       return tensors;
     }
@@ -1337,7 +1356,16 @@ namespace JT
   void OneBodyOperator::writeBinary(const std::string& filename, 
                      const U3xU4::MultiShellTensors_phys& tensors) const
   {
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    std::cout << "Start writing " << name_ << " to binary file on rank " 
+              << mpi_rank << std::endl;
+#else
     std::cout << "Start writing " << name_ << " to binary file" << std::endl;
+#endif
     
     if (valenceShell_ > 0)
       throw std::runtime_error("Set valenceShell to 0 for reusability");
@@ -1357,7 +1385,11 @@ namespace JT
 
     for (const auto& tensor : tensors) tensor.writeBinary(s);
 
+#ifdef USE_MPI
+    std::cout << "Finish writing to binary file on rank " << mpi_rank << std::endl;
+#else
     std::cout << "Finish writing to binary file" << std::endl;
+#endif
   }
 
   // Read from binary file
@@ -1371,18 +1403,35 @@ namespace JT
     HO::qn_t maxShell;
     qcx_utils::readBinary(s, maxShell);
 
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    std::cout << "Start reading " << name_ 
+              << " from binary file with capacity maxShell = " 
+              << static_cast<int>(maxShell) << " on rank " << mpi_rank << std::endl;
+#else
     std::cout << "Start reading " << name_ 
               << " from binary file with capacity maxShell = " 
               << static_cast<int>(maxShell) << std::endl;
+#endif
     
     if (maxShell_ - valenceShell_ > maxShell /* Nmax */)
     {
-      std::cout << "File doesn't reach your Nmax, so it will be expanded now"
-                << std::endl;
+#ifdef USE_MPI
+      if (mpi_rank == 0)
+#endif
+      std::cout << "File doesn't reach your Nmax, it will be expanded now" << std::endl;
+
       valenceShell_ = 0;
       Nmax_ = maxShell_;
 
       auto tensors = expand_new();
+      
+#ifdef USE_MPI
+      if (mpi_rank == 0)
+#endif
       writeBinary(filename, tensors);
       return tensors;
     }
@@ -1407,7 +1456,12 @@ namespace JT
 
       tensors.push_back(std::move(tensor));
     }
+#ifdef USE_MPI
+    std::cout << "Finish reading from binary file on rank " << mpi_rank << std::endl;
+#else
     std::cout << "Finish reading from binary file" << std::endl;
+#endif
+
     return tensors;
   }
 

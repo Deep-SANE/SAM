@@ -136,7 +136,16 @@ namespace U3xU4
     std::filesystem::create_directories(dir);
 
     // Preload all existing files
-    std::cout << "Start loading rme files" << std::endl;
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    std::cerr << "Start loading rme files on rank " << mpi_rank << std::endl;
+#else
+    std::cerr << "Start loading rme files" << std::endl;
+#endif
+
     for (const auto& entry : std::filesystem::directory_iterator(dir))
     {
       if (entry.path().extension() != ".bin") continue;
@@ -148,7 +157,12 @@ namespace U3xU4
 
       cache_.emplace(filename, std::make_unique<RMEFile>(path));
     }
-    std::cout << "Finish loading rme files" << std::endl;
+
+#ifdef USE_MPI
+    std::cerr << "Finish loading rme files on rank " << mpi_rank << std::endl;
+#else
+    std::cerr << "Finish loading rme files" << std::endl;
+#endif
 
     // Reserve to avoid rehash under concurrency
     cache_.reserve(cache_.size() + 16);
@@ -174,7 +188,16 @@ namespace U3xU4
     std::filesystem::create_directories(dir);
 
     // Preload all existing files
-    std::cout << "Start loading rme files" << std::endl;
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    std::cerr << "Start loading rme files on rank " << mpi_rank << std::endl;
+#else
+    std::cerr << "Start loading rme files" << std::endl;
+#endif
+
     for (const auto& entry : std::filesystem::directory_iterator(dir))
     {
       if (entry.path().extension() != ".bin") continue;
@@ -202,7 +225,11 @@ namespace U3xU4
 
       cache_.emplace(filename, std::make_unique<RMEFile>(path));
     }
-    std::cout << "Finish loading rme files" << std::endl;
+#ifdef USE_MPI
+    std::cerr << "Finish loading rme files on rank " << mpi_rank << std::endl;
+#else
+    std::cerr << "Finish loading rme files" << std::endl;
+#endif
 
     // Reserve to avoid rehash under concurrency
     cache_.reserve(cache_.size() + 16);
@@ -212,7 +239,102 @@ namespace U3xU4
   {
     std::shared_lock cache_lock(cache_mutex_);
 
-    std::cout << "Start destructing RME database" << std::endl;
+#ifdef USE_MPI
+    int mpi_rank = 0, mpi_size = 1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    std::cerr << "Start destructing RME database on rank " << mpi_rank << std::endl;
+
+    for (int turn = 0; turn < mpi_size; turn++)
+    {
+      // wait for token from previous rank
+      if (turn > 0 && mpi_rank == turn)
+      {
+        int token;
+        MPI_Recv(&token, 1, MPI_INT, turn - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      }
+
+      if (mpi_rank == turn)
+      {
+        for (auto& [filename, file_ptr] : cache_)
+        {
+          auto& file = *file_ptr;
+          std::lock_guard file_lock(file.file_mutex_);
+
+          if (file.rmes_map.size() == file.initial_size) continue;
+
+          if (turn == 0)
+          {
+            // rank 0: write full rmes_map with trunc
+            std::ofstream out(file.path, std::ios::binary | std::ios::trunc);
+            if (!out)
+            {
+              std::cerr << "Warning: Cannot open RME file for writing: "
+                        << file.path << " on rank " << mpi_rank << std::endl;
+              continue;
+            }
+            for (const auto& [key, rmes] : file.rmes_map)
+            {
+              qcx_utils::writeBinary(out, key.su3key);
+              qcx_utils::writeBinary(out, key.su4key);
+              uint64_t num = rmes.size();
+              qcx_utils::writeBinary(out, num);
+              qcx_utils::writeBinary(out, rmes);
+            }
+          }
+          else
+          {
+            // rank > 0: scan file, erase already-written keys, append remainder
+            std::ifstream in(file.path, std::ios::binary);
+            if (in)
+            {
+              while (true)
+              {
+                uint32_t su3; qcx_utils::readBinary(in, su3);
+                uint64_t su4; qcx_utils::readBinary(in, su4);
+                uint64_t num; qcx_utils::readBinary(in, num);
+                if (num == 0 || !in) break;
+                in.seekg(num * sizeof(double), std::ios::cur);
+                file.rmes_map.erase(RMEKey(su3, su4));
+              }
+              in.close();
+            }
+
+            if (file.rmes_map.empty()) continue;
+
+            std::ofstream out(file.path, std::ios::binary | std::ios::app);
+            if (!out)
+            {
+              std::cerr << "Warning: Cannot open RME file for appending: "
+                        << file.path << " on rank " << mpi_rank << std::endl;
+              continue;
+            }
+            for (const auto& [key, rmes] : file.rmes_map)
+            {
+              qcx_utils::writeBinary(out, key.su3key);
+              qcx_utils::writeBinary(out, key.su4key);
+              
+              uint64_t num = rmes.size();
+              qcx_utils::writeBinary(out, num);
+              qcx_utils::writeBinary(out, rmes);
+            }
+          }
+        }
+
+        // send token to next rank
+        if (turn < mpi_size - 1)
+        {
+          int token = 1;
+          MPI_Send(&token, 1, MPI_INT, turn + 1, 0, MPI_COMM_WORLD);
+        }
+      }
+    }
+
+    std::cerr << "Finish destructing RME database on rank " << mpi_rank << std::endl;
+#else
+    std::cerr << "Start destructing RME database" << std::endl;
+
     for (auto& [filename, file_ptr] : cache_)
     {
       auto& file = *file_ptr;
@@ -224,7 +346,7 @@ namespace U3xU4
       std::ofstream out(file.path, std::ios::binary | std::ios::trunc);
       if (!out)
       {
-        std::cerr << "Warning: Cannot open RME file for append: " 
+        std::cerr << "Warning: Cannot open RME file for append: "
                   << file.path << std::endl;
         continue;
       }
@@ -239,7 +361,9 @@ namespace U3xU4
         qcx_utils::writeBinary(out, rmes);
       }
     }
-    std::cout << "Finish destructing RME database" << std::endl;
+    std::cerr << "Finish destructing RME database" << std::endl;
+#endif
+
   }
 
   sam::RME RME_db::get(const U3xU4::SingleShellTensor& t,
