@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 
   sam::initialize(&argc, &argv);
 
-  int Z = 5, N = 5, JJ = 6, TT = 0, Nmax = 4, hw = 20, write = 0;
+  int Z = 5, N = 5, JJ = 6, TT = 0, Nmax = 6, hw = 20, write = 1;
 
   u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}};
 
@@ -32,14 +32,23 @@ int main(int argc, char* argv[])
   std::string custom_dir = "Truncation_TT0";
 
   // std::string name = "Hamiltonian with N2LO_opt_bare";
-  std::string name = "Hamiltonian_with_N3LO_EM500_srg2.0";
+  std::string name = "Hamiltonian with N3LO_EM500_srg2.0";
   // std::string name = "HO_Li7_e3_hw16_E39";
 
-  print("N={}, Z={}, Nmax={}, JJ={}, TT={}, hw={} with {}\n", 
+#ifdef USE_MPI
+  int mpi_rank = 0, mpi_size = 1;
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+  if (mpi_rank == 0)
+#endif
+  {
+    print("N={}, Z={}, Nmax={}, JJ={}, TT={}, hw={} with {}\n", 
                                 N, Z, Nmax, JJ, TT, hw, name);
 
-  print("Basis dimension: {}\n", basis.dim());
-  // print("Keep only u4::irreps: {} in N=0,2,4,6,8\n", irrs);
+    print("Basis dimension: {}\n", basis.dim());
+    // print("Keep only u4::irreps: {} in N=0,2,4,6,8\n", irrs);
+  }
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
@@ -55,6 +64,7 @@ int main(int argc, char* argv[])
   auto mat = op.matrix_CSR(basis);
 
   auto t1 = std::chrono::high_resolution_clock::now();
+
 /*
   if (write == 1)
   {
@@ -69,38 +79,44 @@ int main(int argc, char* argv[])
 
   auto t3 = std::chrono::high_resolution_clock::now();
 
-  print("Eigenvalues are\n");
-  for (auto ev : evals) print("{:.6f}\n", ev);
-
-  if (write == 1)
+#ifdef USE_MPI
+  if (mpi_rank == 0)
+#endif
   {
-    // auto wfns_file = op.wfns_file(basis);
-    auto wfns_file = op.wfns_file(basis, custom_dir);
-    qcx_utils::writeEigenBinary(wfns_file, evals, evecs);
+    print("Eigenvalues are\n");
+    for (auto ev : evals) print("{:.6f}\n", ev);
+
+    if (write == 1)
+    {
+      // auto wfns_file = op.wfns_file(basis);
+      auto wfns_file = op.wfns_file(basis, custom_dir);
+      qcx_utils::writeEigenBinary(wfns_file, evals, evecs);
+    }
+
+    // Analyze wfns
+    print("Analyze the first two states\n");
+
+    auto subspaces_u3 = sam::U3_wavefunction_analyzer(basis, evecs, 2);
+    for (const auto& subspace : subspaces_u3)
+      std::cout << subspace << std::endl;
+
+    auto subspaces_u4 = sam::U4_wavefunction_analyzer(basis, evecs, 2);
+    for (const auto& subspace : subspaces_u4)
+      std::cout << subspace << std::endl;
+
+    // Calculate the duration
+    std::chrono::duration<double> duration1 = t1 - t0, duration2 = t3 - t2;
+
+    // Output the time in seconds
+    std::cout << "Elapsed time for matrix elements: "
+              << duration1.count() << " seconds or "
+              << duration1.count() / 60.0 << " minutes" << std::endl;
+
+    std::cout << "Elapsed time for diagonalizing: "
+              << duration2.count() << " seconds or "
+              << duration2.count() / 60.0 << " minutes" << std::endl;
   }
 
-  // Analyze wfns
-  print("Analyze the first two states\n");
-
-  auto subspaces_u3 = sam::U3_wavefunction_analyzer(basis, evecs, 2);
-  for (const auto& subspace : subspaces_u3)
-    std::cout << subspace << std::endl;
-
-  auto subspaces_u4 = sam::U4_wavefunction_analyzer(basis, evecs, 2);
-  for (const auto& subspace : subspaces_u4)
-    std::cout << subspace << std::endl;
-
-  // Calculate the duration
-  std::chrono::duration<double> duration1 = t1 - t0, duration2 = t3 - t2;
-
-  // Output the time in seconds
-  std::cout << "Elapsed time for matrix elements: "
-            << duration1.count() << " seconds or "
-            << duration1.count() / 60.0 << " minutes" << std::endl;
-
-  std::cout << "Elapsed time for diagonalizing: "
-            << duration2.count() << " seconds or "
-            << duration2.count() / 60.0 << " minutes" << std::endl;
 
   sam::finalize();
 }
