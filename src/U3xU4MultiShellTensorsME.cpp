@@ -116,9 +116,6 @@ namespace U3xU4
       return mat;
     }
 
-    // RME database
-    U3xU4::RME_db RMEdb(basis.maxShell());
-
     // Get MPI info
 #ifdef USE_MPI
     int mpi_rank = 0, mpi_size = 1;
@@ -355,6 +352,9 @@ namespace U3xU4
 #endif
 
     qcx_utils::CSRMatrix global(dim);
+
+    // RME database
+    U3xU4::RME_db RMEdb(basis.maxShell());
 
 #ifdef USE_OPENMP
 #pragma omp parallel
@@ -631,7 +631,8 @@ namespace U3xU4
     sam::finalize_thread();
 } // pragma omp parallel
 #endif
-
+    
+    RMEdb.finalize();
     connected_irreps.clear();
     connected_irreps.shrink_to_fit();
     connected_tensors.clear();
@@ -640,7 +641,8 @@ namespace U3xU4
 #ifdef USE_MPI
     std::cerr << "Finalize global CSR on rank " << mpi_rank << std::endl;
     global.finalize();
-    std::cout << "Finish computing " << global.size() << " matrix elements" << std::endl;
+    std::cout << "Finish computing " << global.size() << " matrix elements on rank " 
+              << mpi_rank << std::endl;
 
     MPI_Barrier(MPI_COMM_WORLD);
 #else
@@ -698,9 +700,6 @@ namespace U3xU4
       Eigen::SparseMatrix<double> mat(dim, dim);
       return mat;
     }
-
-    // RME database
-    U3xU4::RME_db RMEdb(basis.maxShell());
 
     // PREPARATION PHASE --- BEGIN
 
@@ -899,6 +898,9 @@ namespace U3xU4
     // PREPARATION PHASE --- END
 
     std::cout << "Start computing matrix" << std::endl;
+
+    // RME database
+    U3xU4::RME_db RMEdb(basis.maxShell());
 
     Eigen::SparseMatrix<double> mat(dim, dim);
     mat.reserve(connected_irreps.size() * 100);
@@ -1186,6 +1188,7 @@ namespace U3xU4
     mat.setFromTriplets(ija.begin(), ija.end());
 #endif
 
+    RMEdb.finalize();
     connected_irreps.clear();
     connected_irreps.shrink_to_fit();
     connected_tensors.clear();
@@ -1259,9 +1262,6 @@ namespace U3xU4
       Eigen::SparseMatrix<double> mat(bras_dim, kets_dim);
       return mat;
     }
-
-    // RME database
-    U3xU4::RME_db RMEdb(std::max(bras.maxShell(), kets.maxShell()));
 
     // PREPARATION PHASE --- BEGIN
 
@@ -1447,6 +1447,9 @@ namespace U3xU4
     // PREPARATION PHASE --- END
 
     std::cout << "Start computing matrix" << std::endl;
+
+    // RME database
+    U3xU4::RME_db RMEdb(std::max(bras.maxShell(), kets.maxShell()));
 
     Eigen::SparseMatrix<double> mat(bras_dim, kets_dim);
     
@@ -1717,6 +1720,7 @@ namespace U3xU4
     mat.setFromTriplets(ija.begin(), ija.end());
 #endif
 
+    RMEdb.finalize();
     connected_irreps.clear();
     connected_irreps.shrink_to_fit();
     connected_tensors.clear();

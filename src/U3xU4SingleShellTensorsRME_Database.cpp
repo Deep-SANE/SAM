@@ -235,9 +235,11 @@ namespace U3xU4
     cache_.reserve(cache_.size() + 16);
   }
 
-  RME_db::~RME_db()
+  // RME_db::~RME_db()
+  void RME_db::finalize()
   {
-    std::shared_lock cache_lock(cache_mutex_);
+    // std::shared_lock cache_lock(cache_mutex_);
+    std::unique_lock cache_lock(cache_mutex_);
 
 #ifdef USE_MPI
     int mpi_rank = 0, mpi_size = 1;
@@ -364,6 +366,7 @@ namespace U3xU4
     std::cerr << "Finish destructing RME database" << std::endl;
 #endif
 
+    cache_.clear();
   }
 
   sam::RME RME_db::get(const U3xU4::SingleShellTensor& t,

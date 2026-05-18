@@ -76,7 +76,10 @@ namespace U3xU4
   public:
   	RME_db();
     RME_db(int maxShell);
-    ~RME_db();
+    // ~RME_db();
+
+    // Free all in-memory RME data (call after computation is done)
+    void finalize();
 
   	sam::RME get(const U3xU4::SingleShellTensor& t,
                  const U3xU4::GammaElement& f, 
