@@ -212,7 +212,8 @@ namespace U3xU4
         };
 
         std::vector<size_t> tensors1;
-        tensors1.reserve(tensors.size());
+        // tensors1.reserve(tensors.size());
+        tensors1.reserve(100);
         for (size_t i = 0; i < tensors.size(); i++)
           if (all_shells_particles(tensors[i])) tensors1.push_back(i);
         if (tensors1.empty()) continue;
@@ -262,7 +263,8 @@ namespace U3xU4
             };
 
             std::vector<size_t> tensors2;
-            tensors2.reserve(tensors1.size());
+            // tensors2.reserve(tensors1.size());
+            tensors2.reserve(100);
             for (const auto& i : tensors1)
               if (all_shells_coupling(tensors[i])) tensors2.push_back(i);
             if (tensors2.empty()) continue;
@@ -293,30 +295,57 @@ namespace U3xU4
     }
 
     // (IV) serial assembly
+    size_t global_ci = 0;
+
     for (size_t p = 0; p < dist_pairs.size(); p++)
     {
       for (auto& all_result : all_results[p])
       {
         // connected_tensors.size() is now correct because we're
         // doing this sequentially in the original loop order
-        size_t tensors2_id = connected_tensors.size();
+        // size_t tensors2_id = connected_tensors.size();
+
+        bool tensors2_added = false;
+        size_t local_tensors2_id = 0;
 
         for (auto& [bra_id, ket_id] : all_result.irrep_pairs)
-          connected_irreps.emplace_back(bra_id, ket_id, tensors2_id);
+        {
+#ifdef USE_MPI
+          if (global_ci % mpi_size == (size_t)mpi_rank)
+#endif
+          {
+            if (!tensors2_added)
+            {
+              local_tensors2_id = connected_tensors.size();
+              connected_tensors.push_back(std::move(all_result.tensors2));
+              tensors2_added = true;
+            }
+            connected_irreps.emplace_back(bra_id, ket_id, local_tensors2_id);
+          }
+        }
+        // connected_tensors.push_back(std::move(all_result.tensors2));
 
-        connected_tensors.push_back(std::move(all_result.tensors2));
+        global_ci++;
       }
     }
+
+    all_results.clear();
+    all_results.shrink_to_fit();
+    dist_pairs.clear();
+    dist_pairs.shrink_to_fit();
 
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
 #ifdef USE_MPI
     std::cout << "Matrix elements preparation time: " << elapsed.count()/60 
               << "min on rank " << mpi_rank << std::endl;
+    std::cout << "Number of connected irreps on rank " << mpi_rank
+              << ": " << connected_irreps.size() << std::endl;
 #else
     std::cout << "Matrix elements preparation time: " << elapsed.count()/60 << "min" << std::endl;
-#endif
     std::cout << "Number of connected irreps: " << connected_irreps.size() << std::endl;
+#endif
+    
 
     // PREPARATION PHASE --- END
 #ifdef USE_MPI
@@ -339,10 +368,6 @@ namespace U3xU4
     for (size_t ci = 0; ci < connected_irreps.size(); ci++)
     // for (auto [bra_id, ket_id, connected_tensors_id] : connected_irreps)
     {
-#ifdef USE_MPI
-      if (ci % mpi_size != static_cast<size_t>(mpi_rank)) continue;
-#endif
-
       auto bra_id = std::get<0>(connected_irreps[ci]);
       auto ket_id = std::get<1>(connected_irreps[ci]);
       auto connected_tensors_id = std::get<2>(connected_irreps[ci]);
@@ -606,6 +631,11 @@ namespace U3xU4
 } // pragma omp parallel
 #endif
 
+    connected_irreps.clear();
+    connected_irreps.shrink_to_fit();
+    connected_tensors.clear();
+    connected_tensors.shrink_to_fit();
+
 #ifdef USE_MPI
     std::cerr << "Finalize global CSR on rank " << mpi_rank << std::endl;
     global.finalize();
@@ -757,7 +787,8 @@ namespace U3xU4
         };
 
         std::vector<size_t> tensors1;
-        tensors1.reserve(tensors.size());
+        // tensors1.reserve(tensors.size());
+        tensors1.reserve(100);
         for (size_t i = 0; i < tensors.size(); i++)
           if (all_shells_particles(tensors[i])) tensors1.push_back(i);
         if (tensors1.empty()) continue;
@@ -807,7 +838,8 @@ namespace U3xU4
             };
 
             std::vector<size_t> tensors2;
-            tensors2.reserve(tensors1.size());
+            // tensors2.reserve(tensors1.size());
+            tensors2.reserve(100);
             for (const auto& i : tensors1)
               if (all_shells_coupling(tensors[i])) tensors2.push_back(i);
             if (tensors2.empty()) continue;
@@ -852,6 +884,11 @@ namespace U3xU4
         connected_tensors.push_back(std::move(all_result.tensors2));
       }
     }
+
+    all_results.clear();
+    all_results.shrink_to_fit();
+    dist_pairs.clear();
+    dist_pairs.shrink_to_fit();
 
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
@@ -1148,6 +1185,11 @@ namespace U3xU4
     mat.setFromTriplets(ija.begin(), ija.end());
 #endif
 
+    connected_irreps.clear();
+    connected_irreps.shrink_to_fit();
+    connected_tensors.clear();
+    connected_tensors.shrink_to_fit();
+
     mat.makeCompressed();
 
     std::cout << "Finish computing matrix" << std::endl;
@@ -1301,7 +1343,8 @@ namespace U3xU4
         };
 
         std::vector<size_t> tensors1;
-        tensors1.reserve(tensors.size());
+        // tensors1.reserve(tensors.size());
+        tensors1.reserve(100);
         for (size_t i = 0; i < tensors.size(); i++)
           if (all_shells_particles(tensors[i])) tensors1.push_back(i);
         if (tensors1.empty()) continue;
@@ -1349,7 +1392,8 @@ namespace U3xU4
             };
 
             std::vector<size_t> tensors2;
-            tensors2.reserve(tensors1.size());
+            // tensors2.reserve(tensors1.size());
+            tensors2.reserve(100);
             for (const auto& i : tensors1)
               if (all_shells_coupling(tensors[i])) tensors2.push_back(i);
             if (tensors2.empty()) continue;
@@ -1388,6 +1432,11 @@ namespace U3xU4
         connected_tensors.push_back(std::move(all_result.tensors2));
       }
     }
+
+    all_results.clear();
+    all_results.shrink_to_fit();
+    dist_pairs.clear();
+    dist_pairs.shrink_to_fit();
 
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
@@ -1666,6 +1715,11 @@ namespace U3xU4
     mat.reserve(ija.size());
     mat.setFromTriplets(ija.begin(), ija.end());
 #endif
+
+    connected_irreps.clear();
+    connected_irreps.shrink_to_fit();
+    connected_tensors.clear();
+    connected_tensors.shrink_to_fit();
 
     mat.makeCompressed();
 
