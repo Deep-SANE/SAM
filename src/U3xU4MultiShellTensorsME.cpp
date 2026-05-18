@@ -624,6 +624,7 @@ namespace U3xU4
                      std::make_move_iterator(l_row.end()));
 
         l_row.clear();
+        l_row.shrink_to_fit();
       }
     }
 
