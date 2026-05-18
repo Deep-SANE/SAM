@@ -33,4 +33,10 @@ namespace sam
     u3::finalize_thread();
     qcx_utils::finalize_thread();
   }
+
+  inline void clear() 
+  {
+    u4::clear();
+    u3::clear();
+  }
 } // namespace sam

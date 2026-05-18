@@ -632,6 +632,7 @@ namespace U3xU4
 } // pragma omp parallel
 #endif
     
+    sam::clear();
     RMEdb.finalize();
     connected_irreps.clear();
     connected_irreps.shrink_to_fit();
