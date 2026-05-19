@@ -294,17 +294,23 @@ namespace HO
   OBME_scalar::OBME_scalar(const std::string& name, 
     int hw, int Nmax, int valenceShell, int maxShell)
   {
+#ifdef USE_MPI
+    int mpi_rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+    if (mpi_rank == 0)
+#endif
+    std::cout << "WARNING: This operator isn't from SAM" << std::endl;
+
     if (maxShell > 14)
-      throw std::out_of_range(
-          "Sorry, we only have maxShell up to 14 at the moment");
+      throw std::out_of_range("Sorry, we only have maxShell up to 14");
 
     name_ = name;
     hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
     Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
     valenceShell_ = (valenceShell > 0) ? qcx_utils::ito8(valenceShell) : 0;
     maxShell_ = (maxShell >= 0) ? qcx_utils::ito8(maxShell) : 14;
-
-    std::cout << "WARNING: This operator isn't from SAM" << std::endl;
+    
     custom_name = true;
 
     int idx = 1;
@@ -324,6 +330,12 @@ namespace HO
 
   void OBME_scalar::is() const
   {
+#ifdef USE_MPI
+    int mpi_rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+    if (mpi_rank == 0)
+#endif
     std::cout << "One-body potential with " << name_
               << " hw=" << static_cast<int>(hw_)
               << " valenceShell=" << static_cast<int>(valenceShell_)
@@ -360,8 +372,19 @@ namespace HO
       filename = "data/Ab-initio_Interactions/OneBodyOperatorJT/" + name_ + ".myg";
 #endif
 
+#ifdef USE_MPI
+      int mpi_rank = 0;
+      MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+      if (mpi_rank == 0)
+#endif
       std::cout << "Start reading matrix elements from file" << std::endl;
+
       read_from_file_nuhamil(filename);
+
+#ifdef USE_MPI
+      if (mpi_rank == 0)
+#endif
       std::cout << "Finish reading matrix elements from file" << std::endl;
     }
     else
@@ -413,6 +436,7 @@ namespace HO
     std::ifstream infile(filename);
     if (!infile)
       throw std::runtime_error("Failed to open file: " + filename);
+
 
     // Read all matrix elements
     int a, b, mmta, mmtb;
@@ -472,10 +496,9 @@ namespace HO
 
   TwBME_scalar::TwBME_scalar(const std::string& name, 
     int hw, int Nmax, int valenceShell, int maxShell)
-  {
+  { 
     if (maxShell > 14)
-      throw std::out_of_range(
-          "Sorry, we only have maxShell up to 14 at the moment");
+      throw std::out_of_range("Sorry, we only have maxShell up to 14");
 
     name_ = name;
     hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
@@ -500,7 +523,14 @@ namespace HO
     }
     else
     {
+#ifdef USE_MPI
+      int mpi_rank = 0;
+      MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+      if (mpi_rank == 0)
+#endif
       std::cout << "WARNING: This potential isn't from NuHamil" << std::endl;
+      
       // orbit_map = OrbitsMap(14, "IMSRG");
       orbit_map = OrbitsMap(14, "NuHamil");
       custom_name = true;
@@ -509,6 +539,12 @@ namespace HO
 
   void TwBME_scalar::is() const
   {
+#ifdef USE_MPI
+    int mpi_rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+    if (mpi_rank == 0)
+#endif
     std::cout << "Two-body potential with " << name_
               << " hw=" << static_cast<int>(hw_)
               << " valenceShell=" << static_cast<int>(valenceShell_)
@@ -534,6 +570,11 @@ namespace HO
 // #define CHECKING_2B_CHANNELS
   void TwBME_scalar::read()
   {
+#ifdef USE_MPI
+    int mpi_rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+#endif
+
     std::string filename;
 
     if (custom_name)
@@ -550,18 +591,26 @@ namespace HO
       filename = "data/Ab-initio_Interactions/TwoBodyOperatorJT/" + name_ + ".myg.bin";
 #endif
 
+#ifdef USE_MPI
+      if (mpi_rank == 0)
+#endif
       std::cout << "Start reading matrix elements from file" << std::endl;
+      
       // read_from_binary_imsrg(filename);
       read_from_binary_nuhamil(filename);
+
+#ifdef USE_MPI
+      if (mpi_rank == 0)
+#endif
       std::cout << "Finish reading matrix elements from file" << std::endl;
     }
     else
     {
 #ifdef HAVE_NUHAMIL
       const char* nuhamil_root = std::getenv("NUHAMIL_ROOT");    
+
       if (!nuhamil_root)
-        throw std::runtime_error(
-          "Environment variable NUHAMIL_ROOT is not set");
+        throw std::runtime_error("Environment variable NUHAMIL_ROOT isn't set");
 
       filename = std::string(nuhamil_root) + 
           "/exe/TwBME-HO_NN-only_" + name_ + "_hw" +
@@ -569,10 +618,10 @@ namespace HO
 #else
 
 #ifdef SAM_DATA_DIR
-      const char* sam_data = std::getenv("SAM_DATA_DIR");    
+      const char* sam_data = std::getenv("SAM_DATA_DIR"); 
+
       if (!sam_data)
-        throw std::runtime_error(
-          "Environment variable SAM_DATA_DIR is not set");
+        throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
 
       filename = std::string(sam_data) +
         "/Ab-initio_Interactions/TwBME-HO_NN-only_" + name_ + "_hw" +
@@ -585,12 +634,20 @@ namespace HO
 
 #endif
 
+#ifdef USE_MPI
+      if (mpi_rank == 0)
+#endif
       std::cout << "Start reading matrix elements from file" << std::endl;
+
 #ifdef READ_TWBME_FROM_BINARY
       filename += ".bin";
       read_from_binary_nuhamil(filename);
 #else
       read_from_file_nuhamil(filename);
+#endif
+
+#ifdef USE_MPI
+      if (mpi_rank == 0)
 #endif
       std::cout << "Finish reading matrix elements from file" << std::endl;
     }
@@ -606,8 +663,14 @@ namespace HO
     int num_me;
     qcx_utils::readBinary(infile, num_me);
     if (!infile)
-      throw std::runtime_error("Failed to read count from: " + filename);
+        throw std::runtime_error("Failed to read count from: " + filename);
 
+#ifdef USE_MPI
+    int mpi_rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    
+    if (mpi_rank == 0)
+#endif
     qcx_utils::print("Number of mes: {}\n", num_me);
 
     // Allocate temporary buffers
@@ -629,8 +692,7 @@ namespace HO
     qcx_utils::readBinary(infile, v);
 
     if (!infile)
-      throw std::runtime_error("Failed to read matrix elements from: " +
-                               filename);
+      throw std::runtime_error("Failed to read matrix elements from: " + filename);
 
     // Populate the map
 #ifdef CHECKING_2B_CHANNELS
@@ -726,15 +788,20 @@ namespace HO
     }
 
 #ifdef CHECKING_2B_CHANNELS
-    std::cout << "There are " << violate_isospin << " isospin violations"
-              << std::endl;
-    std::cout << "There are " << violate_parity << " parity violations"
-              << std::endl;
-    std::cout << "There are " << np_cnt << " np channels" << std::endl;
-    std::cout << "There are " << violate_Pauli << " channels violating Pauli"
-              << std::endl;
-    std::cout << "There are " << double_cnt
-              << " pp or nn channels counted twice" << std::endl;
+#ifdef USE_MPI
+    if (mpi_rank == 0)
+#endif
+    {
+      std::cout << "There are " << violate_isospin << " isospin violations"
+                << std::endl;
+      std::cout << "There are " << violate_parity << " parity violations"
+                << std::endl;
+      std::cout << "There are " << np_cnt << " np channels" << std::endl;
+      std::cout << "There are " << violate_Pauli << " channels violating Pauli"
+                << std::endl;
+      std::cout << "There are " << double_cnt
+                << " pp or nn channels counted twice" << std::endl;
+    }
 #endif
 
     return;
@@ -784,8 +851,7 @@ namespace HO
     qcx_utils::readBinary(infile, v);
 
     if (!infile)
-      throw std::runtime_error("Failed to read matrix elements from: " +
-                               filename);
+      throw std::runtime_error("Failed to read matrix elements from: " + filename);
 
     // Populate the map
 #ifdef CHECKING_2B_CHANNELS
@@ -883,15 +949,23 @@ namespace HO
     }
 
 #ifdef CHECKING_2B_CHANNELS
-    std::cout << "There are " << violate_isospin << " isospin violations"
-              << std::endl;
-    std::cout << "There are " << violate_parity << " parity violations"
-              << std::endl;
-    std::cout << "There are " << np_cnt << " np channels" << std::endl;
-    std::cout << "There are " << violate_Pauli << " channels violating Pauli"
-              << std::endl;
-    std::cout << "There are " << double_cnt
-              << " pp or nn channels counted twice" << std::endl;
+#ifdef USE_MPI
+    int mpi_rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+    if (mpi_rank == 0)
+#endif
+    {
+      std::cout << "There are " << violate_isospin << " isospin violations"
+                << std::endl;
+      std::cout << "There are " << violate_parity << " parity violations"
+                << std::endl;
+      std::cout << "There are " << np_cnt << " np channels" << std::endl;
+      std::cout << "There are " << violate_Pauli << " channels violating Pauli"
+                << std::endl;
+      std::cout << "There are " << double_cnt
+                << " pp or nn channels counted twice" << std::endl;
+    }
 #endif
 
     return;
@@ -972,18 +1046,31 @@ namespace HO
     }
 
 #ifdef CHECKING_2B_CHANNELS
-    std::cout << "There are " << violate_isospin << " isospin violations"
-              << std::endl;
-    std::cout << "There are " << violate_parity << " parity violations"
-              << std::endl;
-    std::cout << "There are " << np_cnt << " np channels" << std::endl;
-    std::cout << "There are " << violate_Pauli << " channels violating Pauli"
-              << std::endl;
-    std::cout << "There are " << double_cnt
-              << " pp or nn channels counted twice" << std::endl;
+#ifdef USE_MPI
+    int mpi_rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+    if (mpi_rank == 0)
+#endif
+    {
+      std::cout << "There are " << violate_isospin << " isospin violations"
+                << std::endl;
+      std::cout << "There are " << violate_parity << " parity violations"
+                << std::endl;
+      std::cout << "There are " << np_cnt << " np channels" << std::endl;
+      std::cout << "There are " << violate_Pauli << " channels violating Pauli"
+                << std::endl;
+      std::cout << "There are " << double_cnt
+                << " pp or nn channels counted twice" << std::endl;
+    }
 #endif
 
     return;
+  }
+
+  void TwBME_scalar::clear()
+  {
+    std::unordered_map<key_type, double, boost::hash<key_type>>().swap(me_map);
   }
 
   // Get ME from channels

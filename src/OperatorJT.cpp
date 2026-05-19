@@ -36,44 +36,41 @@ namespace JT
   void Operator::is() const
   {
 #ifdef USE_MPI
-    int mpi_rank = 0, mpi_size = 1;
+    int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
     if (mpi_rank == 0)
-    {
 #endif
-    if (one_body.count(name_))
     {
-      JT::OneBodyOperator 
-        op(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
-      op.is();
+      if (one_body.count(name_))
+      {
+        JT::OneBodyOperator 
+          op(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
+        op.is();
+      }
+      else if (two_body.count(name_))
+      {
+        JT::TwoBodyOperator 
+          op(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
+        op.is();
+      }
+      else if (name_ == "L.L" || name_ == "L.S")
+        std::cout << name_ << " operator" << std::endl;
+    	else if (name_ == "CoMNumberOp")
+        std::cout << "HO center-of-mass number operator" << std::endl;
+    	else if (name_ == "Kinetic")
+        std::cout << "Relative kinetic energy" << std::endl;
+    	else if (name_ == "Rrel")
+        std::cout << "Intrinsic mass root-mean-squared radius" << std::endl;
+      else if (name_ == "Radius")
+        std::cout << "Point-nucleon root-mean-squared radius" << std::endl;
+      else if (name_ == "Radius_p")
+        std::cout << "Point-proton root-mean-squared radius" << std::endl;
+      else if (name_ == "Radius_n")
+        std::cout << "Point-neutron root-mean-squared radius" << std::endl;
+    	else
+    	  std::cout << name_ << " with Lawson term x " << Lawson << std::endl;
     }
-    else if (two_body.count(name_))
-    {
-      JT::TwoBodyOperator 
-        op(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
-      op.is();
-    }
-    else if (name_ == "L.L" || name_ == "L.S")
-      std::cout << name_ << " operator" << std::endl;
-  	else if (name_ == "CoMNumberOp")
-      std::cout << "HO center-of-mass number operator" << std::endl;
-  	else if (name_ == "Kinetic")
-      std::cout << "Relative kinetic energy" << std::endl;
-  	else if (name_ == "Rrel")
-      std::cout << "Intrinsic mass root-mean-squared radius" << std::endl;
-    else if (name_ == "Radius")
-      std::cout << "Point-nucleon root-mean-squared radius" << std::endl;
-    else if (name_ == "Radius_p")
-      std::cout << "Point-proton root-mean-squared radius" << std::endl;
-    else if (name_ == "Radius_n")
-      std::cout << "Point-neutron root-mean-squared radius" << std::endl;
-  	else
-  	  std::cout << name_ << " with Lawson term x " << Lawson << std::endl;
-#ifdef USE_MPI
-    }
-#endif
   }
 
   std::ostream& operator<<(std::ostream& s, const Operator& x)
@@ -107,15 +104,14 @@ namespace JT
 #ifdef SAM_DATA_DIR
     const char* sam_data = std::getenv("SAM_DATA_DIR");    
     if (!sam_data)
-      throw std::runtime_error(
-        "Environment variable SAM_DATA_DIR is not set");
+      throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
 
     std::string dir = std::string(sam_data) + "/OperatorJT/" + name_;
     std::filesystem::create_directories(dir);
 #else
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
+      throw std::runtime_error("Environment variable SAM_DIR isn't set");
       
     std::string dir = std::string(sam_dir) + "/data/OperatorJT/" + name_;
     std::filesystem::create_directories(dir);

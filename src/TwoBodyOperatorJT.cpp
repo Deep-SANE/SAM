@@ -24,8 +24,7 @@ namespace JT
       : HO_labels_(HO_labels), gelfand_labels_(gelfand_labels)
   {
     if (maxShell > 14)
-      throw std::out_of_range(
-          "Sorry, we only have maxShell up to 14 at the moment");
+      throw std::out_of_range("Sorry, we only have maxShell up to 14");
 
     hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
     Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
@@ -51,6 +50,12 @@ namespace JT
     }
     else
     {
+#ifdef USE_MPI
+      int mpi_rank = 0;
+      MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+      if (mpi_rank == 0)
+#endif
       std::cout << "WARNING: This operator isn't known" << std::endl;
 
       TT_ = -1;
@@ -66,8 +71,7 @@ namespace JT
       : HO_labels_(HO_labels), gelfand_labels_(gelfand_labels)
   {
     if (maxShell > 14)
-      throw std::out_of_range(
-          "Sorry, we only have maxShell up to 14 at the moment");
+      throw std::out_of_range("Sorry, we only have maxShell up to 14");
 
     hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
     Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
@@ -93,40 +97,39 @@ namespace JT
   void TwoBodyOperator::is() const
   {
 #ifdef USE_MPI
-    int mpi_rank = 0, mpi_size = 1;
+    int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
     if (mpi_rank == 0)
-    {
 #endif
-    if (name_ == "L.L")
-      std::cout << "Two-body part of L.L" << std::endl;
-    else if (name_ == "L.S")
-      std::cout << "Two-body part of L.S" << std::endl;
-    else if (name_ == "CoMNumberOp")
-      std::cout << "Two-body part of CoM number operator without 1/A"
-                << std::endl;
-    else if (name_ == "Kinetic")
-      std::cout << "Two-body part of the relative kinetic energy without 1/A"
-                << std::endl;
-    else if (name_ == "Rrel")
-      std::cout
-          << "Two-body part of the intrinsic mass radius squared without -1/A"
-          << std::endl;
-    else if (on_the_fly == false)
     {
-      if (names_.empty())
-        std::cout << "Two-body potential with " << name_ << std::endl;
-      else
-        for (const auto& name : names_)
-          std::cout << "Two-body potential with " << name << std::endl;
+      if (name_ == "L.L")
+        std::cout << "Two-body part of L.L" << std::endl;
+      else if (name_ == "L.S")
+        std::cout << "Two-body part of L.S" << std::endl;
+      else if (name_ == "CoMNumberOp")
+        std::cout << "Two-body part of CoM number operator without 1/A"
+                  << std::endl;
+      else if (name_ == "Kinetic")
+        std::cout << "Two-body part of the relative kinetic energy without 1/A"
+                  << std::endl;
+      else if (name_ == "Rrel")
+        std::cout
+            << "Two-body part of the intrinsic mass radius squared without -1/A"
+            << std::endl;
+      else if (on_the_fly == false)
+      {
+        if (names_.empty())
+          std::cout << "Two-body potential with " << name_ << std::endl;
+        else
+          for (const auto& name : names_)
+            std::cout << "Two-body potential with " << name << std::endl;
+      }
     }
-    else
+
+    if (name_ != "L.L" && name_ != "L.S" && name_ != "CoMNumberOp" &&
+        name_ != "Kinetic" && name_ != "Rrel" && on_the_fly == true)
       throw std::invalid_argument("This operator has not been implemented");
-#ifdef USE_MPI
-    }
-#endif
   }
 
   std::ostream& operator<<(std::ostream& s, const TwoBodyOperator& x)
@@ -147,7 +150,7 @@ namespace JT
         s << "Two-body potential with " << x.name_;
       else
         for (const auto& name : x.names_)
-          std::cout << "Two-body potential with " << name << std::endl;
+          s << "Two-body potential with " << name << std::endl;
     } 
     else
       throw std::invalid_argument("This operator has not been implemented");
@@ -160,14 +163,13 @@ namespace JT
 #ifdef SAM_DATA_DIR
     const char* sam_data = std::getenv("SAM_DATA_DIR");    
     if (!sam_data)
-      throw std::runtime_error(
-        "Environment variable SAM_DATA_DIR is not set");
+      throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
 
     std::string dir = std::string(sam_data) + "/TwoBodyOperatorJT/" + name_;
 #else
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
+      throw std::runtime_error("Environment variable SAM_DIR isn't set");
       
     std::string dir = std::string(sam_dir) + "/data/TwoBodyOperatorJT/" + name_;
 #endif
@@ -183,8 +185,7 @@ namespace JT
 #ifdef SAM_DATA_DIR
     const char* sam_data = std::getenv("SAM_DATA_DIR");    
     if (!sam_data)
-      throw std::runtime_error(
-        "Environment variable SAM_DATA_DIR is not set");
+      throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
 
     for (int i = 0; i < names_.size(); i++)
     {
@@ -194,7 +195,7 @@ namespace JT
 #else
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
+      throw std::runtime_error("Environment variable SAM_DIR isn't set");
       
     for (int i = 0; i < names_.size(); i++)
     {
@@ -1209,8 +1210,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    if (on_the_fly == false)
-      TBME->read();
+    if (on_the_fly == false) TBME->read();
 
 #ifdef RESTRICT_WITH_NMAX
     auto [all_na_nb_nc_nd, all_inverse, all_phase] =
@@ -1280,7 +1280,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
   sam::initialize_thread();
 
 #pragma omp for schedule(dynamic,1)
-      for (size_t it = mpi_rank; it < tensors_rank.size(); it += mpi_size)
+    for (size_t it = mpi_rank; it < tensors_rank.size(); it += mpi_size)
     {
       auto& [i, tensor] = tensors_rank[it];
 
@@ -1307,8 +1307,30 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
   sam::finalize_thread();
 }
+    
+    // (III) Free everything no longer needed
 
-    // (III) Writing all ranks to binary file
+    // (a) release the TBME hash table
+    if (on_the_fly == false) TBME->clear();
+
+    // (b) release shell-combo arrays
+    { decltype(all_na_nb_nc_nd)().swap(all_na_nb_nc_nd); }
+    { decltype(all_inverse)().swap(all_inverse); }
+    { decltype(all_phase)().swap(all_phase); }
+
+    // (c) release u3/u4 databases
+    sam::clear();
+
+    // (d) compact tensors_rank: keep only entries owned by this rank
+    U3xU4::MultiShellTensors_phys tensors_rank_final;
+    tensors_rank_final.reserve(my_count);
+    for (auto& [idx, t] : tensors_rank)
+      if (!t.LLSSTTstrengths().empty()) tensors_rank_final.push_back(std::move(t));
+
+    tensors_rank.clear();
+    tensors_rank.shrink_to_fit();
+
+    // (IV) Writing all ranks to binary file
 
     // std::cout << "Start writing " << name_ << " to binary file" << std::endl;
     // Sequential barrier-ordered writes
@@ -1328,20 +1350,24 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
           qcx_utils::writeBinary(s, maxShell_);
 
           // Number of tensors
-          size_t n_tensors = 0;
-          for (const auto& [i, t] : tensors_rank)
-            if (!t.LLSSTTstrengths().empty()) n_tensors++;
+          size_t n_tensors = tensors_rank_final.size();
+          // for (const auto& [i, t] : tensors_rank)
+          //   if (!t.LLSSTTstrengths().empty()) n_tensors++;
 
           qcx_utils::writeBinary(s, n_tensors);
 
-          for (const auto& [i, t] : tensors_rank)
-            if (!t.LLSSTTstrengths().empty()) t.writeBinary(s);
+          // for (const auto& [i, t] : tensors_rank)
+          for (const auto& t : tensors_rank_final)
+          {
+            // if (!t.LLSSTTstrengths().empty()) 
+            t.writeBinary(s);
+          }
 
           s.close();
         }
         else
         {
-          // --- fill in with your file API ---
+/*
           // 1. Open file and read existing metadata + tensors into `all_tensors`
           std::ifstream in(filename, std::ios::binary);
           if (!in) throw std::runtime_error("Failed to open: " + filename);
@@ -1367,12 +1393,13 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
           std::cerr << "Read " << acc_tensors.size() << " tensors from file" << std::endl;
 
           // 2. Append this rank's tensors
-          acc_tensors.reserve(acc_tensors.size() + tensors_rank.size());
-          for (auto& [i, t] : tensors_rank)
+          acc_tensors.reserve(acc_tensors.size() + tensors_rank_final.size());
+          for (auto& t : tensors_rank_final)
           {
-            if (!t.LLSSTTstrengths().empty())
-              acc_tensors.push_back(std::move(t));
+            // if (!t.LLSSTTstrengths().empty())
+            acc_tensors.push_back(std::move(t));
           }
+
           std::cerr << "Finish appending new tensors" << std::endl;
 
           // 3. Write everything back (metadata + all tensors)
@@ -1386,6 +1413,29 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
           qcx_utils::writeBinary(out, n_tensors);
 
           for (const auto& t : acc_tensors) t.writeBinary(out);
+*/
+          std::fstream f(filename, std::ios::in | std::ios::out | std::ios::binary);
+          if (!f) throw std::runtime_error("Failed to open: " + filename);
+
+          // Read just the header
+          HO::qn_t maxShell;
+          qcx_utils::readBinary(f, maxShell);
+
+          auto count_pos = f.tellg(); // save position of n_tensors field
+          size_t n_tensors_prev;
+          qcx_utils::readBinary(f, n_tensors_prev);
+
+          // Append this rank's tensors at end of file
+          f.seekp(0, std::ios::end);
+          for (const auto& t : tensors_rank_final)
+            t.writeBinary(f);
+
+          // Seek back and update count
+          size_t n_tensors_new = n_tensors_prev + tensors_rank_final.size();
+          f.seekp(count_pos);
+          qcx_utils::writeBinary(f, n_tensors_new);
+
+          f.close();
         }
 
         std::cerr << "Finish printing on rank " << turn << std::endl;
@@ -1394,7 +1444,11 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     MPI_Barrier(MPI_COMM_WORLD); // ensure all ranks finish before returning
     // std::cout << "Finish writing to binary file" << std::endl;
 
-    // Final read and return on all ranks
+    // (V) Free memory
+    tensors_rank_final.clear();
+    tensors_rank_final.shrink_to_fit();
+
+    // (VI) Final read and return on all ranks
     std::ifstream s(filename, std::ios::binary);
     if (!s) throw std::runtime_error("Failed to open: " + filename);
 
@@ -1509,8 +1563,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    if (on_the_fly == false)
-      TBME->read();
+    if (on_the_fly == false) TBME->read();
 
 #ifdef RESTRICT_WITH_NMAX
     auto [all_na_nb_nc_nd, all_inverse, all_phase] =
@@ -1609,7 +1662,29 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
   sam::finalize_thread();
 }
 
-    // (III) Writing all ranks to binary file
+    // (III) Free everything no longer needed
+
+    // (a) release the TBME hash table
+    if (on_the_fly == false) TBME->clear();
+
+    // (b) release shell-combo arrays
+    { decltype(all_na_nb_nc_nd)().swap(all_na_nb_nc_nd); }
+    { decltype(all_inverse)().swap(all_inverse); }
+    { decltype(all_phase)().swap(all_phase); }
+
+    // (c) release u3/u4 databases
+    sam::clear();
+
+    // (d) compact tensors_rank: keep only entries owned by this rank
+    U3xU4::MultiShellTensors_phys tensors_rank_final;
+    tensors_rank_final.reserve(my_count);
+    for (auto& [idx, t] : tensors_rank)
+      if (!t.LLSSTTstrengths().empty()) tensors_rank_final.push_back(std::move(t));
+    
+    tensors_rank.clear();
+    tensors_rank.shrink_to_fit();
+
+    // (IV) Writing all ranks to binary file
 
     // std::cout << "Start writing " << name_ << " to binary file" << std::endl;
     // Sequential barrier-ordered writes
@@ -1620,8 +1695,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       if (mpi_rank == turn)
       {
         std::cerr << "Start printing on rank " << turn << std::endl;
-
-        // --- fill in with your file API ---
+/*
         // 1. Open file and read existing metadata + tensors into `all_tensors`
         std::ifstream in(filename, std::ios::binary);
         if (!in) throw std::runtime_error("Failed to open: " + filename);
@@ -1649,12 +1723,14 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         std::cerr << "Read " << acc_tensors.size() << " tensors from file" << std::endl;
 
         // 2. Append this rank's tensors
-        acc_tensors.reserve(acc_tensors.size() + tensors_rank.size());
-        for (auto& [i, t] : tensors_rank) 
+        acc_tensors.reserve(acc_tensors.size() + tensors_rank_final.size());
+        // for (auto& [i, t] : tensors_rank) 
+        for (auto& t : tensors_rank_final)
         {
-          if (!t.LLSSTTstrengths().empty())
-            acc_tensors.push_back(std::move(t));
+          // if (!t.LLSSTTstrengths().empty())
+          acc_tensors.push_back(std::move(t));
         }
+
         std::cerr << "Finish appending new tensors" << std::endl;
 
         // 3. Write everything back (metadata + all tensors)
@@ -1674,11 +1750,39 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
 	        acc_tensors[i].writeBinary(out);
 	      }
+*/
+        std::fstream f(filename, std::ios::in | std::ios::out | std::ios::binary);
+        if (!f) throw std::runtime_error("Failed to open: " + filename);
+
+        // Read just the header
+        HO::qn_t maxShell;
+        qcx_utils::readBinary(f, maxShell);
+
+        auto count_pos = f.tellg(); // save position of n_tensors field
+        size_t n_tensors_prev;
+        qcx_utils::readBinary(f, n_tensors_prev);
+
+        // Append this rank's tensors at end of file
+        f.seekp(0, std::ios::end);
+        for (const auto& t : tensors_rank_final)
+          t.writeBinary(f);
+
+        // Seek back and update count
+        size_t n_tensors_new = n_tensors_prev + tensors_rank_final.size();
+        f.seekp(count_pos);
+        qcx_utils::writeBinary(f, n_tensors_new);
+
+        f.close();
+        
         std::cerr << "Finish printing on rank " << turn << std::endl;
       }
     }
     MPI_Barrier(MPI_COMM_WORLD); // ensure all ranks finish before returning
     // std::cout << "Finish writing to binary file" << std::endl;
+
+    // (V) Free memory
+    tensors_rank_final.clear();
+    tensors_rank_final.shrink_to_fit();
 
 /*
     // Final read and return on all ranks
@@ -1869,11 +1973,10 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
                      const U3xU4::MultiShellTensors_phys& tensors) const
   {
 #ifdef USE_MPI
-    int mpi_rank = 0, mpi_size = 1;
+    int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    std::cout << "Start writing " << name_ 
+    std::cerr << "Start writing " << name_ 
               << " to binary file on rank " << mpi_rank << std::endl;
 #else
     std::cout << "Start writing " << name_ << " to binary file" << std::endl;
@@ -1898,7 +2001,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     for (const auto& tensor : tensors) tensor.writeBinary(s);
 
 #ifdef USE_MPI
-      std::cout << "Finish writing to binary file on rank " << mpi_rank << std::endl;
+    std::cerr << "Finish writing to binary file on rank " << mpi_rank << std::endl;
 #else
     std::cout << "Finish writing to binary file" << std::endl;
 #endif
@@ -1916,11 +2019,10 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     qcx_utils::readBinary(s, maxShell);
 
 #ifdef USE_MPI
-    int mpi_rank = 0, mpi_size = 1;
+    int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    std::cout << "Start reading " << name_ 
+    std::cerr << "Start reading " << name_ 
               << " from binary file with capacity maxShell = " 
               << static_cast<int>(maxShell) << " on rank " << mpi_rank << std::endl;
 #else
@@ -1962,15 +2064,18 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     }
 
 #ifdef USE_MPI
-      std::cout << "Finish reading to binary file on rank " << mpi_rank << std::endl;
+    std::cerr << "Finish reading to binary file on rank " << mpi_rank << std::endl;
 #else
     std::cout << "Finish reading to binary file" << std::endl;
 #endif
 
     if (maxShell_ > maxShell)
     {
-      std::cout << "File doesn't reach your maxShell, so it will be expanded now"
-                << std::endl;
+#ifdef USE_MPI
+      if (mpi_rank == 0)
+#endif
+      std::cout << "File doesn't reach your maxShell, it will be expanded now" << std::endl;
+
       valenceShell_ = 0;
       Nmax_ = maxShell_;
 
@@ -1982,8 +2087,10 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
     if (maxShell_ - 2 * valenceShell_ > maxShell /* = Nmax */)
     {
-      std::cout << "File doesn't reach your Nmax, so it will be expanded now"
-                << std::endl;
+#ifdef USE_MPI
+      if (mpi_rank == 0)
+#endif
+      std::cout << "File doesn't reach your Nmax, it will be expanded now" << std::endl;
       valenceShell_ = 0;
       Nmax_ = maxShell_;
 
@@ -1999,9 +2106,8 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
   U3xU4::MultiShellTensors_phys TwoBodyOperator::readBinary_MPI(
     const std::string& filename)
   {
-    int mpi_rank, mpi_size;
+    int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
     std::ifstream s(filename, std::ios::binary);
     if (!s)
@@ -2013,7 +2119,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     if ((maxShell_ > maxShell) or (maxShell_ - 2 * valenceShell_ > maxShell))
     {
       if (mpi_rank == 0)
-        std::cout << "File doesn't reach your maxShell/Nmax, so it will be expanded now"
+        std::cout << "File doesn't reach your maxShell/Nmax, it will be expanded now"
                   << std::endl;
 
       valenceShell_ = 0;
@@ -2026,7 +2132,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       qcx_utils::readBinary(s, maxShell); // re-read header
     }
 
-    std::cout << "Start reading " << name_ 
+    std::cerr << "Start reading " << name_ 
               << " from binary file with capacity maxShell = " 
               << static_cast<int>(maxShell) << " on rank " << mpi_rank << std::endl;
 
@@ -2062,7 +2168,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       tensors.push_back(std::move(tensor));
     }
 
-    std::cout << "Finish reading from binary file on rank " << mpi_rank << std::endl;
+    std::cerr << "Finish reading from binary file on rank " << mpi_rank << std::endl;
 
     return tensors;
   }

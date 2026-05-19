@@ -121,14 +121,13 @@ namespace U3xU4
 #ifdef SAM_DATA_DIR
     const char* sam_data = std::getenv("SAM_DATA_DIR");    
     if (!sam_data)
-      throw std::runtime_error(
-        "Environment variable SAM_DATA_DIR is not set");
+      throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
 
     dir = std::string(sam_data) + "/rmes";
 #else
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
+      throw std::runtime_error("Environment variable SAM_DIR isn't set");
 
     dir = std::string(sam_dir) + "/data/rmes";
 #endif
@@ -137,13 +136,12 @@ namespace U3xU4
 
     // Preload all existing files
 #ifdef USE_MPI
-    int mpi_rank = 0, mpi_size = 1;
+    int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    std::cerr << "Start loading rme files on rank " << mpi_rank << std::endl;
+    if (mpi_rank == 0) std::cerr << "Start loading rme files" << std::endl;
 #else
-    std::cerr << "Start loading rme files" << std::endl;
+    std::cout << "Start loading rme files" << std::endl;
 #endif
 
     for (const auto& entry : std::filesystem::directory_iterator(dir))
@@ -159,9 +157,9 @@ namespace U3xU4
     }
 
 #ifdef USE_MPI
-    std::cerr << "Finish loading rme files on rank " << mpi_rank << std::endl;
+    if (mpi_rank == 0) std::cerr << "Finish loading rme files" << std::endl;
 #else
-    std::cerr << "Finish loading rme files" << std::endl;
+    std::cout << "Finish loading rme files" << std::endl;
 #endif
 
     // Reserve to avoid rehash under concurrency
@@ -173,14 +171,13 @@ namespace U3xU4
 #ifdef SAM_DATA_DIR
     const char* sam_data = std::getenv("SAM_DATA_DIR");    
     if (!sam_data)
-      throw std::runtime_error(
-        "Environment variable SAM_DATA_DIR is not set");
+      throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
 
     dir = std::string(sam_data) + "/rmes";
 #else
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
+      throw std::runtime_error("Environment variable SAM_DIR isn't set");
 
     dir = std::string(sam_dir) + "/data/rmes";
 #endif
@@ -189,13 +186,12 @@ namespace U3xU4
 
     // Preload all existing files
 #ifdef USE_MPI
-    int mpi_rank = 0, mpi_size = 1;
+    int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    std::cerr << "Start loading rme files on rank " << mpi_rank << std::endl;
+    if (mpi_rank == 0) std::cerr << "Start loading rme files" << std::endl;
 #else
-    std::cerr << "Start loading rme files" << std::endl;
+    std::cout << "Start loading rme files" << std::endl;
 #endif
 
     for (const auto& entry : std::filesystem::directory_iterator(dir))
@@ -226,9 +222,9 @@ namespace U3xU4
       cache_.emplace(filename, std::make_unique<RMEFile>(path));
     }
 #ifdef USE_MPI
-    std::cerr << "Finish loading rme files on rank " << mpi_rank << std::endl;
+    if (mpi_rank == 0) std::cerr << "Finish loading rme files" << std::endl;
 #else
-    std::cerr << "Finish loading rme files" << std::endl;
+    std::cout << "Finish loading rme files" << std::endl;
 #endif
 
     // Reserve to avoid rehash under concurrency
@@ -242,11 +238,11 @@ namespace U3xU4
     std::unique_lock cache_lock(cache_mutex_);
 
 #ifdef USE_MPI
-    int mpi_rank = 0, mpi_size = 1;
+    int mpi_rank, mpi_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    std::cerr << "Start destructing RME database on rank " << mpi_rank << std::endl;
+    if (mpi_rank == 0) std::cerr << "Start destructing RME database" << std::endl;
 
     for (int turn = 0; turn < mpi_size; turn++)
     {
@@ -333,9 +329,9 @@ namespace U3xU4
       }
     }
 
-    std::cerr << "Finish destructing RME database on rank " << mpi_rank << std::endl;
+    if (mpi_rank == 0) std::cerr << "Finish destructing RME database" << std::endl;
 #else
-    std::cerr << "Start destructing RME database" << std::endl;
+    std::cout << "Start destructing RME database" << std::endl;
 
     for (auto& [filename, file_ptr] : cache_)
     {
@@ -363,7 +359,7 @@ namespace U3xU4
         qcx_utils::writeBinary(out, rmes);
       }
     }
-    std::cerr << "Finish destructing RME database" << std::endl;
+    std::cout << "Finish destructing RME database" << std::endl;
 #endif
 
     cache_.clear();

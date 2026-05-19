@@ -234,6 +234,9 @@ namespace HO
     void read_from_binary_imsrg(const std::string& filename);
     void read_from_file_nuhamil(const std::string& filename);
 
+    // Release the hash table to free memory
+    void clear();
+
     // Print out name
     void is() const;
     friend std::ostream& operator<<(std::ostream& s, const TwBME_scalar& x);

@@ -24,8 +24,7 @@ namespace JT
     : HO_labels_(HO_labels), gelfand_labels_(gelfand_labels)
   {
     if (maxShell > 14)
-      throw std::out_of_range(
-          "Sorry, we only have maxShell up to 14 at the moment");
+      throw std::out_of_range("Sorry, we only have maxShell up to 14");
 
     hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
     Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
@@ -71,6 +70,12 @@ namespace JT
     }
     else
     {
+#ifdef USE_MPI
+      int mpi_rank = 0;
+      MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+      if (mpi_rank == 0)
+#endif
       std::cout << "WARNING: This operator isn't known" << std::endl;
       
       TT_ = -1;
@@ -83,59 +88,62 @@ namespace JT
   void OneBodyOperator::is() const
   {
 #ifdef USE_MPI
-    int mpi_rank = 0, mpi_size = 1;
+    int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
     if (mpi_rank == 0)
+#endif
     {
-#endif
-    if (name_ == "NumberOp")
-      std::cout << "Number operator N" << std::endl;
-    else if (name_ == "L.L")
-      std::cout << "One-body part of L.L" << std::endl;
-    else if (name_ == "L.S")
-      std::cout << "One-body part of L.S" << std::endl;
-    else if (name_ == "CoMNumberOp")
-      std::cout << "One-body part of the CoM number operator without 1/A"
-                << std::endl;
-    else if (name_ == "Kinetic")
-      std::cout
-          << "One-body part of the relative kinetic energy without (A-1)/A"
-          << std::endl;
-    else if (name_ == "Rrel")
-      std::cout << "One-body part of the intrinsic mass radius squared without "
-                   "(A-1)/A"
-                << std::endl;
-    else if (name_ == "Radius")
-      std::cout << "Point-nucleon radius" // squared without CoM correction 
-                << std::endl;
-    else if (name_ == "Radius_p")
-      std::cout << "Point-proton radius" // squared without CoM correction 
-                << std::endl;
-    else if (name_ == "Radius_n")
-      std::cout << "Point-neutron radius" // squared without CoM correction 
-                << std::endl;
-    else if (name_ == "E2")
-      std::cout << "E2 transition operator"
-                << std::endl;
-    else if (name_ == "M1")
-      std::cout << "M1 transition operator" << std::endl;
-    else if (name_ == "FermiPlus")
-      std::cout << "Fermi for beta+" << std::endl;
-    else if (name_ == "FermiMinus")
-      std::cout << "Fermi for beta-" << std::endl;
-    else if (name_ == "GamowTellerPlus")
-      std::cout << "Gamow-Teller for beta+" << std::endl;
-    else if (name_ == "GamowTellerMinus")
-      std::cout << "Gamow-Teller for beta-" << std::endl;
-    else if (on_the_fly == false)
-      std::cout << "One-body potential with " << name_ << std::endl;
-    else
-      throw std::invalid_argument("This operator has not been implemented");
-#ifdef USE_MPI
+      if (name_ == "NumberOp")
+        std::cout << "Number operator N" << std::endl;
+      else if (name_ == "L.L")
+        std::cout << "One-body part of L.L" << std::endl;
+      else if (name_ == "L.S")
+        std::cout << "One-body part of L.S" << std::endl;
+      else if (name_ == "CoMNumberOp")
+        std::cout << "One-body part of the CoM number operator without 1/A"
+                  << std::endl;
+      else if (name_ == "Kinetic")
+        std::cout
+            << "One-body part of the relative kinetic energy without (A-1)/A"
+            << std::endl;
+      else if (name_ == "Rrel")
+        std::cout << "One-body part of the intrinsic mass radius squared without "
+                     "(A-1)/A"
+                  << std::endl;
+      else if (name_ == "Radius")
+        std::cout << "Point-nucleon radius" // squared without CoM correction 
+                  << std::endl;
+      else if (name_ == "Radius_p")
+        std::cout << "Point-proton radius" // squared without CoM correction 
+                  << std::endl;
+      else if (name_ == "Radius_n")
+        std::cout << "Point-neutron radius" // squared without CoM correction 
+                  << std::endl;
+      else if (name_ == "E2")
+        std::cout << "E2 transition operator"
+                  << std::endl;
+      else if (name_ == "M1")
+        std::cout << "M1 transition operator" << std::endl;
+      else if (name_ == "FermiPlus")
+        std::cout << "Fermi for beta+" << std::endl;
+      else if (name_ == "FermiMinus")
+        std::cout << "Fermi for beta-" << std::endl;
+      else if (name_ == "GamowTellerPlus")
+        std::cout << "Gamow-Teller for beta+" << std::endl;
+      else if (name_ == "GamowTellerMinus")
+        std::cout << "Gamow-Teller for beta-" << std::endl;
+      else if (on_the_fly == false)
+        std::cout << "One-body potential with " << name_ << std::endl;
     }
-#endif
+
+    if (name_ != "NumberOp" && name_ != "L.L" && name_ != "L.S" && 
+        name_ != "CoMNumberOp" && name_ != "Kinetic" && name_ != "Rrel" &&
+        name_ != "Radius" && name_ != "Radius_p" && name_ != "Radius_n" &&
+        name_ != "E2" && name_ != "M1" && name_ != "FermiPlus" && 
+        name_ != "FermiMinus" && name_ != "GamowTellerPlus" &&
+        name_ != "GamowTellerMinus" && on_the_fly == true)
+      throw std::invalid_argument("This operator has not been implemented");
   }
 
   std::ostream& operator<<(std::ostream& s, const OneBodyOperator& x)
@@ -183,14 +191,13 @@ namespace JT
 #ifdef SAM_DATA_DIR
     const char* sam_data = std::getenv("SAM_DATA_DIR");    
     if (!sam_data)
-      throw std::runtime_error(
-        "Environment variable SAM_DATA_DIR is not set");
+      throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
 
     std::string dir = std::string(sam_data) + "/OneBodyOperatorJT/" + name_;
 #else
     const char* sam_dir = std::getenv("SAM_DIR");
     if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
+      throw std::runtime_error("Environment variable SAM_DIR isn't set");
       
     std::string dir = std::string(sam_dir) + "/data/OneBodyOperatorJT/" + name_;
 #endif
@@ -1357,11 +1364,10 @@ namespace JT
                      const U3xU4::MultiShellTensors_phys& tensors) const
   {
 #ifdef USE_MPI
-    int mpi_rank = 0, mpi_size = 1;
+    int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    std::cout << "Start writing " << name_ << " to binary file on rank " 
+    std::cerr << "Start writing " << name_ << " to binary file on rank " 
               << mpi_rank << std::endl;
 #else
     std::cout << "Start writing " << name_ << " to binary file" << std::endl;
@@ -1386,7 +1392,7 @@ namespace JT
     for (const auto& tensor : tensors) tensor.writeBinary(s);
 
 #ifdef USE_MPI
-    std::cout << "Finish writing to binary file on rank " << mpi_rank << std::endl;
+    std::cerr << "Finish writing to binary file on rank " << mpi_rank << std::endl;
 #else
     std::cout << "Finish writing to binary file" << std::endl;
 #endif
@@ -1404,11 +1410,10 @@ namespace JT
     qcx_utils::readBinary(s, maxShell);
 
 #ifdef USE_MPI
-    int mpi_rank = 0, mpi_size = 1;
+    int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    std::cout << "Start reading " << name_ 
+    std::cerr << "Start reading " << name_
               << " from binary file with capacity maxShell = " 
               << static_cast<int>(maxShell) << " on rank " << mpi_rank << std::endl;
 #else
@@ -1457,7 +1462,7 @@ namespace JT
       tensors.push_back(std::move(tensor));
     }
 #ifdef USE_MPI
-    std::cout << "Finish reading from binary file on rank " << mpi_rank << std::endl;
+    std::cerr << "Finish reading from binary file on rank " << mpi_rank << std::endl;
 #else
     std::cout << "Finish reading from binary file" << std::endl;
 #endif
