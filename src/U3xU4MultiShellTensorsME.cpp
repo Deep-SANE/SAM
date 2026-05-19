@@ -17,6 +17,51 @@ using qcx_utils::print;
 
 #include <sam.h>
 
+// Memory diagnostics
+#define DIAGNOSE_MEMORY
+#if defined(__APPLE__)
+#include <mach/mach.h>
+#endif
+
+static double rss_gb()
+{
+#if defined(__linux__)
+  std::ifstream f("/proc/self/status");
+  std::string line;
+  while (std::getline(f, line))
+    if (line.rfind("VmRSS:", 0) == 0)
+      return std::stoul(line.substr(6)) / (1024.0 * 1024.0);
+#elif defined(__APPLE__)
+  mach_task_basic_info info;
+  mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
+  if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO,
+                (task_info_t)&info, &size) == KERN_SUCCESS)
+    return info.resident_size / (1024.0 * 1024.0 * 1024.0);
+#endif
+  return 0.0;
+}
+
+#ifdef USE_MPI
+static void print_rss(const std::string& label, int mpi_rank, int mpi_size)
+{
+  double rss = rss_gb();
+  double rss_min, rss_max, rss_sum;
+  MPI_Reduce(&rss, &rss_min, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&rss, &rss_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&rss, &rss_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  if (mpi_rank == 0)
+    std::cerr << "[MEM] " << label
+              << "  min=" << rss_min
+              << "  avg=" << rss_sum / mpi_size
+              << "  max=" << rss_max << " GB" << std::endl;
+}
+#else
+static void print_rss(const std::string& label, int = 0, int = 1)
+{
+  std::cerr << "[MEM] " << label << "  rss=" << rss_gb() << " GB" << std::endl;
+}
+#endif
+
 namespace U3xU4
 {
   // Helper function to map distribution to indices of gamma elements
@@ -147,6 +192,7 @@ namespace U3xU4
     struct GammaResult {
       std::vector<size_t>                    tensors2;
       std::vector<std::pair<size_t,size_t>>  irrep_pairs; // (bra_id, ket_id)
+      size_t                                 cost;
     };
     std::vector<std::vector<GammaResult>> all_results(dist_pairs.size());
     //          ^                         ^
@@ -284,8 +330,25 @@ namespace U3xU4
 
             // connected_tensors.push_back(std::move(tensors2));
 
+            // compute cost in parallel alongside irrep_pairs
+            size_t cost = 0;
+            for (const auto& [bra_id, ket_id] : irrep_pairs)
+            {
+              size_t bra_amax = irreps[bra_id].alphamax();
+              const auto& bra_labels = labels[bra_id];
+              size_t bra_dim = bra_labels.back()[5] +
+                               bra_labels.back()[0] * bra_labels.back()[2];
+
+              size_t ket_amax = irreps[ket_id].alphamax();
+              const auto& ket_labels = labels[ket_id];
+              size_t ket_dim = ket_labels.back()[5] +
+                               ket_labels.back()[0] * ket_labels.back()[2];
+
+              cost += bra_amax * bra_dim * ket_amax * ket_dim;
+            }
+
             // write only to dist_pair's own slot — no race
-            all_results[p].push_back({std::move(tensors2), std::move(irrep_pairs)});
+            all_results[p].push_back({std::move(tensors2), std::move(irrep_pairs), cost});
           }
         }
       }
@@ -298,23 +361,10 @@ namespace U3xU4
     std::vector<WorkItem> work_items;
     for (size_t p = 0; p < dist_pairs.size(); p++)
       for (size_t r = 0; r < all_results[p].size(); r++)
-      {
-        size_t cost = 0;
-        for (auto& [bra_id, ket_id] : all_results[p][r].irrep_pairs)
-        {
-          const auto& bra_labels = labels[bra_id];
-          size_t bra_dim = bra_labels.back()[5] +
-                           bra_labels.back()[0] * bra_labels.back()[2];
+        work_items.push_back({p, r, all_results[p][r].cost});
 
-          const auto& ket_labels = labels[ket_id];
-          size_t ket_dim = ket_labels.back()[5] +
-                           ket_labels.back()[0] * ket_labels.back()[2];
-
-          cost += (bra_dim * ket_dim);
-        }
-
-        work_items.push_back({p, r, cost});
-      }
+    dist_pairs.clear();
+    dist_pairs.shrink_to_fit();
 
     // LPT: largest items first → round-robin spreads them across ranks
     std::sort(work_items.begin(), work_items.end(),
@@ -360,8 +410,10 @@ namespace U3xU4
     work_items.shrink_to_fit();
     all_results.clear();
     all_results.shrink_to_fit();
-    dist_pairs.clear();
-    dist_pairs.shrink_to_fit();
+
+#ifdef DIAGNOSE_MEMORY
+    print_rss("after prep phase", mpi_rank, mpi_size);
+#endif
 
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
@@ -387,6 +439,9 @@ namespace U3xU4
 
     // RME database
     U3xU4::RME_db RMEdb(basis.maxShell());
+#ifdef DIAGNOSE_MEMORY
+    print_rss("after RMEdb init", mpi_rank, mpi_size);
+#endif
 
 #ifdef USE_OPENMP
 #pragma omp parallel
@@ -683,6 +738,10 @@ namespace U3xU4
     sam::finalize_thread();
 } // pragma omp parallel
 #endif
+
+#ifdef DIAGNOSE_MEMORY
+    print_rss("after OMP block (pre-finalize)", mpi_rank, mpi_size);
+#endif
     
     sam::clear();
     RMEdb.finalize();
@@ -690,6 +749,10 @@ namespace U3xU4
     connected_irreps.shrink_to_fit();
     connected_tensors.clear();
     connected_tensors.shrink_to_fit();
+
+#ifdef DIAGNOSE_MEMORY
+    print_rss("after sam::clear + RMEdb::finalize", mpi_rank, mpi_size);
+#endif
 
 #ifdef USE_MPI
     std::cerr << "Finalize global CSR on rank " << mpi_rank << std::endl;
@@ -702,6 +765,10 @@ namespace U3xU4
     std::cerr << "Finalize global CSR" << std::endl;
     global.finalize();
     std::cout << "Finish computing " << global.size() << " matrix elements" << std::endl;
+#endif
+
+#ifdef DIAGNOSE_MEMORY
+    print_rss("after CSR finalize", mpi_rank, mpi_size);
 #endif
 
     return global;
