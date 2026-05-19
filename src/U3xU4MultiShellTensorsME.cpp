@@ -298,7 +298,23 @@ namespace U3xU4
     std::vector<WorkItem> work_items;
     for (size_t p = 0; p < dist_pairs.size(); p++)
       for (size_t r = 0; r < all_results[p].size(); r++)
-        work_items.push_back({p, r, all_results[p][r].irrep_pairs.size()});
+      {
+        size_t cost = 0;
+        for (auto& [bra_id, ket_id] : all_results[p][r].irrep_pairs)
+        {
+          const auto& bra_labels = labels[bra_id];
+          size_t bra_dim = bra_labels.back()[5] +
+                           bra_labels.back()[0] * bra_labels.back()[2];
+
+          const auto& ket_labels = labels[ket_id];
+          size_t ket_dim = ket_labels.back()[5] +
+                           ket_labels.back()[0] * ket_labels.back()[2];
+
+          cost += (bra_dim * ket_dim);
+        }
+
+        work_items.push_back({p, r, cost});
+      }
 
     // LPT: largest items first → round-robin spreads them across ranks
     std::sort(work_items.begin(), work_items.end(),
