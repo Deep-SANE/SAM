@@ -292,11 +292,25 @@ namespace U3xU4
     }
 
     // (IV) serial assembly
-    size_t global_ci = 0;
 
+    // Build a flat sorted list of work items before distributing
+    struct WorkItem { size_t p_idx, r_idx, cost; };
+    std::vector<WorkItem> work_items;
     for (size_t p = 0; p < dist_pairs.size(); p++)
+      for (size_t r = 0; r < all_results[p].size(); r++)
+        work_items.push_back({p, r, all_results[p][r].irrep_pairs.size()});
+
+    // LPT: largest items first → round-robin spreads them across ranks
+    std::sort(work_items.begin(), work_items.end(),
+              [](const auto& a, const auto& b) { return a.cost > b.cost; });
+
+    size_t global_ci = 0;
+    for (auto& item : work_items)
+    // for (size_t p = 0; p < dist_pairs.size(); p++)
     {
-      for (auto& all_result : all_results[p])
+      auto& all_result = all_results[item.p_idx][item.r_idx];
+
+      // for (auto& all_result : all_results[p])
       {
         // connected_tensors.size() is now correct because we're
         // doing this sequentially in the original loop order
@@ -326,6 +340,8 @@ namespace U3xU4
       }
     }
 
+    work_items.clear();
+    work_items.shrink_to_fit();
     all_results.clear();
     all_results.shrink_to_fit();
     dist_pairs.clear();
@@ -612,6 +628,7 @@ namespace U3xU4
 
       for (Eigen::Index i = 0; i < dim; i++)
       {
+/*
         auto& l_row = local.rows[i];
         if (l_row.empty()) continue;
 
@@ -625,6 +642,25 @@ namespace U3xU4
 
         l_row.clear();
         l_row.shrink_to_fit();
+*/
+        auto& l_row = local.rows[i];
+        if (l_row.cols.empty()) continue;
+
+        for (auto& col : l_row.cols) assert(col < (qcx_utils::CSRMatrix::ColIndex)dim);
+
+        auto& g_row = global.rows[i];
+
+        g_row.cols.insert(g_row.cols.end(),
+                          std::make_move_iterator(l_row.cols.begin()),
+                          std::make_move_iterator(l_row.cols.end()));
+        g_row.vals.insert(g_row.vals.end(),
+                          std::make_move_iterator(l_row.vals.begin()),
+                          std::make_move_iterator(l_row.vals.end()));
+
+        l_row.cols.clear();
+        l_row.cols.shrink_to_fit();
+        l_row.vals.clear();
+        l_row.vals.shrink_to_fit();
       }
     }
 
