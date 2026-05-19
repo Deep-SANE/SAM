@@ -366,9 +366,9 @@ namespace U3xU4
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
 #ifdef USE_MPI
-    std::cout << "Matrix elements preparation time: " << elapsed.count()/60 
+    std::cerr << "Matrix elements preparation time: " << elapsed.count()/60 
               << "min on rank " << mpi_rank << std::endl;
-    std::cout << "Number of connected irreps on rank " << mpi_rank
+    std::cerr << "Number of connected irreps on rank " << mpi_rank
               << ": " << connected_irreps.size() << std::endl;
 #else
     std::cout << "Matrix elements preparation time: " << elapsed.count()/60 << "min" << std::endl;
@@ -378,7 +378,7 @@ namespace U3xU4
 
     // PREPARATION PHASE --- END
 #ifdef USE_MPI
-    std::cout << "Start computing matrix on rank " << mpi_rank << std::endl;
+    std::cerr << "Start computing matrix on rank " << mpi_rank << std::endl;
 #else
     std::cout << "Start computing matrix" << std::endl;
 #endif
@@ -694,7 +694,7 @@ namespace U3xU4
 #ifdef USE_MPI
     std::cerr << "Finalize global CSR on rank " << mpi_rank << std::endl;
     global.finalize();
-    std::cout << "Finish computing " << global.size() << " matrix elements on rank " 
+    std::cerr << "Finish computing " << global.size() << " matrix elements on rank " 
               << mpi_rank << std::endl;
 
     MPI_Barrier(MPI_COMM_WORLD);
