@@ -1325,132 +1325,92 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     U3xU4::MultiShellTensors_phys tensors_rank_final;
     tensors_rank_final.reserve(my_count);
     for (auto& [idx, t] : tensors_rank)
+    {
       if (!t.LLSSTTstrengths().empty()) tensors_rank_final.push_back(std::move(t));
+      // else std::cout << "Ignore: " << t << std::endl;
+    }
 
     tensors_rank.clear();
     tensors_rank.shrink_to_fit();
 
-    // (IV) Writing all ranks to binary file
-
-    // std::cout << "Start writing " << name_ << " to binary file" << std::endl;
-    // Sequential barrier-ordered writes
-    for (int turn = 0; turn < mpi_size; turn++)
+    // (IV) Each rank writes its tensors to its own temp file, then frees immediately.
+    //      All ranks write concurrently — no sequential dependency here.
+    std::string rank_filename = filename + ".rank_" + std::to_string(mpi_rank);
+    std::cerr << "[expand_new] Rank " << mpi_rank << ": opening rank file " << rank_filename << std::endl;
     {
-      MPI_Barrier(MPI_COMM_WORLD);
-
-      if (mpi_rank == turn)
+      std::ofstream rf(rank_filename, std::ios::binary);
+      if (!rf) throw std::runtime_error("Failed to open rank file: " + rank_filename);
+      size_t n = tensors_rank_final.size();
+      std::cerr << "[expand_new] Rank " << mpi_rank << ": writing " << n << " tensors" << std::endl;
+      qcx_utils::writeBinary(rf, n);
+      for (size_t i = 0; i < tensors_rank_final.size(); ++i)
       {
-        std::cerr << "Start printing on rank " << turn << std::endl;
-
-        if (turn == 0)
-        {
-          std::ofstream s(filename, std::ios::binary);
-          if (!s) throw std::runtime_error("Failed to open: " + filename);
-
-          qcx_utils::writeBinary(s, maxShell_);
-
-          // Number of tensors
-          size_t n_tensors = tensors_rank_final.size();
-          // for (const auto& [i, t] : tensors_rank)
-          //   if (!t.LLSSTTstrengths().empty()) n_tensors++;
-
-          qcx_utils::writeBinary(s, n_tensors);
-
-          // for (const auto& [i, t] : tensors_rank)
-          for (const auto& t : tensors_rank_final)
-          {
-            // if (!t.LLSSTTstrengths().empty()) 
-            t.writeBinary(s);
-          }
-
-          s.close();
-        }
-        else
-        {
-/*
-          // 1. Open file and read existing metadata + tensors into `all_tensors`
-          std::ifstream in(filename, std::ios::binary);
-          if (!in) throw std::runtime_error("Failed to open: " + filename);
-
-          HO::qn_t maxShell;
-          qcx_utils::readBinary(in, maxShell);
-
-          // Read number of tensors
-          size_t n_tensors_prev;
-          qcx_utils::readBinary(in, n_tensors_prev);
-
-          U3xU4::MultiShellTensors_phys acc_tensors;
-          acc_tensors.reserve(n_tensors_prev);
-
-          for (size_t i = 0; i < n_tensors_prev; ++i)
-          { 
-            U3xU4::MultiShellTensor_phys tensor(HO_labels_);
-            tensor.readBinary(in);
-
-            acc_tensors.push_back(std::move(tensor));
-          }
-          in.close();
-          std::cerr << "Read " << acc_tensors.size() << " tensors from file" << std::endl;
-
-          // 2. Append this rank's tensors
-          acc_tensors.reserve(acc_tensors.size() + tensors_rank_final.size());
-          for (auto& t : tensors_rank_final)
-          {
-            // if (!t.LLSSTTstrengths().empty())
-            acc_tensors.push_back(std::move(t));
-          }
-
-          std::cerr << "Finish appending new tensors" << std::endl;
-
-          // 3. Write everything back (metadata + all tensors)
-          std::ofstream out(filename, std::ios::binary);
-          if (!out) throw std::runtime_error("Failed to open: " + filename);
-          
-          qcx_utils::writeBinary(out, maxShell_);
-
-          // Number of tensors
-          size_t n_tensors = acc_tensors.size();
-          qcx_utils::writeBinary(out, n_tensors);
-
-          for (const auto& t : acc_tensors) t.writeBinary(out);
-*/
-          std::fstream f(filename, std::ios::in | std::ios::out | std::ios::binary);
-          if (!f) throw std::runtime_error("Failed to open: " + filename);
-
-          // Read just the header
-          HO::qn_t maxShell;
-          qcx_utils::readBinary(f, maxShell);
-
-          auto count_pos = f.tellg(); // save position of n_tensors field
-          size_t n_tensors_prev;
-          qcx_utils::readBinary(f, n_tensors_prev);
-
-          // Append this rank's tensors at end of file
-          f.seekp(0, std::ios::end);
-          for (const auto& t : tensors_rank_final)
-            t.writeBinary(f);
-
-          // Seek back and update count
-          size_t n_tensors_new = n_tensors_prev + tensors_rank_final.size();
-          f.seekp(count_pos);
-          qcx_utils::writeBinary(f, n_tensors_new);
-
-          f.close();
-        }
-
-        std::cerr << "Finish printing on rank " << turn << std::endl;
+        tensors_rank_final[i].writeBinary(rf);
+        if ((i + 1) % 1000 == 0 || i + 1 == tensors_rank_final.size())
+          std::cerr << "[expand_new] Rank " << mpi_rank << ": wrote tensor "
+                    << (i + 1) << " / " << tensors_rank_final.size() << std::endl;
       }
+      if (!rf) throw std::runtime_error("Write failed on rank file: " + rank_filename);
     }
-    MPI_Barrier(MPI_COMM_WORLD); // ensure all ranks finish before returning
-    // std::cout << "Finish writing to binary file" << std::endl;
+    std::cerr << "[expand_new] Rank " << mpi_rank << ": rank file closed OK ("
+              << tensors_rank_final.size() << " tensors)" << std::endl;
 
-    // (V) Free memory
+    // Free immediately — all ranks drop their tensors before anyone starts the merge,
+    // so peak node memory = 1 rank's tensors (not mpi_size ranks simultaneously).
     tensors_rank_final.clear();
     tensors_rank_final.shrink_to_fit();
+    std::cerr << "[expand_new] Rank " << mpi_rank << ": tensors freed, entering barrier" << std::endl;
+
+    MPI_Barrier(MPI_COMM_WORLD); // wait for all rank files to be written
+    std::cerr << "[expand_new] Rank " << mpi_rank << ": past write barrier" << std::endl;
+
+    // (V) Rank 0 does a streaming merge: raw byte copy, O(1) tensor memory.
+    if (mpi_rank == 0)
+    {
+      // Write header with placeholder count, stream rank files, then seek back to update count.
+      // Single pass — no pre-counting loop needed.
+      std::ofstream out(filename, std::ios::binary);
+      if (!out) throw std::runtime_error("Failed to open output file: " + filename);
+      qcx_utils::writeBinary(out, maxShell_);
+      auto count_pos = out.tellp();          // save position of n_tensors field
+      size_t placeholder = 0;
+      qcx_utils::writeBinary(out, placeholder);
+      std::cerr << "[expand_new] Rank 0: header written, streaming rank files" << std::endl;
+
+      size_t total_tensors = 0;
+      for (int r = 0; r < mpi_size; ++r)
+      {
+        std::string rf_name = filename + ".rank_" + std::to_string(r);
+        std::cerr << "[expand_new] Rank 0: streaming rank file " << r << std::endl;
+        std::ifstream rf(rf_name, std::ios::binary);
+        size_t n; qcx_utils::readBinary(rf, n); // read per-rank count
+        std::cerr << "[expand_new] Rank 0: rank " << r << " has " << n << " tensors" << std::endl;
+        total_tensors += n;
+        if (n > 0)  // rdbuf() sets failbit if 0 bytes extracted — skip for empty ranks
+        {
+          out << rf.rdbuf();                     // raw byte copy — no deserialization
+          if (!out) throw std::runtime_error("Write failed after streaming rank file " + rf_name);
+        }
+        rf.close();
+        std::remove(rf_name.c_str());
+        std::cerr << "[expand_new] Rank 0: rank file " << r << " streamed and removed" << std::endl;
+      }
+
+      // Seek back and overwrite the placeholder with the real count
+      out.seekp(count_pos);
+      qcx_utils::writeBinary(out, total_tensors);
+      out.close();
+      std::cerr << "[expand_new] Rank 0: merged " << total_tensors
+                << " tensors into " << filename << std::endl;
+    }
+
+    std::cerr << "[expand_new] Rank " << mpi_rank << ": entering final barrier" << std::endl;
+    MPI_Barrier(MPI_COMM_WORLD); // wait for merge before all ranks do final read
+    std::cerr << "[expand_new] Rank " << mpi_rank << ": past final barrier, starting final read" << std::endl;
 
     // (VI) Final read and return on all ranks
     std::ifstream s(filename, std::ios::binary);
-    if (!s) throw std::runtime_error("Failed to open: " + filename);
+    if (!s) throw std::runtime_error("Failed to open for final read: " + filename);
 
     HO::qn_t maxShell;
     qcx_utils::readBinary(s, maxShell);
@@ -1458,18 +1418,23 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     // Read number of tensors
     size_t n_tensors;
     qcx_utils::readBinary(s, n_tensors);
+    std::cerr << "[expand_new] Rank " << mpi_rank << ": final read expects "
+              << n_tensors << " tensors" << std::endl;
 
     U3xU4::MultiShellTensors_phys tensors;
     tensors.reserve(n_tensors);
 
     for (size_t i = 0; i < n_tensors; ++i)
-    { 
+    {
       U3xU4::MultiShellTensor_phys tensor(HO_labels_);
       tensor.readBinary(s);
-
       tensors.push_back(std::move(tensor));
+      if ((i + 1) % 1000 == 0 || i + 1 == n_tensors)
+        std::cerr << "[expand_new] Rank " << mpi_rank << ": read tensor "
+                  << (i + 1) << " / " << n_tensors << std::endl;
     }
 
+    std::cerr << "[expand_new] Rank " << mpi_rank << ": final read done" << std::endl;
     return tensors;
   }
 
@@ -1679,110 +1644,98 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     U3xU4::MultiShellTensors_phys tensors_rank_final;
     tensors_rank_final.reserve(my_count);
     for (auto& [idx, t] : tensors_rank)
+    {
       if (!t.LLSSTTstrengths().empty()) tensors_rank_final.push_back(std::move(t));
+      // else std::cout << "Ignore: " << t << std::endl;
+    }
     
     tensors_rank.clear();
     tensors_rank.shrink_to_fit();
 
-    // (IV) Writing all ranks to binary file
-
-    // std::cout << "Start writing " << name_ << " to binary file" << std::endl;
-    // Sequential barrier-ordered writes
-    for (int turn = 0; turn < mpi_size; turn++)
+    // (IV) Each rank writes its tensors to its own temp file, then frees immediately.
+    //      All ranks write concurrently — no sequential dependency here.
+    std::string rank_filename = filename + ".rank_" + std::to_string(mpi_rank);
+    std::cerr << "[expand_exist] Rank " << mpi_rank << ": opening rank file " << rank_filename << std::endl;
     {
-      MPI_Barrier(MPI_COMM_WORLD);
-
-      if (mpi_rank == turn)
+      std::ofstream rf(rank_filename, std::ios::binary);
+      if (!rf) throw std::runtime_error("Failed to open rank file: " + rank_filename);
+      size_t n = tensors_rank_final.size();
+      std::cerr << "[expand_exist] Rank " << mpi_rank << ": writing " << n << " tensors" << std::endl;
+      qcx_utils::writeBinary(rf, n);
+      for (size_t i = 0; i < tensors_rank_final.size(); ++i)
       {
-        std::cerr << "Start printing on rank " << turn << std::endl;
-/*
-        // 1. Open file and read existing metadata + tensors into `all_tensors`
-        std::ifstream in(filename, std::ios::binary);
-        if (!in) throw std::runtime_error("Failed to open: " + filename);
-
-        HO::qn_t maxShell;
-        qcx_utils::readBinary(in, maxShell);
-
-        // Read number of tensors
-        size_t n_tensors_prev;
-        qcx_utils::readBinary(in, n_tensors_prev);
-
-        U3xU4::MultiShellTensors_phys acc_tensors;
-        acc_tensors.reserve(n_tensors_prev);
-
-        for (size_t i = 0; i < n_tensors_prev; ++i)
-        {
-          // if (i % 1000 == 0) std::cerr << "Reading tensor " << i << "/" << n_tensors_prev << std::endl;
-
-          U3xU4::MultiShellTensor_phys tensor(HO_labels_);
-          tensor.readBinary(in);
-
-          acc_tensors.push_back(std::move(tensor));
-        }
-        in.close();
-        std::cerr << "Read " << acc_tensors.size() << " tensors from file" << std::endl;
-
-        // 2. Append this rank's tensors
-        acc_tensors.reserve(acc_tensors.size() + tensors_rank_final.size());
-        // for (auto& [i, t] : tensors_rank) 
-        for (auto& t : tensors_rank_final)
-        {
-          // if (!t.LLSSTTstrengths().empty())
-          acc_tensors.push_back(std::move(t));
-        }
-
-        std::cerr << "Finish appending new tensors" << std::endl;
-
-        // 3. Write everything back (metadata + all tensors)
-        std::ofstream out(filename, std::ios::binary);
-        if (!out) throw std::runtime_error("Failed to open: " + filename);
-
-        qcx_utils::writeBinary(out, maxShell_);
-
-        // Number of tensors
-        size_t n_tensors = acc_tensors.size();
-        qcx_utils::writeBinary(out, n_tensors);
-
-        // for (const auto& t : acc_tensors) t.writeBinary(out);
-	      for (size_t i = 0; i < acc_tensors.size(); ++i)
-	      {
-          // if (i % 1000 == 0) std::cerr << "Writing tensor " << i << "/" << acc_tensors.size() << std::endl;
-
-	        acc_tensors[i].writeBinary(out);
-	      }
-*/
-        std::fstream f(filename, std::ios::in | std::ios::out | std::ios::binary);
-        if (!f) throw std::runtime_error("Failed to open: " + filename);
-
-        // Read just the header
-        HO::qn_t maxShell;
-        qcx_utils::readBinary(f, maxShell);
-
-        auto count_pos = f.tellg(); // save position of n_tensors field
-        size_t n_tensors_prev;
-        qcx_utils::readBinary(f, n_tensors_prev);
-
-        // Append this rank's tensors at end of file
-        f.seekp(0, std::ios::end);
-        for (const auto& t : tensors_rank_final)
-          t.writeBinary(f);
-
-        // Seek back and update count
-        size_t n_tensors_new = n_tensors_prev + tensors_rank_final.size();
-        f.seekp(count_pos);
-        qcx_utils::writeBinary(f, n_tensors_new);
-
-        f.close();
-        
-        std::cerr << "Finish printing on rank " << turn << std::endl;
+        tensors_rank_final[i].writeBinary(rf);
+        if ((i + 1) % 1000 == 0 || i + 1 == tensors_rank_final.size())
+          std::cerr << "[expand_exist] Rank " << mpi_rank << ": wrote tensor "
+                    << (i + 1) << " / " << tensors_rank_final.size() << std::endl;
       }
+      if (!rf) throw std::runtime_error("Write failed on rank file: " + rank_filename);
     }
-    MPI_Barrier(MPI_COMM_WORLD); // ensure all ranks finish before returning
-    // std::cout << "Finish writing to binary file" << std::endl;
+    std::cerr << "[expand_exist] Rank " << mpi_rank << ": rank file closed OK ("
+              << tensors_rank_final.size() << " tensors)" << std::endl;
 
-    // (V) Free memory
+    // Free immediately — all ranks drop their tensors before anyone starts the merge,
+    // so peak node memory = 1 rank's tensors (not mpi_size ranks simultaneously).
     tensors_rank_final.clear();
     tensors_rank_final.shrink_to_fit();
+    std::cerr << "[expand_exist] Rank " << mpi_rank << ": tensors freed, entering barrier" << std::endl;
+
+    MPI_Barrier(MPI_COMM_WORLD); // wait for all rank files to be written
+    std::cerr << "[expand_exist] Rank " << mpi_rank << ": past write barrier" << std::endl;
+
+    // (V) Rank 0 appends all rank tensor bytes to the existing file.
+    //     Raw byte streaming — no tensor deserialization, O(1) memory.
+    if (mpi_rank == 0)
+    {
+      // Open existing file: read header, seek to end, stream-append all rank files
+      std::cerr << "[expand_exist] Rank 0: opening existing file " << filename << std::endl;
+      std::fstream f(filename, std::ios::in | std::ios::out | std::ios::binary);
+      if (!f) throw std::runtime_error("Failed to open: " + filename);
+      auto maxShell_pos = f.tellg();       // byte 0: position of maxShell field
+      HO::qn_t maxShell;
+      qcx_utils::readBinary(f, maxShell);
+      auto count_pos = f.tellg();          // right after maxShell: position of n_tensors field
+      size_t n_tensors_prev;
+      qcx_utils::readBinary(f, n_tensors_prev);
+      std::cerr << "[expand_exist] Rank 0: existing file has " << n_tensors_prev
+                << " tensors (maxShell " << (int)maxShell << " -> " << (int)maxShell_ 
+                << "), seeking to end" << std::endl;
+
+      f.seekp(0, std::ios::end);
+      size_t n_new = 0;
+      for (int r = 0; r < mpi_size; ++r)
+      {
+        std::string rf_name = filename + ".rank_" + std::to_string(r);
+        std::cerr << "[expand_exist] Rank 0: appending rank file " << r << std::endl;
+        std::ifstream rf(rf_name, std::ios::binary);
+        size_t n; qcx_utils::readBinary(rf, n); // read per-rank count
+        std::cerr << "[expand_exist] Rank 0: rank " << r << " has " << n << " tensors" << std::endl;
+        n_new += n;
+        if (n > 0)  // rdbuf() sets failbit if 0 bytes extracted — skip for empty ranks
+        {
+          f << rf.rdbuf();                       // raw byte append — no deserialization
+          if (!f) throw std::runtime_error("Write failed after appending rank file " + rf_name);
+        }
+        rf.close();
+        std::remove(rf_name.c_str());
+        std::cerr << "[expand_exist] Rank 0: rank file " << r << " appended and removed" << std::endl;
+      }
+
+      size_t total = n_tensors_prev + n_new;
+      std::cerr << "[expand_exist] Rank 0: updating header (maxShell=" << maxShell_
+                << ", n_tensors=" << total << ")" << std::endl;
+      f.seekp(maxShell_pos);
+      qcx_utils::writeBinary(f, maxShell_);  // update maxShell to new (larger) value
+      qcx_utils::writeBinary(f, total);      // update tensor count (lands at count_pos)
+      f.close();
+
+      std::cerr << "[expand_exist] Rank 0: appended " << n_new
+                << " tensors, total = " << total << std::endl;
+    }
+
+    std::cerr << "[expand_exist] Rank " << mpi_rank << ": entering final barrier" << std::endl;
+    MPI_Barrier(MPI_COMM_WORLD);
+    std::cerr << "[expand_exist] Rank " << mpi_rank << ": past final barrier" << std::endl;
 
 /*
     // Final read and return on all ranks
