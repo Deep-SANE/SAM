@@ -334,17 +334,18 @@ namespace U3xU4
             size_t cost = 0;
             for (const auto& [bra_id, ket_id] : irrep_pairs)
             {
-              size_t bra_amax = irreps[bra_id].alphamax();
+              // size_t bra_amax = irreps[bra_id].alphamax();
               const auto& bra_labels = labels[bra_id];
               size_t bra_dim = bra_labels.back()[5] +
                                bra_labels.back()[0] * bra_labels.back()[2];
 
-              size_t ket_amax = irreps[ket_id].alphamax();
+              // size_t ket_amax = irreps[ket_id].alphamax();
               const auto& ket_labels = labels[ket_id];
               size_t ket_dim = ket_labels.back()[5] +
                                ket_labels.back()[0] * ket_labels.back()[2];
 
-              cost += bra_amax * bra_dim * ket_amax * ket_dim;
+              // cost += bra_amax * bra_dim * ket_amax * ket_dim;
+              cost += bra_dim * ket_dim;
             }
 
             // write only to dist_pair's own slot — no race
