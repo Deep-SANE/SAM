@@ -317,6 +317,7 @@ namespace U3xU4
             // instead of pushing to connected_irreps/connected_tensors,
             // collect the irrep pairs locally
             std::vector<std::pair<size_t,size_t>> irrep_pairs;
+            size_t cost = 0;
             for (const auto& bra_id : bra_irrep_ids)
               for (const auto& ket_id : ket_irrep_ids)
               {
@@ -326,27 +327,25 @@ namespace U3xU4
                 // connected_irreps.emplace_back(bra_id, ket_id, connected_tensors.size());
 
                 irrep_pairs.push_back({bra_id, ket_id});
+
+                // compute cost in parallel alongside irrep_pairs
+                // size_t bra_amax = irreps[bra_id].alphamax();
+                const auto& bra_labels = labels[bra_id];
+                size_t bra_dim = bra_labels.back()[5] +
+                                 bra_labels.back()[0] * bra_labels.back()[2];
+
+                // size_t ket_amax = irreps[ket_id].alphamax();
+                const auto& ket_labels = labels[ket_id];
+                size_t ket_dim = ket_labels.back()[5] +
+                                 ket_labels.back()[0] * ket_labels.back()[2];
+
+                // cost += bra_amax * bra_dim * ket_amax * ket_dim;
+                cost += bra_dim * ket_dim;
               }
 
             // connected_tensors.push_back(std::move(tensors2));
 
-            // compute cost in parallel alongside irrep_pairs
-            size_t cost = 0;
-            for (const auto& [bra_id, ket_id] : irrep_pairs)
-            {
-              // size_t bra_amax = irreps[bra_id].alphamax();
-              const auto& bra_labels = labels[bra_id];
-              size_t bra_dim = bra_labels.back()[5] +
-                               bra_labels.back()[0] * bra_labels.back()[2];
-
-              // size_t ket_amax = irreps[ket_id].alphamax();
-              const auto& ket_labels = labels[ket_id];
-              size_t ket_dim = ket_labels.back()[5] +
-                               ket_labels.back()[0] * ket_labels.back()[2];
-
-              // cost += bra_amax * bra_dim * ket_amax * ket_dim;
-              cost += bra_dim * ket_dim;
-            }
+            cost += tensors2.size() * irrep_pairs.size();
 
             // write only to dist_pair's own slot — no race
             all_results[p].push_back({std::move(tensors2), std::move(irrep_pairs), cost});
