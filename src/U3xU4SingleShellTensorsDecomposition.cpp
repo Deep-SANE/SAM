@@ -3,7 +3,7 @@
 #include <utility>
 
 #include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
+#include <so3Coeffs/SO3_Fano.h>
 
 #include <U3U2xU3U2.h>
 #include <U3SO3xU3SO3.h>
@@ -294,7 +294,7 @@ namespace U3xU4
   Tad_phys::expand() const
   {
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -730,7 +730,7 @@ namespace U3xU4
   Tat_phys::expand() const
   {
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -1139,7 +1139,7 @@ namespace U3xU4
   SingleShellTensor_phys::expand() const
   {
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -1325,7 +1325,7 @@ namespace U3xU4
                                     const HO::TwBME_scalar& TBME) const
   {
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -1471,7 +1471,7 @@ namespace U3xU4
                         const std::vector<HO::TwBME_scalar>& TBMEs) const
   {
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 

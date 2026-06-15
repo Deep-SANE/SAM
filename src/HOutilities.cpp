@@ -13,7 +13,7 @@
 #include <qcx_readwrite.h>
 
 #include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
+#include <so3Coeffs/SO3_Fano.h>
 
 #define POSITIVE_INFINITY
 //#define POSITIVE_ORIGIN
@@ -76,7 +76,7 @@ namespace HO
   {
     if (na == nb + 1)
     {
-      double factor = qcx_utils::racahs9().get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
+      double factor = qcx_utils::fanos().get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
       return factor * bosonCreatorRME(na, lla, nb, llb);
     }
     else
@@ -113,7 +113,7 @@ namespace HO
   {
     if (na == nb - 1)
     {
-      double factor = qcx_utils::racahs9().get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
+      double factor = qcx_utils::fanos().get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
       return factor * bosonAnnihilatorRME(na, lla, nb, llb);
     }
     else

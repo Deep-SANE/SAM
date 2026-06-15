@@ -7,7 +7,7 @@
 using qcx_utils::print;
 
 #include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
+#include <so3Coeffs/SO3_Fano.h>
 
 #include <U3SO3xU3SO3.h>
 #include <U4SU2SU2xU4SU2SU2.h>
@@ -133,7 +133,7 @@ namespace U3xU4
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -794,7 +794,7 @@ namespace U3xU4
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -1345,7 +1345,7 @@ namespace U3xU4
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -1876,7 +1876,7 @@ namespace U3xU4
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -2135,7 +2135,7 @@ namespace U3xU4
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -2403,7 +2403,7 @@ namespace U3xU4
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -2666,7 +2666,7 @@ namespace U3xU4
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 

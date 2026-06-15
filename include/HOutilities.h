@@ -14,7 +14,7 @@
 #include <GlobalConstants.h>
 
 #include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
+#include <so3Coeffs/SO3_Fano.h>
 
 namespace HO
 {

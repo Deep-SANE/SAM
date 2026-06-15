@@ -3,7 +3,7 @@
 #include <U3xU4irrep.h>
 
 #include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
+#include <so3Coeffs/SO3_Fano.h>
 
 #include <U3SO3xU3SO3.h>
 #include <U4SU2SU2xU4SU2SU2.h>
@@ -30,7 +30,7 @@ namespace U3xU4
                         int MMT3, int JJ3, int MMJ3)
     {
       auto& cgcs = qcx_utils::cgcs();
-      auto& racah9 = qcx_utils::racahs9();
+      auto& racah9 = qcx_utils::fanos();
       auto& wigU3SO3db = u3::wigU3SO3db();
       auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
