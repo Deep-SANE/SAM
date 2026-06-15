@@ -10,6 +10,8 @@
 #include <qcx_print.h>
 using qcx_utils::print;
 #include <so3Coeffs/SO3_CGC.h>
+#include <so3Coeffs/SO3_Racah.h>
+#include <so3Coeffs/SO3_Fano.h>
 
 #include <sam.h>
 
@@ -217,7 +219,7 @@ namespace JT
   {
     auto& cgcs = qcx_utils::cgcs();
     auto& racah = qcx_utils::racahs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
 
     double x = 0.0;
 
@@ -1764,6 +1766,15 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 */
   }
 
+  void TwoBodyOperator::scaleStrengths(U3xU4::MultiShellTensors_phys& tensors) const
+  {
+    if (!on_the_fly) return;
+    if (name_ == "Kinetic")
+      for (auto& t : tensors) t.enhanceStrengths(static_cast<double>(hw_) / 20.0);
+    else if (name_ == "Rrel")
+      for (auto& t : tensors) t.enhanceStrengths(20.0 / static_cast<double>(hw_));
+  }
+
   U3xU4::MultiShellTensors_phys 
     TwoBodyOperator::expand()
   {
@@ -1772,26 +1783,35 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     std::string base_dir = dirname() + "/Expansion";
     std::filesystem::create_directories(base_dir);
 
-    std::string filename = base_dir + "/" + name_ + "_hw" 
-                         + std::to_string(static_cast<int>(hw_));
+    std::string filename = base_dir + "/" + name_ + "_hw";
+    if (on_the_fly) filename += "20";
+    else filename += std::to_string(static_cast<int>(hw_));
 
     // if this file exists, returns immediately
     if (std::filesystem::exists(filename))
     {
 #ifdef USE_MPI
-      return readBinary_MPI(filename);
+      return readBinary_MPI(filename); // rescale internally
 #else
-      return readBinary(filename);
+      return readBinary(filename); // rescale internally
 #endif
     }
     else
     {
+      auto requested_hw = hw_;
+      // only change hw to 20 if the matrix elements are computed on the fly
+      if (on_the_fly) hw_ = 20;
+
 #ifdef USE_MPI
       auto tensors = expand_new_MPI(filename);
 #else
       auto tensors = expand_new();
-      writeBinary(filename, tensors);
+      writeBinary(filename, tensors); // persist hw=20
 #endif
+
+      hw_ = requested_hw;
+      scaleStrengths(tensors); // scale to requested hw
+      
       return tensors;
     }
   }
@@ -2022,37 +2042,30 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     std::cout << "Finish reading to binary file" << std::endl;
 #endif
 
-    if (maxShell_ > maxShell)
+    if ((maxShell_ > maxShell) or (maxShell_ - 2 * valenceShell_ > maxShell /* = Nmax */))
     {
 #ifdef USE_MPI
       if (mpi_rank == 0)
 #endif
-      std::cout << "File doesn't reach your maxShell, it will be expanded now" << std::endl;
+      std::cout << "File doesn't reach your maxShell/Nmax, it will be expanded now" << std::endl;
 
       valenceShell_ = 0;
       Nmax_ = maxShell_;
 
-      // auto tensors = expand_new();
-      expand_exist(maxShell, maxShell, tensors); // maxShell is from file
-      writeBinary(filename, tensors);
-      return tensors;
-    }
-
-    if (maxShell_ - 2 * valenceShell_ > maxShell /* = Nmax */)
-    {
-#ifdef USE_MPI
-      if (mpi_rank == 0)
-#endif
-      std::cout << "File doesn't reach your Nmax, it will be expanded now" << std::endl;
-      valenceShell_ = 0;
-      Nmax_ = maxShell_;
+      auto requested_hw = hw_;
+      // only change hw to 20 if the matrix elements are computed on the fly
+      if (on_the_fly) hw_ = 20;
 
       // auto tensors = expand_new();
       expand_exist(maxShell, maxShell, tensors); // maxShell is from file
       writeBinary(filename, tensors);
+
+      hw_ = requested_hw;
+      scaleStrengths(tensors);
       return tensors;
     }
 
+    scaleStrengths(tensors);
     return tensors;
   }
 
@@ -2078,8 +2091,14 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       valenceShell_ = 0;
       Nmax_ = maxShell_;
 
+      auto requested_hw = hw_;
+      // only change hw to 20 if the matrix elements are computed on the fly
+      if (on_the_fly) hw_ = 20;
+
       s.close(); // close before expansion rewrites the file
       expand_exist_MPI(filename, maxShell, maxShell); // maxShell is from file
+
+      hw_ = requested_hw;
 
       s.open(filename, std::ios::binary); // reopen updated file
       qcx_utils::readBinary(s, maxShell); // re-read header
@@ -2123,6 +2142,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
     std::cerr << "Finish reading from binary file on rank " << mpi_rank << std::endl;
 
+    scaleStrengths(tensors);
     return tensors;
   }
 

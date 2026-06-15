@@ -7,6 +7,7 @@
 #include <qcx_readwrite.h>
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
+#include <so3Coeffs/SO3_Fano.h>
 
 #include <U3SO3xU3SO3.h>
 #include <U4SU2SU2xU4SU2SU2.h>
@@ -213,7 +214,7 @@ namespace JT
   {
     auto& cgcs = qcx_utils::cgcs();
     auto& racah = qcx_utils::racahs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
 
     double x = 0.0;
 
@@ -672,7 +673,7 @@ namespace JT
                                      int na, int nb) const
   {
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -793,7 +794,7 @@ namespace JT
                                      int na, int nb) const
   {
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -1108,7 +1109,7 @@ namespace JT
                                     int na, int nb) const
   {
     auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::racahs9();
+    auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -1335,8 +1336,9 @@ namespace JT
     std::string base_dir = dirname() + "/Expansion";
     std::filesystem::create_directories(base_dir);
 
-    std::string filename = base_dir + "/" + name_ + "_hw" 
-                         + std::to_string(static_cast<int>(hw_));
+    std::string filename = base_dir + "/" + name_ + "_hw";
+    if (on_the_fly) filename += "20";
+    else filename += std::to_string(static_cast<int>(hw_));
 
     // if this file exists, returns immediately
     if (std::filesystem::exists(filename))
@@ -1345,17 +1347,28 @@ namespace JT
     }
     else
     {
+#ifdef USE_MPI
+      int mpi_rank = 0;
+      MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+      if (mpi_rank == 0)
+        std::cout << "File doesn't exist, new expansion is called" << std::endl;
+#endif
+
+      auto requested_hw = hw_;
+      // only change hw to 20 if the matrix elements are computed on the fly
+      if (on_the_fly) hw_ = 20;
+
       auto tensors = expand_new();
 
 #ifdef USE_MPI
-      int mpi_rank = 0, mpi_size = 1;
-      MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-      MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-
       if (mpi_rank == 0)
 #endif
       writeBinary(filename, tensors);
-      return tensors;
+
+      hw_ = requested_hw;
+      // return tensors;
+      return readBinary(filename);
     }
   }
 
@@ -1432,13 +1445,20 @@ namespace JT
       valenceShell_ = 0;
       Nmax_ = maxShell_;
 
+      auto requested_hw = hw_;
+      // only change hw to 20 if the matrix elements are computed on the fly
+      if (on_the_fly) hw_ = 20;
+
       auto tensors = expand_new();
-      
+
 #ifdef USE_MPI
       if (mpi_rank == 0)
 #endif
       writeBinary(filename, tensors);
-      return tensors;
+
+      hw_ = requested_hw;
+      // return tensors;
+      return readBinary(filename);
     }
 
     // Read number of tensors
@@ -1458,6 +1478,15 @@ namespace JT
 
       // tensor cannot shift more quanta than Nmax
       if (abs(tensor.shift_quanta()) > Nmax_) continue;
+
+      if (on_the_fly)
+      {
+        if (name_ == "Kinetic")
+          tensor.enhanceStrengths(static_cast<double>(hw_) / 20.0);
+        else if (name_ == "Rrel" or name_ == "Radius" or name_ == "Radius_p" or 
+                 name_ == "Radius_n" or name_ == "E2")
+          tensor.enhanceStrengths(20.0 / static_cast<double>(hw_));
+      }
 
       tensors.push_back(std::move(tensor));
     }

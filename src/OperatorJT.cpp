@@ -496,7 +496,7 @@ namespace JT
     else if (potential_name_ == "custom_potential")
     {
       JT::OneBodyOperator 
-        CoM1("CoMNumberOp", 20, Nmax_, valenceShell_, maxShell_,
+        CoM1("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_,
                                     HO_labels_, gelfand_labels_),
         V1(name_, hw_, Nmax_, valenceShell_, maxShell_,
                                     HO_labels_, gelfand_labels_);
@@ -505,7 +505,7 @@ namespace JT
       auto v1s = V1.expand();
 
       JT::TwoBodyOperator 
-        CoM2("CoMNumberOp", 20, Nmax_, valenceShell_, maxShell_,
+        CoM2("CoMNumberOp", hw_, Nmax_, valenceShell_, maxShell_,
                                     HO_labels_, gelfand_labels_),
         V2(name_, hw_, Nmax_, valenceShell_, maxShell_,
                                     HO_labels_, gelfand_labels_);

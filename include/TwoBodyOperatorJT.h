@@ -169,6 +169,9 @@ namespace JT
     bool U3selection(const u3::irrep& irr) const;
     bool U4selection(const u4::irrep& irr) const;
 
+    // helper to scale strength of tensors for Kinetic and Rrel
+    void scaleStrengths(U3xU4::MultiShellTensors_phys& tensors) const;
+
   public:
     // Expand into a sum of U3xU4::TwoBodyMultiShellTensors
     U3xU4::TwoBodyMultiShellTensors expand_old();
@@ -187,6 +190,16 @@ namespace JT
     // If non-exisitng, expand into a sum of U3xU4::MultiShellTensor_phys
     // Otherwise, expand only the new ones
     U3xU4::MultiShellTensors_phys expand();
+    /* Note for expand():
+    - When this method is called, a filename is determined. If the file exists,
+      proceed to readBinary() or readBinary_MPI(); otherwise, a list of tensors 
+      is obtained from expand_new() or expand_new_MPI() and written to the file.
+    - For operators whose matrix elements are computed on the fly: 
+      + expand_new() or expand_new_MPI() always requires hw_ = 20, thus filename 
+        will always end with hw20
+      + when readBinary() or readBinary_MPI() is called, strength of tensors are 
+        scaled accordingly 
+    */
 
     // Expand into a sum of U3xU4::MultiShellTensor_phys for multiple potentials
     // I don't recommend this, it's very slow

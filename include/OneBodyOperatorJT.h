@@ -93,6 +93,14 @@ namespace JT
     // Expand into a sum of U3xU4::MultiShellTensor_phys
     U3xU4::MultiShellTensors_phys expand_new();
     U3xU4::MultiShellTensors_phys expand();
+    /* Note for expand():
+    - When this method is called, a filename is determined. If the file exists,
+      proceed to readBinary; otherwise, a list of tensors is obtained from 
+      expand_new() and written to the file.
+    - For operators whose matrix elements are computed on the fly: 
+      + expand_new() always requires hw_ = 20, thus filename will always end with hw20
+      + when readBinary() is called, strength of tensors are scaled accordingly 
+    */
 
     // Write to binary file
     void writeBinary(const std::string& filename, 
