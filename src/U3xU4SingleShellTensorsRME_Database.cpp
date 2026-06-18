@@ -1,6 +1,10 @@
 #include <mutex>
 #include <U3xU4SingleShellTensorsRME_Database.h>
 
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
+
 namespace U3xU4
 {
   RME_db::RMEKey::RMEKey(const U3xU4::GammaElement& f,

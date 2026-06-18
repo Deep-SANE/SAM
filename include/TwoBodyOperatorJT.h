@@ -19,7 +19,7 @@ namespace JT
     const HO::Table_nljmjmt& HO_labels_;
     const U3xU4::Table_gelfand& gelfand_labels_;
 
-    HO::qn_t JJ_, MMJ_, TT_, MMT_, parity_,
+    HO::qn_t JJ_, MMJ_, TT_, MMT_, parity_, // (0=even,1=odd)
              hw_, Nmax_, valenceShell_, maxShell_;
     // Note that nuclear potentials mix isospin, thus we assign TT = -1
 
@@ -28,11 +28,6 @@ namespace JT
 
     std::optional<HO::TwBME_scalar> TBME; // only read input file during
                                          // expand() or writeBinary()
-
-
-    // For expansion of multiple potentials simultaneously
-    std::vector<std::string> names_;
-    std::optional<std::vector<HO::TwBME_scalar>> TBMEs;
 
     // List of available operators
     const std::unordered_set<std::string> known_scalar_ops = {
@@ -55,12 +50,6 @@ namespace JT
                     const HO::Table_nljmjmt& HO_labels,
                     const U3xU4::Table_gelfand& gelfand_labels);
 
-    // Constructor for multiple potentials
-    TwoBodyOperator(const std::vector<std::string>& names, int hw, int Nmax, 
-                    int valenceShell, int maxShell,
-                    const HO::Table_nljmjmt& HO_labels,
-                    const U3xU4::Table_gelfand& gelfand_labels);
-
     // Getters
     int JJ() const { return static_cast<int>(JJ_); }
     int MMJ() const { return static_cast<int>(MMJ_); }
@@ -75,7 +64,6 @@ namespace JT
 
     // Name of the directory that contains data of this operator
     std::string dirname() const;
-    std::vector<std::string> dirnames() const;
 
   private:
     // ME: / na lla jja mmja mmta | O | nc llc jjc mmjc mmtc \
@@ -140,25 +128,14 @@ namespace JT
     // It returns a flag, which indicate whether this tensor can be ignored.
     bool setTensorStrength(U3xU4::TwoBodyMultiShellTensor& tensor,
                            const std::vector<std::vector<int>>& inverse,
-                           const std::vector<int>& phase) const;
+                           const std::vector<int>& phase,
+                           U3xU4::SSTDecomp_phys_db& db) const;
 
     // Set strengths for U3xU4::MultiShellTensor_phys
     void setTensorStrength(U3xU4::MultiShellTensor_phys& tensor,
                            const std::vector<std::vector<int>>& inverse,
-                           const std::vector<int>& phase) const;
-
-    // Get strengths for U3xU4::MultiShellTensor_phys for multiple potentials
-    using LLSSTTstrengths_t = std::vector<std::tuple<uint8_t,  // kappamax
-                                                     HO::qn_t, // LL
-                                                     uint8_t,  // zetamax
-                                                     HO::qn_t, // SS
-                                                     HO::qn_t, // TT
-                                                     std::vector<double>>>;
-
-    std::vector<LLSSTTstrengths_t> getTensorStrengths(
-                           U3xU4::MultiShellTensor_phys& tensor,
-                           const std::vector<std::vector<int>>& inverse,
-                           const std::vector<int>& phase) const;
+                           const std::vector<int>& phase,
+                           U3xU4::SSTDecomp_phys_db& db) const;
 
     // selection rules
     bool HOShellselection(int na, int nb, int nc, int nd) const;
@@ -200,10 +177,6 @@ namespace JT
       + when readBinary() or readBinary_MPI() is called, strength of tensors are 
         scaled accordingly 
     */
-
-    // Expand into a sum of U3xU4::MultiShellTensor_phys for multiple potentials
-    // I don't recommend this, it's very slow
-    std::vector<U3xU4::MultiShellTensors_phys> expand_potentials(bool write = false);
 
     // Write to binary file
     void writeBinary(const std::string& filename, 

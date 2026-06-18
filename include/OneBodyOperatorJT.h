@@ -23,7 +23,7 @@ namespace JT
     const HO::Table_nljmjmt& HO_labels_;
     const U3xU4::Table_gelfand& gelfand_labels_;
 
-    HO::qn_t JJ_, MMJ_, TT_, MMT_, parity_,
+    HO::qn_t JJ_, MMJ_, TT_, MMT_, parity_, // (0=even,1=odd)
              hw_, Nmax_, valenceShell_, maxShell_;
 
     std::string name_;

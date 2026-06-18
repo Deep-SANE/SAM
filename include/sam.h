@@ -4,6 +4,8 @@
 #include <u3lib.h>
 #include <u4lib.h>
 
+#include <HOutilities.h>
+
 namespace sam
 {
   inline void initialize(int* argc, char*** argv)
@@ -11,12 +13,18 @@ namespace sam
     qcx_utils::initialize(argc, argv);
   	u3::initialize();
   	u4::initialize();
+#ifdef UNCOUPLE_ME_CACHE
+    HO::initialize_twbme_cache();
+#endif
   }
 
-  inline void finalize() 
+  inline void finalize()
   {
+#ifdef UNCOUPLE_ME_CACHE
+    HO::finalize_twbme_cache();
+#endif
     u4::finalize();
-    u3::finalize();  	
+    u3::finalize();
   	qcx_utils::finalize();
   }
 

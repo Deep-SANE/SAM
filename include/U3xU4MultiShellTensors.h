@@ -18,6 +18,7 @@
 #include <U3xU4ManyNucleonBasis.h>
 #include <U3xU4SingleShellTensors.h>
 #include <U3xU4SingleShellTensorsRME_Database.h>
+#include <U3xU4SingleShellTensorsDecomposition_Database.h>
 
 #include <qcx_Int.h>
 
@@ -235,7 +236,7 @@ namespace U3xU4
     // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
     std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
               std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-    expand() const;
+    expand(SSTDecomp_phys_db& db) const;
   };
   using TwoBodyMultiShellTensors = std::vector<TwoBodyMultiShellTensor>;
 
@@ -413,18 +414,14 @@ namespace U3xU4
     // and annihilation operators (a)
     std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
               std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-              expand(int LL, int SS, int TT) const;
+              expand(int LL, int SS, int TT, SSTDecomp_phys_db& db) const;
 
     // Get two-body strength directly during expand()
     std::vector<double> getStrengths(int LL, int SS, int TT,
                     const HO::TwBME_scalar& TBME,
                     const std::vector<std::vector<int>>& inverse,
-                    const std::vector<int>& phase) const;
-
-    std::vector<std::vector<double>> getStrengths(int LL, int SS, int TT,
-                    const std::vector<HO::TwBME_scalar>& TBMEs,
-                    const std::vector<std::vector<int>>& inverse,
-                    const std::vector<int>& phase) const;
+                    const std::vector<int>& phase,
+                    SSTDecomp_phys_db& db) const;
 
     // Setter: done after expanding and computing strengths
     void setLLSSTTstrengths(const std::vector<labels_type>& LLSSTTstrengths)

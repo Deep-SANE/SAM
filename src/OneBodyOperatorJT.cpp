@@ -37,7 +37,7 @@ namespace JT
     MMJ_ = 0;
     TT_ = 0;
     MMT_ = 0;
-    parity_ = 1;
+    parity_ = 0;
     on_the_fly = true;
 
     if (known_scalar_ops.count(name_)) { }

@@ -23,6 +23,11 @@
 
 namespace U3xU4
 {
+  // Decomposition cache (defined in U3xU4SingleShellTensorsDecomposition_Database.h,
+  // which includes this header). Forward-declared here so SingleShellTensor_phys
+  // methods can take it by reference without a circular include.
+  class SSTDecomp_phys_db;
+
   /////////////////// CREATION OPERATOR/TENSOR /////////////////
 
   /* Class for defining creation operator a^dagger
@@ -104,8 +109,19 @@ namespace U3xU4
       index = labels_.getIndex(n, ll, jj, mmj, mmt);
     }
 
+    // Reconstruct directly from a stored table index. The index enumeration in
+    // Table_nljmjmt is maxShell-invariant (shells are laid out in order), so a
+    // cached index identifies the same state across runs/model spaces. Used by
+    // the decomposition database.
+    ad_phys(uint16_t idx, const HO::Table_nljmjmt& labels)
+        : labels_(labels), index(idx)
+    { }
+
     // Get labels
     const auto& getLabels() const { return labels_.getLabels(index); }
+
+    // Get the table index (full observable state of this operator)
+    uint16_t getIndex() const { return index; }
 
     // Print
     friend std::ostream& operator<<(std::ostream& s, const ad_phys& x);
@@ -208,8 +224,20 @@ namespace U3xU4
       index = labels_.getIndex(n, ll, jj, mmj, mmt);
     }
 
+    // Reconstruct directly from a stored table index, as an annihilation
+    // operator (tensor = false). Tad/Tat expansions always return a^tilde's
+    // already turned to annihilation, so the decomposition database caches them
+    // in that state. The index enumeration in Table_nljmjmt is maxShell-
+    // invariant, so a cached index identifies the same state across runs.
+    at_phys(uint16_t idx, const HO::Table_nljmjmt& labels)
+        : tensor(false), labels_(labels), index(idx)
+    { }
+
     // Get labels
     const auto& getLabels() const { return labels_.getLabels(index); }
+
+    // Get the table index (with isTensor(), the full state of this operator)
+    uint16_t getIndex() const { return index; }
 
     // Turn it to a by conjugating, this method returns a phase
     // and change mmj to -mmj, mmt to -mmt
@@ -699,6 +727,10 @@ namespace U3xU4
     int JJ() const { return static_cast<int>(JJ_); }
     int MMJ() const { return static_cast<int>(MMJ_); }
 
+    // Label table this tensor's operators are expressed against (needed to
+    // rebuild ad_phys/at_phys when loading a cached expansion).
+    const HO::Table_nljmjmt& labels() const { return labels_; }
+
     // Print
     friend std::ostream& operator<<(std::ostream& s, const SingleShellTensor_phys& x);
 
@@ -715,11 +747,10 @@ namespace U3xU4
                std::vector<U3xU4::ats_phys>>    // a's
     expand() const;
 
-    // Get two-body strength directly during expand()
-    std::vector<double> 
-      getStrengths(const HO::TwBME_scalar& TBME) const;
-    std::vector<std::vector<double>> 
-      getStrengths(const std::vector<HO::TwBME_scalar>& TBMEs) const;
+    // Get two-body strength from the cached expansion (db.get) contracted
+    // against the matrix elements.
+    std::vector<double>
+      getStrengths(const HO::TwBME_scalar& TBME, SSTDecomp_phys_db& db) const;
 
   };
   using SingleShellTensors_phys = std::vector<SingleShellTensor_phys>;
