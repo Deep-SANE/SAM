@@ -14,17 +14,22 @@ int main(int argc, char* argv[])
 {
   sam::initialize(&argc, &argv);
 
-  // Specify Hamiltonian
-  std::string Hamil_name = "Hamiltonian with N3LO_EM500_srg2.0";
+  // Specify Hamiltonia
+  int Nmax = 6, hw = 16;
+  std::string Hamil_name_i = "HO_Be7_e10_hw16_E342";
+  std::string Hamil_name_f = "HO_Li7_e10_hw16_E342";
 
   // Specify operator name
-  std::string name = "GamowTellerMinus";
-  // std::string name = "GamowTellerPlus";
+  // std::string name = "GamowTellerMinus";
+  std::string name = "GamowTellerPlus";
 
-  u4::irreps irrs_trunc = {{1,1,0,0}, {2,0,0,0}};
+  u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
+  u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
+             irrs3_6 = {{9,0,0}, {8,1,0}, {7,2,0}, {6,3,0}, {5,4,0}},
+             irrs3_8 = {{11,0,0}, {10,1,0}, {9,2,0}, {8,3,0}, {7,4,0}};
   
-  int Zi = 2, Ni = 4, Nmax = 6, JJi = 0, TTi = 2, hw = 20;
-  std::string dir_i = "Truncation_TT2";
+  int Zi = 4, Ni = 3, JJi = 3, TTi = 1;
+  std::string dir_i = "Truncation_TT1";
 
   U3xU4::hw_subspace
     hw0i(0, {}, {}, {}, {TTi}),
@@ -38,8 +43,8 @@ int main(int argc, char* argv[])
   auto ket_irreps = kets.irreps();
   std::cout << "Ket basis dimension: " << kets.dim() << std::endl;
   
-  int Zf = 3, Nf = 3, JJf = 2, TTf = 0;
-  std::string dir_f = "Truncation_TT0";
+  int Zf = 3, Nf = 4, JJf = 1, TTf = 1;
+  std::string dir_f = "Truncation_TT1";
 
   U3xU4::hw_subspace
     hw0f(0, {}, {}, {}, {TTf}),
@@ -57,8 +62,8 @@ int main(int argc, char* argv[])
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
-  JT::Operator Hamil_i(Hamil_name, Ni, Zi, hw, Nmax, HO_labels, gelfand_labels),
-               Hamil_f(Hamil_name, Nf, Zf, hw, Nmax, HO_labels, gelfand_labels),
+  JT::Operator Hamil_i(Hamil_name_i, Ni, Zi, hw, Nmax, HO_labels, gelfand_labels),
+               Hamil_f(Hamil_name_f, Nf, Zf, hw, Nmax, HO_labels, gelfand_labels),
                op(name, Ni, Zi, hw, Nmax, HO_labels, gelfand_labels);
   op.is();
 
@@ -78,15 +83,16 @@ int main(int argc, char* argv[])
   auto strengths = op.transitionStrength(bras, kets, 
     {{evecs_f.col(0), evecs_i.col(0)}});
 
-  auto mat = op.matrix_Eigen(bras, kets);
-
   std::cout << "Transition strengths of " << name << " are" << std::endl;
   for (int i = 0; i < strengths.size(); i++)
     std::cout << "Channel " << i << ": " << strengths[i] << std::endl;
 
   // Analyze contribution
-  u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}, {2,2,2,0}, {3,2,1,0}, 
-                     {3,3,0,0}, {4,1,1,0}, {4,2,0,0}, {5,1,0,0}, {6,0,0,0}};
+/*
+  auto mat = op.matrix_Eigen(bras, kets);
+
+  u4::irreps irrs = {{1,1,1,0}, {2,1,0,0}, {3,2,2,0}, {3,0,0,0}, {3,3,1,0}, 
+                     {4,2,1,0}, {4,3,0,0}, {5,1,1,0}, {5,2,0,0}, {6,1,0,0}, {7,0,0,0}};
 
   std::cout << "Irrep\tC2\tC3\tC4" << std::endl;
   for (const auto& irr : irrs)
@@ -164,10 +170,10 @@ int main(int argc, char* argv[])
       std::cout << "Contribution of (" << j << "," << i << "): " << me * factor << std::endl;
     }
   }
-  
+*/
+
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  
 
   ////////////// DON'T EDIT ANYTHING HERE //////////////
   

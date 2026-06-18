@@ -15,14 +15,14 @@ int main(int argc, char* argv[])
   sam::initialize(&argc, &argv);
 
   // Specify Hamiltonian
-  std::string Hamil_name = "Hamiltonian with N2LO_opt_bare";
+  std::string Hamil_name = "HO_Be7_e10_hw16_E342";
 
   // Specify operator name
   // Example 1: E2
   // std::string name = "E2";
 
   // Example 2: M1
-  // std::string name = "M1";
+  std::string name = "M1";
 
   // Example 3: instrinsic radius squared
   // std::string name = "Radius";
@@ -32,14 +32,17 @@ int main(int argc, char* argv[])
   // std::string name = "FermiPlus";
 
   // Example 12: Gamow-Teller for beta decay
-  std::string name = "GamowTellerMinus";
+  // std::string name = "GamowTellerMinus";
   // std::string name = "GamowTellerPlus";
 
   ////////////// WITHIN THE SAME BASIS //////////////
-  /*
-  int Z = 3, N = 3, Nmax = 6, JJ = 2, TT = 0, hw = 20;
+  
+  int Z = 4, N = 3, Nmax = 2, JJ = 1, TT = 1, hw = 16;
 
-  u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}, {3,2,1,0}};
+  u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
+  u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
+             irrs3_6 = {{9,0,0}, {8,1,0}, {7,2,0}, {6,3,0}, {5,4,0}},
+             irrs3_8 = {{11,0,0}, {10,1,0}, {9,2,0}, {8,3,0}, {7,4,0}};
 
   U3xU4::hw_subspace
     hw0(0, {}, {}, {}, {TT}),
@@ -51,7 +54,7 @@ int main(int argc, char* argv[])
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ, {hw0, hw2, hw4, hw6, hw8});
   basis.construct();
 
-  std::string custom_dir = "Truncation_TT0";
+  std::string custom_dir = "Truncation_TT1";
 
   HO::Table_nljmjmt HO_labels(basis.maxShell());
   U3xU4::Table_gelfand gelfand_labels(basis.maxShell());
@@ -78,46 +81,49 @@ int main(int argc, char* argv[])
   
 
   // transition
-  
+  /*
   auto strengths = op.transitionStrength(basis, 
     {{evecs.col(0), evecs.col(1)}});
 
   std::cout << "Transition strengths of " << name << " are" << std::endl;
   for (int i = 0; i < strengths.size(); i++)
     std::cout << "Channel " << i << ": " << strengths[i] << std::endl;
-  
+  */
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  */
+  
 
   ////////////// BETWEEN TWO DIFFERENT BASES //////////////
-  
-  int Zi = 2, Ni = 4, Nmax = 6, JJi = 0, TTi = 2, hw = 20;
-  std::string dir_i = "Truncation_TT2_below6_9Apr26";
+  /*
+  int Zi = 4, Ni = 3, Nmax = 2, JJi = 3, TTi = 1, hw = 16;
+  std::string dir_i = "Truncation_TT1";
 
-  u4::irreps irrs = {{1,1,0,0}};
+  u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
+  u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
+             irrs3_6 = {{9,0,0}, {8,1,0}, {7,2,0}, {6,3,0}, {5,4,0}},
+             irrs3_8 = {{11,0,0}, {10,1,0}, {9,2,0}, {8,3,0}, {7,4,0}};
 
   U3xU4::hw_subspace
-    hw0i(0, {}, {irrs}, {}, {TTi}),
-    hw2i(2, {}, {irrs}, {}, {TTi}),
-    hw4i(4, {}, {irrs}, {}, {TTi}),
-    hw6i(6, {}, {irrs}, {}, {TTi}),
-    hw8i(8, {}, {irrs}, {}, {TTi});
+    hw0i(0, {}, {}, {}, {TTi}),
+    hw2i(2, {}, {}, {}, {TTi}),
+    hw4i(4, {}, {}, {}, {TTi}),
+    hw6i(6, {}, {}, {}, {TTi}),
+    hw8i(8, {}, {}, {}, {TTi});
 
   U3xU4::ManyNucleonBasis kets(Ni, Zi, Nmax, JJi, {hw0i, hw2i, hw4i, hw6i, hw8i});
   kets.construct();
   std::cout << "Ket basis dimension: " << kets.dim() << std::endl;
   
-  int Zf = 3, Nf = 3, JJf = 2, TTf = 0;
-  std::string dir_f = "Truncation_TT0_below6_9Apr26";
+  int Zf = 4, Nf = 3, JJf = 1, TTf = 1;
+  std::string dir_f = "Truncation_TT1";
 
   U3xU4::hw_subspace
-    hw0f(0, {}, {irrs}, {}, {TTf}),
-    hw2f(2, {}, {irrs}, {}, {TTf}),
-    hw4f(4, {}, {irrs}, {}, {TTf}),
-    hw6f(6, {}, {irrs}, {}, {TTf}),
-    hw8f(8, {}, {irrs}, {}, {TTf});
+    hw0f(0, {}, {}, {}, {TTf}),
+    hw2f(2, {}, {}, {}, {TTf}),
+    hw4f(4, {}, {}, {}, {TTf}),
+    hw6f(6, {}, {}, {}, {TTf}),
+    hw8f(8, {}, {}, {}, {TTf});
 
   U3xU4::ManyNucleonBasis bras(Nf, Zf, Nmax, JJf, {hw0f, hw2f, hw4f, hw6f, hw8f});
   bras.construct();
@@ -154,7 +160,7 @@ int main(int argc, char* argv[])
   
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  
+  */
 
   ////////////// DON'T EDIT ANYTHING HERE //////////////
   

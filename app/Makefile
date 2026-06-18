@@ -1,3 +1,5 @@
+include $(QCX_CONFIG_DIR)/make.d/pretty.mk
+
 BIN_DIR = $(SAM_DIR)/bin
 
 SRCS = $(wildcard *.cpp)
@@ -12,10 +14,12 @@ $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 $(BIN_DIR)/%: %.o $(SAM_LIB) | $(BIN)
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
+	$(call qcx_print,LINK,$@)
+	$(Q)$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(call qcx_print,CXX,$@)
+	$(Q)$(CXX) $(CXXFLAGS) -c $< -o $@
 
 .PHONY: clean
 clean:

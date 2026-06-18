@@ -1,3 +1,10 @@
+// WARNING: do NOT build more than one two-body operator (TwBME_scalar or
+// TwBME_general) in the same program run. With UNCOUPLE_ME_CACHE enabled, the
+// m-scheme matrix elements are memoized in a single shared, tagless cache
+// (HO::twbme_mscheme_cache(), keyed only by the four m-scheme states). That
+// cache is correct only for one active operator -- two operators would alias
+// each other's entries and return wrong matrix elements.
+
 #include <chrono>
 #include <iostream>
 #include <tuple>
@@ -16,7 +23,7 @@ int main(int argc, char* argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 #endif
 
-  int hw = 20, valenceShell = 0, Nmax = 4, maxShell = Nmax;
+  int hw = 20, valenceShell = 0, Nmax = 6, maxShell = Nmax;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -81,8 +88,8 @@ int main(int argc, char* argv[])
 #endif
     op.is();
 
-  auto tensors = op.expand();
-  // auto tensors = op.expand_new();
+  // auto tensors = op.expand();
+  auto tensors = op.expand_new();
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -101,7 +108,7 @@ int main(int argc, char* argv[])
     auto tensors_old = op.readBinary(filename);
     std::cout << "There are " << tensors_old.size() << " old tensors" << std::endl;
 
-    // assert(tensors.size() == tensors_old.size());
+    assert(tensors.size() == tensors_old.size());
     for (const auto& tensor : tensors)
     {
       bool found = false;

@@ -59,7 +59,7 @@ double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
   double x = 0.0;
 
   auto& cgcs = qcx_utils::cgcs();
-  auto& racah9 = qcx_utils::racahs9();
+  auto& racah9 = qcx_utils::fanos();
 
   if (mmta == mmtc && mmtb == mmtd)
   {
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
   u3::initialize();
   u4::initialize();
 
-  auto& racah9 = qcx_utils::racahs9();
+  auto& racah9 = qcx_utils::fanos();
   auto& wigU3SO3db = u3::wigU3SO3db();
   auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 

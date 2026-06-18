@@ -200,10 +200,15 @@ int main(int argc, char* argv[])
   
   std::cout << T << std::endl;
 
+  // Decomposition cache (constructed outside the timed region). Note: the
+  // first expand of a given tensor is a cache miss, so this still times the
+  // full decomposition (plus a small pack/store overhead).
+  U3xU4::SSTDecomp_phys_db decompdb(maxShell);
+
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [coeffsArr, opsArr] = T.expand(LL, SS, TT);
+  auto [coeffsArr, opsArr] = T.expand(LL, SS, TT, decompdb);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();

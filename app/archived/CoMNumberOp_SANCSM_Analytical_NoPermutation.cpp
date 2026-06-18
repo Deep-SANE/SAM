@@ -11,7 +11,7 @@ using qcx_utils::print;
 #include <HOutilities.h>
 
 #include <so3Coeffs/SO3_CGC.h>
-#include <so3Coeffs/SO3_Racah.h>
+#include <so3Coeffs/SO3_Fano.h>
 
 #include <U3SO3xU3SO3.h>
 #include <U4SU2SU2xU4SU2SU2.h>
@@ -62,7 +62,7 @@ double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
   double x = 0.0;
 
   auto& cgcs = qcx_utils::cgcs();
-  auto& racah9 = qcx_utils::racahs9();
+  auto& racah9 = qcx_utils::fanos();
 
   if (mmta == mmtc && mmtb == mmtd)
   {
@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
   u3::initialize();
   u4::initialize();
 
-  auto& racah9 = qcx_utils::racahs9();
+  auto& racah9 = qcx_utils::fanos();
   auto& wigU3SO3db = u3::wigU3SO3db();
 
   int Nmax = 2, valenceShell = 0, maxShell = 2;

@@ -15,25 +15,28 @@ int main(int argc, char* argv[])
 
   sam::initialize(&argc, &argv);
 
-  int Z = 5, N = 5, JJ = 6, TT = 0, Nmax = 6, hw = 20, write = 1;
+  int Z = 4, N = 3, JJ = 1, TT = 1, Nmax = 8, hw = 16, write = 1;
 
-  u4::irreps irrs = {{1,1,0,0}, {2,0,0,0}};
+  u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
+  u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
+             irrs3_6 = {{9,0,0}, {8,1,0}, {7,2,0}, {6,3,0}, {5,4,0}},
+             irrs3_8 = {{11,0,0}, {10,1,0}, {9,2,0}, {8,3,0}, {7,4,0}};
 
   U3xU4::hw_subspace
     hw0(0, {}, {}, {}, {TT}),
     hw2(2, {}, {}, {}, {TT}),
-    hw4(4, {}, {}, {}, {TT}),
-    hw6(6, {}, {}, {}, {TT}),
-    hw8(8, {}, {}, {}, {TT});
+    hw4(4, {irrs3_4}, {irrs4}, {}, {TT}),
+    hw6(6, {irrs3_6}, {irrs4}, {}, {TT}),
+    hw8(8, {irrs3_8}, {irrs4}, {}, {TT});
 
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ, {hw0, hw2, hw4, hw6, hw8});
   basis.construct();
 
-  std::string custom_dir = "Truncation_TT0";
+  std::string custom_dir = "Truncation_TT1_2to8_25May26";
 
   // std::string name = "Hamiltonian with N2LO_opt_bare";
-  std::string name = "Hamiltonian with N3LO_EM500_srg2.0";
-  // std::string name = "HO_Li7_e3_hw16_E39";
+  // std::string name = "Hamiltonian with N3LO_EM500_srg2.0";
+  std::string name = "HO_Be7_e10_hw16_E342";
 
 #ifdef USE_MPI
   int mpi_rank = 0, mpi_size = 1;
@@ -47,7 +50,10 @@ int main(int argc, char* argv[])
                                 N, Z, Nmax, JJ, TT, hw, name);
 
     print("Basis dimension: {}\n", basis.dim());
-    // print("Keep only u4::irreps: {} in N=0,2,4,6,8\n", irrs);
+    print("Keep only u4::irreps (>0.1%): {} in N=4,6,8\n", irrs4);
+    print("Keep only u3::irreps (>0.1%): {} in N=4\n", irrs3_4);
+    print("Keep only u3::irreps (>0.1%): {} in N=6\n", irrs3_6);
+    print("Keep only u3::irreps (>0.1%): {} in N=8\n", irrs3_8);
   }
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
