@@ -3,8 +3,15 @@
 #include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <charconv>
 #include <iostream>
 #include <stdexcept>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#include <zlib.h>
 
 #include <HOutilities.h>
 
@@ -14,6 +21,10 @@
 
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Fano.h>
+
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
 
 #define POSITIVE_INFINITY
 //#define POSITIVE_ORIGIN
@@ -1068,6 +1079,80 @@ namespace HO
     return;
   }
 
+#ifdef UNCOUPLE_ME_CACHE
+  // One private map per thread (sized by initialize_twbme_cache). Each thread
+  // touches only its own slot, so getME's lookup is lock-free -- no shared
+  // state, no read lock, no concurrent_flat_map TLS. Lives for the whole run;
+  // driven by initialize_twbme_cache / finalize_twbme_cache (from
+  // sam::initialize / sam::finalize).
+  namespace
+  {
+    std::vector<TwBME_mscheme_cache_t> g_mscheme_caches;
+  }
+
+  TwBME_mscheme_cache_t& twbme_mscheme_cache()
+  {
+#ifdef _OPENMP
+    return g_mscheme_caches[omp_get_thread_num()];
+#else
+    return g_mscheme_caches[0];
+#endif
+  }
+
+  void initialize_twbme_cache()
+  {
+#ifdef _OPENMP
+    g_mscheme_caches.assign(std::max(1, omp_get_max_threads()),
+                            TwBME_mscheme_cache_t{});
+#else
+    g_mscheme_caches.assign(1, TwBME_mscheme_cache_t{});
+#endif
+  }
+
+  void finalize_twbme_cache()
+  {
+    g_mscheme_caches.clear();
+    g_mscheme_caches.shrink_to_fit();
+  }
+
+  namespace
+  {
+    // Pack one m-scheme state (e, 2l, 2j, 2mj, mt) into 30 bits; the four
+    // states form the cache key (two states per uint64):
+    //   e[0..6] 2l[7..13] 2j[14..20] (2mj+128)[21..28] (mt>0)[29].
+    //
+    // Why 7 bits suffice even though these are 8-bit ints (qn_t = int8_t):
+    //   e, 2l, 2j are non-negative, and int8_t's positive range is [0,127],
+    //   which is *exactly* 7 bits. So 0x7F masks nothing off any valid value --
+    //   it only guards against an out-of-range (>127) shell number, which no
+    //   realistic model space reaches (e = 2n+l <= maxShell).
+    // 2mj is signed (in [-2j, 2j]); we offset by +128 so the full int8_t range
+    //   maps to [0,255] and store the 8 bits. mt = +-1 -> a single bit.
+    inline uint32_t pack_mscheme_state(qn_t e, qn_t ll, qn_t jj,
+                                       qn_t mmj, qn_t mmt)
+    {
+      return  (uint32_t(uint8_t(e))    & 0x7Fu)         // e   : 7 bits, [0,127]
+            | ((uint32_t(uint8_t(ll))  & 0x7Fu) << 7)   // 2l  : 7 bits, [0,127]
+            | ((uint32_t(uint8_t(jj))  & 0x7Fu) << 14)  // 2j  : 7 bits, [0,127]
+            | ((uint32_t(uint8_t(mmj + 128)))   << 21)  // 2mj : 8 bits, signed
+            | ((mmt > 0 ? 1u : 0u)              << 29); // mt  : 1 bit, +-1
+    }
+
+    inline TwBME_mscheme_key make_mscheme_key(
+        qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+        qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+        qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+        qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd)
+    {
+      return {
+        (uint64_t(pack_mscheme_state(ea, lla, jja, mmja, mmta)) << 32) |
+          pack_mscheme_state(eb, llb, jjb, mmjb, mmtb),
+        (uint64_t(pack_mscheme_state(ec, llc, jjc, mmjc, mmtc)) << 32) |
+          pack_mscheme_state(ed, lld, jjd, mmjd, mmtd)};
+    }
+  } // namespace
+#endif
+
   void TwBME_scalar::clear()
   {
     std::unordered_map<key_type, double, boost::hash<key_type>>().swap(me_map);
@@ -1143,12 +1228,44 @@ namespace HO
   // The reason we have e's here is that this function would be compatible
   // with double TwoBodyOperator::sphericalME_AS(...)
   double TwBME_scalar::getME(
-      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta, 
-      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb, 
-      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc, 
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
       qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
   {
-    qn_t MMJab = mmja + mmjb, MMJcd = mmjc + mmjd, 
+#ifdef UNCOUPLE_ME_CACHE
+    // Memoize the m-scheme ME. The expansion requests the same m-scheme tuple
+    // many times across terms and tensors, so this turns repeated CG recoupling
+    // sums into a single hash lookup in this thread's private map (lock-free).
+    TwBME_mscheme_key key = make_mscheme_key(
+      ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
+      ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
+
+    auto& cache = twbme_mscheme_cache();
+    auto it = cache.find(key);
+    if (it != cache.end()) return it->second;
+
+    double v = computeME(ea, lla, jja, mmja, mmta,
+                         eb, llb, jjb, mmjb, mmtb,
+                         ec, llc, jjc, mmjc, mmtc,
+                         ed, lld, jjd, mmjd, mmtd);
+    cache.emplace(key, v);
+    return v;
+#else
+    return computeME(ea, lla, jja, mmja, mmta,
+                     eb, llb, jjb, mmjb, mmtb,
+                     ec, llc, jjc, mmjc, mmtc,
+                     ed, lld, jjd, mmjd, mmtd);
+#endif
+  }
+
+  double TwBME_scalar::computeME(
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
+  {
+    qn_t MMJab = mmja + mmjb, MMJcd = mmjc + mmjd,
          MMTab = mmta + mmtb, MMTcd = mmtc + mmtd;
     if ((MMJab != MMJcd) || (MMTab != MMTcd)) // spin or isospin violation
       return 0.0;
@@ -1189,6 +1306,495 @@ namespace HO
     return phase * x * norm_ab * norm_cd;
 #else
     return x * norm_ab * norm_cd;
+#endif
+  }
+
+  //////////// Class TwBME_general /////////////
+
+  TwBME_general::TwBME_general()
+      : me_map(),
+        obme_map(),
+        NN_only_(true),
+        orbit_map(),
+        name_(""),
+        custom_name(false),
+        hw_(0),
+        Nmax_(0),
+        valenceShell_(0),
+        maxShell_(0),
+        JJ_(0),
+        parity_(0),
+        TT_(0)
+  { }
+
+  TwBME_general::TwBME_general(const std::string& name,
+    int hw, int Nmax, int valenceShell, int maxShell)
+  {
+    if (maxShell > 14)
+      throw std::out_of_range("Sorry, we only have maxShell up to 14");
+
+    name_ = name;
+    hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
+    Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
+    valenceShell_ = (valenceShell > 0) ? qcx_utils::ito8(valenceShell) : 0;
+    maxShell_ = (maxShell >= 0) ? qcx_utils::ito8(maxShell) : 14;
+
+    // overwritten from the file header in read_from_gzip_nuhamil()
+    JJ_ = 0; parity_ = 0; TT_ = 0;
+
+    // covers the full NuHamil orbit range (emax14); same ordering as the file
+    // orbit_map = OrbitsMap(14, "NuHamil");
+
+    custom_name = true;
+  }
+
+  void TwBME_general::is() const
+  {
+#ifdef USE_MPI
+    int mpi_rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
+    if (mpi_rank == 0)
+#endif
+    std::cout << "General two-body operator " << name_
+              << " (JJ=" << static_cast<int>(JJ_)
+              << " parity=" << static_cast<int>(parity_)
+              << " TT=" << static_cast<int>(TT_) << ")"
+              << " hw=" << static_cast<int>(hw_)
+              << " valenceShell=" << static_cast<int>(valenceShell_)
+              << " Nmax=" << static_cast<int>(Nmax_)
+              << " maxShell=" << static_cast<int>(maxShell_) << std::endl;
+  }
+
+  std::ostream& operator<<(std::ostream& s, const TwBME_general& x)
+  {
+    s << "General two-body operator " << x.name_
+      << " (JJ=" << static_cast<int>(x.JJ_)
+      << " parity=" << static_cast<int>(x.parity_)
+      << " TT=" << static_cast<int>(x.TT_) << ")"
+      << " hw=" << static_cast<int>(x.hw_)
+      << " valenceShell=" << static_cast<int>(x.valenceShell_)
+      << " Nmax=" << static_cast<int>(x.Nmax_)
+      << " maxShell=" << static_cast<int>(x.maxShell_);
+
+    return s;
+  }
+
+  void TwBME_general::read()
+  {
+#ifdef USE_MPI
+    int mpi_rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+#endif
+
+    // General (external) operators live under data/External_operators/
+    std::string filename;
+#ifdef SAM_DATA_DIR
+    const char* sam_data = std::getenv("SAM_DATA_DIR");
+    if (!sam_data)
+      throw std::runtime_error("Environment variable SAM_DATA_DIR is not set");
+    filename = std::string(sam_data) + "/External_operators/" + name_ + ".me2j.gz";
+#else
+    filename = "data/External_operators/" + name_ + ".me2j.gz";
+#endif
+
+#ifdef USE_MPI
+    if (mpi_rank == 0)
+#endif
+    std::cout << "Start reading matrix elements from file" << std::endl;
+
+    read_from_gzip_nuhamil(filename);
+
+#ifdef USE_MPI
+    if (mpi_rank == 0)
+#endif
+    std::cout << "Finish reading matrix elements from file" << std::endl;
+  }
+
+  /* Reading method mirrors the loop order of
+         subroutine write_general_operator_gzip(this, f)
+         in NuHamil-public/src/TwoBody/TwoBodyLabOps.F90
+     cross-checked against imsrg ReadWrite::ReadOperator2b_Miyagi. The file is a
+     gzip-compressed me2j-like text whose entries carry no indices, so we
+     replicate the writer's nested loops exactly to stay in sync with the
+     stream.
+  */
+  void TwBME_general::read_from_gzip_nuhamil(const std::string& filename)
+  {
+    constexpr double tol = 1e-12;
+
+    // Decompress the whole gzip file into memory with zlib (a C library, so
+    // this is independent of the C++ standard library -- it avoids the
+    // libstdc++/libc++ ABI mismatch that linking a system-built
+    // boost::iostreams would introduce under g++/mpicxx).
+    gzFile gz = gzopen(filename.c_str(), "rb");
+    if (!gz)
+      throw std::runtime_error("Failed to open: " + filename);
+
+    std::string content;
+    {
+      char buf[1 << 16];
+      int n;
+      while ((n = gzread(gz, buf, sizeof(buf))) > 0)
+        content.append(buf, static_cast<size_t>(n));
+    }
+    gzclose(gz);
+
+    // Parse with std::from_chars over the in-memory buffer: far faster than
+    // istream >> for the (millions of) values -- no locale, no sentry, no extra
+    // buffer copy. Data after the 2-line header is a flat whitespace-separated
+    // token stream (newlines are just whitespace), so we walk a pointer.
+    const char* p = content.data();
+    const char* end = p + content.size();
+    auto skip_ws = [&] {
+      while (p < end && (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t'))
+        ++p;
+    };
+    auto next_d = [&](double& v) {
+      skip_ws();
+      auto res = std::from_chars(p, end, v);
+      if (res.ec != std::errc()) throw std::runtime_error("Parse error: " + filename);
+      p = res.ptr;
+    };
+    auto next_i = [&](int& v) {
+      skip_ws();
+      auto res = std::from_chars(p, end, v);
+      if (res.ec != std::errc()) throw std::runtime_error("Parse error: " + filename);
+      p = res.ptr;
+    };
+    auto skip_line = [&] {
+      while (p < end && *p != '\n') ++p;
+      if (p < end) ++p;
+    };
+
+    // (1) header comment
+    skip_line();
+
+    // (2) OpJ OpP OpZ Emax E2max [Lmax]  (Lmax ignored)
+    int file_emax = 0, file_e2max = 0;
+    {
+      int J = 0, P = 1, Z = 0;
+      next_i(J); next_i(P); next_i(Z); next_i(file_emax); next_i(file_e2max);
+      JJ_ = 2 * qcx_utils::ito8(J);
+      // operator parity in (0=even,1=odd) form, matching imsrg's (1-P)/2
+      parity_ = (1 - qcx_utils::ito8(P)) / 2;
+      TT_ = 2 * qcx_utils::ito8(Z);
+      skip_line(); // discard the rest of the header line (Lmax)
+    }
+
+#ifdef USE_MPI
+    int mpi_rank = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+    if (mpi_rank == 0)
+#endif
+    std::cout << "JJ=" << static_cast<int>(JJ_)
+              << " parity=" << static_cast<int>(parity_)
+              << " TT=" << static_cast<int>(TT_)
+              << " emax=" << file_emax << " e2max=" << file_e2max << std::endl;
+
+    // Build the orbit map to the file's emax. OrbitsMap("NuHamil") enumerates
+    // orbits in the same (e; l; jj) order as the writer and stores, for each
+    // isospin orbit i (0-based), the proton at index 2i+1 and the neutron at
+    // 2i+2 -- i.e. it already is the nlj list the reader needs.
+    orbit_map = OrbitsMap(file_emax, "NuHamil");
+    const int num_nlj = static_cast<int>(orbit_map.num_orbits()) / 2;
+
+    // (3) zero-body (always 0.0 in this format); read & discard
+    double zerobody = 0.0;
+    next_d(zerobody);
+
+    // (4) one-body block: a=1..norbs, b=1..norbs (consume; store iff !NN_only_)
+
+    auto triangle2j = [](int jj1, int jj2, int jj3) {
+      return jj3 >= std::abs(jj1 - jj2) && jj3 <= jj1 + jj2 &&
+             ((jj1 + jj2 + jj3) % 2 == 0);
+    };
+
+    double obme_pp, obme_nn, obme_np, obme_pn;
+    for (int i1 = 0; i1 < num_nlj; ++i1)
+    {
+      const auto& o1 = orbit_map.getOrbit(2 * i1 + 1);
+      for (int i2 = 0; i2 < num_nlj; ++i2)
+      {
+        const auto& o2 = orbit_map.getOrbit(2 * i2 + 1);
+
+        if (((o1.l_ + o2.l_ + parity_) % 2) != 0) continue;  // parity
+        if (!triangle2j(o1.jj_, o2.jj_, JJ_)) continue;  // triangle
+
+        next_d(obme_pp); next_d(obme_nn); next_d(obme_np); next_d(obme_pn);
+
+        if (NN_only_) continue; // consume only
+        if (o1.shell() > maxShell_ || o2.shell() > maxShell_) continue;
+
+        const uint16_t ap = 2 * i1 + 1, an = 2 * i1 + 2;
+        const uint16_t bp = 2 * i2 + 1, bn = 2 * i2 + 2;
+
+        if (std::fabs(obme_pp) > tol) obme_map[{ap, bp}] = obme_pp;
+        if (std::fabs(obme_nn) > tol) obme_map[{an, bn}] = obme_nn;
+        if (std::fabs(obme_np) > tol) obme_map[{an, bp}] = obme_np; // (an,bp)
+        if (std::fabs(obme_pn) > tol) obme_map[{ap, bn}] = obme_pn; // (ap,bn)
+      }
+    }
+
+    // (5) two-body block: a; b<=a; c; d<=c; (e2max cuts); parity; Jab,Jcd
+    double me[10];
+    for (int i1 = 0; i1 < num_nlj; ++i1)
+    {
+      const auto& o1 = orbit_map.getOrbit(2 * i1 + 1);
+      for (int i2 = 0; i2 <= i1; ++i2)
+      {
+        const auto& o2 = orbit_map.getOrbit(2 * i2 + 1);
+
+        // check shell restriction
+        if (o1.shell() + o2.shell() > file_e2max) continue;
+
+        for (int i3 = 0; i3 < num_nlj; ++i3)
+        {
+          const auto& o3 = orbit_map.getOrbit(2 * i3 + 1);
+          for (int i4 = 0; i4 <= i3; ++i4)
+          {
+            const auto& o4 = orbit_map.getOrbit(2 * i4 + 1);
+
+            // check shell restriction
+            if (o3.shell() + o4.shell() > file_e2max) continue;
+
+            // check parity
+            if (((o1.l_ + o2.l_ + o3.l_ + o4.l_ + parity_) % 2) != 0) continue;
+
+            for (int Jab = std::abs(o1.jj_ - o2.jj_) / 2;
+                     Jab <= (o1.jj_ + o2.jj_) / 2; ++Jab)
+            {
+              for (int Jcd = std::abs(o3.jj_ - o4.jj_) / 2;
+                       Jcd <= (o3.jj_ + o4.jj_) / 2; ++Jcd)
+              {
+                if (!triangle2j(2 * Jab, 2 * Jcd, JJ_)) continue;
+
+                for (int k = 0; k < 10; ++k) next_d(me[k]);
+
+                // SAM model-space storage cuts (mirror read_from_binary_nuhamil)
+                const int ea = o1.shell(), eb = o2.shell(),
+                          ec = o3.shell(), ed = o4.shell();
+                if (ea > maxShell_ || eb > maxShell_ || ec > maxShell_ || ed > maxShell_)
+                  continue;
+
+                int ab_Nhw = 0;
+                if (ea > valenceShell_) ab_Nhw += (ea - valenceShell_);
+                if (eb > valenceShell_) ab_Nhw += (eb - valenceShell_);
+                if (ab_Nhw > Nmax_) continue;
+
+                int cd_Nhw = 0;
+                if (ec > valenceShell_) cd_Nhw += (ec - valenceShell_);
+                if (ed > valenceShell_) cd_Nhw += (ed - valenceShell_);
+                if (cd_Nhw > Nmax_) continue;
+
+                const uint16_t ap = 2 * i1 + 1, an = 2 * i1 + 2;
+                const uint16_t bp = 2 * i2 + 1, bn = 2 * i2 + 2;
+                const uint16_t cp = 2 * i3 + 1, cn = 2 * i3 + 2;
+                const uint16_t dp = 2 * i4 + 1, dn = 2 * i4 + 2;
+
+                const qn_t JJab = static_cast<qn_t>(Jab);
+                const qn_t JJcd = static_cast<qn_t>(Jcd);
+
+                auto put = [&](double v, uint16_t a, uint16_t b,
+                                         uint16_t c, uint16_t d)
+                {
+                  if (std::fabs(v) > tol) me_map[{a, b, c, d, JJab, JJcd}] = v;
+                };
+
+                put(me[0], ap, bp, cp, dp); // pppp
+                put(me[1], ap, bp, cp, dn); // pppn
+                put(me[2], ap, bp, cn, dp); // ppnp
+                put(me[3], ap, bp, cn, dn); // ppnn
+                put(me[4], ap, bn, cp, dn); // pnpn
+                put(me[5], ap, bn, cn, dp); // pnnp
+                put(me[6], ap, bn, cn, dn); // pnnn
+                put(me[7], an, bp, cn, dp); // npnp
+                put(me[8], an, bp, cn, dn); // npnn
+                put(me[9], an, bn, cn, dn); // nnnn
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return;
+  }
+
+  void TwBME_general::clear()
+  {
+    decltype(me_map)().swap(me_map);
+    decltype(obme_map)().swap(obme_map);
+  }
+
+  // Coupled ME: bra J = Jab, ket J = Jcd. NuHamil writes both bra<->ket
+  // orderings, so only the in-pair (a<->b, c<->d) exchanges are reconstructed.
+  double TwBME_general::getME(uint16_t a, uint16_t b, uint16_t c, uint16_t d,
+                              qn_t Jab, qn_t Jcd) const
+  {
+    if (a == b && Jab % 2 == 1) return 0.0;
+    if (c == d && Jcd % 2 == 1) return 0.0;
+    if (u2::mult(2 * Jab, 2 * Jcd, JJ_) == 0) return 0.0;
+
+    const auto& oa = orbit_map.getOrbit(static_cast<int>(a));
+    const auto& ob = orbit_map.getOrbit(static_cast<int>(b));
+    const auto& oc = orbit_map.getOrbit(static_cast<int>(c));
+    const auto& od = orbit_map.getOrbit(static_cast<int>(d));
+
+    // NuHamil stores both bra<->ket orderings, so only the in-pair (a<->b,
+    // c<->d) exchanges are needed to reach the stored entry.
+    auto it = me_map.find({a, b, c, d, Jab, Jcd});
+    if (it != me_map.end()) return it->second;
+
+    double phase_ab = (((oa.jj_ + ob.jj_) / 2 - Jab) % 2 == 0) ? -1.0 : 1.0;
+    it = me_map.find({b, a, c, d, Jab, Jcd});
+    if (it != me_map.end()) return phase_ab * it->second;
+
+    double phase_cd = (((oc.jj_ + od.jj_) / 2 - Jcd) % 2 == 0) ? -1.0 : 1.0;
+    it = me_map.find({a, b, d, c, Jab, Jcd});
+    if (it != me_map.end()) return phase_cd * it->second;
+
+    it = me_map.find({b, a, d, c, Jab, Jcd});
+    if (it != me_map.end()) return phase_ab * phase_cd * it->second;
+
+    return 0.0; // sparse tensor operator: unstored channels are zero
+  }
+
+  // m-scheme ME via rank-OpJ Wigner-Eckart:
+  //   <ab(m)|O|cd(m)> = sum_{Jab,Jcd} CG(ja jb Jab; mja mjb Mab)
+  //                                 * CG(jc jd Jcd; mjc mjd Mcd)
+  //                                 * CG(Jcd OpJ Jab; Mcd M0 Mab)
+  //                                 * getME(a,b,c,d,Jab,Jcd)
+  // Reduces to TwBME_scalar::getME(qn...) when OpJ=0,OpP=+1,OpZ=0 because
+  // CG(J 0 J; M 0 M) = 1.
+  double TwBME_general::getME(
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
+  {
+#ifdef UNCOUPLE_ME_CACHE
+    // Memoize via the per-thread cache (see TwBME_scalar::getME). NOTE: the
+    // cache is keyed only by the four m-scheme states, so it is correct only
+    // when a single operator is active per program -- see the warning atop
+    // app/TwoBodyOperatorJT.cpp.
+    TwBME_mscheme_key key = make_mscheme_key(
+      ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
+      ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
+
+    auto& cache = twbme_mscheme_cache();
+    auto it = cache.find(key);
+    if (it != cache.end()) return it->second;
+
+    double v = computeME(ea, lla, jja, mmja, mmta,
+                         eb, llb, jjb, mmjb, mmtb,
+                         ec, llc, jjc, mmjc, mmtc,
+                         ed, lld, jjd, mmjd, mmtd);
+    cache.emplace(key, v);
+    return v;
+#else
+    return computeME(ea, lla, jja, mmja, mmta,
+                     eb, llb, jjb, mmjb, mmtb,
+                     ec, llc, jjc, mmjc, mmtc,
+                     ed, lld, jjd, mmjd, mmtd);
+#endif
+  }
+
+  double TwBME_general::computeME(
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
+  {
+    qn_t la = lla / 2, lb = llb / 2, lc = llc / 2, ld = lld / 2;
+
+    // parity selection consistent with the operator
+    if (((la + lb + lc + ld + parity_) % 2) != 0) return 0.0;
+
+    qn_t MMJab = mmja + mmjb, MMJcd = mmjc + mmjd; // 2*M
+    qn_t M0 = MMJab - MMJcd;                       // 2*M0 (operator projection)
+
+    qn_t na = (ea - la) / 2, nb = (eb - lb) / 2,
+         nc = (ec - lc) / 2, nd = (ed - ld) / 2;
+
+    auto a = orbit_map.getIndex(na, la, jja, mmta),
+         b = orbit_map.getIndex(nb, lb, jjb, mmtb),
+         c = orbit_map.getIndex(nc, lc, jjc, mmtc),
+         d = orbit_map.getIndex(nd, ld, jjd, mmtd);
+
+    double norm_ab = (a == b) ? SQRT2 : 1.0, norm_cd = (c == d) ? SQRT2 : 1.0;
+
+    auto& cgcs = qcx_utils::cgcs();
+    double x = 0.0;
+    for (qn_t JJab = std::abs(jja - jjb); JJab <= jja + jjb; JJab += 2)
+    {
+      if (a == b && JJab % 4 != 0) continue; // identical bra -> Jab even
+      double cg_ab = cgcs.get({jja, jjb, JJab, mmja, mmjb, MMJab});
+      if (cg_ab == 0.0) continue;
+
+      for (qn_t JJcd = std::abs(jjc - jjd); JJcd <= jjc + jjd; JJcd += 2)
+      {
+        if (c == d && JJcd % 4 != 0) continue; // identical ket -> Jcd even
+        double cg_cd = cgcs.get({jjc, jjd, JJcd, mmjc, mmjd, MMJcd});
+        if (cg_cd == 0.0) continue;
+
+        // Wigner-Eckart: CG(Jcd OpJ Jab; Mcd M0 Mab), all in 2x units
+        double cg_we = cgcs.get({JJcd, JJ_, JJab, MMJcd, M0, MMJab});
+        if (cg_we == 0.0) continue;
+
+        x += cg_ab * cg_cd * cg_we *
+             getME(a, b, c, d, static_cast<qn_t>(JJab / 2),
+                               static_cast<qn_t>(JJcd / 2));
+      }
+    }
+
+#ifdef POSITIVE_INFINITY
+    double phase = ((na + nb + nc + nd) % 2 == 0) ? 1.0 : -1.0;
+    return phase * x * norm_ab * norm_cd;
+#else
+    return x * norm_ab * norm_cd;
+#endif
+  }
+
+  // Coupled (reduced) one-body ME. The 1-body writer loops a,b over the full
+  // orbit range, so both orderings are stored -> a direct lookup suffices.
+  double TwBME_general::getME(uint16_t a, uint16_t b) const
+  {
+    assert(!NN_only_);
+    auto it = obme_map.find({a, b});
+    if (it != obme_map.end()) return it->second;
+    return 0.0;
+  }
+
+  // m-scheme one-body ME via rank-OpJ Wigner-Eckart:
+  //   <a ma| O^J0_M0 |b mb> = CG(jb OpJ ja; mb M0 ma) * <a||O^J0||b>,  M0 = ma-mb
+  // Reduces to the scalar one-body ME at OpJ=0 since CG(j 0 j; m 0 m) = 1.
+  double TwBME_general::getME(
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb) const
+  {
+    qn_t la = lla / 2, lb = llb / 2;
+
+    // parity selection consistent with the operator
+    if (((la + lb + parity_) % 2) != 0) return 0.0;
+
+    qn_t na = (ea - la) / 2, nb = (eb - lb) / 2;
+    auto a = orbit_map.getIndex(na, la, jja, mmta);
+    auto b = orbit_map.getIndex(nb, lb, jjb, mmtb);
+
+    qn_t M0 = mmja - mmjb; // 2*M0 (operator projection)
+
+    // Wigner-Eckart: CG(jb OpJ ja; mb M0 ma), all in 2x units
+    double cg = qcx_utils::cgcs().get({jjb, JJ_, jja, mmjb, M0, mmja});
+    if (cg == 0.0) return 0.0;
+
+    double R = getME(a, b); // stored reduced one-body ME
+
+#ifdef POSITIVE_INFINITY
+    double phase = ((na + nb) % 2 == 0) ? 1.0 : -1.0;
+    return phase * cg * R;
+#else
+    return cg * R;
 #endif
   }
 } // namespace HO

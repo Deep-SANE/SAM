@@ -1,0 +1,48 @@
+#include <chrono>
+#include <iomanip>
+#include <iostream>
+
+#include <sam.h>
+
+#include <HOutilities.h>
+
+int main(int argc, char* argv[])
+{
+  sam::initialize(&argc, &argv);
+
+  int hw = 16, Nmax = 10, valenceShell = 0, maxShell = 10; // default
+
+  // HO::TwBME_scalar TBME("N2LO_opt_bare", hw, Nmax, valenceShell, maxShell);
+  HO::TwBME_general TBME("AxialV_Tz1-N2LO-NonLocal4-394_TwBME-HO_NN-only_N3LO_EM500_bare_hw16_emax14_e2max28", hw, Nmax, valenceShell, maxShell);
+
+  TBME.read();
+  TBME.is();
+  std::cout << "Loaded " << TBME.num_mes() << " matrix elements" << std::endl;
+
+  std::cout << std::fixed << std::setprecision(10);
+
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  std::cout << TBME.getME(11, 11, 7, 1, 0, 1) << "\n"
+            << TBME.getME(11, 11, 1, 7, 0, 1) << "\n"
+            << TBME.getME(7, 1, 11, 11, 0, 1) << "\n"
+            << TBME.getME(1, 7, 11, 11, 0, 1) << "\n"
+            << std::endl;
+
+  std::cout << TBME.getME(43, 21, 21, 1, 0, 1) << "\n"
+            << TBME.getME(43, 21, 1, 21, 0, 1) << "\n"
+            << TBME.getME(21, 43, 21, 1, 0, 1) << "\n"
+            << TBME.getME(21, 43, 1, 21, 0, 1) << "\n"
+            << TBME.getME(21, 1, 43, 21, 0, 1) << "\n"
+            << TBME.getME(21, 1, 21, 43, 0, 1) << "\n"
+            << TBME.getME(1, 21, 43, 21, 0, 1) << "\n"
+            << TBME.getME(1, 21, 21, 43, 0, 1) << "\n"
+            << std::endl;
+
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  std::chrono::duration<double> duration = t1 - t0;
+  std::cout << "Hashing time: " << duration.count() << " seconds" << std::endl;
+
+  sam::finalize();
+}
