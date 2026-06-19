@@ -19,40 +19,33 @@ namespace U3xU4
   // coeffs have rhomax x etamax x kappamax x zetamax columns, index of each
   // column is
   // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
-  std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
-            std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-  TwoBodyMultiShellTensor::expand(SSTDecomp_phys_db& db) const
+  Expansion TwoBodyMultiShellTensor::expand(SSTDecomp_phys_db& db) const
   {
     auto& cgcs = qcx_utils::cgcs();
     auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
-    std::vector<Eigen::RowVectorXd> coeffsArr;
-    std::vector<U3xU4::ads_ats_phys> opsArr;
-    // recall: ads_ats_phys =
-    // std::vector<std::variant<U3xU4::ad_phys,U3xU4::at_phys>>;
+    Expansion result;
+    result.labels = &labels_;
+    std::vector<double> scratch;   // reused per-row accumulator (one allocation)
 
     if (Omegas_.size() == 0)
     {
       // Delegate to single-shell expansion
       const U3xU4::SingleShellTensor& tadat = Gammas_[0];
-      U3xU4::SingleShellTensor_phys tadat_phys(tadat.shell(), tadat.num_ads(), 
-        tadat.num_ats(), tadat.Omega_ads(), tadat.Omega_ats(), tadat.T(), 
+      U3xU4::SingleShellTensor_phys tadat_phys(tadat.shell(), tadat.num_ads(),
+        tadat.num_ats(), tadat.Omega_ads(), tadat.Omega_ats(), tadat.T(),
         rhomax(), etamax(), LL(), SS(), TT(), MMT(), JJ(), MMJ(), labels_);
 
-      auto [coeffs, ads, ats] = db.get(tadat_phys);
+      auto e = db.get_view(tadat_phys);
+      result.coeffs.ncols = e->ncols();
+      result.nops = e->nops;
 
-      for (size_t i = 0; i < coeffs.size(); i++)
+      for (size_t i = 0; i < e->rows(); i++)
       {
-        U3xU4::ads_ats_phys ops;
-        if (!ads.empty())
-          for (const auto& ad : ads[i]) ops.emplace_back(ad);
-        if (!ats.empty())
-          for (const auto& a : ats[i]) ops.emplace_back(a);
-
-        coeffsArr.push_back(std::move(coeffs[i]));
-        opsArr.push_back(std::move(ops));
+        result.coeffs.push_row(e->coeff_row(i));   // row already contiguous
+        result.append_ops_from(*e, i);
       }
     }
     else if (Omegas_.size() == 1)
@@ -137,22 +130,27 @@ namespace U3xU4
                         tadat1.Omega_ads(), tadat1.Omega_ats(), tadat1.T(),
                         tadat1.rho0max(), tadat1.eta0max(), LL1, SS1, TT1,
                         MMT1, JJ1, MMJ1, labels_);
-                      auto [coeffsArr1, adsArr1, asArr1] = db.get(tadat_phys1);
+                      auto view1 = db.get_view(tadat_phys1);
 
                       U3xU4::SingleShellTensor_phys tadat_phys2(
                           tadat2.shell(), tadat2.num_ads(), tadat2.num_ats(),
                           tadat2.Omega_ads(), tadat2.Omega_ats(), tadat2.T(),
                           tadat2.rho0max(), tadat2.eta0max(), LL2, SS2, TT2,
                           MMT2, JJ2, MMJ2, labels_);
-                      auto [coeffsArr2, adsArr2, asArr2] = db.get(tadat_phys2);
+                      auto view2 = db.get_view(tadat_phys2);
 
-                      for (size_t i = 0; i < coeffsArr1.size(); i++)
+                      const std::size_t ncols =
+                          rhomax() * etamax() * kappamax() * zetamax();
+                      result.coeffs.ncols = ncols;
+                      result.nops = view1->nops + view2->nops;
+
+                      for (size_t i = 0; i < view1->rows(); i++)
                       {
-                        for (size_t j = 0; j < coeffsArr2.size(); j++)
+                        const double* c1 = view1->coeff_row(i);
+                        for (size_t j = 0; j < view2->rows(); j++)
                         {
-                          Eigen::RowVectorXd x(rhomax() * etamax() * 
-                                               kappamax() * zetamax());
-                          x.setZero();
+                          const double* c2 = view2->coeff_row(j);
+                          scratch.assign(ncols, 0.0);
                           for (int rho = 0; rho < rhomax(); rho++)
                             for (int eta = 0; eta < etamax(); eta++)
                               for (int k = 0; k < kappamax(); k++)
@@ -167,33 +165,22 @@ namespace U3xU4
                                       for (int z1 = 0; z1 < zeta1; z1++)
                                         for (int z2 = 0; z2 < zeta2; z2++)
                                         {
-                                          x(index) +=
+                                          scratch[index] +=
                                               cgcU3(k1, k2, k, rho) *
                                               cgcU4(z1, z2, z, eta) *
                                               U9j * cgcJ * cgcT *
-                                              coeffsArr1[i](k1 * zeta1 + z1) *
-                                              coeffsArr2[j](k2 * zeta2 + z2);
+                                              c1[k1 * zeta1 + z1] *
+                                              c2[k2 * zeta2 + z2];
                                         }
                                 }
 
-                          if (x.norm() < 1e-12) continue;
+                          double s2 = 0.0;
+                          for (double v : scratch) s2 += v * v;
+                          if (s2 < 1e-24) continue;
 
-                          U3xU4::ads_ats_phys ops;
-                          if (!adsArr1.empty())
-                            for (const auto& ad1 : adsArr1[i])
-                              ops.emplace_back(ad1);
-                          if (!asArr1.empty())
-                            for (const auto& a1 : asArr1[i])
-                              ops.emplace_back(a1);
-                          if (!adsArr2.empty())
-                            for (const auto& ad2 : adsArr2[j])
-                              ops.emplace_back(ad2);
-                          if (!asArr2.empty())
-                            for (const auto& a2 : asArr2[j])
-                              ops.emplace_back(a2);
-
-                          coeffsArr.push_back(std::move(x));
-                          opsArr.push_back(std::move(ops));
+                          result.coeffs.push_row(scratch.data());
+                          result.append_ops_from(*view1, i);
+                          result.append_ops_from(*view2, j);
                         }
                       }
                     }
@@ -301,24 +288,27 @@ namespace U3xU4
                           kappa1, LL1, zeta1, SS1, TT1, MMT1, JJ1, MMJ1, {},
                           labels_);
 
-                      auto [coeffsArr1, opsArr1] =
-                          new_multi_shell_tensor.expand(db);
+                      Expansion e1 = new_multi_shell_tensor.expand(db);
 
                       U3xU4::SingleShellTensor_phys tadat_phys(
                           tadat.shell(), tadat.num_ads(), tadat.num_ats(),
                           tadat.Omega_ads(), tadat.Omega_ats(), tadat.T(),
                           tadat.rho0max(), tadat.eta0max(), LL2, SS2, TT2, MMT2,
                           JJ2, MMJ2, labels_);
-                      auto [coeffsArr2, adsArr2, asArr2] =
-                          db.get(tadat_phys);
+                      auto view2 = db.get_view(tadat_phys);
 
-                      for (size_t i = 0; i < coeffsArr1.size(); i++)
+                      const std::size_t ncols =
+                          rhomax() * etamax() * kappamax() * zetamax();
+                      result.coeffs.ncols = ncols;
+                      result.nops = e1.nops + view2->nops;
+
+                      for (size_t i = 0; i < e1.rows(); i++)
                       {
-                        for (size_t j = 0; j < coeffsArr2.size(); j++)
+                        const double* c1 = e1.coeff_row(i);
+                        for (size_t j = 0; j < view2->rows(); j++)
                         {
-                          Eigen::RowVectorXd x(rhomax() * etamax() * 
-                                               kappamax() * zetamax());
-                          x.setZero();
+                          const double* c2 = view2->coeff_row(j);
+                          scratch.assign(ncols, 0.0);
                           for (int rho = 0; rho < rhomax(); rho++)
                             for (int eta = 0; eta < etamax(); eta++)
                               for (int k = 0; k < kappamax(); k++)
@@ -331,28 +321,21 @@ namespace U3xU4
                                     for (int k2 = 0; k2 < kappa2; k2++)
                                       for (int z1 = 0; z1 < zeta1; z1++)
                                         for (int z2 = 0; z2 < zeta2; z2++)
-                                          x(index) +=
+                                          scratch[index] +=
                                               cgcU3(k1, k2, k, rho) *
                                               cgcU4(z1, z2, z, eta) *
                                               U9j * cgcJ * cgcT *
-                                              coeffsArr1[i](k1 * zeta1 + z1) *
-                                              coeffsArr2[j](k2 * zeta2 + z2);
+                                              c1[k1 * zeta1 + z1] *
+                                              c2[k2 * zeta2 + z2];
                                 }
 
-                          if (x.norm() < 1e-12) continue;
+                          double s2 = 0.0;
+                          for (double v : scratch) s2 += v * v;
+                          if (s2 < 1e-24) continue;
 
-                          assert(!opsArr1[i].empty());
-
-                          U3xU4::ads_ats_phys ops = opsArr1[i];
-                          if (!adsArr2.empty())
-                            for (const auto& ad2 : adsArr2[j])
-                              ops.emplace_back(ad2);
-                          if (!asArr2.empty())
-                            for (const auto& a2 : asArr2[j])
-                              ops.emplace_back(a2);
-
-                          coeffsArr.push_back(std::move(x));
-                          opsArr.push_back(std::move(ops));
+                          result.coeffs.push_row(scratch.data());
+                          result.append_ops_from(e1, i);
+                          result.append_ops_from(*view2, j);
                         }
                       }
                     }
@@ -365,25 +348,24 @@ namespace U3xU4
       }
     }
 
-    return std::make_pair(std::move(coeffsArr), std::move(opsArr));
+    return result;
   }
 
   //////////////////// GENERIC MULTI-SHELL TENSORS ////////////////////
 
   // Expand into uncoupled products of creation operators (ad)
   // and annihilation operators (a)
-  std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
-            std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-  MultiShellTensor_phys::expand(int LL, int SS, int TT,
-                                SSTDecomp_phys_db& db) const
+  Expansion MultiShellTensor_phys::expand(int LL, int SS, int TT,
+                                          SSTDecomp_phys_db& db) const
   {
     auto& cgcs = qcx_utils::cgcs();
     auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
-    std::vector<Eigen::RowVectorXd> coeffsArr;
-    std::vector<U3xU4::ads_ats_phys> opsArr;
+    Expansion result;
+    result.labels = &labels_;
+    std::vector<double> scratch;   // reused per-row accumulator (one allocation)
     int estimate = 1;
     for (const auto& G : Gammas())
     {
@@ -391,8 +373,6 @@ namespace U3xU4
       for (int i = 0; i < G.num_ads(); i++) estimate *= shell_dim;
       for (int i = 0; i < G.num_ats(); i++) estimate *= shell_dim;
     }
-    coeffsArr.reserve(estimate);
-    opsArr.reserve(estimate);
 
     if (Omegas().size() == 0)
     {
@@ -400,20 +380,16 @@ namespace U3xU4
       const U3xU4::SingleShellTensor& t = Gammas()[0];
       U3xU4::SingleShellTensor_phys t_phys(t, LL, SS, TT, MMT(), JJ(), MMJ(), labels_);
 
-      auto [coeffs, ads, ats] = db.get(t_phys);
+      auto e = db.get_view(t_phys);
+      result.coeffs.ncols = e->ncols();
+      result.nops = e->nops;
+      result.coeffs.reserve_rows(estimate);
 
-      for (size_t i = 0; i < coeffs.size(); i++)
+      for (size_t i = 0; i < e->rows(); i++)
       {
-        U3xU4::ads_ats_phys ops;
-        if (!ads.empty())
-          for (const auto& ad : ads[i]) ops.emplace_back(ad);
-        if (!ats.empty())
-          for (const auto& a : ats[i]) ops.emplace_back(a);
-
-        opsArr.push_back(std::move(ops));
+        result.coeffs.push_row(e->coeff_row(i));   // row already contiguous
+        result.append_ops_from(*e, i);
       }
-
-      coeffsArr = std::move(coeffs);
     }
     
     else if (Omegas().size() == 1)
@@ -496,44 +472,44 @@ namespace U3xU4
                     U3xU4::SingleShellTensor_phys 
                       t1_phys(t1, LL1, SS1, TT1, MMT1, JJ1, MMJ1, labels_);
 
-                    std::vector<Eigen::RowVectorXd> coeffsArr1;
-                    std::vector<U3xU4::ads_phys> adsArr1;
-                    std::vector<U3xU4::ats_phys> asArr1;
+                    SSTDecomp_phys_db::ExpansionRef view1;
+                    bool got1 = false;
 
                     for (int JJ2 = LL2 + SS2; JJ2 >= abs(LL2 - SS2); JJ2 -= 2)
                     {
                       if (u2::mult(JJ1, JJ2, JJ()) == 0) continue;
                       if (abs(MMJ2) > JJ2) continue;
-                  
+
                       double U9j = racah9.get({LL1, LL2, LL,
                                               SS1, SS2, SS,
                                               JJ1, JJ2, JJ()});
-                      
+
                       double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
 
                       double cgcU2 = U9j * cgcJ * cgcT;
 
-                      if (coeffsArr1.empty())
+                      if (!got1)
                       {
-                        // std::cout << "Start expanding t1: " << t1_phys << std::endl;
-                        std::tie(coeffsArr1, adsArr1, asArr1) = db.get(t1_phys);
-                        // std::cout << "Finish expanding t1" << std::endl;
+                        view1 = db.get_view(t1_phys);
+                        got1 = true;
                       }
 
-                      U3xU4::SingleShellTensor_phys 
-                        t2_phys(t2, LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels_);   
+                      U3xU4::SingleShellTensor_phys
+                        t2_phys(t2, LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels_);
 
-                      // std::cout << "Start expanding t2: " << t2_phys << std::endl;
-                      auto [coeffsArr2, adsArr2, asArr2] = db.get(t2_phys);
-                      // std::cout << "Finish expanding t2" << std::endl;
+                      auto view2 = db.get_view(t2_phys);
 
-                      for (size_t i = 0; i < coeffsArr1.size(); i++)
+                      result.coeffs.ncols = n_multis;
+                      result.nops = view1->nops + view2->nops;
+
+                      for (size_t i = 0; i < view1->rows(); i++)
                       {
-                        for (size_t j = 0; j < coeffsArr2.size(); j++)
+                        const double* c1 = view1->coeff_row(i);
+                        for (size_t j = 0; j < view2->rows(); j++)
                         {
-                          Eigen::RowVectorXd x(n_multis);
-                          x.setZero();
-                                                    
+                          const double* c2 = view2->coeff_row(j);
+                          scratch.assign(n_multis, 0.0);
+
                           for (size_t k = 0; k < n_multis; k++)
                           {
                             std::array<size_t, 6> multi;
@@ -551,33 +527,22 @@ namespace U3xU4
                                 for (int z1 = 0; z1 < zeta1; z1++)
                                   for (int z2 = 0; z2 < zeta2; z2++)
                                   {
-                                    x(k) +=
+                                    scratch[k] +=
                                       cgcU3(k1, k2, kappa, rho) *
                                       cgcU4(z1, z2, zeta, eta) *
                                       cgcU2 *
-                                      coeffsArr1[i]((alpha1 * kappa1 + k1) * zeta1 + z1) *
-                                      coeffsArr2[j]((alpha2 * kappa2 + k2) * zeta2 + z2);
+                                      c1[(alpha1 * kappa1 + k1) * zeta1 + z1] *
+                                      c2[(alpha2 * kappa2 + k2) * zeta2 + z2];
                                   }
                           }
 
-                          if (x.norm() < 1e-12) continue;
+                          double s2 = 0.0;
+                          for (double v : scratch) s2 += v * v;
+                          if (s2 < 1e-24) continue;
 
-                          U3xU4::ads_ats_phys ops;
-                          if (!adsArr1.empty())
-                            for (const auto& ad1 : adsArr1[i])
-                              ops.emplace_back(ad1);
-                          if (!asArr1.empty())
-                            for (const auto& a1 : asArr1[i])
-                              ops.emplace_back(a1);
-                          if (!adsArr2.empty())
-                            for (const auto& ad2 : adsArr2[j])
-                              ops.emplace_back(ad2);
-                          if (!asArr2.empty())
-                            for (const auto& a2 : asArr2[j])
-                              ops.emplace_back(a2);
-
-                          coeffsArr.push_back(std::move(x));
-                          opsArr.push_back(std::move(ops));
+                          result.coeffs.push_row(scratch.data());
+                          result.append_ops_from(*view1, i);
+                          result.append_ops_from(*view2, j);
                         }
                       }
                     }
@@ -672,8 +637,7 @@ namespace U3xU4
                     U3xU4::MultiShellTensor_phys 
                       t1_phys(Gammas_new, Omegas_new, MMT1, JJ1, MMJ1, labels_);
 
-                    std::vector<Eigen::RowVectorXd> coeffsArr1;
-                    std::vector<U3xU4::ads_ats_phys> opsArr1;
+                    Expansion e1;
                     
                     for (int JJ2 = LL2 + SS2; JJ2 >= abs(LL2 - SS2); JJ2 -= 2)
                     {
@@ -687,27 +651,26 @@ namespace U3xU4
 
                       double cgcU2 = U9j * cgcJ * cgcT;
 
-                      if (coeffsArr1.empty())
-                      {
-                        // std::cout << "Start expanding t1: " << t1_phys << std::endl;
-                        std::tie(coeffsArr1, opsArr1) = t1_phys.expand(LL1, SS1, TT1, db);
-                        // std::cout << "Finish expanding t1" << std::endl;       
-                      }
+                      if (e1.empty())
+                        e1 = t1_phys.expand(LL1, SS1, TT1, db);
 
                       U3xU4::SingleShellTensor_phys 
                         t2_phys(t2, LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels_);
 
                       // std::cout << "Start expanding t2: " << t2_phys << std::endl;
-                      auto [coeffsArr2, adsArr2, asArr2] = db.get(t2_phys);
-                      // std::cout << "Finish expanding t2" << std::endl;
+                      auto view2 = db.get_view(t2_phys);
 
-                      for (size_t i = 0; i < coeffsArr1.size(); i++)
+                      result.coeffs.ncols = n_multis;
+                      result.nops = e1.nops + view2->nops;
+
+                      for (size_t i = 0; i < e1.rows(); i++)
                       {
-                        for (size_t j = 0; j < coeffsArr2.size(); j++)
+                        const double* c1 = e1.coeff_row(i);
+                        for (size_t j = 0; j < view2->rows(); j++)
                         {
-                          Eigen::RowVectorXd x(n_multis);
-                          x.setZero();
-                                                    
+                          const double* c2 = view2->coeff_row(j);
+                          scratch.assign(n_multis, 0.0);
+
                           for (size_t k = 0; k < n_multis; k++)
                           {
                             std::array<size_t, 6> multi;
@@ -725,30 +688,23 @@ namespace U3xU4
                                 for (int z1 = 0; z1 < zeta1; z1++)
                                   for (int z2 = 0; z2 < zeta2; z2++)
                                   {
-                                    x(k) +=
+                                    scratch[k] +=
                                       cgcU3(k1, k2, kappa, rho) *
                                       cgcU4(z1, z2, zeta, eta) *
                                       cgcU2 *
-                                      coeffsArr1[i]((alpha1 * kappa1 + k1) * zeta1 + z1) *
-                                      coeffsArr2[j]((alpha2 * kappa2 + k2) * zeta2 + z2);
+                                      c1[(alpha1 * kappa1 + k1) * zeta1 + z1] *
+                                      c2[(alpha2 * kappa2 + k2) * zeta2 + z2];
                                   }
 
                           }
 
-                          if (x.norm() < 1e-12) continue;
+                          double s2 = 0.0;
+                          for (double v : scratch) s2 += v * v;
+                          if (s2 < 1e-24) continue;
 
-                          assert(!opsArr1[i].empty());
-
-                          U3xU4::ads_ats_phys ops = opsArr1[i];
-                          if (!adsArr2.empty())
-                            for (const auto& ad2 : adsArr2[j])
-                              ops.emplace_back(ad2);
-                          if (!asArr2.empty())
-                            for (const auto& a2 : asArr2[j])
-                              ops.emplace_back(a2);
-
-                          coeffsArr.push_back(std::move(x));
-                          opsArr.push_back(std::move(ops));
+                          result.coeffs.push_row(scratch.data());
+                          result.append_ops_from(e1, i);
+                          result.append_ops_from(*view2, j);
                         }
                       }
                     }
@@ -760,8 +716,8 @@ namespace U3xU4
         }
       }
     }
-    
-    return std::make_pair(std::move(coeffsArr), std::move(opsArr));
+
+    return result;
   }
 
   // Get two-body strength directly during expand()
@@ -793,7 +749,7 @@ namespace U3xU4
     {
       // Delegate to single-shell expansion
       const U3xU4::SingleShellTensor& t = Gammas()[0];
-      U3xU4::SingleShellTensor_phys 
+      U3xU4::SingleShellTensor_phys
         t_phys(t, LL, SS, TT, MMT(), JJ(), MMJ(), labels_);
 
       return t_phys.getStrengths(TBME, db);
@@ -875,79 +831,52 @@ namespace U3xU4
                     U3xU4::SingleShellTensor_phys 
                       t1_phys(t1, LL1, SS1, TT1, MMT1, JJ1, MMJ1, labels_);
 
-                    std::vector<Eigen::RowVectorXd> coeffsArr1;
-                    std::vector<U3xU4::ads_phys> adsArr1;
-                    std::vector<U3xU4::ats_phys> asArr1;
+                    SSTDecomp_phys_db::ExpansionRef view1;
+                    bool got1 = false;
 
                     for (int JJ2 = LL2 + SS2; JJ2 >= abs(LL2 - SS2); JJ2 -= 2)
                     {
                       if (u2::mult(JJ1, JJ2, JJ()) == 0) continue;
                       if (abs(MMJ2) > JJ2) continue;
-                  
+
                       double U9j = racah9.get({LL1, LL2, LL,
                                               SS1, SS2, SS,
                                               JJ1, JJ2, JJ()});
-                      
+
                       double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
 
                       double cgcU2 = U9j * cgcJ * cgcT;
 
-                      if (coeffsArr1.empty())
+                      if (!got1)
                       {
-                        // std::cout << "Start expanding t1: " << t1_phys << std::endl;
-                        std::tie(coeffsArr1, adsArr1, asArr1) = db.get(t1_phys);
-                        // std::cout << "Finish expanding t1" << std::endl;
+                        view1 = db.get_view(t1_phys);
+                        got1 = true;
                       }
 
                       U3xU4::SingleShellTensor_phys 
                         t2_phys(t2, LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels_);   
 
-                      // std::cout << "Start expanding t2: " << t2_phys << std::endl;
-                      auto [coeffsArr2, adsArr2, asArr2] = db.get(t2_phys);
-                      // std::cout << "Finish expanding t2" << std::endl;
+                      auto view2 = db.get_view(t2_phys);
 
-                      for (size_t i = 0; i < coeffsArr1.size(); i++)
+                      for (size_t i = 0; i < view1->rows(); i++)
                       {
-                        for (size_t j = 0; j < coeffsArr2.size(); j++)
+                        const double* c1 = view1->coeff_row(i);
+                        for (size_t j = 0; j < view2->rows(); j++)
                         {
-                          // Extract quantum numbers
+                          const double* c2 = view2->coeff_row(j);
+
+                          // Extract quantum numbers straight from the table
                           std::array<int, 4> ns, lls, jjs, mmjs, mmts;
                           int o = 0;
-                          if (!adsArr1.empty())
-                            for (const auto& ad1 : adsArr1[i])
-                            {
-                              std::tie(ns[o], lls[o], jjs[o], mmjs[o], mmts[o])
-                                = ad1.getLabels();
-                              o++;
-                            }
-                          if (!asArr1.empty())
-                            for (const auto& a1 : asArr1[i])
-                            {
-                              std::tie(ns[o], lls[o], jjs[o], mmjs[o], mmts[o])
-                                = a1.getLabels();
-                              o++;
-                            }
-                          if (!adsArr2.empty())
-                            for (const auto& ad2 : adsArr2[j])
-                            {
-                              std::tie(ns[o], lls[o], jjs[o], mmjs[o], mmts[o])
-                                = ad2.getLabels();
-                              o++;
-                            }
-                          if (!asArr2.empty())
-                            for (const auto& a2 : asArr2[j])
-                            {
-                              std::tie(ns[o], lls[o], jjs[o], mmjs[o], mmts[o])
-                                = a2.getLabels();
-                              o++;
-                            }
+                          o = view1->fill_labels(i, o, ns, lls, jjs, mmjs, mmts);
+                          o = view2->fill_labels(j, o, ns, lls, jjs, mmjs, mmts);
                           assert(o == 4);
 
                           // Get matrix elements
                           double me = 0.0;
                           for (int k = 0; k < inverse.size(); k++)
                           {
-                            std::array<int, 4> 
+                            std::array<int, 4>
                               ns_orig = inverse_permutation(ns, inverse[k]),
                               lls_orig = inverse_permutation(lls, inverse[k]),
                               jjs_orig = inverse_permutation(jjs, inverse[k]),
@@ -985,8 +914,8 @@ namespace U3xU4
                                       cgcU3(k1, k2, kappa, rho) *
                                       cgcU4(z1, z2, zeta, eta) *
                                       cgcU2 *
-                                      coeffsArr1[i]((alpha1 * kappa1 + k1) * zeta1 + z1) *
-                                      coeffsArr2[j]((alpha2 * kappa2 + k2) * zeta2 + z2);
+                                      c1[(alpha1 * kappa1 + k1) * zeta1 + z1] *
+                                      c2[(alpha2 * kappa2 + k2) * zeta2 + z2];
                                   }
                           }
                         }
@@ -1087,8 +1016,7 @@ namespace U3xU4
                     U3xU4::MultiShellTensor_phys 
                       t1_phys(Gammas_new, Omegas_new, MMT1, JJ1, MMJ1, labels_);
 
-                    std::vector<Eigen::RowVectorXd> coeffsArr1;
-                    std::vector<U3xU4::ads_ats_phys> opsArr1;
+                    Expansion e1;
                     
                     for (int JJ2 = LL2 + SS2; JJ2 >= abs(LL2 - SS2); JJ2 -= 2)
                     {
@@ -1102,56 +1030,33 @@ namespace U3xU4
 
                       double cgcU2 = U9j * cgcJ * cgcT;
 
-                      if (coeffsArr1.empty())
-                      {
-                        // std::cout << "Start expanding t1: " << t1_phys << std::endl;
-                        std::tie(coeffsArr1, opsArr1) = t1_phys.expand(LL1, SS1, TT1, db);
-                        // std::cout << "Finish expanding t1" << std::endl;       
-                      }
+                      if (e1.empty())
+                        e1 = t1_phys.expand(LL1, SS1, TT1, db);
 
                       U3xU4::SingleShellTensor_phys 
                         t2_phys(t2, LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels_);
 
-                      // std::cout << "Start expanding t2: " << t2_phys << std::endl;
-                      auto [coeffsArr2, adsArr2, asArr2] = db.get(t2_phys);
-                      // std::cout << "Finish expanding t2" << std::endl;
+                      auto view2 = db.get_view(t2_phys);
 
-                      for (size_t i = 0; i < coeffsArr1.size(); i++)
+                      for (size_t i = 0; i < e1.rows(); i++)
                       {
-                        for (size_t j = 0; j < coeffsArr2.size(); j++)
+                        const double* c1 = e1.coeff_row(i);
+                        for (size_t j = 0; j < view2->rows(); j++)
                         {
-                          // Extract quantum numbers
+                          const double* c2 = view2->coeff_row(j);
+
+                          // Extract quantum numbers straight from the table
                           std::array<int, 4> ns, lls, jjs, mmjs, mmts;
                           int o = 0;
-                          for (const auto& op1 : opsArr1[i])
-                          {
-                            std::visit([&](auto&& op)
-                            {
-                              std::tie(ns[o], lls[o], jjs[o], mmjs[o], mmts[o]) = op.getLabels();
-                            }, op1);
-                            o++;
-                          }
-                          if (!adsArr2.empty())
-                            for (const auto& ad2 : adsArr2[j])
-                            {
-                              std::tie(ns[o], lls[o], jjs[o], mmjs[o], mmts[o])
-                                = ad2.getLabels();
-                              o++;
-                            }
-                          if (!asArr2.empty())
-                            for (const auto& a2 : asArr2[j])
-                            {
-                              std::tie(ns[o], lls[o], jjs[o], mmjs[o], mmts[o])
-                                = a2.getLabels();
-                              o++;
-                            }
+                          o = e1.fill_labels(i, o, ns, lls, jjs, mmjs, mmts);
+                          o = view2->fill_labels(j, o, ns, lls, jjs, mmjs, mmts);
                           assert(o == 4);
 
                           // Get matrix elements
                           double me = 0.0;
                           for (int k = 0; k < inverse.size(); k++)
                           {
-                            std::array<int, 4> 
+                            std::array<int, 4>
                               ns_orig = inverse_permutation(ns, inverse[k]),
                               lls_orig = inverse_permutation(lls, inverse[k]),
                               jjs_orig = inverse_permutation(jjs, inverse[k]),
@@ -1189,8 +1094,8 @@ namespace U3xU4
                                       cgcU3(k1, k2, kappa, rho) *
                                       cgcU4(z1, z2, zeta, eta) *
                                       cgcU2 *
-                                      coeffsArr1[i]((alpha1 * kappa1 + k1) * zeta1 + z1) *
-                                      coeffsArr2[j]((alpha2 * kappa2 + k2) * zeta2 + z2);
+                                      c1[(alpha1 * kappa1 + k1) * zeta1 + z1] *
+                                      c2[(alpha2 * kappa2 + k2) * zeta2 + z2];
                                   }
                           }
                         }

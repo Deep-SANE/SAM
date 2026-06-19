@@ -208,33 +208,25 @@ int main(int argc, char* argv[])
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [coeffsArr, opsArr] = T.expand(LL, SS, TT, decompdb);
+  auto exp = T.expand(LL, SS, TT, decompdb);
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  Eigen::RowVectorXd norm(coeffsArr[0].size());
-  norm.setZero();
+  decompdb.finalize();
 
   bool print;
-  std::cout << "Finish expanding with " << coeffsArr.size() << " terms."
+  std::cout << "Finish expanding with " << exp.rows() << " terms."
             << " Do you want to print the results? (1 yes, 0 no) ";
   std::cin >> print;
 
-  for (std::size_t i = 0; i < coeffsArr.size(); i++)
-  {
-    if (print)
-    {
-      std::cout << coeffsArr[i] << "\t";
-      for (const auto& op : opsArr[i])
-      std::visit([](auto&& o) { std::cout << o << "\t"; }, op);
+  if (print)
+    std::cout << exp;
 
-      std::cout << std::endl;
-    }
-    norm = norm + coeffsArr[i].cwiseProduct(coeffsArr[i]);
-  }
-
-  std::cout << "Normalization: " << norm << std::endl;
+  std::vector<double> norm = exp.coeffs.norm();
+  std::cout << "Normalization:";
+  for (double n : norm) std::cout << " " << n;
+  std::cout << std::endl;
 
   // Calculate the duration
   std::chrono::duration<double> duration = t1 - t0;

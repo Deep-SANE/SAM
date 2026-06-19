@@ -181,18 +181,17 @@ namespace HO
             for (qn_t mmt = 1; mmt >= -1; mmt -= 2)
             {
               key_type key = {n, 2 * l, jj, mmj, mmt};
-              state_to_index[key] = index;
+              state_to_index[pack_mscheme_state(n, 2 * l, jj, mmj, mmt)] = index;
               index_to_state.push_back(key);
               index++;
             }
   }
 
   // Get index from quantum numbers
-  uint16_t Table_nljmjmt::getIndex(qn_t n, qn_t ll, 
+  uint16_t Table_nljmjmt::getIndex(qn_t n, qn_t ll,
                         qn_t jj, qn_t mmj, qn_t mmt) const
   {
-    key_type key = {n, ll, jj, mmj, mmt};
-    auto it = state_to_index.find(key);
+    auto it = state_to_index.find(pack_mscheme_state(n, ll, jj, mmj, mmt));
     if (it == state_to_index.end())
       throw std::out_of_range("Labels not found");
     return it->second;
@@ -240,12 +239,12 @@ namespace HO
           {
             // add proton
             orbits.push_back({n, l, jj, -1});
-            index_map[{n, l, jj, -1}] = idx;
+            index_map[pack(n, l, jj, -1)] = idx;
             idx++;
 
             // add neutron
             orbits.push_back({n, l, jj, 1});
-            index_map[{n, l, jj, 1}] = idx;
+            index_map[pack(n, l, jj, 1)] = idx;
             idx++;
           }
         }
@@ -263,12 +262,12 @@ namespace HO
           {
             // add proton
             orbits.push_back({n, l, jj, -1});
-            index_map[{n, l, jj, -1}] = idx;
+            index_map[pack(n, l, jj, -1)] = idx;
             idx++;
 
             // add neutron
             orbits.push_back({n, l, jj, 1});
-            index_map[{n, l, jj, 1}] = idx;
+            index_map[pack(n, l, jj, 1)] = idx;
             idx++;
           }
         }
@@ -283,7 +282,7 @@ namespace HO
   // whereas e is the shell number
   uint16_t OrbitsMap::getIndex(qn_t n, qn_t l, qn_t jj, qn_t mmt) const
   {
-    auto it = index_map.find({n, l, jj, mmt});
+    auto it = index_map.find(pack(n, l, jj, mmt));
     if (it != index_map.end())
       return it->second;
     else
@@ -756,8 +755,10 @@ namespace HO
         double_cnt++;
 #endif
 
-      me_map[{static_cast<uint16_t>(ia[i]), static_cast<uint16_t>(ib[i]),
-              static_cast<uint16_t>(ic[i]), static_cast<uint16_t>(id[i]),
+      me_map[{pack_abcd(static_cast<uint16_t>(ia[i]),
+                        static_cast<uint16_t>(ib[i]),
+                        static_cast<uint16_t>(ic[i]),
+                        static_cast<uint16_t>(id[i])),
               static_cast<qn_t>(J[i])}] = v[i];
 
       /* Comment on the phase: in the subroutine, one sees these lines
@@ -915,10 +916,10 @@ namespace HO
         double_cnt++;
 #endif
 
-      me_map[{static_cast<uint16_t>(ia[i]) + 1,
-              static_cast<uint16_t>(ib[i]) + 1,
-              static_cast<uint16_t>(ic[i]) + 1,
-              static_cast<uint16_t>(id[i]) + 1,
+      me_map[{pack_abcd(static_cast<uint16_t>(ia[i] + 1),
+                        static_cast<uint16_t>(ib[i] + 1),
+                        static_cast<uint16_t>(ic[i] + 1),
+                        static_cast<uint16_t>(id[i] + 1)),
               static_cast<qn_t>(J[i])}] = v[i];
 
       /* Comment on the phase: in the subroutine, one sees these lines
@@ -1051,8 +1052,8 @@ namespace HO
         double_cnt++;
 #endif
 
-      me_map[{static_cast<uint16_t>(a), static_cast<uint16_t>(b),
-              static_cast<uint16_t>(c), static_cast<uint16_t>(d),
+      me_map[{pack_abcd(static_cast<uint16_t>(a), static_cast<uint16_t>(b),
+                        static_cast<uint16_t>(c), static_cast<uint16_t>(d)),
               static_cast<qn_t>(J)}] = v;
     }
 
@@ -1080,77 +1081,24 @@ namespace HO
   }
 
 #ifdef UNCOUPLE_ME_CACHE
-  // One private map per thread (sized by initialize_twbme_cache). Each thread
-  // touches only its own slot, so getME's lookup is lock-free -- no shared
-  // state, no read lock, no concurrent_flat_map TLS. Lives for the whole run;
-  // driven by initialize_twbme_cache / finalize_twbme_cache (from
-  // sam::initialize / sam::finalize).
-  namespace
-  {
-    std::vector<TwBME_mscheme_cache_t> g_mscheme_caches;
-  }
-
+  // One private hash map per thread -- a "singleton on each thread" via
+  // thread_local. Each thread touches only its own map, so getME's lookup is
+  // lock-free AND resolving the cache costs just a thread_local access: no
+  // omp_get_thread_num(), no shared-vector index. The map is created lazily on a
+  // thread's first getME and freed when that thread exits.
   TwBME_mscheme_cache_t& twbme_mscheme_cache()
   {
-#ifdef _OPENMP
-    return g_mscheme_caches[omp_get_thread_num()];
-#else
-    return g_mscheme_caches[0];
-#endif
+    thread_local TwBME_mscheme_cache_t cache;
+    return cache;
   }
 
-  void initialize_twbme_cache()
-  {
-#ifdef _OPENMP
-    g_mscheme_caches.assign(std::max(1, omp_get_max_threads()),
-                            TwBME_mscheme_cache_t{});
-#else
-    g_mscheme_caches.assign(1, TwBME_mscheme_cache_t{});
-#endif
-  }
-
-  void finalize_twbme_cache()
-  {
-    g_mscheme_caches.clear();
-    g_mscheme_caches.shrink_to_fit();
-  }
-
-  namespace
-  {
-    // Pack one m-scheme state (e, 2l, 2j, 2mj, mt) into 30 bits; the four
-    // states form the cache key (two states per uint64):
-    //   e[0..6] 2l[7..13] 2j[14..20] (2mj+128)[21..28] (mt>0)[29].
-    //
-    // Why 7 bits suffice even though these are 8-bit ints (qn_t = int8_t):
-    //   e, 2l, 2j are non-negative, and int8_t's positive range is [0,127],
-    //   which is *exactly* 7 bits. So 0x7F masks nothing off any valid value --
-    //   it only guards against an out-of-range (>127) shell number, which no
-    //   realistic model space reaches (e = 2n+l <= maxShell).
-    // 2mj is signed (in [-2j, 2j]); we offset by +128 so the full int8_t range
-    //   maps to [0,255] and store the 8 bits. mt = +-1 -> a single bit.
-    inline uint32_t pack_mscheme_state(qn_t e, qn_t ll, qn_t jj,
-                                       qn_t mmj, qn_t mmt)
-    {
-      return  (uint32_t(uint8_t(e))    & 0x7Fu)         // e   : 7 bits, [0,127]
-            | ((uint32_t(uint8_t(ll))  & 0x7Fu) << 7)   // 2l  : 7 bits, [0,127]
-            | ((uint32_t(uint8_t(jj))  & 0x7Fu) << 14)  // 2j  : 7 bits, [0,127]
-            | ((uint32_t(uint8_t(mmj + 128)))   << 21)  // 2mj : 8 bits, signed
-            | ((mmt > 0 ? 1u : 0u)              << 29); // mt  : 1 bit, +-1
-    }
-
-    inline TwBME_mscheme_key make_mscheme_key(
-        qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
-        qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
-        qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
-        qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd)
-    {
-      return {
-        (uint64_t(pack_mscheme_state(ea, lla, jja, mmja, mmta)) << 32) |
-          pack_mscheme_state(eb, llb, jjb, mmjb, mmtb),
-        (uint64_t(pack_mscheme_state(ec, llc, jjc, mmjc, mmtc)) << 32) |
-          pack_mscheme_state(ed, lld, jjd, mmjd, mmtd)};
-    }
-  } // namespace
+  // Per-thread caches are now self-managed (lazy create, freed at thread exit),
+  // so these are no-ops -- kept so sam::initialize / sam::finalize need not
+  // change. NOTE: memory is released at thread exit (program end for the OpenMP
+  // worker pool) rather than at finalize; ask if you need an explicit mid-run
+  // release for very large model spaces.
+  void initialize_twbme_cache() { }
+  void finalize_twbme_cache() { }
 #endif
 
   void TwBME_scalar::clear()
@@ -1170,7 +1118,7 @@ namespace HO
     const auto& oc = orbit_map.getOrbit(static_cast<int>(c)); 
     const auto& od = orbit_map.getOrbit(static_cast<int>(d));
 
-    qn_t ea = oa.shell(), eb = ob.shell(), ec = oc.shell(), ed = od.shell();
+    // qn_t ea = oa.shell(), eb = ob.shell(), ec = oc.shell(), ed = od.shell();
 /*
     std::cout << "a=" << a << ": " << oa << std::endl;
     std::cout << "b=" << b << ": " << ob << std::endl;
@@ -1197,26 +1145,26 @@ namespace HO
     */
     //////////////////////////////////////////////////////
 
-    auto it = me_map.find({a, b, c, d, J});
+    auto it = me_map.find({pack_abcd(a, b, c, d), J});
     if (it != me_map.end()) return it->second;
-    it = me_map.find({c, d, a, b, J});
+    it = me_map.find({pack_abcd(c, d, a, b), J});
     if (it != me_map.end()) return it->second; // if antiHermitian, *= -1
 
     double phase_ab = (((oa.jj_ + ob.jj_) / 2 - J) % 2 == 0) ? -1.0 : 1.0;
-    it = me_map.find({b, a, c, d, J});
+    it = me_map.find({pack_abcd(b, a, c, d), J});
     if (it != me_map.end()) return phase_ab * (it->second);
-    it = me_map.find({c, d, b, a, J});
+    it = me_map.find({pack_abcd(c, d, b, a), J});
     if (it != me_map.end()) return phase_ab * (it->second);
 
     double phase_cd = (((oc.jj_ + od.jj_) / 2 - J) % 2 == 0) ? -1.0 : 1.0;
-    it = me_map.find({a, b, d, c, J});
+    it = me_map.find({pack_abcd(a, b, d, c), J});
     if (it != me_map.end()) return phase_cd * (it->second);
-    it = me_map.find({d, c, a, b, J});
+    it = me_map.find({pack_abcd(d, c, a, b), J});
     if (it != me_map.end()) return phase_cd * (it->second);
 
-    it = me_map.find({b, a, d, c, J});
+    it = me_map.find({pack_abcd(b, a, d, c), J});
     if (it != me_map.end()) return phase_ab * phase_cd * (it->second);
-    it = me_map.find({d, c, b, a, J});
+    it = me_map.find({pack_abcd(d, c, b, a), J});
     if (it != me_map.end()) return phase_ab * phase_cd * (it->second);
 
     // return 0.0;
@@ -1234,10 +1182,12 @@ namespace HO
       qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
   {
 #ifdef UNCOUPLE_ME_CACHE
-    // Memoize the m-scheme ME. The expansion requests the same m-scheme tuple
-    // many times across terms and tensors, so this turns repeated CG recoupling
-    // sums into a single hash lookup in this thread's private map (lock-free).
-    TwBME_mscheme_key key = make_mscheme_key(
+    // Memoize the m-scheme ME in this thread's cache. The expansion requests the
+    // same m-scheme tuple many times across terms and tensors, so this turns the
+    // CG recoupling sum into a single lock-free hash lookup. twbme_mscheme_cache
+    // is a thread_local singleton, so resolving it here is cheap (no
+    // omp_get_thread_num) and the callers need not pass it in.
+    TwBME_mscheme_key key = pack_mscheme_2Bstate(
       ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
       ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
 
@@ -1678,7 +1628,7 @@ namespace HO
     // cache is keyed only by the four m-scheme states, so it is correct only
     // when a single operator is active per program -- see the warning atop
     // app/TwoBodyOperatorJT.cpp.
-    TwBME_mscheme_key key = make_mscheme_key(
+    TwBME_mscheme_key key = pack_mscheme_2Bstate(
       ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
       ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
 

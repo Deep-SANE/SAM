@@ -4,13 +4,10 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
-#include <optional>
 #include <shared_mutex>
 #include <string>
-#include <tuple>
 #include <vector>
 
-#include <Eigen/Dense>
 #include <boost/container/flat_map.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
 
@@ -31,23 +28,18 @@ namespace U3xU4
 
      Layout mirrors RME_db: one binary file per SingleShellTensor *structure*
      (named from its quantum numbers), each holding a map from the projection
-     key (LL, SS, TT, MMT, JJ, MMJ) to the serialized expansion. The format
+     key (LL, SS, TT, MMT, JJ, MMJ) to the serialized Expansion. The format
      version is encoded in the filename, so a layout change simply ignores the
      stale files.
 
-     Only the _phys tensor is cached here; SingleShellTensor_gelfand may get an
-     analogous database later. */
+     The cached value is the shared U3xU4::Expansion (flat coeffs + row-major
+     operator indices); only its runtime `labels` pointer is not serialized.
+     Only the _phys tensor is cached here. */
   class SSTDecomp_phys_db
   {
-  public:
-    // The value type returned by SingleShellTensor_phys::expand().
-    using Expansion = std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
-                                 std::vector<U3xU4::ads_phys>,     // ad's
-                                 std::vector<U3xU4::ats_phys>>;    // a's
-
   private:
-    // Bump when the on-disk Record layout changes (encoded in the filename).
-    static constexpr int FORMAT_VERSION = 1;
+    // Bump when the on-disk Expansion layout changes (encoded in the filename).
+    static constexpr int FORMAT_VERSION = 2;
 
     std::string dir;
 
@@ -64,50 +56,26 @@ namespace U3xU4
       auto operator<=>(const DecompKey&) const = default;
     };
 
-    // Serialized, interaction-independent expansion. We keep this compact form
-    // in memory and rebuild the heavyweight Eigen / ad_phys / at_phys objects
-    // on demand in get(). ad_phys / at_phys are stored by their Table_nljmjmt
-    // index (getIndex()) -- their full observable state, since every cached
-    // a^tilde is already an annihilation operator (tensor == false). The index
-    // enumeration is maxShell-invariant, so records are portable across runs.
-    //
-    // The three arrays' row counts are stored independently: the general case
-    // has n_ad_rows == n_at_rows == nrows, but a pure multi-creation tensor
-    // (Tad only) leaves atsArr empty (n_at_rows == 0) and a pure
-    // multi-annihilation tensor (Tat only) leaves adsArr empty.
-    struct Record
-    {
-      uint64_t nrows = 0; // coeff rows (= coeffs.size())
-      uint32_t ncols = 0; // columns per coeff row  (rho*eta*kappa*zeta)
-      std::vector<double> coeffs; // nrows * ncols, row-major
-
-      uint32_t n_ad_rows = 0;       // ad rows (= adsArr.size(): nrows or 0)
-      uint16_t nad = 0;             // ad's per row
-      std::vector<uint16_t> ad_idx; // n_ad_rows * nad  (table indices)
-
-      uint32_t n_at_rows = 0;       // a rows  (= atsArr.size(): nrows or 0)
-      uint16_t nat = 0;             // a's per row
-      std::vector<uint16_t> at_idx; // n_at_rows * nat  (table indices)
-    };
-
     // One binary file holding every cached projection of one tensor structure.
+    // Expansions are held by unique_ptr so they are pointer-stable: inserts may
+    // relocate the flat_map's elements, but the pointees never move, so get_view
+    // can hand out borrowed pointers into a stored Expansion.
     struct DecompFile
     {
       std::string path;
-      boost::container::flat_map<DecompKey, Record> records;
+      boost::container::flat_map<DecompKey, std::unique_ptr<Expansion>> records;
       size_t initial_size = 0;
       mutable std::mutex file_mutex_;
 
       explicit DecompFile(const std::string& path_);
 
-      bool contains(const DecompKey& key) const;
-
-      // Copy the record out under lock (empty if absent), to be unpacked
-      // outside any lock -- mirrors RME_db's copy-out pattern.
-      std::optional<Record> get_if_exist(const DecompKey& key) const;
-
-      // Insert if new; return a copy of the stored record (existing wins).
-      Record append_or_get(const DecompKey& key, Record&& rec);
+      // Stable pointer to the stored Expansion, or nullptr if absent. The
+      // runtime `labels` pointer is (re)bound under the lock -- the data is
+      // immutable and never erased until finalize, so it may be read lock-free
+      // after the lookup. Misses are computed and inserted by the caller.
+      Expansion* get_ptr(const DecompKey& key,
+                         const HO::Table_nljmjmt& labels) const;
+      Expansion* append_or_get_ptr(const DecompKey& key, Expansion&& e);
     };
 
     // Top-level cache: filename -> file.
@@ -120,12 +88,9 @@ namespace U3xU4
     // scheme as SingleShellTensor::readBinary, plus a format-version tag).
     static std::string filename(const U3xU4::SingleShellTensor& t);
 
-    // (de)serialization between the live Expansion and the compact Record.
-    static Record pack(const Expansion& e);
-    static Expansion unpack(const Record& rec,
-                            const HO::Table_nljmjmt& labels);
+    // Serialize one cached expansion (coeffs + flat operator lists).
     static void writeRecord(std::ostream& s, const DecompKey& key,
-                            const Record& rec);
+                            const Expansion& e);
 
   public:
     SSTDecomp_phys_db();
@@ -134,8 +99,28 @@ namespace U3xU4
     // Flush newly computed entries to disk and release in-memory data.
     void finalize();
 
-    // Cached SingleShellTensor_phys::expand(): returns the stored expansion,
-    // computing and caching it on a miss. Drop-in replacement for t.expand().
-    Expansion get(const U3xU4::SingleShellTensor_phys& t);
+    // Borrow-or-own handle to an Expansion. On a cache hit get_view() borrows a
+    // stable pointer into the in-memory cache (zero copy, valid for the db's
+    // lifetime); the uncached single-operator case owns a freshly built one.
+    // All accessors live on Expansion itself -- use via operator->.
+    class ExpansionRef
+    {
+      std::unique_ptr<Expansion> owned_;     // set only on the uncached path
+      const Expansion* p_ = nullptr;         // borrowed, or == owned_.get()
+
+      friend class SSTDecomp_phys_db;
+      explicit ExpansionRef(const Expansion* p) : p_(p) { }
+      explicit ExpansionRef(std::unique_ptr<Expansion> o)
+        : owned_(std::move(o)), p_(owned_.get()) { }
+
+    public:
+      ExpansionRef() = default;
+      const Expansion& operator*()  const { return *p_; }
+      const Expansion* operator->() const { return p_; }
+      explicit operator bool() const { return p_ != nullptr; }
+    };
+
+    // Cached expand() as a borrow-or-own Expansion (see ExpansionRef).
+    ExpansionRef get_view(const U3xU4::SingleShellTensor_phys& t);
   };
 } // namespace U3xU4

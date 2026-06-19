@@ -73,16 +73,28 @@ namespace HO
   // Thus these quantum numbers can be represented by int8: -128 to 127
   using qn_t = int8_t;
 
+  // Pack the labels into a single 32-bit key (faster than hashing a 5-tuple).
+  // n <= 44, ll = 2l <= 88, jj <= 89 fit 7 bits each; mmj in [-89,89] is biased
+  // by +128 into 8 bits; mmt = +-1 is one bit. 30 bits total, all disjoint.
+  inline uint32_t pack_mscheme_state(qn_t n, qn_t ll, qn_t jj, qn_t mmj, qn_t mmt)
+  {
+    return  (uint32_t(uint8_t(n))    & 0x7Fu)
+          | ((uint32_t(uint8_t(ll))  & 0x7Fu) << 7)
+          | ((uint32_t(uint8_t(jj))  & 0x7Fu) << 14)
+          | ((uint32_t(uint8_t(mmj + 128)))   << 21)
+          | ((mmt > 0 ? 1u : 0u)              << 29);
+  }
+
   class Table_nljmjmt
   {
   private:
-    // key = (n, ll, jj, mmj, mmt)
+    // labels = (n, ll, jj, mmj, mmt)
     using key_type = std::tuple<qn_t, qn_t, qn_t, qn_t, qn_t>;
 
     // Each shell, dimension is 2(n+1)(n+2)
-    // For n = 0 to 44: total number of single-particle states = 64860 
+    // For n = 0 to 44: total number of single-particle states = 64860
     // Thus index can be uint16 (0 to 65,535)
-    std::unordered_map<key_type, uint16_t, boost::hash<key_type>> state_to_index;
+    std::unordered_map<uint32_t, uint16_t> state_to_index;
     std::vector<key_type> index_to_state;
 
   public:
@@ -137,7 +149,18 @@ namespace HO
 
     // All orbits
     std::vector<Orbit> orbits;
-    std::map<Orbit, uint16_t> index_map;
+    std::unordered_map<uint32_t, uint16_t> index_map;
+
+    // Pack an orbit's (n, l, jj, mmt) into a single 32-bit key (faster than a
+    // std::map<Orbit> tree): n, l, jj fit 7 bits each (n<=22, l<=44, jj=2j<=89);
+    // mmt = +-1 is one bit.
+    static uint32_t pack(qn_t n, qn_t l, qn_t jj, qn_t mmt)
+    {
+      return  (uint32_t(uint8_t(n))   & 0x7Fu)
+            | ((uint32_t(uint8_t(l))   & 0x7Fu) << 7)
+            | ((uint32_t(uint8_t(jj))  & 0x7Fu) << 14)
+            | ((mmt > 0 ? 1u : 0u)              << 21);
+    }
 
   public:
     // Constructor
@@ -232,6 +255,18 @@ namespace HO
   // see getME). Only one nuclear potential is active at a time, so the table
   // needs no per-operator tag.
   using TwBME_mscheme_key = std::pair<uint64_t, uint64_t>;
+  inline TwBME_mscheme_key pack_mscheme_2Bstate(
+        qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+        qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+        qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+        qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd)
+  {
+    return {(uint64_t(pack_mscheme_state(ea, lla, jja, mmja, mmta)) << 32) |
+                      pack_mscheme_state(eb, llb, jjb, mmjb, mmtb),
+            (uint64_t(pack_mscheme_state(ec, llc, jjc, mmjc, mmtc)) << 32) |
+                      pack_mscheme_state(ed, lld, jjd, mmjd, mmtd)};
+  }
+
   using TwBME_mscheme_cache_t =
     boost::unordered_flat_map<TwBME_mscheme_key, double,
                               boost::hash<TwBME_mscheme_key>>;
@@ -248,9 +283,16 @@ namespace HO
   class TwBME_scalar
   {
   private:
-    // key: a b c d J
-    using key_type =
-        std::tuple<uint16_t, uint16_t, uint16_t, uint16_t, qn_t>;
+    // key: the four orbital indices (a,b,c,d) packed into one uint64, plus the
+    // coupling J.
+    using key_type = std::pair<uint64_t, qn_t>;
+
+    // Pack the four orbital indices into a single 64-bit value (16 bits each).
+    static uint64_t pack_abcd(uint16_t a, uint16_t b, uint16_t c, uint16_t d)
+    {
+      return (uint64_t(a) << 48) | (uint64_t(b) << 32) |
+             (uint64_t(c) << 16) | uint64_t(d);
+    }
 
     std::unordered_map<key_type, double, boost::hash<key_type>> me_map;
     OrbitsMap orbit_map;

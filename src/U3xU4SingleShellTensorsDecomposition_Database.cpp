@@ -54,120 +54,21 @@ namespace U3xU4
   }
 
   //=========================================================================
-  // pack / unpack: live Expansion <-> compact Record.
-  //=========================================================================
-  SSTDecomp_phys_db::Record SSTDecomp_phys_db::pack(const Expansion& e)
-  {
-    const auto& [coeffs, adsArr, atsArr] = e;
-
-    Record rec;
-
-    // coeff rows
-    rec.nrows = coeffs.size();
-    rec.ncols = coeffs.empty()
-                  ? 0u
-                  : static_cast<uint32_t>(coeffs.front().size());
-    rec.coeffs.resize(static_cast<size_t>(rec.nrows) * rec.ncols);
-    for (uint64_t i = 0; i < rec.nrows; ++i)
-    {
-      assert(static_cast<uint32_t>(coeffs[i].size()) == rec.ncols);
-      for (uint32_t c = 0; c < rec.ncols; ++c)
-        rec.coeffs[i * rec.ncols + c] = coeffs[i](c);
-    }
-
-    // ad operators: table index = full state. adsArr is either empty (pure
-    // multi-annihilation tensor) or has one row per coeff row.
-    rec.n_ad_rows = static_cast<uint32_t>(adsArr.size());
-    rec.nad = adsArr.empty() ? 0
-                             : static_cast<uint16_t>(adsArr.front().size());
-    rec.ad_idx.reserve(static_cast<size_t>(rec.n_ad_rows) * rec.nad);
-    for (const auto& row : adsArr)
-    {
-      assert(row.size() == rec.nad);
-      for (const auto& ad : row)
-        rec.ad_idx.push_back(ad.getIndex());
-    }
-
-    // a operators: table index only -- every cached a^tilde is already an
-    // annihilation operator (tensor == false), so the flag carries no info.
-    rec.n_at_rows = static_cast<uint32_t>(atsArr.size());
-    rec.nat = atsArr.empty() ? 0
-                             : static_cast<uint16_t>(atsArr.front().size());
-    rec.at_idx.reserve(static_cast<size_t>(rec.n_at_rows) * rec.nat);
-    for (const auto& row : atsArr)
-    {
-      assert(row.size() == rec.nat);
-      for (const auto& at : row)
-      {
-        assert(!at.isTensor());
-        rec.at_idx.push_back(at.getIndex());
-      }
-    }
-
-    return rec;
-  }
-
-  SSTDecomp_phys_db::Expansion
-  SSTDecomp_phys_db::unpack(const Record& rec, const HO::Table_nljmjmt& labels)
-  {
-    std::vector<Eigen::RowVectorXd> coeffs;
-    coeffs.reserve(rec.nrows);
-    for (uint64_t i = 0; i < rec.nrows; ++i)
-    {
-      Eigen::RowVectorXd v(rec.ncols);
-      for (uint32_t c = 0; c < rec.ncols; ++c)
-        v(c) = rec.coeffs[i * rec.ncols + c];
-      coeffs.push_back(std::move(v));
-    }
-
-    std::vector<U3xU4::ads_phys> adsArr;
-    adsArr.reserve(rec.n_ad_rows);
-    {
-      size_t p = 0;
-      for (uint32_t r = 0; r < rec.n_ad_rows; ++r)
-      {
-        U3xU4::ads_phys row;
-        row.reserve(rec.nad);
-        for (uint16_t k = 0; k < rec.nad; ++k)
-          row.emplace_back(rec.ad_idx[p++], labels);
-        adsArr.push_back(std::move(row));
-      }
-    }
-
-    std::vector<U3xU4::ats_phys> atsArr;
-    atsArr.reserve(rec.n_at_rows);
-    {
-      size_t p = 0;
-      for (uint32_t r = 0; r < rec.n_at_rows; ++r)
-      {
-        U3xU4::ats_phys row;
-        row.reserve(rec.nat);
-        for (uint16_t k = 0; k < rec.nat; ++k)
-          row.emplace_back(rec.at_idx[p++], labels);
-        atsArr.push_back(std::move(row));
-      }
-    }
-
-    return std::make_tuple(std::move(coeffs), std::move(adsArr),
-                           std::move(atsArr));
-  }
-
-  //=========================================================================
-  // Binary record I/O (terminated by EOF, so nrows==0 is a valid record).
+  // Binary record I/O (one Expansion per key; terminated by EOF). nrows is
+  // written so the flat vectors can be sized on read; the runtime labels
+  // pointer is not serialized.
   //=========================================================================
   void SSTDecomp_phys_db::writeRecord(std::ostream& s, const DecompKey& key,
-                                      const Record& rec)
+                                      const Expansion& e)
   {
+    uint64_t nrows = e.rows();
     qcx_utils::writeBinary(s, key.qkey);
-    qcx_utils::writeBinary(s, rec.nrows);
-    qcx_utils::writeBinary(s, rec.ncols);
-    qcx_utils::writeBinary(s, rec.n_ad_rows);
-    qcx_utils::writeBinary(s, rec.nad);
-    qcx_utils::writeBinary(s, rec.n_at_rows);
-    qcx_utils::writeBinary(s, rec.nat);
-    qcx_utils::writeBinary(s, rec.coeffs);
-    qcx_utils::writeBinary(s, rec.ad_idx);
-    qcx_utils::writeBinary(s, rec.at_idx);
+    qcx_utils::writeBinary(s, nrows);
+    qcx_utils::writeBinary(s, e.coeffs.ncols);
+    qcx_utils::writeBinary(s, e.nops);
+    qcx_utils::writeBinary(s, e.coeffs.data);
+    qcx_utils::writeBinary(s, e.op_index);
+    qcx_utils::writeBinary(s, e.op_is_ad);
   }
 
   //=========================================================================
@@ -189,66 +90,49 @@ namespace U3xU4
       qcx_utils::readBinary(file, qkey);
       if (!file) break; // clean EOF
 
-      Record rec;
-      qcx_utils::readBinary(file, rec.nrows);
-      qcx_utils::readBinary(file, rec.ncols);
-      qcx_utils::readBinary(file, rec.n_ad_rows);
-      qcx_utils::readBinary(file, rec.nad);
-      qcx_utils::readBinary(file, rec.n_at_rows);
-      qcx_utils::readBinary(file, rec.nat);
+      auto e = std::make_unique<Expansion>();
+      uint64_t nrows;
+      qcx_utils::readBinary(file, nrows);
+      qcx_utils::readBinary(file, e->coeffs.ncols);
+      qcx_utils::readBinary(file, e->nops);
 
-      size_t ncoeff = static_cast<size_t>(rec.nrows) * rec.ncols;
-      if (ncoeff)
-      {
-        rec.coeffs.resize(ncoeff);
-        qcx_utils::readBinary(file, rec.coeffs);
-      }
-
-      size_t nadl = static_cast<size_t>(rec.n_ad_rows) * rec.nad;
-      if (nadl)
-      {
-        rec.ad_idx.resize(nadl);
-        qcx_utils::readBinary(file, rec.ad_idx);
-      }
-
-      size_t natl = static_cast<size_t>(rec.n_at_rows) * rec.nat;
-      if (natl)
-      {
-        rec.at_idx.resize(natl);
-        qcx_utils::readBinary(file, rec.at_idx);
-      }
+      e->coeffs.data.resize(nrows * e->coeffs.ncols);
+      e->op_index.resize(nrows * e->nops);
+      e->op_is_ad.resize(nrows * e->nops);
+      qcx_utils::readBinary(file, e->coeffs.data);
+      qcx_utils::readBinary(file, e->op_index);
+      qcx_utils::readBinary(file, e->op_is_ad);
 
       if (!file) break; // truncated / corrupt -> stop loading
 
-      records.emplace(DecompKey(qkey), std::move(rec));
+      records.emplace(DecompKey(qkey), std::move(e));
     }
 
     file.close();
     initial_size = records.size();
   }
 
-  bool SSTDecomp_phys_db::DecompFile::contains(const DecompKey& key) const
-  {
-    std::lock_guard lock(file_mutex_);
-    return records.find(key) != records.end();
-  }
-
-  std::optional<SSTDecomp_phys_db::Record>
-  SSTDecomp_phys_db::DecompFile::get_if_exist(const DecompKey& key) const
+  Expansion*
+  SSTDecomp_phys_db::DecompFile::get_ptr(const DecompKey& key,
+                                         const HO::Table_nljmjmt& labels) const
   {
     std::lock_guard lock(file_mutex_);
     auto it = records.find(key);
-    if (it != records.end()) return it->second;
-    return std::nullopt;
+    if (it == records.end()) return nullptr;
+    // (Re)bind the runtime labels pointer under the lock -- needed for records
+    // loaded from disk; idempotent for ones computed this run.
+    it->second->labels = &labels;
+    return it->second.get();
   }
 
-  SSTDecomp_phys_db::Record
-  SSTDecomp_phys_db::DecompFile::append_or_get(const DecompKey& key,
-                                               Record&& rec)
+  Expansion*
+  SSTDecomp_phys_db::DecompFile::append_or_get_ptr(const DecompKey& key,
+                                                   Expansion&& e)
   {
     std::lock_guard lock(file_mutex_);
-    auto [it, inserted] = records.emplace(key, std::move(rec));
-    return it->second; // existing one wins on race
+    auto [it, inserted] =
+        records.emplace(key, std::make_unique<Expansion>(std::move(e)));
+    return it->second.get(); // existing one wins on race
   }
 
   //=========================================================================
@@ -420,7 +304,7 @@ namespace U3xU4
               continue;
             }
             for (const auto& [key, rec] : file.records)
-              writeRecord(out, key, rec);
+              writeRecord(out, key, *rec);
           }
           else
           {
@@ -434,22 +318,16 @@ namespace U3xU4
                 qcx_utils::readBinary(in, qkey);
                 if (!in) break;
 
-                Record rec;
-                qcx_utils::readBinary(in, rec.nrows);
-                qcx_utils::readBinary(in, rec.ncols);
-                qcx_utils::readBinary(in, rec.n_ad_rows);
-                qcx_utils::readBinary(in, rec.nad);
-                qcx_utils::readBinary(in, rec.n_at_rows);
-                qcx_utils::readBinary(in, rec.nat);
-                size_t ncoeff = static_cast<size_t>(rec.nrows) * rec.ncols;
-                if (ncoeff)
-                  in.seekg(ncoeff * sizeof(double), std::ios::cur);
-                size_t nadl = static_cast<size_t>(rec.n_ad_rows) * rec.nad;
-                if (nadl)
-                  in.seekg(nadl * sizeof(uint16_t), std::ios::cur);
-                size_t natl = static_cast<size_t>(rec.n_at_rows) * rec.nat;
-                if (natl)
-                  in.seekg(natl * sizeof(uint16_t), std::ios::cur);
+                uint64_t nrows;
+                uint8_t ncols;
+                uint8_t nops;
+                qcx_utils::readBinary(in, nrows);
+                qcx_utils::readBinary(in, ncols);
+                qcx_utils::readBinary(in, nops);
+                size_t ncoeff = static_cast<size_t>(nrows) * ncols;
+                size_t nop = static_cast<size_t>(nrows) * nops;
+                in.seekg(ncoeff * sizeof(double) + nop * sizeof(uint16_t) +
+                         nop * sizeof(uint8_t), std::ios::cur);
 
                 if (!in) break;
                 file.records.erase(DecompKey(qkey));
@@ -468,7 +346,7 @@ namespace U3xU4
               continue;
             }
             for (const auto& [key, rec] : file.records)
-              writeRecord(out, key, rec);
+              writeRecord(out, key, *rec);
           }
         }
 
@@ -503,7 +381,7 @@ namespace U3xU4
       }
 
       for (const auto& [key, rec] : file.records)
-        writeRecord(out, key, rec);
+        writeRecord(out, key, *rec);
     }
     std::cout << "Finish destructing tensor-decomposition database"
               << std::endl;
@@ -513,36 +391,50 @@ namespace U3xU4
   }
 
   //=========================================================================
-  // get: cached SingleShellTensor_phys::expand().
+  // get_view: cached expand() as a borrow-or-own Expansion handle.
   //=========================================================================
-  SSTDecomp_phys_db::Expansion
-  SSTDecomp_phys_db::get(const U3xU4::SingleShellTensor_phys& t)
+  SSTDecomp_phys_db::ExpansionRef
+  SSTDecomp_phys_db::get_view(const U3xU4::SingleShellTensor_phys& t)
   {
-    // A single creation or annihilation operator expands trivially (one-line
-    // Tad/Tat base kernel) -- not worth caching. Everything else, including
-    // pure multi-creation / multi-annihilation tensors (which the Record's
-    // independent ad/at row counts handle), goes through the cache.
-    if ((t.num_ads() == 0 and t.num_ats() == 1) or
-        (t.num_ads() == 1 and t.num_ats() == 0))
-      return t.expand();
+    // A single creation/annihilation operator expands trivially: one term, one
+    // operator, coefficient +-1. Build that Expansion directly -- no expand()
+    // machinery -- and let the handle own it. Not cached (cheap, and would only
+    // pollute the on-disk cache).
+    if (t.num_ads() + t.num_ats() == 1)
+    {
+      auto e = std::make_unique<Expansion>();
+      e->coeffs.ncols = 1;
+      e->nops = 1;
+      e->labels = &t.labels();
+      if (t.num_ads() == 1)
+      {
+        U3xU4::ad_phys ad(t.shell(), t.LL(), t.JJ(), t.MMJ(), t.MMT(), t.labels());
+        double c = 1.0;
+        e->coeffs.push_row(&c);
+        e->append_op(ad.getIndex(), /*ad=*/true);
+      }
+      else // a single annihilation operator carries the turn-to-a~ phase
+      {
+        U3xU4::at_phys at(t.shell(), t.LL(), t.JJ(), t.MMJ(), t.MMT(), t.labels());
+        double c = at.turnToAnnihilation();
+        e->coeffs.push_row(&c);
+        e->append_op(at.getIndex(), /*ad=*/false);
+      }
+      return ExpansionRef(std::move(e));
+    }
 
     std::string file = filename(t);
     DecompKey key(t.LL(), t.SS(), t.TT(), t.MMT(), t.JJ(), t.MMJ());
-
     auto& df = getFile(file);
 
-    // Fast path: a hit, served concurrently.
-    if (auto rec = df.get_if_exist(key))
-      return unpack(*rec, t.labels());
+    // Hit: borrow the stable cached Expansion directly (zero copy).
+    if (Expansion* e = df.get_ptr(key, t.labels()))
+      return ExpansionRef(e);
 
-    // Miss: compute WITHOUT a global lock. expand() is thread-safe -- it only
-    // reads the threadprivate cgc/Racah/Fano/Wigner caches set up by
-    // sam::initialize_thread() -- so distinct tensors expand in parallel,
-    // exactly as the original uncached setTensorStrength loop did. Only the
-    // cache insert is locked (per file). A duplicate compute on a race is
-    // harmless: append_or_get keeps the first entry and our copy is identical.
-    auto e = t.expand();
-    df.append_or_get(key, pack(e));
-    return e;
+    // Miss: compute WITHOUT a global lock (expand() is thread-safe; it sets the
+    // Expansion's labels), insert, and borrow the stable pointer. A duplicate
+    // compute on a race is harmless: append_or_get_ptr keeps the first entry.
+    Expansion* e = df.append_or_get_ptr(key, t.expand());
+    return ExpansionRef(e);
   }
 } // namespace U3xU4

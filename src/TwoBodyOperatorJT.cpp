@@ -549,25 +549,12 @@ namespace JT
     std::vector<double> coeffs(tensor.rhomax() * tensor.etamax() * 
                                 tensor.kappamax() * tensor.zetamax(), 0.0);
 
-    auto [coeffsArr, opsArr] = tensor.expand(db);
+    auto exp = tensor.expand(db);
 
-    for (size_t i = 0; i < coeffsArr.size(); i++)
+    for (size_t i = 0; i < exp.rows(); i++)
     {
       std::array<int, 4> ns, lls, jjs, mmjs, mmts;
-
-      int j = 0;
-      for (const auto& op : opsArr[i])
-      {
-        std::visit(
-            [&](auto&& o)
-            {
-              //std::cout << o << "\t";
-              std::tie(ns[j], lls[j], jjs[j], mmjs[j], mmts[j]) = o.getLabels();
-            },
-            op);
-        j++;
-      }
-      //std::cout << "\n";
+      exp.fill_labels(i, 0, ns, lls, jjs, mmjs, mmts);
 
       double me = 0.0;
 
@@ -591,8 +578,9 @@ namespace JT
 
       if (std::fabs(me) < 1e-10) continue;
 
+      const double* row = exp.coeff_row(i);
       for (int c = 0; c < coeffs.size(); c++)
-        coeffs[c] += me * coeffsArr[i][c];
+        coeffs[c] += me * row[c];
     }
 
     double norm = 0.0;
@@ -766,25 +754,14 @@ namespace JT
 
         if (on_the_fly)
         {
-          auto [coeffsArr, opsArr] = tensor.expand(LL0, SS0, TT0, db);
+          auto exp = tensor.expand(LL0, SS0, TT0, db);
 
-          // std::cout << "Expansion size: " << opsArr.size() << std::endl;
-
-          for (size_t i = 0; i < coeffsArr.size(); i++)
+          for (size_t i = 0; i < exp.rows(); i++)
           {
-            assert(opsArr[i].size() == 4);
+            assert(exp.nops == 4);
 
             std::array<int, 4> ns, lls, jjs, mmjs, mmts;
-
-            int j = 0;
-            for (const auto& op : opsArr[i])
-            {
-              std::visit([&](auto&& o)
-              {
-                std::tie(ns[j], lls[j], jjs[j], mmjs[j], mmts[j]) = o.getLabels();
-              }, op);
-              j++;
-            }
+            exp.fill_labels(i, 0, ns, lls, jjs, mmjs, mmts);
 
             double me = 0.0;
 
@@ -809,7 +786,7 @@ namespace JT
             if (std::fabs(me) < 1e-10) continue;
 
             for (int c = 0; c < strengths.size(); c++)
-              strengths[c] += me * coeffsArr[i][c];
+              strengths[c] += me * exp.coeff_row(i)[c];
           }
         }
         else

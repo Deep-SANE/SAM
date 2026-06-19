@@ -234,9 +234,7 @@ namespace U3xU4
     // coeffs have rhomax x etamax x kappamax x zetamax columns, index of each
     // column is
     // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
-    std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
-              std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-    expand(SSTDecomp_phys_db& db) const;
+    Expansion expand(SSTDecomp_phys_db& db) const;
   };
   using TwoBodyMultiShellTensors = std::vector<TwoBodyMultiShellTensor>;
 
@@ -412,9 +410,7 @@ namespace U3xU4
 
     // Expand into uncoupled products of creation operators (ad)
     // and annihilation operators (a)
-    std::pair<std::vector<Eigen::RowVectorXd>,  // coeffs
-              std::vector<U3xU4::ads_ats_phys>> // list of ad's and a's
-              expand(int LL, int SS, int TT, SSTDecomp_phys_db& db) const;
+    Expansion expand(int LL, int SS, int TT, SSTDecomp_phys_db& db) const;
 
     // Get two-body strength directly during expand()
     std::vector<double> getStrengths(int LL, int SS, int TT,

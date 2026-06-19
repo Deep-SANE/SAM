@@ -290,40 +290,36 @@ namespace U3xU4
   }
 
   // Expand in terms of uncoupled products of ad's
-  std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
-            std::vector<U3xU4::ads_phys>>
-  Tad_phys::expand() const
+  Expansion Tad_phys::expand() const
   {
     auto& cgcs = qcx_utils::cgcs();
     auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
-    std::vector<Eigen::RowVectorXd> coeffsArr;
-    std::vector<U3xU4::ads_phys> tensorsArr;
+    // Flat expansion: coeff rows are indexed by kappa only, every operator is a
+    // creation ad. Built straight into Expansion (no Eigen rows).
+    Expansion result;
+    result.labels = &labels_;
+    result.coeffs.ncols = kappamax();
+    result.nops = num_ads();
+    std::vector<double> scratch;
 
     auto num = num_ads();
     int ll_max = 2 * n_, ll_min = 2 * (n_ % 2);
-    int shell_dim = 2 * (n_ + 1) * (n_ + 2);
 
     // one ad
     if (num == 1)
     {
-      Eigen::RowVectorXd c(1);
-      c(0) = 1.0;
-      coeffsArr.push_back(c);
+      double c = 1.0;
+      result.coeffs.push_row(&c);
       U3xU4::ad_phys ad(n_, LL_, JJ_, MMJ_, MMT_, labels_);
-      //U3xU4::ads_phys Tad(1, ad);
-      tensorsArr.push_back({ad});
+      result.append_op(ad.getIndex(), true);
     }
 
     // two ad's
     else if (num == 2)
     {
-      size_t estimate = shell_dim * shell_dim;
-      coeffsArr.reserve(estimate);
-      tensorsArr.reserve(estimate);
-
       int lam = Omegas_[0].lam(), mu = Omegas_[0].mu(),
           P1 = Omegas_[0].P1(), P2 = Omegas_[0].P2(), P3 = Omegas_[0].P3();
 
@@ -367,18 +363,21 @@ namespace U3xU4
                          cgcT = cgcs.get({1, 1, TT(), mmta, mmtb, MMT()}),
                          factor = cgcU4[0] * U9j * cgcJ * cgcT;
 
-                  Eigen::RowVectorXd coeffs(kappamax());
+                  scratch.resize(kappamax());
+                  double s2 = 0.0;
                   for (int k = 0; k < kappamax(); k++)
-                    coeffs(k) = cgcU3[k] * factor;
+                  {
+                    scratch[k] = cgcU3[k] * factor;
+                    s2 += scratch[k] * scratch[k];
+                  }
+                  if (s2 < 1e-24) continue;
 
-                  if (coeffs.norm() < 1e-12) continue;
-
-                  coeffsArr.push_back(std::move(coeffs));
+                  result.coeffs.push_row(scratch.data());
 
                   U3xU4::ad_phys ad1(n_, lla, jja, mmja, mmta, labels_),
                                  ad2(n_, llb, jjb, mmjb, mmtb, labels_);
-                  U3xU4::ads_phys Tad = {std::move(ad1), std::move(ad2)};
-                  tensorsArr.push_back(std::move(Tad));
+                  result.append_op(ad1.getIndex(), true);
+                  result.append_op(ad2.getIndex(), true);
                 }
               }
             }
@@ -390,11 +389,7 @@ namespace U3xU4
     // three ad's
     else if (num == 3)
     {
-      size_t estimate = shell_dim * shell_dim * shell_dim;
-      coeffsArr.reserve(estimate);
-      tensorsArr.reserve(estimate);
-
-      std::vector<u3::physicalvector> 
+      std::vector<u3::physicalvector>
         pv3s0 = u3::physicalBasis(Omegas_[0].u3());
       std::vector<u4::physicalvector> 
         pv4s0 = u4::physicalBasis(Omegas_[0].u4());
@@ -454,28 +449,29 @@ namespace U3xU4
                            cgcT = cgcs.get({TT0, 1, TT(), MMT0, mmtc, MMT()}),
                            factor = cgcU4[0] * U9j * cgcJ * cgcT;
 
-                    U3xU4::Tad_phys Tad0(n_, {Omegas_[0]}, LL0, SS0, TT0, MMT0, 
+                    U3xU4::Tad_phys Tad0(n_, {Omegas_[0]}, LL0, SS0, TT0, MMT0,
                                          JJ0, MMJ0, labels_);
-                    auto [coeffsArr0, adArr0] = Tad0.expand();
+                    Expansion e0 = Tad0.expand();
 
                     U3xU4::ad_phys ad3(n_, llc, jjc, mmjc, mmtc, labels_);
+                    uint16_t ad3_idx = ad3.getIndex();
 
-                    for (size_t i = 0; i < coeffsArr0.size(); i++)
+                    for (size_t i = 0; i < e0.rows(); i++)
                     {
-                      Eigen::RowVectorXd coeffs(kappamax());
-                      coeffs.setZero();
+                      const double* c0 = e0.coeff_row(i);
+                      scratch.assign(kappamax(), 0.0);
+                      double s2 = 0.0;
                       for (int k = 0; k < kappamax(); k++)
+                      {
                         for (int k0 = 0; k0 < Tad0.kappamax(); k0++)
-                          coeffs(k) += cgcU3[k0 * kappamax() + k]
-                                     * factor * coeffsArr0[i](k0);
+                          scratch[k] += cgcU3[k0 * kappamax() + k] * factor * c0[k0];
+                        s2 += scratch[k] * scratch[k];
+                      }
+                      if (s2 < 1e-24) continue;
 
-                      if (coeffs.norm() < 1e-12) continue;
-
-                      coeffsArr.push_back(std::move(coeffs));
-
-                      U3xU4::ads_phys adad = adArr0[i];
-                      adad.push_back(ad3);
-                      tensorsArr.push_back(std::move(adad));
+                      result.coeffs.push_row(scratch.data());
+                      result.append_ops_from(e0, i);    // the first two ad's
+                      result.append_op(ad3_idx, true);  // the third ad
                     }
                   }
                 }
@@ -486,7 +482,7 @@ namespace U3xU4
       }
     }
 
-    return std::make_pair(std::move(coeffsArr), std::move(tensorsArr));
+    return result;
   }
 
   /////////////// PRODUCT OF ANNIHILATION OPERATORS/TENSORS ///////////////
@@ -726,39 +722,36 @@ namespace U3xU4
   }
 
   // expand in terms of uncoupled products of at's
-  std::pair<std::vector<Eigen::RowVectorXd>, // each element has size == kappa
-            std::vector<U3xU4::ats_phys>>
-  Tat_phys::expand() const
+  Expansion Tat_phys::expand() const
   {
     auto& cgcs = qcx_utils::cgcs();
     auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
-    std::vector<Eigen::RowVectorXd> coeffsArr;
-    std::vector<U3xU4::ats_phys> tensorsArr;
+    // Flat expansion: coeff rows are indexed by kappa only, every operator is an
+    // annihilation a~ (turnToAnnihilation already applied). No Eigen rows.
+    Expansion result;
+    result.labels = &labels_;
+    result.coeffs.ncols = kappamax();
+    result.nops = num_ats();
+    std::vector<double> scratch;
 
     auto num = num_ats();
     int ll_max = 2 * n_, ll_min = 2 * (n_ % 2);
-    int shell_dim = 2 * (n_ + 1) * (n_ + 2);
 
     // one at
     if (num == 1)
     {
-      Eigen::RowVectorXd c(1);
       U3xU4::at_phys at(n_, LL_, JJ_, MMJ_, MMT_, labels_);
-      c(0) = at.turnToAnnihilation();
-      coeffsArr.push_back(c);
-      tensorsArr.push_back({at});
+      double c = at.turnToAnnihilation();
+      result.coeffs.push_row(&c);
+      result.append_op(at.getIndex(), false);
     }
 
     // two at's
     else if (num == 2)
     {
-      size_t estimate = shell_dim * shell_dim;
-      coeffsArr.reserve(estimate);
-      tensorsArr.reserve(estimate);
-
       int lam = Omegas_[0].lam(), mu = Omegas_[0].mu(),
           P1 = Omegas_[0].P1(), P2 = Omegas_[0].P2(), P3 = Omegas_[0].P3();
 
@@ -807,19 +800,21 @@ namespace U3xU4
                          phase2 = at2.turnToAnnihilation(),
                          factor = cgcU4[0] * U9j * cgcJ * cgcT * phase1 * phase2;
 
-                  Eigen::RowVectorXd coeffs(kappamax());
+                  scratch.resize(kappamax());
+                  double s2 = 0.0;
                   for (int k = 0; k < kappamax(); k++)
-                    coeffs(k) = cgcU3[k] * factor;
+                  {
+                    scratch[k] = cgcU3[k] * factor;
+                    s2 += scratch[k] * scratch[k];
+                  }
+                  if (s2 < 1e-24) continue;
 
-                  if (coeffs.norm() < 1e-12) continue;
-
-                  coeffsArr.push_back(std::move(coeffs));
+                  result.coeffs.push_row(scratch.data());
 
                   assert(!at1.isTensor());
                   assert(!at2.isTensor());
-
-                  U3xU4::ats_phys Tat = {std::move(at1), std::move(at2)};
-                  tensorsArr.push_back(std::move(Tat));
+                  result.append_op(at1.getIndex(), false);
+                  result.append_op(at2.getIndex(), false);
                 }
               }
             }
@@ -831,11 +826,7 @@ namespace U3xU4
     // three at's
     else if (num == 3)
     {
-      size_t estimate = shell_dim * shell_dim * shell_dim;
-      coeffsArr.reserve(estimate);
-      tensorsArr.reserve(estimate);
-
-      std::vector<u3::physicalvector> 
+      std::vector<u3::physicalvector>
         pv3s0 = u3::physicalBasis(Omegas_[0].u3());
       std::vector<u4::physicalvector> 
         pv4s0 = u4::physicalBasis(Omegas_[0].u4());
@@ -895,31 +886,31 @@ namespace U3xU4
                            cgcT = cgcs.get({TT0, 1, TT(), MMT0, mmtc, MMT()}),
                            factor = cgcU4[0] * U9j * cgcJ * cgcT;
 
-                    U3xU4::Tat_phys Tat0(n_, {Omegas_[0]}, LL0, SS0, TT0, MMT0, 
+                    U3xU4::Tat_phys Tat0(n_, {Omegas_[0]}, LL0, SS0, TT0, MMT0,
                                          JJ0, MMJ0, labels_);
-
-                    auto [coeffsArr0, aArr0] = Tat0.expand();
+                    Expansion e0 = Tat0.expand();
 
                     U3xU4::at_phys at3(n_, llc, jjc, mmjc, mmtc, labels_);
                     double phase3 = at3.turnToAnnihilation();
                     factor *= phase3;
+                    uint16_t at3_idx = at3.getIndex();
 
-                    for (size_t i = 0; i < coeffsArr0.size(); i++)
-                    {                    
-                      Eigen::RowVectorXd coeffs(kappamax());
-                      coeffs.setZero();
+                    for (size_t i = 0; i < e0.rows(); i++)
+                    {
+                      const double* c0 = e0.coeff_row(i);
+                      scratch.assign(kappamax(), 0.0);
+                      double s2 = 0.0;
                       for (int k = 0; k < kappamax(); k++)
+                      {
                         for (int k0 = 0; k0 < Tat0.kappamax(); k0++)
-                          coeffs(k) += cgcU3[k0 * kappamax() + k] 
-                                     * factor * coeffsArr0[i](k0);
+                          scratch[k] += cgcU3[k0 * kappamax() + k] * factor * c0[k0];
+                        s2 += scratch[k] * scratch[k];
+                      }
+                      if (s2 < 1e-24) continue;
 
-                      if (coeffs.norm() < 1e-12) continue;
-
-                      coeffsArr.push_back(std::move(coeffs));
-
-                      U3xU4::ats_phys atat = aArr0[i];
-                      atat.push_back(at3);
-                      tensorsArr.push_back(std::move(atat));
+                      result.coeffs.push_row(scratch.data());
+                      result.append_ops_from(e0, i);     // the first two a's
+                      result.append_op(at3_idx, false);  // the third a
                     }
                   }
                 }
@@ -930,7 +921,7 @@ namespace U3xU4
       }
     }
 
-    return std::make_pair(std::move(coeffsArr), std::move(tensorsArr));
+    return result;
   }
 
   ////// PRODUCT OF CREATION AND ANNIHILATION OPERATORS/TENSORS ///////
@@ -1134,47 +1125,39 @@ namespace U3xU4
 
   // expand coupled product of creation and annihilation tensors
   // in terms of creation and annihilation operators (ad's and a's)
-  std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
-             std::vector<U3xU4::ads_phys>,    // ad's
-             std::vector<U3xU4::ats_phys>>    // a's
-  SingleShellTensor_phys::expand() const
+  Expansion SingleShellTensor_phys::expand() const
   {
     auto& cgcs = qcx_utils::cgcs();
     auto& racah9 = qcx_utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
-    std::vector<Eigen::RowVectorXd> coeffs;
-    std::vector<U3xU4::ads_phys> adsArr;
-    std::vector<U3xU4::ats_phys> atsArr;
-
     auto n = shell();
     auto rhomax = rho0max();
     auto etamax = eta0max();
 
-    // only ads
+    // pure creation tensor: the whole expansion is Tad's (all ad operators)
     if (num_ats() == 0)
     {
       U3xU4::Tad_phys Tad(n, Omega_ads(), LL_, SS_, TT_, MMT_, JJ_, MMJ_, labels_);
-      std::tie(coeffs, adsArr) = Tad.expand();
+      return Tad.expand();
     }
 
-    // only ats
-    else if (num_ads() == 0)
+    // pure annihilation tensor: the whole expansion is Tat's (all a operators)
+    if (num_ads() == 0)
     {
       U3xU4::Tat_phys Tat(n, Omega_ats(), LL_, SS_, TT_, MMT_, JJ_, MMJ_, labels_);
-      std::tie(coeffs, atsArr) = Tat.expand();
+      return Tat.expand();
     }
 
-    else
-    {
-      int shell_dim = 2 * (n + 1) * (n + 2), estimate = 1;
-      for (int i = 0; i < num_ads(); i++) estimate *= shell_dim;
-      for (int i = 0; i < num_ats(); i++) estimate *= shell_dim;
-      coeffs.reserve(estimate);
-      adsArr.reserve(estimate);
-      atsArr.reserve(estimate);
+    // both ad's and a's: couple Tad x Tat into the flat Expansion directly.
+    Expansion result;
+    result.labels = &labels_;
+    result.coeffs.ncols = rhomax * etamax * kappamax_ * zetamax_;
+    result.nops = num_ads() + num_ats();
+    std::vector<double> scratch;
 
+    {
       u3::physicalvectors pv3s1, pv3s2;
       u4::physicalvectors pv4s1, pv4s2;
 
@@ -1252,8 +1235,7 @@ namespace U3xU4
                     U3xU4::Tad_phys 
                       Tad(n, Omega_ads(), LL1, SS1, TT1, MMT1, JJ1, MMJ1, labels_);
 
-                    std::vector<Eigen::RowVectorXd> coeffs1;
-                    std::vector<U3xU4::ads_phys> adArr;
+                    Expansion ead;   // lazy Tad expansion (computed once)
 
                     for (int JJ2 = LL2 + SS2; JJ2 >= abs(LL2 - SS2); JJ2 -= 2)
                     {
@@ -1267,22 +1249,20 @@ namespace U3xU4
                       double cgcJ = cgcs.get({JJ1, JJ2, JJ(), MMJ1, MMJ2, MMJ()});
 
                       double cgcU2 = U9j * cgcJ * cgcT;
-                      
-                      if (coeffs1.empty())
-                        std::tie(coeffs1, adArr) = Tad.expand();
 
-                      U3xU4::Tat_phys 
+                      if (ead.empty()) ead = Tad.expand();
+
+                      U3xU4::Tat_phys
                         Tat(n, Omega_ats(), LL2, SS2, TT2, MMT2, JJ2, MMJ2, labels_);
-                      
-                      auto [coeffs2, atArr] = Tat.expand();
+                      Expansion eat = Tat.expand();
 
-                      for (size_t i = 0; i < coeffs1.size(); i++)
+                      for (size_t i = 0; i < ead.rows(); i++)
                       {
-                        for (size_t j = 0; j < coeffs2.size(); j++)
+                        const double* c1 = ead.coeff_row(i);
+                        for (size_t j = 0; j < eat.rows(); j++)
                         {
-                          Eigen::RowVectorXd x(rhomax * etamax * 
-                                               kappamax_ * zetamax_);
-                          x.setZero();
+                          const double* c2 = eat.coeff_row(j);
+                          scratch.assign(result.coeffs.ncols, 0.0);
                           for (int rho = 0; rho < rhomax; rho++)
                             for (int eta = 0; eta < etamax; eta++)
                               for (int k = 0; k < kappamax_; k++)
@@ -1294,17 +1274,19 @@ namespace U3xU4
                                       z;
                                   for (int k1 = 0; k1 < kappa1; k1++)
                                     for (int k2 = 0; k2 < kappa2; k2++)
-                                      x(index) +=
+                                      scratch[index] +=
                                           cgcU3(k1, k2, k, rho) *
                                           cgcU4(0, 0, z, eta) * cgcU2 *
-                                          coeffs1[i](k1) * coeffs2[j](k2);
+                                          c1[k1] * c2[k2];
                                 }
 
-                          if (x.norm() < 1e-12) continue;
+                          double s2 = 0.0;
+                          for (double v : scratch) s2 += v * v;
+                          if (s2 < 1e-24) continue;
 
-                          coeffs.push_back(std::move(x));
-                          adsArr.push_back(adArr[i]);
-                          atsArr.push_back(atArr[j]);
+                          result.coeffs.push_row(scratch.data());
+                          result.append_ops_from(ead, i);   // the ad's
+                          result.append_ops_from(eat, j);   // the a's
                         }
                       }
                     }
@@ -1317,8 +1299,7 @@ namespace U3xU4
       }
     }
 
-    return std::make_tuple(std::move(coeffs), 
-                           std::move(adsArr), std::move(atsArr));
+    return result;
   }
 
   // get two-body strength directly during expand()
@@ -1335,19 +1316,19 @@ namespace U3xU4
     // coeffs1*coeffs2 contraction in coeffs[t]; the strength is just the sum
     // over expansion terms of me(t) * coeffs[t]. (Equivalent to the fused
     // version below, up to expand()'s 1e-12 norm filtering of null terms.)
-    auto [coeffs, adsArr, atsArr] = db.get(*this);
+    // Zero-copy borrowed view: coeff rows are flat double arrays and the ad/at
+    // operators are stored as Table_nljmjmt indices (turned into labels on
+    // demand) -- no Eigen row allocation, no Record copy, no ad_phys rebuild.
+    auto e = db.get_view(*this);
+    assert(static_cast<int>(e->ncols()) == ncols);
 
-    for (size_t t = 0; t < coeffs.size(); t++)
+    for (size_t t = 0; t < e->rows(); t++)
     {
-      // ad's occupy slots 0,1; a's occupy slots 2,3 (no phase, no permutation)
+      // operators are stored ad's-then-a's, so slots 0,1 are ad's and 2,3 are
+      // a's (no phase, no permutation); labels come straight from the table.
       std::array<int, 4> ns, lls, jjs, mmjs, mmts;
-      for (int o = 0; o < 2; o++)
-      {
-        std::tie(ns[o], lls[o], jjs[o], mmjs[o], mmts[o]) =
-          adsArr[t][o].getLabels();
-        std::tie(ns[o + 2], lls[o + 2], jjs[o + 2], mmjs[o + 2], mmts[o + 2]) =
-          atsArr[t][o].getLabels();
-      }
+      for (int k = 0; k < 4; k++)
+        std::tie(ns[k], lls[k], jjs[k], mmjs[k], mmts[k]) = e->op_labels(t, k);
 
       double me = TBME.getME(
         ns[0], lls[0], jjs[0], mmjs[0], mmts[0],
@@ -1357,8 +1338,9 @@ namespace U3xU4
 
       if (std::fabs(me) < 1e-10) continue;
 
+      const double* row = e->coeff_row(t);
       for (int c = 0; c < ncols; c++)
-        strengths[c] += me * coeffs[t](c);
+        strengths[c] += me * row[c];
     }
 
     return strengths;

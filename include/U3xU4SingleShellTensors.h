@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <tuple>
 #include <utility>
@@ -23,11 +24,6 @@
 
 namespace U3xU4
 {
-  // Decomposition cache (defined in U3xU4SingleShellTensorsDecomposition_Database.h,
-  // which includes this header). Forward-declared here so SingleShellTensor_phys
-  // methods can take it by reference without a circular include.
-  class SSTDecomp_phys_db;
-
   /////////////////// CREATION OPERATOR/TENSOR /////////////////
 
   /* Class for defining creation operator a^dagger
@@ -252,6 +248,93 @@ namespace U3xU4
   };
   using ats_phys = std::vector<at_phys>;
 
+  ///////////////////// UNCOUPLED EXPANSION STORAGE /////////////////////
+
+  // Flat, row-major matrix of expansion coefficients: one contiguous buffer
+  // instead of a heap allocation per row (replaces the old vector<RowVectorXd>).
+  struct ExpansionCoeffs
+  {
+    std::vector<double> data;   // rows() * ncols, row-major
+    uint8_t ncols = 0;          // expansion multiplicity, small
+
+    // Getters
+    std::size_t rows() const { return ncols ? data.size() / ncols : 0; }
+    bool empty() const { return data.empty(); }
+    const double* row(std::size_t i) const { return data.data() + i * ncols; }
+
+    // Row manipulation
+    void push_row(const double* src) { data.insert(data.end(), src, src + ncols); }
+    void reserve_rows(std::size_t n) { data.reserve(n * ncols); }
+
+    // Per-column sum of squares over all rows (a normalization check: each
+    // column should sum to ~1 for a properly normalized expansion).
+    std::vector<double> norm() const
+    {
+      std::vector<double> n(ncols, 0.0);
+      for (std::size_t r = 0, nr = rows(); r < nr; ++r)
+      {
+        const double* p = row(r);
+        for (uint32_t c = 0; c < ncols; ++c) n[c] += p[c] * p[c];
+      }
+      return n;
+    }
+  };
+
+  // Uncoupled expansion shared by every *_phys tensor (Tad/Tat/SingleShell/
+  // MultiShell): a flat coefficient matrix plus a row-major list of the
+  // operators in each term, stored as bare Table_nljmjmt indices with a
+  // creation/annihilation flag. nops operators per row (uniform). ad_phys/
+  // at_phys objects are built only for printing; getStrengths() reads labels
+  // straight from the table via op_labels().
+  struct Expansion
+  {
+    ExpansionCoeffs coeffs;          // nrows x ncols
+    uint8_t nops = 0;                // operators per row (uniform), <= ~8
+    std::vector<uint16_t> op_index;  // nrows * nops : Table_nljmjmt indices
+    std::vector<uint8_t>  op_is_ad;  // nrows * nops : 1 = ad (creation), 0 = a~
+    const HO::Table_nljmjmt* labels = nullptr;   // runtime only (not serialized)
+
+    // Getters
+    std::size_t rows() const { return coeffs.rows(); }
+    uint32_t ncols() const { return coeffs.ncols; }
+    bool empty() const { return coeffs.empty(); }
+    const double* coeff_row(std::size_t r) const { return coeffs.row(r); }
+
+    // The k-th operator in term r
+    uint16_t index(std::size_t r, std::size_t k) const
+    { return op_index[r * nops + k]; }
+    bool is_ad(std::size_t r, std::size_t k) const
+    { return op_is_ad[r * nops + k]; }
+    // labels from the table (no object required)
+    const auto& op_labels(std::size_t r, std::size_t k) const
+    { return labels->getLabels(index(r, k)); }
+
+    // Fill term r's operator labels into the getME() label arrays starting at
+    // offset o; returns the new offset. Reads indices -> labels directly.
+    int fill_labels(std::size_t r, int o,
+                    std::array<int, 4>& ns,  std::array<int, 4>& lls,
+                    std::array<int, 4>& jjs, std::array<int, 4>& mmjs,
+                    std::array<int, 4>& mmts) const
+    {
+      for (uint8_t k = 0; k < nops; ++k, ++o)
+        std::tie(ns[o], lls[o], jjs[o], mmjs[o], mmts[o]) = op_labels(r, k);
+      return o;
+    }
+
+    // Builders: one term at a time
+    void push_coeff_row(const double* src) { coeffs.push_row(src); }
+    void append_op(uint16_t idx, bool ad)
+    { op_index.push_back(idx); op_is_ad.push_back(ad ? 1 : 0); }
+    // append every operator of row r of src (used when combining sub-expansions)
+    void append_ops_from(const Expansion& src, std::size_t r)
+    {
+      for (uint8_t k = 0; k < src.nops; ++k)
+        append_op(src.index(r, k), src.is_ad(r, k));
+    }
+
+    friend std::ostream& operator<<(std::ostream& s, const Expansion& e);
+  };
+
   /////////////// PRODUCT OF CREATION OPERATORS/TENSORS /////////////////
 
   /* Class for holding coupled products of ad's, it can have up to 3 ad's
@@ -356,11 +439,9 @@ namespace U3xU4
     // Get the number of ad's
     int num_ads() const { return Omegas_.size() + 1; }
 
-    // Expand in terms of uncoupled products of ad's
-    std::pair<std::vector<Eigen::RowVectorXd>, // each element has size ==
-                                               // kappamax
-              std::vector<U3xU4::ads_phys>>
-    expand() const;
+    // Expand in terms of uncoupled products of ad's (flat Expansion; coeff
+    // rows have kappamax columns, every operator is a creation ad).
+    Expansion expand() const;
   };
   using Tads_phys = std::vector<Tad_phys>;
 
@@ -475,11 +556,9 @@ namespace U3xU4
     // Get the number of at's
     int num_ats() const { return Omegas_.size() + 1; }
 
-    // Expand in terms of uncoupled products of at's
-    std::pair<std::vector<Eigen::RowVectorXd>, // each element has size ==
-                                               // kappamax
-              std::vector<U3xU4::ats_phys>>
-    expand() const;
+    // Expand in terms of uncoupled products of a's (flat Expansion; coeff rows
+    // have kappamax columns, every operator is an annihilation a~).
+    Expansion expand() const;
   };
   using Tats_phys = std::vector<Tat_phys>;
 
@@ -663,6 +742,11 @@ namespace U3xU4
      of ad's and at's. It can have up to 3 ad's and 3 at's
      Tensor components are represented by kappa LL zeta SS TT MMT JJ MMJ
   */
+  // Decomposition cache (defined in U3xU4SingleShellTensorsDecomposition_Database.h,
+  // which includes this header). Forward-declared here so SingleShellTensor_phys
+  // methods can take it by reference without a circular include.
+  class SSTDecomp_phys_db;
+
   class SingleShellTensor_phys : public U3xU4::SingleShellTensor
   {
   private:
@@ -734,24 +818,16 @@ namespace U3xU4
     // Print
     friend std::ostream& operator<<(std::ostream& s, const SingleShellTensor_phys& x);
 
-    // Expand in terms of uncoupled products of ad's and a's
-    // (not at's because a phase is added)
-    // coeffs have rhomax x etamax x kappamax x zetamax columns, index of each
-    // column is
-    // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
-    // OR, if we switch index: alphamax = rhomax x etamax, then index of each
-    // column is
-    // (alpha * kappamax + kappa) * zetamax + zeta
-    std::tuple<std::vector<Eigen::RowVectorXd>, // coeffs
-               std::vector<U3xU4::ads_phys>,    // ad's
-               std::vector<U3xU4::ats_phys>>    // a's
-    expand() const;
+    // Expand in terms of uncoupled products of ad's and a's (not at's because a
+    // phase is added). Returns the shared flat Expansion; coeff rows have
+    // rhomax x etamax x kappamax x zetamax columns, index of each column is
+    // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta.
+    Expansion expand() const;
 
     // Get two-body strength from the cached expansion (db.get) contracted
     // against the matrix elements.
     std::vector<double>
       getStrengths(const HO::TwBME_scalar& TBME, SSTDecomp_phys_db& db) const;
-
   };
   using SingleShellTensors_phys = std::vector<SingleShellTensor_phys>;
   using ads_ats_phys = std::vector<std::variant<ad_phys, at_phys>>;
