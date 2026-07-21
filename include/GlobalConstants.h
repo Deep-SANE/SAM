@@ -23,3 +23,6 @@ constexpr double gl_p = 1;
 constexpr double gs_p = 5.5856912;
 constexpr double gl_n = 0;
 constexpr double gs_n = -3.8260837;
+
+// the nucleon axial-vector coupling constant
+constexpr double gAx = 1.27;
