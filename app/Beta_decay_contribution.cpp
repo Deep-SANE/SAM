@@ -15,13 +15,15 @@ int main(int argc, char* argv[])
   sam::initialize(&argc, &argv);
 
   // Specify Hamiltonia
-  int Nmax = 6, hw = 16;
+  int Nmax = 2, hw = 16;
   std::string Hamil_name_i = "HO_Be7_e10_hw16_E342";
   std::string Hamil_name_f = "HO_Li7_e10_hw16_E342";
 
   // Specify operator name
   // std::string name = "GamowTellerMinus";
-  std::string name = "GamowTellerPlus";
+  // std::string name = "GamowTellerMinus_2B_N3LO_EM500_bare";
+  // std::string name = "GamowTellerPlus";
+  std::string name = "GamowTellerPlus_2B_N3LO_EM500_bare";
 
   u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
   u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
@@ -43,7 +45,7 @@ int main(int argc, char* argv[])
   auto ket_irreps = kets.irreps();
   std::cout << "Ket basis dimension: " << kets.dim() << std::endl;
   
-  int Zf = 3, Nf = 4, JJf = 1, TTf = 1;
+  int Zf = 3, Nf = 4, JJf = 3, TTf = 1;
   std::string dir_f = "Truncation_TT1";
 
   U3xU4::hw_subspace
@@ -71,10 +73,12 @@ int main(int argc, char* argv[])
   auto t0 = std::chrono::high_resolution_clock::now();
 
   // read initial wave functions
+  // auto wfns_file_i = Hamil_i.wfns_file(kets);
   auto wfns_file_i = Hamil_i.wfns_file(kets, dir_i);
   auto [evals_i, evecs_i] = qcx_utils::readEigenBinary(wfns_file_i);
 
   // read final wave functions
+  // auto wfns_file_f = Hamil_f.wfns_file(bras);
   auto wfns_file_f = Hamil_f.wfns_file(bras, dir_f);
   auto [evals_f, evecs_f] = qcx_utils::readEigenBinary(wfns_file_f);
   
@@ -88,7 +92,7 @@ int main(int argc, char* argv[])
     std::cout << "Channel " << i << ": " << strengths[i] << std::endl;
 
   // Analyze contribution
-/*
+
   auto mat = op.matrix_Eigen(bras, kets);
 
   u4::irreps irrs = {{1,1,1,0}, {2,1,0,0}, {3,2,2,0}, {3,0,0,0}, {3,3,1,0}, 
@@ -170,7 +174,7 @@ int main(int argc, char* argv[])
       std::cout << "Contribution of (" << j << "," << i << "): " << me * factor << std::endl;
     }
   }
-*/
+
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();

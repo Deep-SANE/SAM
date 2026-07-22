@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdint>
 #include <iostream>
 
@@ -26,8 +27,15 @@ int main(int argc, char* argv[])
   std::cin >> JJ;
 
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
+
+  // Start time measurement
+  auto t0 = std::chrono::high_resolution_clock::now();
+
   basis.construct();
 
+  // End time measurement
+  auto t1 = std::chrono::high_resolution_clock::now();
+/*
   auto irreps = basis.irreps();
   const auto& labels = basis.decomposition();
 
@@ -43,8 +51,15 @@ int main(int argc, char* argv[])
     print(" ; kappamax LL zetamax SS TT offset = {}", labels[irrep_id]);
     print(" ; offset = {}\n", offset);
   }
-
+*/
   print("\nBasis dimension: {}\n", basis.dim());
+
+  // Calculate the duration
+    std::chrono::duration<double> duration = t1 - t0;
+
+  // Output the time in seconds
+  std::cout << "Elapsed time: " << duration.count() << " seconds or "
+            << duration.count() / 60.0 << " minutes" << std::endl;
 
   sam::finalize();
 }

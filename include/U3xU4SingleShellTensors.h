@@ -828,6 +828,8 @@ namespace U3xU4
     // against the matrix elements.
     std::vector<double>
       getStrengths(const HO::TwBME_scalar& TBME, SSTDecomp_phys_db& db) const;
+    std::vector<double>
+      getStrengths(const HO::TwBME_general& TBME, SSTDecomp_phys_db& db) const;
   };
   using SingleShellTensors_phys = std::vector<SingleShellTensor_phys>;
   using ads_ats_phys = std::vector<std::variant<ad_phys, at_phys>>;

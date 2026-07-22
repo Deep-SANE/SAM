@@ -1,5 +1,12 @@
 #pragma once
 
+// Diagnostic: time/count the multishell getStrengths hot loop -- splits the
+// per-term cost into the me-phase (getME antisymmetrized sum) vs the
+// multiplicity-accumulation phase, and counts getME calls. Uncomment, rebuild,
+// run, then call U3xU4::report_getStrengths_timing() after the expand loop.
+// (Only the scalar getStrengths is instrumented -- enough for potentials.)
+// #define TIME_GETSTRENGTHS
+
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -24,6 +31,10 @@
 
 namespace U3xU4
 {
+  // Print (and reset) the getStrengths timing/counters gathered under
+  // TIME_GETSTRENGTHS. A no-op when the flag is off.
+  void report_getStrengths_timing();
+
   /* Class for holding one-body multi-shell tensors
               (n13 n23 n33) (n14 n24 n34 n44)
       [Ta x Tb]
@@ -381,6 +392,7 @@ namespace U3xU4
     int MMT() const { return static_cast<int>(MMT_); }
     int JJ() const { return static_cast<int>(JJ_); }
     int MMJ() const { return static_cast<int>(MMJ_); }
+    const HO::Table_nljmjmt& labels() const { return labels_; }
     const auto& LLSSTTstrengths() const { return LLSSTTstrengths_; }
 
     // comparison:
@@ -415,6 +427,11 @@ namespace U3xU4
     // Get two-body strength directly during expand()
     std::vector<double> getStrengths(int LL, int SS, int TT,
                     const HO::TwBME_scalar& TBME,
+                    const std::vector<std::vector<int>>& inverse,
+                    const std::vector<int>& phase,
+                    SSTDecomp_phys_db& db) const;
+    std::vector<double> getStrengths(int LL, int SS, int TT,
+                    const HO::TwBME_general& TBME,
                     const std::vector<std::vector<int>>& inverse,
                     const std::vector<int>& phase,
                     SSTDecomp_phys_db& db) const;
@@ -480,16 +497,20 @@ namespace U3xU4
   public:
     // Constructor
     MultiShellTensor_ShareGammas_phys() = default;
+    // Take by value + move into members so callers that pass rvalues (e.g.
+    // unify_tensor's just-built result) avoid copying the whole unified tensor
+    // (gammas + omegas + all strengths). Lvalue callers cost one copy into the
+    // parameter, same as the previous const-ref + member-copy.
     MultiShellTensor_ShareGammas_phys(
-      const U3xU4::SingleShellTensors& Gammas,
-      const std::vector<std::pair<U3xU4::OmegaElements,
-                        std::vector<labels_type>>>& Omegas_LLSSTTstrengths,
+      U3xU4::SingleShellTensors Gammas,
+      std::vector<std::pair<U3xU4::OmegaElements,
+                        std::vector<labels_type>>> Omegas_LLSSTTstrengths,
       qcx_utils::Int8 MMT, qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ)
-      : Gammas_(Gammas),
+      : Gammas_(std::move(Gammas)),
         MMT_(MMT),
         JJ_(JJ),
         MMJ_(MMJ),
-        Omegas_LLSSTTstrengths_(Omegas_LLSSTTstrengths)
+        Omegas_LLSSTTstrengths_(std::move(Omegas_LLSSTTstrengths))
     { }
 
     MultiShellTensor_ShareGammas_phys(const U3xU4::MultiShellTensor_phys& t)

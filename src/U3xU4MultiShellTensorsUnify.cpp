@@ -354,7 +354,8 @@ namespace U3xU4
 
     if (oOmega_LLSSTTstrengths.size() == 0) return {};
 
-    return std::optional<MultiShellTensor_ShareGammas_phys>(std::in_place, 
-                oGamma, oOmega_LLSSTTstrengths, T.MMT(), T.JJ(), T.MMJ());
+    return std::optional<MultiShellTensor_ShareGammas_phys>(std::in_place,
+                std::move(oGamma), std::move(oOmega_LLSSTTstrengths),
+                T.MMT(), T.JJ(), T.MMJ());
   }
 } // namespace U3xU4

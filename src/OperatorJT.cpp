@@ -68,6 +68,11 @@ namespace JT
         std::cout << "Point-proton root-mean-squared radius" << std::endl;
       else if (name_ == "Radius_n")
         std::cout << "Point-neutron root-mean-squared radius" << std::endl;
+      else if (name_ == "GamowTellerMinus_2B_N3LO_EM500_bare")
+        std::cout << "1+2B Gamow-Teller for beta- from N3LO_EM500_bare" << std::endl;
+      else if (name_ == "GamowTellerPlus_2B_N3LO_EM500_bare")
+        std::cout << "1+2B Gamow-Teller for beta+ from N3LO_EM500_bare\n"
+                  << "WARNING: expand() is unavailable" << std::endl;
     	else
     	  std::cout << name_ << " with Lawson term x " << Lawson << std::endl;
     }
@@ -94,6 +99,11 @@ namespace JT
     else if (x.name_ == "Radius") s << "Point-nucleon root-mean-squared radius";
     else if (x.name_ == "Radius_p") s << "Point-proton root-mean-squared radius";
     else if (x.name_ == "Radius_n") s << "Point-neutron root-mean-squared radius";
+    else if (x.name_ == "GamowTellerMinus_2B_N3LO_EM500_bare")
+      s << "1+2B Gamow-Teller for beta- from N3LO_EM500_bare";
+    else if (x.name_ == "GamowTellerPlus_2B_N3LO_EM500_bare")
+      s << "1+2B Gamow-Teller for beta+ from N3LO_EM500_bare\n"
+        << "WARNING: expand() is unavailable";
   	else s << x.name_ << " with Lawson term x " << x.Lawson;
 
   	return s;
@@ -188,60 +198,93 @@ namespace JT
     }
     else if (one_plus_two_body.count(name_))
     {
-      JT::OneBodyOperator 
-        op1(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
-      auto tensors1 = op1.expand();
-
-      JT::TwoBodyOperator 
-        op2(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
-      auto tensors2 = op2.expand();
-
-      double coeff1, coeff2;
-
-      if (name_ == "L.L" || name_ == "L.S")
+      if (name_ == "GamowTellerPlus_2B_N3LO_EM500_bare")
+        throw std::runtime_error("Expansion unavailable");
+      else if (name_ == "GamowTellerMinus_2B_N3LO_EM500_bare")
       {
-      	coeff1 = 1.0;
-      	coeff2 = 1.0;
+        JT::OneBodyOperator 
+          op1("GamowTellerMinus", hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
+        auto tensors1 = op1.expand();
+
+        JT::TwoBodyOperator 
+          op2(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
+        auto tensors2 = op2.expand();
+
+        double coeff2 = - SQRT2 / gAx;
+
+        U3xU4::MultiShellTensors_phys tensors;
+        tensors.reserve(tensors1.size() + tensors2.size());
+
+        for (auto& tensor1 : tensors1)
+        {
+          tensors.push_back(std::move(tensor1));
+        }
+
+        for (auto& tensor2 : tensors2)
+        {
+          tensor2.enhanceStrengths(coeff2);
+          tensors.push_back(std::move(tensor2));
+        }
+
+        return tensors;
       }
-      else if (name_ == "CoMNumberOp")
+      else
       {
-      	double A = N_ + Z_;
-      	coeff1 = 1.0 / A;
-      	coeff2 = 1.0 / A;
+        JT::OneBodyOperator 
+          op1(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
+        auto tensors1 = op1.expand();
+
+        JT::TwoBodyOperator 
+          op2(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
+        auto tensors2 = op2.expand();
+
+        double coeff1 = 0.0, coeff2 = 0.0;
+
+        if (name_ == "L.L" || name_ == "L.S")
+        {
+        	coeff1 = 1.0;
+        	coeff2 = 1.0;
+        }
+        else if (name_ == "CoMNumberOp")
+        {
+        	double A = N_ + Z_;
+        	coeff1 = 1.0 / A;
+        	coeff2 = 1.0 / A;
+        }
+        else if (name_ == "Kinetic")
+        {
+        	double A = N_ + Z_;
+        	coeff1 = (A - 1.0) / A;
+        	coeff2 = 1.0 / A;
+        }
+        else if (name_ == "Rrel")
+        {
+        	double A = N_ + Z_;
+        	coeff1 = (A - 1.0) / A;
+        	coeff2 = -1.0 / A;
+        }
+
+        U3xU4::MultiShellTensors_phys tensors;
+        tensors.reserve(tensors1.size() + tensors2.size());
+
+        for (auto& tensor1 : tensors1)
+        {
+          if (tensor1.shift_quanta() < 0) continue;
+
+        	tensor1.enhanceStrengths(coeff1);
+        	tensors.push_back(std::move(tensor1));
+        }
+
+        for (auto& tensor2 : tensors2)
+        {
+          if (tensor2.shift_quanta() < 0) continue;
+
+        	tensor2.enhanceStrengths(coeff2);
+        	tensors.push_back(std::move(tensor2));
+        }
+
+        return tensors;
       }
-      else if (name_ == "Kinetic")
-      {
-      	double A = N_ + Z_;
-      	coeff1 = (A - 1.0) / A;
-      	coeff2 = 1.0 / A;
-      }
-      else if (name_ == "Rrel")
-      {
-      	double A = N_ + Z_;
-      	coeff1 = (A - 1.0) / A;
-      	coeff2 = -1.0 / A;
-      }
-
-      U3xU4::MultiShellTensors_phys tensors;
-      tensors.reserve(tensors1.size() + tensors2.size());
-
-      for (auto& tensor1 : tensors1)
-      {
-        if (tensor1.shift_quanta() < 0) continue;
-
-      	tensor1.enhanceStrengths(coeff1);
-      	tensors.push_back(std::move(tensor1));
-      }
-
-      for (auto& tensor2 : tensors2)
-      {
-        if (tensor2.shift_quanta() < 0) continue;
-
-      	tensor2.enhanceStrengths(coeff2);
-      	tensors.push_back(std::move(tensor2));
-      }
-
-      return tensors;
     }
     else // Hamiltonian
     {
@@ -414,84 +457,141 @@ namespace JT
     }
     else if (one_plus_two_body.count(name_))
     {
-      JT::OneBodyOperator 
-        op1(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
-      auto tensors1 = op1.expand();
-
-      JT::TwoBodyOperator 
-        op2(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
-      auto tensors2 = op2.expand();
-
-      double coeff1, coeff2;
-
-      if (name_ == "L.L" || name_ == "L.S")
+      if (name_ == "GamowTellerPlus_2B_N3LO_EM500_bare")
+        throw std::runtime_error("Expansion unavailable");
+      else if (name_ == "GamowTellerMinus_2B_N3LO_EM500_bare")
       {
-        coeff1 = 1.0;
-        coeff2 = 1.0;
-      }
-      else if (name_ == "CoMNumberOp")
-      {
-        double A = N_ + Z_;
-        coeff1 = 1.0 / A;
-        coeff2 = 1.0 / A;
-      }
-      else if (name_ == "Kinetic")
-      {
-        double A = N_ + Z_;
-        coeff1 = (A - 1.0) / A;
-        coeff2 = 1.0 / A;
-      }
-      else if (name_ == "Rrel")
-      {
-        double A = N_ + Z_;
-        coeff1 = (A - 1.0) / A;
-        coeff2 = -1.0 / A;
-      }
+        JT::OneBodyOperator 
+          op1("GamowTellerMinus", hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
+        auto tensors1 = op1.expand();
 
-      U3xU4::MultiShellTensors_ShareGammas_phys tensors;
-      tensors.reserve(tensors1.size() + tensors2.size());
+        JT::TwoBodyOperator 
+          op2(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
+        auto tensors2 = op2.expand();
 
-      // List 1
-      for (auto& tensor1 : tensors1)
-      {
-        if (tensor1.shift_quanta() < 0) continue;
+        double coeff2 = -SQRT2 / gAx;
 
-        tensor1.enhanceStrengths(coeff1);
-        bool found = false;
-        for (auto& tensor : tensors | std::views::reverse)
+        U3xU4::MultiShellTensors_ShareGammas_phys tensors;
+        tensors.reserve(tensors1.size() + tensors2.size());
+
+        // List 1
+        for (auto& tensor1 : tensors1)
         {
-          if (tensor.shareGammas(tensor1))
+          bool found = false;
+          for (auto& tensor : tensors | std::views::reverse)
           {
-            tensor.addOmegasLLSSTTstrengths(tensor1);
-            found = true;
-            break;
+            if (tensor.shareGammas(tensor1))
+            {
+              tensor.addOmegasLLSSTTstrengths(tensor1);
+              found = true;
+              break;
+            }
           }
+          if (!found)
+            tensors.push_back(std::move(tensor1));
         }
-        if (!found)
-          tensors.push_back(std::move(tensor1));
-      }
 
-      // List 2
-      for (auto& tensor2 : tensors2)
-      {
-        if (tensor2.shift_quanta() < 0) continue;
-
-        tensor2.enhanceStrengths(coeff2);
-        bool found = false;
-        for (auto& tensor : tensors | std::views::reverse)
+        // List 2
+        for (auto& tensor2 : tensors2)
         {
-          if (tensor.shareGammas(tensor2))
+          tensor2.enhanceStrengths(coeff2);
+          bool found = false;
+          for (auto& tensor : tensors | std::views::reverse)
           {
-            tensor.addOmegasLLSSTTstrengths(tensor2);
-            found = true;
-            break;
+            if (tensor.shareGammas(tensor2))
+            {
+              tensor.addOmegasLLSSTTstrengths(tensor2);
+              found = true;
+              break;
+            }
           }
+          if (!found)
+            tensors.push_back(std::move(tensor2));
         }
-        if (!found)
-          tensors.push_back(std::move(tensor2));
-      }
 
-      return tensors;
+        return tensors;
+      }
+      else
+      {
+        JT::OneBodyOperator 
+          op1(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
+        auto tensors1 = op1.expand();
+
+        JT::TwoBodyOperator 
+          op2(name_, hw_, Nmax_, valenceShell_, maxShell_, HO_labels_, gelfand_labels_);
+        auto tensors2 = op2.expand();
+
+        double coeff1, coeff2;
+
+        if (name_ == "L.L" || name_ == "L.S")
+        {
+          coeff1 = 1.0;
+          coeff2 = 1.0;
+        }
+        else if (name_ == "CoMNumberOp")
+        {
+          double A = N_ + Z_;
+          coeff1 = 1.0 / A;
+          coeff2 = 1.0 / A;
+        }
+        else if (name_ == "Kinetic")
+        {
+          double A = N_ + Z_;
+          coeff1 = (A - 1.0) / A;
+          coeff2 = 1.0 / A;
+        }
+        else if (name_ == "Rrel")
+        {
+          double A = N_ + Z_;
+          coeff1 = (A - 1.0) / A;
+          coeff2 = -1.0 / A;
+        }
+
+        U3xU4::MultiShellTensors_ShareGammas_phys tensors;
+        tensors.reserve(tensors1.size() + tensors2.size());
+
+        // List 1
+        for (auto& tensor1 : tensors1)
+        {
+          if (tensor1.shift_quanta() < 0) continue;
+
+          tensor1.enhanceStrengths(coeff1);
+          bool found = false;
+          for (auto& tensor : tensors | std::views::reverse)
+          {
+            if (tensor.shareGammas(tensor1))
+            {
+              tensor.addOmegasLLSSTTstrengths(tensor1);
+              found = true;
+              break;
+            }
+          }
+          if (!found)
+            tensors.push_back(std::move(tensor1));
+        }
+
+        // List 2
+        for (auto& tensor2 : tensors2)
+        {
+          if (tensor2.shift_quanta() < 0) continue;
+
+          tensor2.enhanceStrengths(coeff2);
+          bool found = false;
+          for (auto& tensor : tensors | std::views::reverse)
+          {
+            if (tensor.shareGammas(tensor2))
+            {
+              tensor.addOmegasLLSSTTstrengths(tensor2);
+              found = true;
+              break;
+            }
+          }
+          if (!found)
+            tensors.push_back(std::move(tensor2));
+        }
+
+        return tensors;
+      }
     }
     else if (potential_name_ == "custom_potential")
     {
@@ -751,10 +851,20 @@ namespace JT
     const U3xU4::ManyNucleonBasis& bras,
     const U3xU4::ManyNucleonBasis& kets)
   {
-    // auto tensors = expand_old();
-    auto tensors = expand();
-    
-    return U3xU4::MatrixElements_Eigen(tensors, bras, kets, gelfand_labels_);
+    if (name_ == "GamowTellerPlus_2B_N3LO_EM500_bare")
+    {
+      JT::Operator op_temp("GamowTellerMinus_2B_N3LO_EM500_bare",
+                           N_, Z_, hw_, Nmax_, HO_labels_, gelfand_labels_);
+      auto tensors = op_temp.expand();
+      auto mat = U3xU4::MatrixElements_Eigen(tensors, kets, bras, gelfand_labels_);
+      return mat.transpose();
+    }
+    else
+    {
+      // auto tensors = expand_old();
+      auto tensors = expand();
+      return U3xU4::MatrixElements_Eigen(tensors, bras, kets, gelfand_labels_);
+    }
   }
 
   // Expectation value
@@ -885,7 +995,9 @@ namespace JT
       double factor = (JJf + 1.0) / (JJi + 1.0) / cgc / cgc;
       for (auto& r : res) r *= (r * factor);
     }
-    else if (name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus")
+    else if (name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus" ||
+             name_ == "GamowTellerPlus_2B_N3LO_EM500_bare" ||
+             name_ == "GamowTellerMinus_2B_N3LO_EM500_bare")
     {
       auto cgc = cgcs.get({JJi, 2, JJf, MMJ, 0, MMJ});
       double factor = std::sqrt(JJf + 1.0) / cgc;

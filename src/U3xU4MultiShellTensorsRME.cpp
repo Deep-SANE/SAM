@@ -1,4 +1,8 @@
+#include <array>
 #include <numeric>
+#include <unordered_map>
+
+#include <boost/container_hash/hash.hpp>
 
 #include <qcx_convert.h>
 #include <qcx_ND.h>
@@ -15,6 +19,82 @@
 
 namespace U3xU4
 {
+  // --- U9 recoupling-coefficient reuse -------------------------------------
+  // u3u9db()/u4u9db() return a NON-OWNING span into a thread-private buffer
+  // (overwritten on the next call) after a contended concurrent-cache visit and
+  // an array copy. The U9 args (intermediate irrep labels) recur across the
+  // hundreds of millions of RME calls, so each thread caches an OWNING copy and
+  // hands back a const reference -- no contention, no copy, once computed.
+  namespace {
+    template <class DB>
+    const u3::U3U9<std::vector<double>>& cached_U3U9(DB& db,
+        const u3::irrep& A, const u3::irrep& B, const u3::irrep& C,
+        const u3::irrep& D, const u3::irrep& AB, const u3::irrep& CD,
+        const u3::irrep& AC, const u3::irrep& BD, const u3::irrep& ABCD,
+        int rhoACmax, int rhoBDmax, int rhoABCDmax,
+        int rhoABmax, int rhoCDmax, int rhoACBDmax)
+    {
+      // The rho maxes are determined by the irreps (via Rho), so they are not
+      // part of the key.
+      using Key = std::array<uint8_t, 18>;
+      thread_local std::unordered_map<Key, u3::U3U9<std::vector<double>>,
+                                      boost::hash<Key>> cache;
+      const Key key{
+          (uint8_t)A.lam(),(uint8_t)A.mu(), (uint8_t)B.lam(),(uint8_t)B.mu(),
+          (uint8_t)C.lam(),(uint8_t)C.mu(), (uint8_t)D.lam(),(uint8_t)D.mu(),
+          (uint8_t)AB.lam(),(uint8_t)AB.mu(), (uint8_t)CD.lam(),(uint8_t)CD.mu(),
+          (uint8_t)AC.lam(),(uint8_t)AC.mu(), (uint8_t)BD.lam(),(uint8_t)BD.mu(),
+          (uint8_t)ABCD.lam(),(uint8_t)ABCD.mu() };
+      auto it = cache.find(key);
+      if (it != cache.end()) return it->second;
+      auto view = db.get_U3U9(A, B, C, D, AB, CD, AC, BD, ABCD,
+                              rhoACmax, rhoBDmax, rhoABCDmax,
+                              rhoABmax, rhoCDmax, rhoACBDmax);
+      const auto& d = view.data();
+      return cache.emplace(key, u3::U3U9<std::vector<double>>(
+          std::vector<double>(d.begin(), d.end()),
+          (size_t)rhoACmax, (size_t)rhoBDmax, (size_t)rhoABCDmax,
+          (size_t)rhoABmax, (size_t)rhoCDmax, (size_t)rhoACBDmax))
+          .first->second;
+    }
+
+    template <class DB>
+    const u4::U4U9<std::vector<double>>& cached_U4U9(DB& db,
+        const u4::irrep& A, const u4::irrep& B, const u4::irrep& C,
+        const u4::irrep& D, const u4::irrep& AB, const u4::irrep& CD,
+        const u4::irrep& AC, const u4::irrep& BD, const u4::irrep& ABCD,
+        int etaACmax, int etaBDmax, int etaABCDmax,
+        int etaABmax, int etaCDmax, int etaACBDmax)
+    {
+      // The eta maxes are determined by the irreps (via Eta), so they are not
+      // part of the key.
+      using Key = std::array<uint8_t, 27>;
+      thread_local std::unordered_map<Key, u4::U4U9<std::vector<double>>,
+                                      boost::hash<Key>> cache;
+      const Key key{
+          (uint8_t)A.P1(),(uint8_t)A.P2(),(uint8_t)A.P3(),
+          (uint8_t)B.P1(),(uint8_t)B.P2(),(uint8_t)B.P3(),
+          (uint8_t)C.P1(),(uint8_t)C.P2(),(uint8_t)C.P3(),
+          (uint8_t)D.P1(),(uint8_t)D.P2(),(uint8_t)D.P3(),
+          (uint8_t)AB.P1(),(uint8_t)AB.P2(),(uint8_t)AB.P3(),
+          (uint8_t)CD.P1(),(uint8_t)CD.P2(),(uint8_t)CD.P3(),
+          (uint8_t)AC.P1(),(uint8_t)AC.P2(),(uint8_t)AC.P3(),
+          (uint8_t)BD.P1(),(uint8_t)BD.P2(),(uint8_t)BD.P3(),
+          (uint8_t)ABCD.P1(),(uint8_t)ABCD.P2(),(uint8_t)ABCD.P3() };
+      auto it = cache.find(key);
+      if (it != cache.end()) return it->second;
+      auto view = db.get_U4U9(A, B, C, D, AB, CD, AC, BD, ABCD,
+                              etaACmax, etaBDmax, etaABCDmax,
+                              etaABmax, etaCDmax, etaACBDmax);
+      const auto& d = view.data();
+      return cache.emplace(key, u4::U4U9<std::vector<double>>(
+          std::vector<double>(d.begin(), d.end()),
+          (size_t)etaACmax, (size_t)etaBDmax, (size_t)etaABCDmax,
+          (size_t)etaABmax, (size_t)etaCDmax, (size_t)etaACBDmax))
+          .first->second;
+    }
+  }
+
   // Adaptation from lsu3shell
   static int8_t uncoupling_phase(const U3xU4::SingleShellTensors& Gammas,
                                  const ManyNucleonBasis::Irrep& bra,
@@ -577,10 +657,10 @@ namespace U3xU4
         auto rhoCDmax = RMEsR.rhomax();
         auto rhoACBDmax = u3::Rho(AC.u3(), BD.u3(), ABCD.u3());
 
-        const auto U3U9 =
-            u3::u3u9db().get_U3U9(A.u3(), B.u3(), C.u3(), D.u3(), AB.u3(), CD.u3(),
-                                AC.u3(), BD.u3(), ABCD.u3(), rhoACmax, rhoBDmax,
-                                rhoABCDmax, rhoABmax, rhoCDmax, rhoACBDmax);
+        const auto& U3U9 = cached_U3U9(u3::u3u9db(),
+            A.u3(), B.u3(), C.u3(), D.u3(), AB.u3(), CD.u3(),
+            AC.u3(), BD.u3(), ABCD.u3(), rhoACmax, rhoBDmax,
+            rhoABCDmax, rhoABmax, rhoCDmax, rhoACBDmax);
 
         assert(!U3U9.empty());
 
@@ -593,10 +673,10 @@ namespace U3xU4
         auto etaCDmax = RMEsR.etamax();
         auto etaACBDmax = u4::Eta(AC.u4(), BD.u4(), ABCD.u4());
 
-        const auto U4U9 =
-            u4::u4u9db().get_U4U9(A.u4(), B.u4(), C.u4(), D.u4(), AB.u4(), CD.u4(),
-                                AC.u4(), BD.u4(), ABCD.u4(), etaACmax, etaBDmax,
-                                etaABCDmax, etaABmax, etaCDmax, etaACBDmax);
+        const auto& U4U9 = cached_U4U9(u4::u4u9db(),
+            A.u4(), B.u4(), C.u4(), D.u4(), AB.u4(), CD.u4(),
+            AC.u4(), BD.u4(), ABCD.u4(), etaACmax, etaBDmax,
+            etaABCDmax, etaABmax, etaCDmax, etaACBDmax);
 
         assert(!U4U9.empty());
 
@@ -637,21 +717,27 @@ namespace U3xU4
           auto aRi = multi_res[5];
           auto aR0 = multi_res[9];
 
+          double s = 0.0;
           for (size_t rhoAB = 0; rhoAB < rhoABmax; rhoAB++)
             for (size_t rhoCD = 0; rhoCD < rhoCDmax; rhoCD++)
             {
-              auto u3u9 = U3U9(rhoAC, rhoBD, rhoABCD, rhoAB, rhoCD, rhoACBD);
+              const auto u3u9 = U3U9(rhoAC, rhoBD, rhoABCD, rhoAB, rhoCD, rhoACBD);
 
               for (size_t etaAB = 0; etaAB < etaABmax; etaAB++)
+              {
+                // rmeL (and its product with u3u9) is invariant to etaCD, so
+                // hoist it out of the innermost loop
+                const auto u3u9_rmeL = u3u9 * RMEsL(aLf, aLi, aL0, rhoAB, etaAB);
+
                 for (size_t etaCD = 0; etaCD < etaCDmax; etaCD++)
                 {
-                  auto u4u9 = U4U9(etaAC, etaBD, etaABCD, etaAB, etaCD, etaACBD);
-                  auto rmeL = RMEsL(aLf, aLi, aL0, rhoAB, etaAB);
-                  auto rmeR = RMEsR(aRf, aRi, aR0, rhoCD, etaCD);
-
-                  rmes[j] += u3u9 * u4u9 * rmeL * rmeR;
+                  const auto u4u9 = U4U9(etaAC, etaBD, etaABCD, etaAB, etaCD, etaACBD);
+                  const auto rmeR = RMEsR(aRf, aRi, aR0, rhoCD, etaCD);
+                  s += u3u9_rmeL * u4u9 * rmeR;
                 }
+              }
             }
+          rmes[j] = s;   // rmes[j] was zero-initialized
         }
 
         // resolve multiplicities of resulting RMEs:

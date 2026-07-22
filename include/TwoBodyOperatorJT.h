@@ -19,29 +19,37 @@ namespace JT
     const HO::Table_nljmjmt& HO_labels_;
     const U3xU4::Table_gelfand& gelfand_labels_;
 
-    HO::qn_t JJ_, MMJ_, TT_, MMT_, parity_, // (0=even,1=odd)
+    HO::qn_t JJ_, MMJ_, TT_, MMT_, 
+             parity_, // (0=even,1=odd)
              hw_, Nmax_, valenceShell_, maxShell_;
     // Note that nuclear potentials mix isospin, thus we assign TT = -1
 
     std::string name_;
-    bool on_the_fly;
+    bool on_the_fly, symmetric_;
 
-    std::optional<HO::TwBME_scalar> TBME; // only read input file during
-                                         // expand() or writeBinary()
+    // only read input file during expand() or writeBinary()
+    std::optional<HO::TwBME_scalar> TBME_scalar; 
+    std::optional<HO::TwBME_general> TBME_general;
 
     // List of available operators
     const std::unordered_set<std::string> known_scalar_ops = {
-                        "L.L", "L.S", "CoMNumberOp", "Kinetic", "Rrel"};
+      "L.L", "L.S", "CoMNumberOp", "Kinetic", "Rrel"
+    };
 
     const std::unordered_set<std::string> known_potentials = {
-        "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
-        "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
-        "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
-        "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
-        "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
-        "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
-        "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
-        "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"};
+      "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
+      "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
+      "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
+      "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
+      "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
+      "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
+      "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
+      "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"
+    };
+
+    const std::unordered_set<std::string> known_general_ops = {
+      "GamowTellerMinus_2B_N3LO_EM500_bare"
+    };
 
   public:
     // Constructor

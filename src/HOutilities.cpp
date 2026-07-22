@@ -516,16 +516,6 @@ namespace HO
     valenceShell_ = (valenceShell > 0) ? qcx_utils::ito8(valenceShell) : 0;
     maxShell_ = (maxShell >= 0) ? qcx_utils::ito8(maxShell) : 14;
 
-    static const std::unordered_set<std::string> known_potentials = {
-      "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
-      "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
-      "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
-      "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
-      "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
-      "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
-      "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
-      "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"};
-
     if (known_potentials.count(name))
     {
       orbit_map = OrbitsMap(14, "NuHamil");
@@ -1099,6 +1089,66 @@ namespace HO
   // release for very large model spaces.
   void initialize_twbme_cache() { }
   void finalize_twbme_cache() { }
+
+  // ---- m-scheme cache hit/miss counters (diagnostic) --------------------
+#ifdef COUNT_MSCHEME_CACHE
+  namespace { unsigned long long g_ms_hits[256] = {}, g_ms_misses[256] = {}; }
+#endif
+  void report_mscheme_cache_stats()
+  {
+#ifdef COUNT_MSCHEME_CACHE
+    unsigned long long h = 0, m = 0;
+    for (int i = 0; i < 256; i++) { h += g_ms_hits[i]; m += g_ms_misses[i]; }
+    unsigned long long tot = h + m;
+    std::cout << "[mscheme-cache] hits=" << h << "  misses=" << m
+              << "  total=" << tot << "  ("
+              << (tot ? 100.0 * double(h) / double(tot) : 0.0) << "% hit)\n";
+    for (int i = 0; i < 256; i++) { g_ms_hits[i] = 0; g_ms_misses[i] = 0; }
+#endif
+  }
+
+  // ---- intra-tensor m-scheme reuse (diagnostic) -------------------------
+#ifdef MEASURE_MSCHEME_REUSE
+  namespace
+  {
+    // this thread's DISTINCT quads for the tensor currently being expanded
+    thread_local std::unordered_set<TwBME_mscheme_key,
+                                    boost::hash<TwBME_mscheme_key>> g_probed;
+    thread_local unsigned long long g_probes_this = 0;
+    unsigned long long g_ru_unique[256] = {}, g_ru_probes[256] = {},
+                       g_ru_ntensors[256] = {}, g_ru_maxuniq[256] = {};
+  }
+  void mscheme_reuse_begin() { g_probed.clear(); g_probes_this = 0; }
+  void mscheme_reuse_end()
+  {
+    int t = omp_get_thread_num();
+    unsigned long long u = g_probed.size();
+    g_ru_unique[t] += u;
+    g_ru_probes[t] += g_probes_this;
+    g_ru_ntensors[t]++;
+    if (u > g_ru_maxuniq[t]) g_ru_maxuniq[t] = u;
+  }
+#endif
+  void report_mscheme_reuse()
+  {
+#ifdef MEASURE_MSCHEME_REUSE
+    unsigned long long u = 0, p = 0, n = 0, mx = 0;
+    for (int i = 0; i < 256; i++)
+    {
+      u += g_ru_unique[i]; p += g_ru_probes[i]; n += g_ru_ntensors[i];
+      if (g_ru_maxuniq[i] > mx) mx = g_ru_maxuniq[i];
+    }
+    std::cout << "[mscheme-reuse] tensors=" << n
+              << "  total_probes=" << p
+              << "  sum_unique_per_tensor=" << u
+              << "  reuse=" << (u ? double(p) / double(u) : 0.0) << "x"
+              << "  avg_unique/tensor=" << (n ? u / n : 0)
+              << "  max_unique/tensor=" << mx << "\n";
+    for (int i = 0; i < 256; i++)
+    { g_ru_unique[i] = 0; g_ru_probes[i] = 0; g_ru_ntensors[i] = 0;
+      g_ru_maxuniq[i] = 0; }
+#endif
+  }
 #endif
 
   void TwBME_scalar::clear()
@@ -1182,25 +1232,10 @@ namespace HO
       qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
   {
 #ifdef UNCOUPLE_ME_CACHE
-    // Memoize the m-scheme ME in this thread's cache. The expansion requests the
-    // same m-scheme tuple many times across terms and tensors, so this turns the
-    // CG recoupling sum into a single lock-free hash lookup. twbme_mscheme_cache
-    // is a thread_local singleton, so resolving it here is cheap (no
-    // omp_get_thread_num) and the callers need not pass it in.
-    TwBME_mscheme_key key = pack_mscheme_2Bstate(
-      ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
-      ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
-
-    auto& cache = twbme_mscheme_cache();
-    auto it = cache.find(key);
-    if (it != cache.end()) return it->second;
-
-    double v = computeME(ea, lla, jja, mmja, mmta,
-                         eb, llb, jjb, mmjb, mmtb,
-                         ec, llc, jjc, mmjc, mmtc,
-                         ed, lld, jjd, mmjd, mmtd);
-    cache.emplace(key, v);
-    return v;
+    // Resolve this thread's cache once, then reuse the cache-passing overload.
+    return getME(twbme_mscheme_cache(),
+                 ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
+                 ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
 #else
     return computeME(ea, lla, jja, mmja, mmta,
                      eb, llb, jjb, mmjb, mmtb,
@@ -1208,6 +1243,69 @@ namespace HO
                      ed, lld, jjd, mmjd, mmtd);
 #endif
   }
+
+#ifdef UNCOUPLE_ME_CACHE
+  // Memoize the m-scheme ME in the caller-supplied cache. getStrengths resolves
+  // the thread_local cache once and passes it in, so the billions of calls in
+  // the hot loop skip the per-call thread_local (emulated-TLS) resolution.
+  double TwBME_scalar::getME(TwBME_mscheme_cache_t& cache,
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
+  {
+    TwBME_mscheme_key key = pack_mscheme_2Bstate(
+      ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
+      ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
+
+#ifdef MEASURE_MSCHEME_REUSE
+    g_probed.insert(key);
+    ++g_probes_this;
+#endif
+
+    auto it = cache.find(key);
+    if (it != cache.end())
+    {
+#ifdef COUNT_MSCHEME_CACHE
+      ++g_ms_hits[omp_get_thread_num()];
+#endif
+      return it->second;
+    }
+#ifdef COUNT_MSCHEME_CACHE
+    ++g_ms_misses[omp_get_thread_num()];
+#endif
+    double v = computeME(ea, lla, jja, mmja, mmta,
+                         eb, llb, jjb, mmjb, mmtb,
+                         ec, llc, jjc, mmjc, mmtc,
+                         ed, lld, jjd, mmjd, mmtd);
+    cache.emplace(key, v);
+    return v;
+  }
+
+  // Two-level lookup: a small per-tensor `local` cache in front of the big
+  // `global` one. The ~9x intra-tensor reuse hits `local` (L2/L3), so only the
+  // first touch of each quad falls through to `global` (the 2.9GB DRAM table).
+  double TwBME_scalar::getME(TwBME_mscheme_cache_t& local,
+      TwBME_mscheme_cache_t& global,
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
+  {
+    TwBME_mscheme_key key = pack_mscheme_2Bstate(
+      ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
+      ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
+
+    auto it = local.find(key);
+    if (it != local.end()) return it->second;
+
+    double v = getME(global,
+                     ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
+                     ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
+    local.emplace(key, v);
+    return v;
+  }
+#endif
 
   double TwBME_scalar::computeME(
       qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
@@ -1292,10 +1390,25 @@ namespace HO
     // overwritten from the file header in read_from_gzip_nuhamil()
     JJ_ = 0; parity_ = 0; TT_ = 0;
 
-    // covers the full NuHamil orbit range (emax14); same ordering as the file
-    // orbit_map = OrbitsMap(14, "NuHamil");
+    if (known_ops.count(name))
+    {
+      orbit_map = OrbitsMap(14, "NuHamil");
+      custom_name = false;
+    }
+    else
+    {
+#ifdef USE_MPI
+      int mpi_rank = 0;
+      MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
 
-    custom_name = true;
+      if (mpi_rank == 0)
+#endif
+      std::cout << "WARNING: This operator isn't known" << std::endl;
+      
+      // orbit_map = OrbitsMap(14, "IMSRG");
+      orbit_map = OrbitsMap(14, "NuHamil");
+      custom_name = true;
+    }
   }
 
   void TwBME_general::is() const
@@ -1306,7 +1419,7 @@ namespace HO
 
     if (mpi_rank == 0)
 #endif
-    std::cout << "General two-body operator " << name_
+    std::cout << "General operator " << name_
               << " (JJ=" << static_cast<int>(JJ_)
               << " parity=" << static_cast<int>(parity_)
               << " TT=" << static_cast<int>(TT_) << ")"
@@ -1318,7 +1431,7 @@ namespace HO
 
   std::ostream& operator<<(std::ostream& s, const TwBME_general& x)
   {
-    s << "General two-body operator " << x.name_
+    s << "General operator " << x.name_
       << " (JJ=" << static_cast<int>(x.JJ_)
       << " parity=" << static_cast<int>(x.parity_)
       << " TT=" << static_cast<int>(x.TT_) << ")"
@@ -1337,16 +1450,23 @@ namespace HO
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
 #endif
 
-    // General (external) operators live under data/External_operators/
+    // General operators live under data/General_operators/
     std::string filename;
+
 #ifdef SAM_DATA_DIR
     const char* sam_data = std::getenv("SAM_DATA_DIR");
     if (!sam_data)
       throw std::runtime_error("Environment variable SAM_DATA_DIR is not set");
-    filename = std::string(sam_data) + "/External_operators/" + name_ + ".me2j.gz";
+      
+    filename = std::string(sam_data) + "/General_operators/" + name_;
 #else
-    filename = "data/External_operators/" + name_ + ".me2j.gz";
+    filename = "data/General_operators/" + name_;
 #endif
+
+    if (!custom_name)
+      filename += "_hw" + std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28";
+    
+    filename += ".me2j.gz";
 
 #ifdef USE_MPI
     if (mpi_rank == 0)
@@ -1479,10 +1599,10 @@ namespace HO
         const uint16_t ap = 2 * i1 + 1, an = 2 * i1 + 2;
         const uint16_t bp = 2 * i2 + 1, bn = 2 * i2 + 2;
 
-        if (std::fabs(obme_pp) > tol) obme_map[{ap, bp}] = obme_pp;
-        if (std::fabs(obme_nn) > tol) obme_map[{an, bn}] = obme_nn;
-        if (std::fabs(obme_np) > tol) obme_map[{an, bp}] = obme_np; // (an,bp)
-        if (std::fabs(obme_pn) > tol) obme_map[{ap, bn}] = obme_pn; // (ap,bn)
+        if (std::fabs(obme_pp) > tol) obme_map[pack_ab(ap, bp)] = obme_pp;
+        if (std::fabs(obme_nn) > tol) obme_map[pack_ab(an, bn)] = obme_nn;
+        if (std::fabs(obme_np) > tol) obme_map[pack_ab(an, bp)] = obme_np; // (an,bp)
+        if (std::fabs(obme_pn) > tol) obme_map[pack_ab(ap, bn)] = obme_pn; // (ap,bn)
       }
     }
 
@@ -1548,7 +1668,18 @@ namespace HO
                 auto put = [&](double v, uint16_t a, uint16_t b,
                                          uint16_t c, uint16_t d)
                 {
-                  if (std::fabs(v) > tol) me_map[{a, b, c, d, JJab, JJcd}] = v;
+                  if (std::fabs(v) < tol) return;
+/*
+                  // Isospin change of THIS combo (mmt = +1 n, -1 p):
+                  // 2*dTz = (mmt_a + mmt_b) - (mmt_c + mmt_d). Should match the
+                  // operator's OpZ for every nonzero entry.
+                  const int MMT = orbit_map.getOrbit(a).mmt_
+                                + orbit_map.getOrbit(b).mmt_
+                                - orbit_map.getOrbit(c).mmt_
+                                - orbit_map.getOrbit(d).mmt_;
+                  std::cout << "MMT = " << MMT << "\tME = " << v << "\n";
+*/
+                  me_map[{pack_abcd(a, b, c, d), pack_JJ(JJab, JJcd)}] = v;
                 };
 
                 put(me[0], ap, bp, cp, dp); // pppp
@@ -1593,18 +1724,19 @@ namespace HO
 
     // NuHamil stores both bra<->ket orderings, so only the in-pair (a<->b,
     // c<->d) exchanges are needed to reach the stored entry.
-    auto it = me_map.find({a, b, c, d, Jab, Jcd});
+    const uint16_t jjkey = pack_JJ(Jab, Jcd);
+    auto it = me_map.find({pack_abcd(a, b, c, d), jjkey});
     if (it != me_map.end()) return it->second;
 
     double phase_ab = (((oa.jj_ + ob.jj_) / 2 - Jab) % 2 == 0) ? -1.0 : 1.0;
-    it = me_map.find({b, a, c, d, Jab, Jcd});
+    it = me_map.find({pack_abcd(b, a, c, d), jjkey});
     if (it != me_map.end()) return phase_ab * it->second;
 
     double phase_cd = (((oc.jj_ + od.jj_) / 2 - Jcd) % 2 == 0) ? -1.0 : 1.0;
-    it = me_map.find({a, b, d, c, Jab, Jcd});
+    it = me_map.find({pack_abcd(a, b, d, c), jjkey});
     if (it != me_map.end()) return phase_cd * it->second;
 
-    it = me_map.find({b, a, d, c, Jab, Jcd});
+    it = me_map.find({pack_abcd(b, a, d, c), jjkey});
     if (it != me_map.end()) return phase_ab * phase_cd * it->second;
 
     return 0.0; // sparse tensor operator: unstored channels are zero
@@ -1624,24 +1756,10 @@ namespace HO
       qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
   {
 #ifdef UNCOUPLE_ME_CACHE
-    // Memoize via the per-thread cache (see TwBME_scalar::getME). NOTE: the
-    // cache is keyed only by the four m-scheme states, so it is correct only
-    // when a single operator is active per program -- see the warning atop
-    // app/TwoBodyOperatorJT.cpp.
-    TwBME_mscheme_key key = pack_mscheme_2Bstate(
-      ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
-      ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
-
-    auto& cache = twbme_mscheme_cache();
-    auto it = cache.find(key);
-    if (it != cache.end()) return it->second;
-
-    double v = computeME(ea, lla, jja, mmja, mmta,
-                         eb, llb, jjb, mmjb, mmtb,
-                         ec, llc, jjc, mmjc, mmtc,
-                         ed, lld, jjd, mmjd, mmtd);
-    cache.emplace(key, v);
-    return v;
+    // Resolve this thread's cache once, then reuse the cache-passing overload.
+    return getME(twbme_mscheme_cache(),
+                 ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
+                 ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
 #else
     return computeME(ea, lla, jja, mmja, mmta,
                      eb, llb, jjb, mmjb, mmtb,
@@ -1649,6 +1767,67 @@ namespace HO
                      ed, lld, jjd, mmjd, mmtd);
 #endif
   }
+
+#ifdef UNCOUPLE_ME_CACHE
+  // Cache-passing variant (see TwBME_scalar::getME with a cache). NOTE: the
+  // cache is keyed only by the four m-scheme states, so it is correct only when
+  // a single operator is active per program -- see app/TwoBodyOperatorJT.cpp.
+  double TwBME_general::getME(TwBME_mscheme_cache_t& cache,
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
+  {
+    TwBME_mscheme_key key = pack_mscheme_2Bstate(
+      ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
+      ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
+
+#ifdef MEASURE_MSCHEME_REUSE
+    g_probed.insert(key);
+    ++g_probes_this;
+#endif
+
+    auto it = cache.find(key);
+    if (it != cache.end())
+    {
+#ifdef COUNT_MSCHEME_CACHE
+      ++g_ms_hits[omp_get_thread_num()];
+#endif
+      return it->second;
+    }
+#ifdef COUNT_MSCHEME_CACHE
+    ++g_ms_misses[omp_get_thread_num()];
+#endif
+    double v = computeME(ea, lla, jja, mmja, mmta,
+                         eb, llb, jjb, mmjb, mmtb,
+                         ec, llc, jjc, mmjc, mmtc,
+                         ed, lld, jjd, mmjd, mmtd);
+    cache.emplace(key, v);
+    return v;
+  }
+
+  // Two-level lookup (see TwBME_scalar::getME with local+global).
+  double TwBME_general::getME(TwBME_mscheme_cache_t& local,
+      TwBME_mscheme_cache_t& global,
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const
+  {
+    TwBME_mscheme_key key = pack_mscheme_2Bstate(
+      ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
+      ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
+
+    auto it = local.find(key);
+    if (it != local.end()) return it->second;
+
+    double v = getME(global,
+                     ea, lla, jja, mmja, mmta, eb, llb, jjb, mmjb, mmtb,
+                     ec, llc, jjc, mmjc, mmtc, ed, lld, jjd, mmjd, mmtd);
+    local.emplace(key, v);
+    return v;
+  }
+#endif
 
   double TwBME_general::computeME(
       qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
@@ -1711,7 +1890,7 @@ namespace HO
   double TwBME_general::getME(uint16_t a, uint16_t b) const
   {
     assert(!NN_only_);
-    auto it = obme_map.find({a, b});
+    auto it = obme_map.find(pack_ab(a, b));
     if (it != obme_map.end()) return it->second;
     return 0.0;
   }

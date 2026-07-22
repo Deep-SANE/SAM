@@ -278,6 +278,28 @@ namespace HO
   // one map per thread; finalize frees them.
   void initialize_twbme_cache();
   void finalize_twbme_cache();
+
+  // Diagnostic: per-thread m-scheme cache hit/miss counts (tells us whether the
+  // getME cost is cache misses = CG recompute, or hits = probes into a big
+  // table). Uncomment, rebuild, run, then call report_mscheme_cache_stats().
+// #define COUNT_MSCHEME_CACHE
+  void report_mscheme_cache_stats();
+
+  // Diagnostic: intra-tensor reuse of m-scheme quads -- unique quads probed per
+  // tensor vs total probes. High reuse => a small per-tensor hot cache (fits L2)
+  // would turn most of the 16B DRAM probes into fast local hits. Uncomment,
+  // rebuild, run; report_mscheme_reuse() prints after the loop.
+// #define MEASURE_MSCHEME_REUSE
+#ifdef MEASURE_MSCHEME_REUSE
+  void mscheme_reuse_begin();   // reset this thread's per-tensor probe set
+  void mscheme_reuse_end();     // fold it into the aggregates
+  struct MSchemeReuseScope      // RAII: brackets one tensor's getStrengths
+  {
+    MSchemeReuseScope()  { mscheme_reuse_begin(); }
+    ~MSchemeReuseScope() { mscheme_reuse_end(); }
+  };
+#endif
+  void report_mscheme_reuse();
 #endif
 
   class TwBME_scalar
@@ -296,6 +318,17 @@ namespace HO
 
     std::unordered_map<key_type, double, boost::hash<key_type>> me_map;
     OrbitsMap orbit_map;
+
+    const std::unordered_set<std::string> known_potentials = {
+      "N2LO_EMN500_bare", "N3LO_EMN500_bare", "N4LO_EMN500_bare",
+      "N3LO_EM500_bare",  "N2LO_opt_bare",    "N2LO_sat_bare", 
+      "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
+      "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
+      "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
+      "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
+      "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
+      "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"
+    };
 
     std::string name_;
     bool custom_name;
@@ -341,6 +374,28 @@ namespace HO
       qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
       qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
       qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const;
+
+#ifdef UNCOUPLE_ME_CACHE
+    // Same as the 20-arg getME, but memoizes in the caller-supplied cache. Lets
+    // the hot loop resolve the thread_local cache once and pass it in, instead
+    // of re-resolving it (emulated-TLS on macOS) on every one of billions of
+    // calls.
+    double getME(TwBME_mscheme_cache_t& cache,
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const;
+
+    // Two-level: check the small per-tensor `local` cache first, fall through to
+    // `global` (and populate local) on a miss. getStrengths keeps `local`
+    // L2/L3-resident so the ~9x intra-tensor reuse skips the 2.9GB-table DRAM
+    // probe.
+    double getME(TwBME_mscheme_cache_t& local, TwBME_mscheme_cache_t& global,
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const;
+#endif
   };
 
   //////////// CLASS TwBME_general /////////////
@@ -361,20 +416,43 @@ namespace HO
   class TwBME_general
   {
   private:
-    // two-body key: a b c d Jab Jcd  (pn orbit indices; bra and ket J)
-    using key2_t =
-        std::tuple<uint16_t, uint16_t, uint16_t, uint16_t, qn_t, qn_t>;
+    // two-body key: the four pn orbit indices (a,b,c,d) packed into one uint64
+    // (16 bits each) + the bra/ket couplings (Jab,Jcd) packed into one uint16
+    // (8 bits each). Hashing two scalars beats hashing a 6-tuple.
+    using key2_t = std::pair<uint64_t, uint16_t>;
     std::unordered_map<key2_t, double, boost::hash<key2_t>> me_map;
 
-    // one-body key: a b  (pn orbit indices); populated only if !NN_only_
-    using key1_t = std::tuple<uint16_t, uint16_t>;
-    std::unordered_map<key1_t, double, boost::hash<key1_t>> obme_map;
+    // one-body key: the two pn orbit indices (a,b) packed into one uint32
+    // (16 bits each). Populated only if !NN_only_.
+    using key1_t = uint32_t;
+    std::unordered_map<key1_t, double> obme_map;
+
+    // Key packers. Orbit indices fit uint16; Jab,Jcd = 2J <= 2*emax+1 <= 89
+    // fit a byte each, all disjoint.
+    static uint64_t pack_abcd(uint16_t a, uint16_t b, uint16_t c, uint16_t d)
+    {
+      return (uint64_t(a) << 48) | (uint64_t(b) << 32)
+           | (uint64_t(c) << 16) |  uint64_t(d);
+    }
+    static uint16_t pack_JJ(qn_t Jab, qn_t Jcd)
+    {
+      return static_cast<uint16_t>((uint16_t(uint8_t(Jab)) << 8)
+                                   | uint16_t(uint8_t(Jcd)));
+    }
+    static uint32_t pack_ab(uint16_t a, uint16_t b)
+    {
+      return (uint32_t(a) << 16) | uint32_t(b);
+    }
 
     // true: store the two-body (NN) block only, just consume the one-body block;
     // false: also store the one-body block.
     bool NN_only_ = true;
 
     OrbitsMap orbit_map;
+
+    const std::unordered_set<std::string> known_ops = {
+      "GamowTellerMinus_2B_N3LO_EM500_bare"
+    };
 
     std::string name_;
     bool custom_name;
@@ -431,6 +509,22 @@ namespace HO
       qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
       qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
       qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const;
+
+#ifdef UNCOUPLE_ME_CACHE
+    // Cache-passing variant (see TwBME_scalar::getME with a cache).
+    double getME(TwBME_mscheme_cache_t& cache,
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const;
+
+    // Two-level variant (see TwBME_scalar::getME with local+global).
+    double getME(TwBME_mscheme_cache_t& local, TwBME_mscheme_cache_t& global,
+      qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
+      qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,
+      qn_t ec, qn_t llc, qn_t jjc, qn_t mmjc, qn_t mmtc,
+      qn_t ed, qn_t lld, qn_t jjd, qn_t mmjd, qn_t mmtd) const;
+#endif
 
     // --- one-body piece (only meaningful when read with NN_only_ == false) ---
 

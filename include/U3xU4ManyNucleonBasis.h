@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdint>
 #include <limits>
+#include <map>
 #include <span>
 #include <utility>
 #include <vector>
@@ -251,6 +252,31 @@ namespace U3xU4
       uint64_t offset;
     };
 
+    // Per-distribution generation output, produced independently (in parallel)
+    // by generate_gammas_for_distribution and then merged into the global
+    // arrays in distribution order. All ids/offsets are LOCAL to this result
+    // (gamma_id indexes `gammas`, omega ids index `omegas_*`, irrep offset is
+    // the cumulative dim within this distribution). The serial merge rebases
+    // them onto the global arrays, reproducing the sequential result exactly.
+    struct DistGammaResult
+    {
+      std::vector<GammaElement> gamma_elements;
+      std::vector<std::pair<size_t, size_t>> gammas;
+
+      std::vector<OmegaElementU4> omega_elements_u4;
+      std::vector<std::pair<size_t, size_t>> omegas_u4;
+
+      std::vector<OmegaElementSU3> omega_elements_su3;
+      std::vector<std::pair<size_t, size_t>> omegas_su3;
+
+      std::vector<InternalIrrep> irreps;                 // aligned with LLSSTTs
+      std::vector<std::vector<std::array<int, 6>>> LLSSTTs;
+
+      std::vector<std::pair<uint32_t, std::vector<size_t>>> group; // gamma->irreps
+
+      size_t dim = 0; // total dimension contributed by this distribution
+    };
+
     // **** PRIVATE MEMBER VARIABLES ****
 
     int A_;   // number of nucleons; equal to (Z+N)
@@ -280,6 +306,9 @@ namespace U3xU4
 
     std::vector<GammaElement> gamma_elements_;
     std::vector<std::pair<size_t, size_t>> gammas_;
+
+    // memoized single-shell gamma elements, keyed by (shell n, particles A).
+    std::map<std::pair<int, int>, std::vector<GammaElement>> shell_gamma_cache_;
 
     // (3) omegas:
 
@@ -445,7 +474,7 @@ namespace U3xU4
      * @param dist_id ID of the required distribution for which to generate
      * gammas.
      */
-    void generate_gammas_for_distribution(size_t dist_id);
+    void generate_gammas_for_distribution(size_t dist_id, DistGammaResult& r);
 
     /**
      * Generates gamma elements for a single shell.
@@ -459,6 +488,16 @@ namespace U3xU4
      */
     void generate_single_shell_gamma_elements(
         int n, int A, std::vector<GammaElement>& gamma_elements);
+
+    // Cached accessor for single-shell gamma elements. They depend only on
+    // (n, A), which recurs across many distributions, so the (expensive)
+    // UN->U(3)xU(4) reduction is computed once per (n, A) and memoized.
+    const std::vector<GammaElement>& single_shell_gammas(int n, int A);
+
+    // Populate shell_gamma_cache_ for every (n, A) that appears in the
+    // distributions. Run before the (parallel) gamma loop so the cache is
+    // read-only there.
+    void precompute_shell_gammas();
 
     /**
      * Generates U(4) irreps for A particles in nth shell.
@@ -512,6 +551,8 @@ namespace U3xU4
      * @param gamma_id ID of the required gamma for which to generate omegas.
      */
     void generate_omegas_for_gamma(size_t dist_id, size_t gamma_id,
+                                   const std::vector<GammaElement>& gamma,
+                                   DistGammaResult& r,
                                    std::vector<size_t>& irrep_ids);
   
   public:

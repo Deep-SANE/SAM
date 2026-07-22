@@ -449,6 +449,7 @@ namespace U3xU4
     irreps_.clear();
 
     generate_distributions();
+    precompute_shell_gammas();
     generate_gammas();
   }
 
@@ -538,13 +539,86 @@ namespace U3xU4
 
   void ManyNucleonBasis::generate_gammas()
   {
-    group_dists.resize(n_distributions());
+    const size_t ndist = n_distributions();
+    group_dists.resize(ndist);
 
-    for (size_t dist_id = 0; dist_id < n_distributions(); dist_id++)
-      generate_gammas_for_distribution(dist_id);
+    // (1) generate each distribution independently. Distributions share no
+    // mutable state here: shell_gamma_cache_ was fully populated by
+    // precompute_shell_gammas() (so it is read-only), and the u3lib/u4lib
+    // decomposition/physicalBasis calls are pure. Each thread writes only its
+    // own DistGammaResult with distribution-local ids.
+    std::vector<DistGammaResult> results(ndist);
+
+    #pragma omp parallel for schedule(dynamic)
+    for (size_t dist_id = 0; dist_id < ndist; dist_id++)
+      generate_gammas_for_distribution(dist_id, results[dist_id]);
+
+    // (2) merge in distribution order, rebasing local ids/offsets onto the
+    // global arrays. Because the merge order matches the old sequential order,
+    // the resulting basis is bit-for-bit identical to the serial version.
+    for (size_t dist_id = 0; dist_id < ndist; dist_id++)
+    {
+      DistGammaResult& r = results[dist_id];
+
+      const size_t ge_off     = gamma_elements_.size();
+      const size_t g_off      = gammas_.size();
+      const size_t oe_u4_off  = omega_elements_u4_.size();
+      const size_t ou4_off    = omegas_u4_.size();
+      const size_t oe_su3_off = omega_elements_su3_.size();
+      const size_t osu3_off   = omegas_su3_.size();
+      const size_t irrep_off  = irreps_.size();
+      const uint64_t dim_off  = dim_;
+
+      // gamma elements + gammas
+      gamma_elements_.insert(gamma_elements_.end(),
+          std::make_move_iterator(r.gamma_elements.begin()),
+          std::make_move_iterator(r.gamma_elements.end()));
+      for (const auto& [b, e] : r.gammas)
+        gammas_.emplace_back(b + ge_off, e + ge_off);
+
+      // omega elements + omegas (U4 and SU3)
+      omega_elements_u4_.insert(omega_elements_u4_.end(),
+          std::make_move_iterator(r.omega_elements_u4.begin()),
+          std::make_move_iterator(r.omega_elements_u4.end()));
+      for (const auto& [b, e] : r.omegas_u4)
+        omegas_u4_.emplace_back(b + oe_u4_off, e + oe_u4_off);
+
+      omega_elements_su3_.insert(omega_elements_su3_.end(),
+          std::make_move_iterator(r.omega_elements_su3.begin()),
+          std::make_move_iterator(r.omega_elements_su3.end()));
+      for (const auto& [b, e] : r.omegas_su3)
+        omegas_su3_.emplace_back(b + oe_su3_off, e + oe_su3_off);
+
+      // irreps (rebase gamma_id, omega ids, offset) + aligned LLSSTTs
+      for (auto ir : r.irreps)
+      {
+        ir.gamma_id += static_cast<uint32_t>(g_off);
+        if (ir.omega_u4_id != INVALID_OMEGA_ID)
+          ir.omega_u4_id += static_cast<uint32_t>(ou4_off);
+        if (ir.omega_su3_id != INVALID_OMEGA_ID)
+          ir.omega_su3_id += static_cast<uint32_t>(osu3_off);
+        ir.offset += dim_off;
+        irreps_.push_back(ir);
+      }
+      LLSSTTs_.insert(LLSSTTs_.end(),
+          std::make_move_iterator(r.LLSSTTs.begin()),
+          std::make_move_iterator(r.LLSSTTs.end()));
+
+      // grouping (rebase gamma_id and irrep ids)
+      auto& gd = group_dists[dist_id];
+      for (auto& [gamma_id, irrep_ids] : r.group)
+      {
+        for (auto& id : irrep_ids) id += irrep_off;
+        gd.emplace_back(gamma_id + static_cast<uint32_t>(g_off),
+                        std::move(irrep_ids));
+      }
+
+      dim_ += r.dim;
+    }
   }
 
-  void ManyNucleonBasis::generate_gammas_for_distribution(size_t dist_id)
+  void ManyNucleonBasis::generate_gammas_for_distribution(size_t dist_id,
+                                                          DistGammaResult& r)
   {
     assert(dist_id < n_distributions());
 
@@ -564,9 +638,8 @@ namespace U3xU4
 
       last_nonempty_shell = n;
 
-      std::vector<GammaElement> shell_elements;
-      generate_single_shell_gamma_elements(n, A, shell_elements);
-      shells_elements.push_back(std::move(shell_elements));
+      // memoized single-shell reduction (same (n, A) recurs across dists)
+      shells_elements.push_back(single_shell_gammas(n, A));
     }
 
     // (2) gammas = Cartesian product of single-shell gamma elements:
@@ -588,15 +661,15 @@ namespace U3xU4
     {
       nds.extract_multi_element(index, gamma);
 
-      // add gamma to basis:
+      // add gamma to basis (distribution-local ids):
 
-      auto gamma_id = gammas_.size();
+      auto gamma_id = r.gammas.size();
 
-      auto begin = gamma_elements_.size();
+      auto begin = r.gamma_elements.size();
       auto end = begin + gamma.size();
-      gammas_.emplace_back(begin, end);
+      r.gammas.emplace_back(begin, end);
 
-      std::ranges::copy(gamma, std::back_inserter(gamma_elements_));
+      std::ranges::copy(gamma, std::back_inserter(r.gamma_elements));
 
       // a single gamma element case:
       if (n_active_shells == 1)
@@ -631,24 +704,24 @@ namespace U3xU4
         if (dim_gamma > 0)
         {
           // add irrep to basis:
-          group_dists[dist_id].push_back(
-            {static_cast<uint32_t>(gamma_id), {irreps_.size()}});
+          r.group.push_back(
+            {static_cast<uint32_t>(gamma_id), {r.irreps.size()}});
 
-          irreps_.emplace_back(dist_id, gamma_id, INVALID_OMEGA_ID,
-                               INVALID_OMEGA_ID, dim_);
+          r.irreps.emplace_back(dist_id, gamma_id, INVALID_OMEGA_ID,
+                                INVALID_OMEGA_ID, r.dim);
 
-          LLSSTTs_.push_back(std::move(LLSSTTs));
+          r.LLSSTTs.push_back(std::move(LLSSTTs));
 
-          dim_ += dim_gamma;
+          r.dim += dim_gamma;
         }
       }
       else
       {
         std::vector<size_t> irrep_ids;
         // generate omegas for gamma:
-        generate_omegas_for_gamma(dist_id, gamma_id, irrep_ids);
+        generate_omegas_for_gamma(dist_id, gamma_id, gamma, r, irrep_ids);
 
-        group_dists[dist_id].push_back(
+        r.group.push_back(
           {static_cast<uint32_t>(gamma_id), std::move(irrep_ids)});
       }
     }
@@ -674,6 +747,34 @@ namespace U3xU4
       for (const auto& [u3, alphamax] : res)
         gamma_elements.emplace_back(u4, alphamax, u3);
     }
+  }
+
+  const std::vector<ManyNucleonBasis::GammaElement>&
+  ManyNucleonBasis::single_shell_gammas(int n, int A)
+  {
+    auto it = shell_gamma_cache_.find({n, A});
+    if (it != shell_gamma_cache_.end()) return it->second;
+
+    std::vector<GammaElement> ge;
+    generate_single_shell_gamma_elements(n, A, ge);
+    return shell_gamma_cache_.emplace(std::pair{n, A}, std::move(ge))
+        .first->second;
+  }
+
+  void ManyNucleonBasis::precompute_shell_gammas()
+  {
+    // Collect every (shell n, particles A) that occurs in any distribution and
+    // reduce it once. This removes the redundant UN->U(3)xU(4) branching that
+    // was repeated for the same (n, A) across distributions, and leaves the
+    // cache read-only for the (parallel) gamma loop.
+    std::set<std::pair<int, int>> na_pairs;
+    for (size_t dist_id = 0; dist_id < n_distributions(); dist_id++)
+    {
+      const auto dist = distribution(dist_id);
+      for (int n = 0; n < static_cast<int>(dist.size()); n++)
+        if (dist[n] > 0) na_pairs.insert({n, dist[n]});
+    }
+    for (const auto& [n, A] : na_pairs) single_shell_gammas(n, A);
   }
 
   void ManyNucleonBasis::generate_U4_irreps(int n, int A,
@@ -794,11 +895,10 @@ namespace U3xU4
     // return std::make_pair(LLSSTTs, dim);
   }
 
-  void ManyNucleonBasis::generate_omegas_for_gamma(size_t dist_id,
-                                                   size_t gamma_id,
-                                                   std::vector<size_t>& irrep_ids)
+  void ManyNucleonBasis::generate_omegas_for_gamma(
+      size_t dist_id, size_t gamma_id, const std::vector<GammaElement>& gamma,
+      DistGammaResult& r, std::vector<size_t>& irrep_ids)
   {
-    auto gamma = this->gamma(gamma_id);
     auto gamma_size = gamma.size();
     assert(gamma_size > 1);
     auto omega_size = gamma_size - 1;
@@ -821,16 +921,16 @@ namespace U3xU4
 
     // add generated omegas into basis:
 
-    auto first_omega_u4_id = omegas_u4_.size();
+    auto first_omega_u4_id = r.omegas_u4.size();
 
     for (const auto& omega_u4 : omegas_u4)
     {
-      auto begin = omega_elements_u4_.size();
+      auto begin = r.omega_elements_u4.size();
       auto end = begin + omega_size;
 
-      omegas_u4_.emplace_back(begin, end);
+      r.omegas_u4.emplace_back(begin, end);
 
-      std::ranges::copy(omega_u4, std::back_inserter(omega_elements_u4_));
+      std::ranges::copy(omega_u4, std::back_inserter(r.omega_elements_u4));
     }
 
     // (2) gamma2omega for SU(3):
@@ -851,16 +951,16 @@ namespace U3xU4
 
     // add generated omegas into basis:
 
-    auto first_omega_su3_id = omegas_su3_.size();
+    auto first_omega_su3_id = r.omegas_su3.size();
 
     for (const auto& omega_su3 : omegas_su3)
     {
-      auto begin = omega_elements_su3_.size();
+      auto begin = r.omega_elements_su3.size();
       auto end = begin + omega_size;
 
-      omegas_su3_.emplace_back(begin, end);
+      r.omegas_su3.emplace_back(begin, end);
 
-      std::ranges::copy(omega_su3, std::back_inserter(omega_elements_su3_));
+      std::ranges::copy(omega_su3, std::back_inserter(r.omega_elements_su3));
     }
 
     // (3) determine hw subspace & total gamma multiplicity:
@@ -943,14 +1043,14 @@ namespace U3xU4
         if (dim_omega > 0)
         {
           // add irrep to basis:
-          irrep_ids.push_back(irreps_.size());
+          irrep_ids.push_back(r.irreps.size());
 
-          irreps_.emplace_back(dist_id, gamma_id, omega_id_u4, omega_id_su3,
-                               dim_);
+          r.irreps.emplace_back(dist_id, gamma_id, omega_id_u4, omega_id_su3,
+                                r.dim);
 
-          LLSSTTs_.push_back(std::move(LLSSTTs));
+          r.LLSSTTs.push_back(std::move(LLSSTTs));
 
-          dim_ += dim_omega;
+          r.dim += dim_omega;
         }
       }
     }

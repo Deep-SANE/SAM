@@ -1304,8 +1304,7 @@ namespace U3xU4
 
   // get two-body strength directly during expand()
   std::vector<double> SingleShellTensor_phys::getStrengths(
-                                    const HO::TwBME_scalar& TBME,
-                                    SSTDecomp_phys_db& db) const
+        const HO::TwBME_scalar& TBME, SSTDecomp_phys_db& db) const
   {
     assert(num_ads() == 2 && num_ats() == 2);
 
@@ -1487,6 +1486,49 @@ namespace U3xU4
 
     return strengths;
 */
+  }
+
+  // get two-body strength directly during expand()
+  std::vector<double> SingleShellTensor_phys::getStrengths(
+        const HO::TwBME_general& TBME, SSTDecomp_phys_db& db) const
+  {
+    assert(num_ads() == 2 && num_ats() == 2);
+
+    int ncols = rho0max() * eta0max() * kappamax_ * zetamax_;
+    std::vector<double> strengths(ncols, 0.0);
+
+    // The cached expansion already carries the full cgcU3*cgcU4*cgcU2 *
+    // coeffs1*coeffs2 contraction in coeffs[t]; the strength is just the sum
+    // over expansion terms of me(t) * coeffs[t]. (Equivalent to the fused
+    // version below, up to expand()'s 1e-12 norm filtering of null terms.)
+    // Zero-copy borrowed view: coeff rows are flat double arrays and the ad/at
+    // operators are stored as Table_nljmjmt indices (turned into labels on
+    // demand) -- no Eigen row allocation, no Record copy, no ad_phys rebuild.
+    auto e = db.get_view(*this);
+    assert(static_cast<int>(e->ncols()) == ncols);
+
+    for (size_t t = 0; t < e->rows(); t++)
+    {
+      // operators are stored ad's-then-a's, so slots 0,1 are ad's and 2,3 are
+      // a's (no phase, no permutation); labels come straight from the table.
+      std::array<int, 4> ns, lls, jjs, mmjs, mmts;
+      for (int k = 0; k < 4; k++)
+        std::tie(ns[k], lls[k], jjs[k], mmjs[k], mmts[k]) = e->op_labels(t, k);
+
+      double me = TBME.getME(
+        ns[0], lls[0], jjs[0], mmjs[0], mmts[0],
+        ns[1], lls[1], jjs[1], mmjs[1], mmts[1],
+        ns[3], lls[3], jjs[3], mmjs[3], mmts[3],
+        ns[2], lls[2], jjs[2], mmjs[2], mmts[2]) / 4.0;
+
+      if (std::fabs(me) < 1e-10) continue;
+
+      const double* row = e->coeff_row(t);
+      for (int c = 0; c < ncols; c++)
+        strengths[c] += me * row[c];
+    }
+
+    return strengths;
   }
 
 

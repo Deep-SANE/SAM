@@ -39,6 +39,7 @@ namespace JT
     TT_ = 0;
     MMT_ = 0;
     parity_ = 0;
+    symmetric_ = true;
 
     if (known_scalar_ops.count(name)) 
     {
@@ -47,10 +48,23 @@ namespace JT
     else if (known_potentials.count(name))
     {
       TT_ = -1;
-      TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
+      TBME_scalar.emplace(name, hw, Nmax, valenceShell, maxShell);
       on_the_fly = false;
     }
-    else
+    else if (known_general_ops.count(name))
+    {
+      TBME_general.emplace(name, hw, Nmax, valenceShell, maxShell);
+      on_the_fly = false;
+      symmetric_ = false;
+
+      if (name.find("GamowTellerMinus") != std::string::npos)
+      {
+        JJ_ = 2;
+        TT_ = 2;
+        MMT_ = -2;
+      }
+    }
+    else // Unknown nuclear potentials, e.g., from NO2B truncation
     {
 #ifdef USE_MPI
       int mpi_rank = 0;
@@ -61,8 +75,10 @@ namespace JT
       std::cout << "WARNING: This operator isn't known" << std::endl;
 
       TT_ = -1;
-      TBME.emplace(name, hw, Nmax, valenceShell, maxShell);
       on_the_fly = false;
+
+      TBME_scalar.emplace(name, hw, Nmax, valenceShell, maxShell);
+      // TBME_general.emplace(name, hw, Nmax, valenceShell, maxShell);   
     }
   }
 
@@ -90,7 +106,7 @@ namespace JT
             << "Two-body part of the intrinsic mass radius squared without -1/A"
             << std::endl;
       else if (on_the_fly == false)
-        std::cout << "Two-body potential with " << name_ << std::endl;
+        std::cout << "Two-body operator: " << name_ << std::endl;
     }
 
     if (name_ != "L.L" && name_ != "L.S" && name_ != "CoMNumberOp" &&
@@ -111,7 +127,7 @@ namespace JT
     else if (x.name_ == "Rrel")
       s << "Two-body part of the intrinsic mass radius squared without -1/A";
     else if (x.on_the_fly == false)
-      s << "Two-body potential with " << x.name_;
+      s << "Two-body operator: " << x.name_;
     else
       throw std::invalid_argument("This operator has not been implemented");
 
@@ -259,18 +275,11 @@ namespace JT
                                          int jjc, int mmjc, int mmtc, int nd,
                                          int lld, int jjd, int mmjd, int mmtd) const
   {
-    if (on_the_fly == true)
-    {
-      return (sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
-                          nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd) -
-              sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
-                          nd, lld, jjd, mmjd, mmtd, nc, llc, jjc, mmjc, mmtc)) / 4.0;
-    }
-    else
-    {
-      return TBME->getME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb, 
-                         nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd) / 4.0;
-    }
+    assert(on_the_fly == true);
+    return (sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
+                        nc, llc, jjc, mmjc, mmtc, nd, lld, jjd, mmjd, mmtd) -
+            sphericalME(na, lla, jja, mmja, mmta, nb, llb, jjb, mmjb, mmtb,
+                        nd, lld, jjd, mmjd, mmtd, nc, llc, jjc, mmjc, mmtc)) / 4.0;
   }
 
   // Generate a list of al {na+1, nb+1, -nc-1, -nd-1} combinations such that
@@ -567,13 +576,27 @@ namespace JT
                            mmts_orig = inverse_permutation(mmts, inverse[k]);
 
         // me needs computing with normal ordering
-        me += phase[k] * sphericalME_AS(ns_orig[0], lls_orig[0], jjs_orig[0],
-                                        mmjs_orig[0], mmts_orig[0], ns_orig[1],
-                                        lls_orig[1], jjs_orig[1], mmjs_orig[1],
-                                        mmts_orig[1], ns_orig[3], lls_orig[3],
-                                        jjs_orig[3], mmjs_orig[3], mmts_orig[3],
-                                        ns_orig[2], lls_orig[2], jjs_orig[2],
-                                        mmjs_orig[2], mmts_orig[2]);
+        double me_;
+        if (on_the_fly)
+          me_ = sphericalME_AS(ns_orig[0], lls_orig[0], jjs_orig[0], mmjs_orig[0], mmts_orig[0],
+                               ns_orig[1], lls_orig[1], jjs_orig[1], mmjs_orig[1], mmts_orig[1],
+                               ns_orig[3], lls_orig[3], jjs_orig[3], mmjs_orig[3], mmts_orig[3],
+                               ns_orig[2], lls_orig[2], jjs_orig[2], mmjs_orig[2], mmts_orig[2]);
+        else
+        {
+          if (TBME_scalar)
+            me_ = TBME_scalar->getME(ns_orig[0], lls_orig[0], jjs_orig[0], mmjs_orig[0], mmts_orig[0],
+                               ns_orig[1], lls_orig[1], jjs_orig[1], mmjs_orig[1], mmts_orig[1],
+                               ns_orig[3], lls_orig[3], jjs_orig[3], mmjs_orig[3], mmts_orig[3],
+                               ns_orig[2], lls_orig[2], jjs_orig[2], mmjs_orig[2], mmts_orig[2]) / 4.0;
+          else
+            me_ = TBME_general->getME(ns_orig[0], lls_orig[0], jjs_orig[0], mmjs_orig[0], mmts_orig[0],
+                               ns_orig[1], lls_orig[1], jjs_orig[1], mmjs_orig[1], mmts_orig[1],
+                               ns_orig[3], lls_orig[3], jjs_orig[3], mmjs_orig[3], mmts_orig[3],
+                               ns_orig[2], lls_orig[2], jjs_orig[2], mmjs_orig[2], mmts_orig[2]) / 4.0;
+        }
+
+        me += phase[k] * me_;
       }
 
       if (std::fabs(me) < 1e-10) continue;
@@ -598,111 +621,6 @@ namespace JT
     if (ignore == false) tensor.setCoeffs(coeffs);
 
     return ignore;
-  }
-
-  // Selection rules
-  bool TwoBodyOperator::HOShellselection(int na, int nb, int nc, int nd) const
-  {
-    if (parity_ == 0)
-    {
-      int shift = na + nb - nc - nd;
-
-      if (name_ == "CoMNumberOp")
-        if (shift != 0) return false;
-      else if (name_ == "Rrel" || name_ == "Kinetic")
-        if (shift != 0 && abs(shift) != 2) return false;
-      else // if (known_potentials.count(name_))
-        if (shift % 2 != 0) return false;
-    }
-    
-    return true;
-  }
-
-  bool TwoBodyOperator::HOShellselection(int na, int nb, int nc, int nd,
-                                         int Nmax_old, int maxShell_old) const
-  {
-    // Check if already exists
-    if (na <= maxShell_old && nb <= maxShell_old &&
-        nc <= maxShell_old && nd <= maxShell_old &&
-        (na + nb) <= Nmax_old && (nc + nd) <= Nmax_old)
-      return false;
-
-    if (parity_ == 0)
-    {
-      // Check shift
-      int shift = na + nb - nc - nd;
-
-      if (name_ == "CoMNumberOp")
-        if (shift != 0) return false;
-      else if (name_ == "Rrel" || name_ == "Kinetic")
-        if (shift != 0 && abs(shift) != 2) return false;
-      else // if (known_potentials.count(name_))
-        if (shift % 2 != 0) return false;
-    }
-    
-    return true;
-  }
-
-  bool TwoBodyOperator::LLselection(const int& LL) const
-  {
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
-        name_ == "CoMNumberOp" || name_ == "Kinetic")
-    {
-      if (LL != 0) return false;
-    }
-    
-    return true;
-  }
-  
-  bool TwoBodyOperator::SSselection(const int& SS) const
-  {
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
-        name_ == "CoMNumberOp" || name_ == "Kinetic")
-    {
-      if (SS != 0) return false;
-    }
-    
-    return true;
-  }
-
-  bool TwoBodyOperator::U3selection(const u3::irrep& irr) const
-  {
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "CoMNumberOp")
-    {
-      if (irr != u3::irrep(0, 0, 0)) return false;
-    }
-    else if (name_ == "Rrel" || name_ == "Kinetic")
-    {
-      if (irr != u3::irrep(0, 0, 0) &&
-          irr != u3::irrep(2, 0, 0) &&
-          irr != u3::irrep(2, 2, 0)) 
-        return false;
-    }
-    else if (known_potentials.count(name_))
-    {
-      if (irr.n13() % 2 != 0) return false;
-    }
-    
-    return true;
-  }
-
-  bool TwoBodyOperator::U4selection(const u4::irrep& irr) const
-  {
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
-        name_ == "CoMNumberOp" || name_ == "Kinetic")
-    {
-      if (irr != u4::irrep(0, 0, 0, 0)) return false;
-    }
-    else if (known_potentials.count(name_))
-    {
-      if (irr != u4::irrep(0, 0, 0, 0) &&
-          irr != u4::irrep(2, 1, 1, 0) &&
-          irr != u4::irrep(2, 2, 0, 0) &&
-          irr != u4::irrep(4, 2, 2, 0)) 
-        return false;
-    }
-    
-    return true;
   }
 
   // Set strengths for U3xU4::MultiShellTensor_phys
@@ -790,7 +708,12 @@ namespace JT
           }
         }
         else
-          strengths = tensor.getStrengths(LL0, SS0, TT0, *TBME, inverse, phase, db);
+        {
+          if (TBME_scalar)
+            strengths = tensor.getStrengths(LL0, SS0, TT0, *TBME_scalar, inverse, phase, db);
+          else
+            strengths = tensor.getStrengths(LL0, SS0, TT0, *TBME_general, inverse, phase, db);
+        }
 
         double norm = 0.0;
         for (auto& s : strengths)
@@ -811,13 +734,133 @@ namespace JT
     tensor.setLLSSTTstrengths(LLSSTTstrengths);
   }
 
+  // Selection rules
+  bool TwoBodyOperator::HOShellselection(int na, int nb, int nc, int nd) const
+  {
+    if (parity_ == 0)
+    {
+      int shift = na + nb - nc - nd;
+      if (shift % 2 != 0) return false;
+
+      if (name_ == "CoMNumberOp")
+        if (shift != 0) return false;
+      else if (name_ == "Rrel" || name_ == "Kinetic")
+        if (shift != 0 && abs(shift) != 2) return false;
+    }
+    
+    return true;
+  }
+
+  bool TwoBodyOperator::HOShellselection(int na, int nb, int nc, int nd,
+                                         int Nmax_old, int maxShell_old) const
+  {
+    // Check if already exists
+    if (na <= maxShell_old && nb <= maxShell_old &&
+        nc <= maxShell_old && nd <= maxShell_old &&
+        (na + nb) <= Nmax_old && (nc + nd) <= Nmax_old)
+      return false;
+
+    if (parity_ == 0)
+    {
+      // Check shift
+      int shift = na + nb - nc - nd;
+      if (shift % 2 != 0) return false;
+
+      if (name_ == "CoMNumberOp")
+        if (shift != 0) return false;
+      else if (name_ == "Rrel" || name_ == "Kinetic")
+        if (shift != 0 && abs(shift) != 2) return false;
+    }
+    
+    return true;
+  }
+
+  bool TwoBodyOperator::LLselection(const int& LL) const
+  {
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
+        name_ == "CoMNumberOp" || name_ == "Kinetic")
+    {
+      if (LL != 0) return false;
+    }
+    
+    return true;
+  }
+  
+  bool TwoBodyOperator::SSselection(const int& SS) const
+  {
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
+        name_ == "CoMNumberOp" || name_ == "Kinetic")
+    {
+      if (SS != 0) return false;
+    }
+    
+    return true;
+  }
+
+  bool TwoBodyOperator::U3selection(const u3::irrep& irr) const
+  {
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "CoMNumberOp")
+    {
+      if (irr != u3::irrep(0, 0, 0)) return false;
+    }
+    else if (name_ == "Rrel" || name_ == "Kinetic")
+    {
+      if (irr != u3::irrep(0, 0, 0) &&
+          irr != u3::irrep(2, 0, 0) &&
+          irr != u3::irrep(2, 2, 0)) 
+        return false;
+    }
+    else if (known_potentials.count(name_))
+    {
+      if (irr.n13() % 2 != 0) return false;
+    }
+    
+    return true;
+  }
+
+  bool TwoBodyOperator::U4selection(const u4::irrep& irr) const
+  {
+    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
+        name_ == "CoMNumberOp" || name_ == "Kinetic")
+    {
+      if (irr != u4::irrep(0, 0, 0, 0)) return false;
+    }
+    else if (known_potentials.count(name_))
+    {
+      if (irr != u4::irrep(0, 0, 0, 0) &&
+          irr != u4::irrep(2, 1, 1, 0) &&
+          irr != u4::irrep(2, 2, 0, 0) &&
+          irr != u4::irrep(4, 2, 2, 0)) 
+        return false;
+    }
+    else if (name_ == "GamowTellerMinus_2B_N3LO_EM500_bare")
+    {
+      if (irr != u4::irrep(2, 1, 1, 0) &&
+          irr != u4::irrep(2, 2, 0, 0) &&
+          irr != u4::irrep(4, 2, 2, 0)) 
+        return false;
+    }
+    
+    return true;
+  }
+
 #define RESTRICT_WITH_NMAX
 #define RESTRICT_JJ // only used in expand_old()
   U3xU4::TwoBodyMultiShellTensors 
     TwoBodyOperator::expand_old()
   {
     if (on_the_fly == false)
-      TBME->read();
+    {
+      if (TBME_scalar) TBME_scalar->read();
+      else
+      {
+        assert(TBME_general);
+        TBME_general->read();
+        JJ_ = static_cast<HO::qn_t>(TBME_general->JJ());
+        TT_ = static_cast<HO::qn_t>(TBME_general->TT());
+        parity_ = static_cast<HO::qn_t>(TBME_general->parity());
+      }
+    }
 
     U3xU4::TwoBodyMultiShellTensors tensors;
 
@@ -963,7 +1006,14 @@ namespace JT
       }
     }
 
+    // Finalize
     decompdb.finalize();
+    if (on_the_fly == false)
+    {
+      if (TBME_scalar) TBME_scalar->clear();
+      else TBME_general->clear();
+    }
+
 
     return tensors;
   }
@@ -971,13 +1021,22 @@ namespace JT
   U3xU4::MultiShellTensors_phys
     TwoBodyOperator::expand_new()
   {
-    if (valenceShell_ > 0)
-      throw std::runtime_error("Set valenceShell to 0 for reusability");
+    if (valenceShell_ > 0) throw std::runtime_error("Set valenceShell to 0 for reusability");
 
-    if (Nmax_ != maxShell_)
-      throw std::runtime_error("Set Nmax and maxShell equal");
+    // if (Nmax_ != maxShell_) throw std::runtime_error("Set Nmax and maxShell equal");
 
-    if (on_the_fly == false) TBME->read();
+    if (on_the_fly == false)
+    {
+      if (TBME_scalar) TBME_scalar->read();
+      else
+      {
+        assert(TBME_general);
+        TBME_general->read();
+        JJ_ = static_cast<HO::qn_t>(TBME_general->JJ());
+        TT_ = static_cast<HO::qn_t>(TBME_general->TT());
+        parity_ = static_cast<HO::qn_t>(TBME_general->parity());
+      }
+    }
 
 #ifdef RESTRICT_WITH_NMAX
     auto [all_na_nb_nc_nd, all_inverse, all_phase] =
@@ -1024,7 +1083,7 @@ namespace JT
         // selection rules
         if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
-        if (tensor.shift_quanta() < 0) continue;
+        if (tensor.shift_quanta() < 0 and symmetric_) continue;
 
         // setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
 
@@ -1073,7 +1132,11 @@ namespace JT
     // (III) Finalize
 
     // (a) release the TBME hash table
-    if (on_the_fly == false) TBME->clear();
+    if (on_the_fly == false)
+    {
+      if (TBME_scalar) TBME_scalar->clear();
+      else TBME_general->clear();
+    }
 
     // (b) release shell-combo arrays
     { decltype(all_na_nb_nc_nd)().swap(all_na_nb_nc_nd); }
@@ -1085,6 +1148,14 @@ namespace JT
 
     // (d) flush newly computed decompositions to disk
     decompdb.finalize();
+
+    // diagnostic: getStrengths me-phase vs accum-phase + getME counts
+    // (no-op unless TIME_GETSTRENGTHS is defined)
+    U3xU4::report_getStrengths_timing();
+    // diagnostic: m-scheme cache hit/miss (no-op unless COUNT_MSCHEME_CACHE)
+    HO::report_mscheme_cache_stats();
+    // diagnostic: intra-tensor quad reuse (no-op unless MEASURE_MSCHEME_REUSE)
+    HO::report_mscheme_reuse();
 
     // (e) compact tensors_rank: keep only entries owned by this rank
     U3xU4::MultiShellTensors_phys tensors_final;
@@ -1101,17 +1172,26 @@ namespace JT
   U3xU4::MultiShellTensors_phys 
     TwoBodyOperator::expand_new_MPI(const std::string& filename)
   {
-    if (valenceShell_ > 0)
-      throw std::runtime_error("Set valenceShell to 0 for reusability");
+    if (valenceShell_ > 0) throw std::runtime_error("Set valenceShell to 0 for reusability");
 
-    if (Nmax_ != maxShell_)
-      throw std::runtime_error("Set Nmax and maxShell equal");
+    // if (Nmax_ != maxShell_) throw std::runtime_error("Set Nmax and maxShell equal");
 
     int mpi_rank, mpi_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    if (on_the_fly == false) TBME->read();
+    if (on_the_fly == false)
+    {
+      if (TBME_scalar) TBME_scalar->read();
+      else
+      {
+        assert(TBME_general);
+        TBME_general->read();
+        JJ_ = static_cast<HO::qn_t>(TBME_general->JJ());
+        TT_ = static_cast<HO::qn_t>(TBME_general->TT());
+        parity_ = static_cast<HO::qn_t>(TBME_general->parity());
+      }
+    }
 
 #ifdef RESTRICT_WITH_NMAX
     auto [all_na_nb_nc_nd, all_inverse, all_phase] =
@@ -1159,7 +1239,7 @@ namespace JT
         // selection rules
         if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
-        if (tensor.shift_quanta() < 0) continue;
+        if (tensor.shift_quanta() < 0 and symmetric_) continue;
 
         // setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
 
@@ -1215,7 +1295,11 @@ namespace JT
     // (III) Free everything no longer needed
 
     // (a) release the TBME hash table
-    if (on_the_fly == false) TBME->clear();
+    if (on_the_fly == false)
+    {
+      if (TBME_scalar) TBME_scalar->clear();
+      else TBME_general->clear();
+    }
 
     // (b) release shell-combo arrays
     { decltype(all_na_nb_nc_nd)().swap(all_na_nb_nc_nd); }
@@ -1350,7 +1434,17 @@ namespace JT
                               U3xU4::MultiShellTensors_phys& tensors)
   {
     if (on_the_fly == false)
-      TBME->read();
+    {
+      if (TBME_scalar) TBME_scalar->read();
+      else
+      {
+        assert(TBME_general);
+        TBME_general->read();
+        JJ_ = static_cast<HO::qn_t>(TBME_general->JJ());
+        TT_ = static_cast<HO::qn_t>(TBME_general->TT());
+        parity_ = static_cast<HO::qn_t>(TBME_general->parity());
+      }
+    }
 
     // Shared cache of single-shell tensor decompositions (thread-safe),
     // created once for the whole run and finalized after the loop.
@@ -1405,7 +1499,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         // selection rules
         if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
-        if (tensor.shift_quanta() < 0) continue;
+        if (tensor.shift_quanta() < 0 and symmetric_) continue;
 
         setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
 
@@ -1428,22 +1522,38 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
     // flush newly computed decompositions to disk
     decompdb.finalize();
+
+    // clear hash tables
+    if (on_the_fly == false)
+    {
+      if (TBME_scalar) TBME_scalar->clear();
+      else TBME_general->clear();
+    }
   }
 
   void TwoBodyOperator::expand_exist_MPI(const std::string& filename,
                                       int Nmax_old, int maxShell_old)
   {
-    if (valenceShell_ > 0)
-      throw std::runtime_error("Set valenceShell to 0 for reusability");
+    if (valenceShell_ > 0) throw std::runtime_error("Set valenceShell to 0 for reusability");
 
-    if (Nmax_ != maxShell_)
-      throw std::runtime_error("Set Nmax and maxShell equal");
+    // if (Nmax_ != maxShell_) throw std::runtime_error("Set Nmax and maxShell equal");
 
     int mpi_rank, mpi_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-    if (on_the_fly == false) TBME->read();
+    if (on_the_fly == false)
+    {
+      if (TBME_scalar) TBME_scalar->read();
+      else
+      {
+        assert(TBME_general);
+        TBME_general->read();
+        JJ_ = static_cast<HO::qn_t>(TBME_general->JJ());
+        TT_ = static_cast<HO::qn_t>(TBME_general->TT());
+        parity_ = static_cast<HO::qn_t>(TBME_general->parity());
+      }
+    }
 
 #ifdef RESTRICT_WITH_NMAX
     auto [all_na_nb_nc_nd, all_inverse, all_phase] =
@@ -1492,7 +1602,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         // selection rules
         if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
-        if (tensor.shift_quanta() < 0) continue;
+        if (tensor.shift_quanta() < 0 and symmetric_) continue;
 
         // setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
 
@@ -1548,7 +1658,11 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     // (III) Free everything no longer needed
 
     // (a) release the TBME hash table
-    if (on_the_fly == false) TBME->clear();
+    if (on_the_fly == false)
+    {
+      if (TBME_scalar) TBME_scalar->clear();
+      else TBME_general->clear();
+    }
 
     // (b) release shell-combo arrays
     { decltype(all_na_nb_nc_nd)().swap(all_na_nb_nc_nd); }
@@ -1747,11 +1861,9 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     std::cout << "Start writing " << name_ << " to binary file" << std::endl;
 #endif
 
-    if (valenceShell_ > 0)
-      throw std::runtime_error("Set valenceShell to 0 for reusability");
+    if (valenceShell_ > 0) throw std::runtime_error("Set valenceShell to 0 for reusability");
 
-    if (Nmax_ != maxShell_)
-      throw std::runtime_error("Set Nmax and maxShell equal");
+    // if (Nmax_ != maxShell_) hrow std::runtime_error("Set Nmax and maxShell equal");
 
     std::ofstream s(filename, std::ios::binary);
     if (!s)

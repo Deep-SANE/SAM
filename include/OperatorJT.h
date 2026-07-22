@@ -22,22 +22,28 @@ namespace JT
 
     std::string name_;
 
-    const std::unordered_set<std::string> one_body = {"E2", "M1",
-        "FermiPlus", "FermiMinus", "GamowTellerPlus", "GamowTellerMinus",
-        "Radius", "Radius_p", "Radius_n"};
+    const std::unordered_set<std::string> one_body = {
+      "E2", "M1",
+      "FermiPlus", "FermiMinus", "GamowTellerPlus", "GamowTellerMinus",
+      "Radius", "Radius_p", "Radius_n"
+    };
 
     const std::unordered_set<std::string> two_body = {
-        "N2LO_EMN500_bare",   "N3LO_EMN500_bare",   "N4LO_EMN500_bare",
-        "N3LO_EM500_bare",    "N2LO_opt_bare",      "N2LO_sat_bare",
-        "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
-        "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
-        "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
-        "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
-        "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
-        "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"};
+      "N2LO_EMN500_bare",   "N3LO_EMN500_bare",   "N4LO_EMN500_bare",
+      "N3LO_EM500_bare",    "N2LO_opt_bare",      "N2LO_sat_bare",
+      "N2LO_EMN500_srg1.0", "N3LO_EMN500_srg1.0", "N4LO_EMN500_srg1.0",
+      "N3LO_EM500_srg1.0",  "N2LO_opt_srg1.0",    "N2LO_sat_srg1.0",
+      "N2LO_EMN500_srg2.0", "N3LO_EMN500_srg2.0", "N4LO_EMN500_srg2.0",
+      "N3LO_EM500_srg2.0",  "N2LO_opt_srg2.0",    "N2LO_sat_srg2.0",
+      "N2LO_EMN500_srg4.0", "N3LO_EMN500_srg4.0", "N4LO_EMN500_srg4.0",
+      "N3LO_EM500_srg4.0",  "N2LO_opt_srg4.0",    "N2LO_sat_srg4.0"
+    };
 
     const std::unordered_set<std::string> one_plus_two_body = {
-        "L.L", "L.S", "CoMNumberOp", "Kinetic", "Rrel"};
+      "L.L", "L.S", "CoMNumberOp", "Kinetic", "Rrel",
+      "GamowTellerMinus_2B_N3LO_EM500_bare",
+      "GamowTellerPlus_2B_N3LO_EM500_bare"
+    };
 
     // Note: if you want a Hamiltonian, just define
     // std::string name = "Hamiltonian with " + potential_name;
