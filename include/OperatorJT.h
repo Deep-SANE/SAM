@@ -85,26 +85,42 @@ namespace JT
     matrix_Eigen(const U3xU4::ManyNucleonBasis& basis);
 
     // rectangular
+    qcx_utils::CSRMatrix
+    matrix_CSR(const U3xU4::ManyNucleonBasis& bras,
+               const U3xU4::ManyNucleonBasis& kets);
+    
     Eigen::SparseMatrix<double>
-    matrix_Eigen(const U3xU4::ManyNucleonBasis& bras, 
+    matrix_Eigen(const U3xU4::ManyNucleonBasis& bras,
                  const U3xU4::ManyNucleonBasis& kets);
 
-    // Expectation value
+    // Expectation value.  The plain names default to the CSR path (symmetric
+    // block-distributed CSR for one basis, rectangular for two); the _Eigen
+    // variants are the retiring dense-Eigen path.
     using Col_t = Eigen::MatrixXd::ColXpr;
     // within a single basis; users can pass multiple eigenstate pairs
-    std::vector<double> expectationValue(const U3xU4::ManyNucleonBasis& basis, 
+    std::vector<double> expectationValue(const U3xU4::ManyNucleonBasis& basis,
+                            const std::vector<std::pair<Col_t, Col_t>>& states);
+    std::vector<double> expectationValue_Eigen(const U3xU4::ManyNucleonBasis& basis,
                             const std::vector<std::pair<Col_t, Col_t>>& states);
     // between two bases; users can pass multiple eigenstate pairs
     std::vector<double> expectationValue(
       const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,
       const std::vector<std::pair<Col_t, Col_t>>& states);
+    std::vector<double> expectationValue_Eigen(
+      const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,
+      const std::vector<std::pair<Col_t, Col_t>>& states);
 
-    // Transition strength
+    // Transition strength (same CSR-default / _Eigen-retiring convention)
     // within a single basis; users can pass multiple eigenstate pairs
-    std::vector<double> transitionStrength(const U3xU4::ManyNucleonBasis& basis, 
+    std::vector<double> transitionStrength(const U3xU4::ManyNucleonBasis& basis,
+      const std::vector<std::pair<Col_t, Col_t>>& states);
+    std::vector<double> transitionStrength_Eigen(const U3xU4::ManyNucleonBasis& basis,
       const std::vector<std::pair<Col_t, Col_t>>& states);
     // between two bases; users can pass multiple eigenstate pairs
     std::vector<double> transitionStrength(
+      const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,
+      const std::vector<std::pair<Col_t, Col_t>>& states);
+    std::vector<double> transitionStrength_Eigen(
       const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,
       const std::vector<std::pair<Col_t, Col_t>>& states);
 

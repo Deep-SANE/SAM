@@ -597,7 +597,15 @@ namespace U3xU4
     // Rectangular matrix
     template <typename TensorType>
     friend Eigen::SparseMatrix<double> MatrixElements_Eigen(
-                  const std::vector<TensorType>& tensors, 
+                  const std::vector<TensorType>& tensors,
+                  const U3xU4::ManyNucleonBasis& bras,
+                  const U3xU4::ManyNucleonBasis& kets,
+                  const U3xU4::Table_gelfand& gelfand_labels);
+
+    // Rectangular matrix (CSR)
+    template <typename TensorType>
+    friend qcx_utils::CSRMatrix MatrixElements_CSR(
+                  const std::vector<TensorType>& tensors,
                   const U3xU4::ManyNucleonBasis& bras,
                   const U3xU4::ManyNucleonBasis& kets,
                   const U3xU4::Table_gelfand& gelfand_labels);

@@ -15,14 +15,14 @@ int main(int argc, char* argv[])
   sam::initialize(&argc, &argv);
 
   // Specify Hamiltonian
-  std::string Hamil_name = "HO_Be7_e10_hw16_E342";
+  std::string Hamil_name = "HO_Li7_e10_hw16_E342";
 
   // Specify operator name
   // Example 1: E2
-  // std::string name = "E2";
+  std::string name = "E2";
 
   // Example 2: M1
-  std::string name = "M1";
+  // std::string name = "M1";
 
   // Example 3: instrinsic radius squared
   // std::string name = "Radius";
@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 
   ////////////// WITHIN THE SAME BASIS //////////////
   
-  int Z = 4, N = 3, Nmax = 2, JJ = 1, TT = 1, hw = 16;
+  int Z = 3, N = 4, Nmax = 8, JJ = 3, TT = 1, hw = 16;
 
   u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
   u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
