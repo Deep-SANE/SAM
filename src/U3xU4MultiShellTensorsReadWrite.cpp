@@ -232,7 +232,7 @@ namespace U3xU4
           << " SS:" << static_cast<int>(SS)
           << " TT:" << static_cast<int>(TT)
           << " strengths:";
-        for (const auto& c : strengths) s << c << " ";
+        for (const auto& c : *strengths) s << c << " ";
       }
     }
     s << "\n MMT:" << x.MMT() << " JJ:" << x.JJ() << " MMJ:" << x.MMJ();

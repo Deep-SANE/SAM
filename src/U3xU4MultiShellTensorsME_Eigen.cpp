@@ -498,7 +498,7 @@ namespace U3xU4
                                           for (size_t z = 0; z < zmax; z++)
                                           {
                                             const double sc = cgcU2 *
-                                                strengths[(tensor_a * kmax + k) * zmax + z];
+                                                (*strengths)[(tensor_a * kmax + k) * zmax + z];
 
                                             // multiplicities of the Wigner-Eckart
                                             // theorem; hoist cgcU3 (invariant to
@@ -1062,7 +1062,7 @@ namespace U3xU4
                                           for (size_t z = 0; z < zmax; z++)
                                           {
                                             const double sc = cgcU2 *
-                                                strengths[(tensor_a * kmax + k) * zmax + z];
+                                                (*strengths)[(tensor_a * kmax + k) * zmax + z];
 
                                             // multiplicities of the Wigner-Eckart
                                             // theorem; hoist cgcU3 (invariant to

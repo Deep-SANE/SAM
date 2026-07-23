@@ -34,6 +34,7 @@
 #if defined(__APPLE__)
 #include <mach/mach.h>
 #endif
+#include <sys/resource.h>
 
 inline double rss_gb()
 {
@@ -53,24 +54,43 @@ inline double rss_gb()
   return 0.0;
 }
 
+// Peak (high-water) RSS since process start. The instantaneous rss_gb() can
+// both miss transient peaks inside a phase and over-report freed-but-cached
+// allocator pages; this is the number that decides OOM.
+inline double rss_peak_gb()
+{
+  struct rusage ru;
+  if (getrusage(RUSAGE_SELF, &ru) == 0)
+#if defined(__APPLE__)
+    return ru.ru_maxrss / (1024.0 * 1024.0 * 1024.0);  // bytes on macOS
+#else
+    return ru.ru_maxrss / (1024.0 * 1024.0);           // kilobytes on Linux
+#endif
+  return 0.0;
+}
+
 #ifdef USE_MPI
 inline void print_rss(const std::string& label, int mpi_rank, int mpi_size)
 {
   double rss = rss_gb();
-  double rss_min, rss_max, rss_sum;
+  double peak = rss_peak_gb();
+  double rss_min, rss_max, rss_sum, peak_max;
   MPI_Reduce(&rss, &rss_min, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
   MPI_Reduce(&rss, &rss_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
   MPI_Reduce(&rss, &rss_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&peak, &peak_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
   if (mpi_rank == 0)
     std::cerr << "[MEM] " << label
               << "  min=" << rss_min
               << "  avg=" << rss_sum / mpi_size
-              << "  max=" << rss_max << " GB" << std::endl;
+              << "  max=" << rss_max
+              << "  peak=" << peak_max << " GB" << std::endl;
 }
 #else
 inline void print_rss(const std::string& label, int = 0, int = 1)
 {
-  std::cerr << "[MEM] " << label << "  rss=" << rss_gb() << " GB" << std::endl;
+  std::cerr << "[MEM] " << label << "  rss=" << rss_gb()
+            << "  peak=" << rss_peak_gb() << " GB" << std::endl;
 }
 #endif
 

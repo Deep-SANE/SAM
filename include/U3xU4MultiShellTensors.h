@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <tuple>
 #include <utility>
@@ -484,15 +485,38 @@ namespace U3xU4
 
     HO::qn_t MMT_, JJ_, MMJ_;
 
+    // The strengths are held behind a shared_ptr so unify_tensor -- which only
+    // rebuilds the (small) Omega chains and reuses each surviving branch's
+    // strengths verbatim -- copies a refcount bump instead of the whole double
+    // vector, per (pair, tensor) call in the hot assembly loop. The strengths
+    // are immutable after operator expansion; the only in-place write is the
+    // accumulation in addOmegasLLSSTTstrengths(), which runs during expansion
+    // when each pointer is uniquely owned (expand() reserve()s and never copies
+    // a ShareGammas tensor), so mutation there is safe.
     using labels_type = std::tuple<uint8_t,              // kappamax
                                    HO::qn_t,             // LL
                                    uint8_t,              // zetamax
                                    HO::qn_t,             // SS
                                    HO::qn_t,             // TT
-                                   std::vector<double>>; // strengths
+                                   std::shared_ptr<std::vector<double>>>; // strengths
 
     std::vector<std::pair<U3xU4::OmegaElements,
                           std::vector<labels_type>>> Omegas_LLSSTTstrengths_;
+
+    // Wrap a MultiShellTensor_phys strengths list (owned std::vector<double>)
+    // into this class's shared_ptr-backed labels, one make_shared per entry.
+    // Runs at the phys -> ShareGammas boundary during expansion only.
+    static std::vector<labels_type> wrap_strengths(
+      const std::vector<std::tuple<uint8_t, HO::qn_t, uint8_t,
+                        HO::qn_t, HO::qn_t, std::vector<double>>>& src)
+    {
+      std::vector<labels_type> out;
+      out.reserve(src.size());
+      for (const auto& [k, LL, z, SS, TT, strengths] : src)
+        out.push_back({k, LL, z, SS, TT,
+                       std::make_shared<std::vector<double>>(strengths)});
+      return out;
+    }
 
   public:
     // Constructor
@@ -518,7 +542,7 @@ namespace U3xU4
         MMT_(t.MMT()),
         JJ_(t.JJ()),
         MMJ_(t.MMJ()),
-        Omegas_LLSSTTstrengths_({{t.Omegas(), t.LLSSTTstrengths()}})
+        Omegas_LLSSTTstrengths_({{t.Omegas(), wrap_strengths(t.LLSSTTstrengths())}})
     { }
 
     // Getters
@@ -558,17 +582,21 @@ namespace U3xU4
             {
               if (k == k_ && LL == LL_ && z == z_ && SS == SS_ && TT == TT_)
               {
-                assert(strengths.size() == strengths_.size());
+                assert(strengths.size() == strengths_->size());
 
+                // in-place accumulation is safe: during expansion each
+                // strengths_ pointer is uniquely owned (see labels_type note)
                 for (size_t i = 0; i < strengths.size(); i++)
-                  strengths_[i] += strengths[i];
+                  (*strengths_)[i] += strengths[i];
 
                 found_LST = true;
                 break;
               }
             }
             if (!found_LST)
-              LLSSTTstrengths_.push_back({k, LL, z, SS, TT, strengths});
+              LLSSTTstrengths_.push_back(
+                {k, LL, z, SS, TT,
+                 std::make_shared<std::vector<double>>(strengths)});
           }
           found_Omegas = true;
           break;
@@ -576,7 +604,8 @@ namespace U3xU4
       }
       if (!found_Omegas)
       {
-        Omegas_LLSSTTstrengths_.push_back({t.Omegas(), t.LLSSTTstrengths()});
+        Omegas_LLSSTTstrengths_.push_back(
+          {t.Omegas(), wrap_strengths(t.LLSSTTstrengths())});
       }
     }
 

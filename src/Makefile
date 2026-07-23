@@ -1,6 +1,7 @@
 include $(QCX_CONFIG_DIR)/make.d/pretty.mk
 
 OBJS = $(patsubst %.cpp, %.o, $(wildcard *.cpp))
+DEPS = $(OBJS:.o=.d)
 
 LIB_DIR = $(SAM_DIR)/lib
 
@@ -14,10 +15,14 @@ $(LIB): $(OBJS)
 	$(call qcx_print,AR,$@)
 	$(Q)$(AR) rcs $@ $^
 
+# -MMD -MP emits a per-object .d file listing the (non-system) headers it
+# includes, so editing a header recompiles exactly the objects that need it.
 %.o: %.cpp
 	$(call qcx_print,CXX,$@)
-	$(Q)$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(Q)$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+
+-include $(DEPS)
 
 .PHONY: clean
 clean:
-	rm -f *.o $(LIB)
+	rm -f *.o *.d $(LIB)

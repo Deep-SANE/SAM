@@ -2,6 +2,7 @@
 
 *.a
 *.aux
+*.d
 *.bbl
 *.blg
 *.docx

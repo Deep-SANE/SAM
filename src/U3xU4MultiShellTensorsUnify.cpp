@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -229,12 +230,15 @@ namespace U3xU4
     U3xU4::SingleShellTensors oGamma;
     oGamma.reserve(b_gamma.size());
 
+    // strengths are shared_ptr-backed (see MultiShellTensor_ShareGammas_phys):
+    // this builds each surviving branch by MOVING/copying the source branch's
+    // strengths pointer -- a refcount bump, not a double-vector copy.
     using labels_type = std::tuple<uint8_t,              // kappamax
                                    HO::qn_t,             // LL
                                    uint8_t,              // zetamax
                                    HO::qn_t,             // SS
                                    HO::qn_t,             // TT
-                                   std::vector<double>>; // strengths
+                                   std::shared_ptr<std::vector<double>>>; // strengths
 
     std::vector<std::pair<U3xU4::OmegaElements,
                           std::vector<labels_type>>> oOmega_LLSSTTstrengths;

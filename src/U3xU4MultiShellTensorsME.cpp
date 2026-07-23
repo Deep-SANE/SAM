@@ -404,6 +404,31 @@ namespace U3xU4
       }
     }
 
+    // --- Row-owner groups for direct-write assembly ---------------------------
+    // Every kept pair has bra_id >= ket_id, and add_symmetric routes each entry
+    // to row max(i, j), so all rows a pair writes lie in bra_id's row range.
+    // Each bra_id has exactly one terminal irrep, and the work list is sorted
+    // by (term_bra, term_ket): pairs with different term_bra therefore write
+    // DISJOINT row sets, and the term_bra groups are contiguous ci ranges.
+    // One thread per group can write straight into the global matrix --
+    // race-free, with no thread-local matrices and no serial merge phase.
+    // Groups are visited heaviest-first (by pair count) so dynamic scheduling
+    // balances the tail.
+    std::vector<size_t> group_start;
+    for (size_t ci = 0; ci < connected_irreps.size(); ci++)
+      if (ci == 0 ||
+          term[std::get<0>(connected_irreps[ci])] !=
+          term[std::get<0>(connected_irreps[ci - 1])])
+        group_start.push_back(ci);
+    group_start.push_back(connected_irreps.size());
+
+    const size_t n_groups = group_start.empty() ? 0 : group_start.size() - 1;
+    std::vector<size_t> group_order(n_groups);
+    for (size_t g = 0; g < n_groups; g++) group_order[g] = g;
+    std::sort(group_order.begin(), group_order.end(), [&](size_t a, size_t b)
+    { return (group_start[a + 1] - group_start[a]) >
+             (group_start[b + 1] - group_start[b]); });
+
 #ifdef DIAGNOSE_MEMORY
     print_rss("after prep phase", mpi_rank, mpi_size);
 #endif
@@ -430,10 +455,9 @@ namespace U3xU4
 
     qcx_utils::CSRMatrix global(dim);
 #ifdef EXPLOIT_SYMMETRIC
-    // Only the lower triangle is stored (add_symmetric); mark global so the
-    // matrix-vector product reconstructs the transpose. Thread-local matrices
-    // set this via add_symmetric, but global is filled by the merge, so set it
-    // here explicitly for the OpenMP path.
+    // Only the lower triangle is stored; mark global BEFORE the parallel
+    // region (the compute loop uses add() with explicit max/min routing so no
+    // thread ever writes this flag concurrently).
     global.symmetric_ = true;
 #endif
 
@@ -452,19 +476,18 @@ namespace U3xU4
 #pragma omp parallel
 {
     sam::initialize_thread();
-
-    qcx_utils::CSRMatrix local(dim);
 #endif
 
-    // connected_irreps is sorted into terminal-irrep blocks. A moderate dynamic
-    // chunk balances the uneven per-block cost across threads while keeping the
-    // chunk large enough that consecutive iterations stay in the same block, so
-    // the block-local coupling-coefficient tables still reuse (see g_asm_block).
-    // Splitting a block across threads is cheap: it only recomputes the rare
-    // once-per-block coefficient, not the per-label-pair lookups.
-#pragma omp for schedule(dynamic, 1024)
-    for (size_t ci = 0; ci < connected_irreps.size(); ci++)
-    // for (auto [bra_id, ket_id, connected_tensors_id] : connected_irreps)
+    // Dynamic loop over term_bra owner groups (heaviest first): each group
+    // owns a disjoint set of rows, so threads write straight into `global`
+    // with no thread-local matrices and no merge. Within a group the pairs
+    // keep their (term_bra, term_ket) block order, so the block-local
+    // coupling-coefficient tables behave exactly as before (see g_asm_block).
+#pragma omp for schedule(dynamic, 1)
+    for (size_t gi = 0; gi < n_groups; gi++)
+    {
+    const size_t grp = group_order[gi];
+    for (size_t ci = group_start[grp]; ci < group_start[grp + 1]; ci++)
     {
       auto bra_id = std::get<0>(connected_irreps[ci]);
       auto ket_id = std::get<1>(connected_irreps[ci]);
@@ -656,7 +679,7 @@ namespace U3xU4
                                           for (size_t z = 0; z < zmax; z++)
                                           {
                                             const double sc = cgcU2 *
-                                                strengths[(tensor_a * kmax + k) * zmax + z];
+                                                (*strengths)[(tensor_a * kmax + k) * zmax + z];
 
                                             // multiplicities of the Wigner-Eckart
                                             // theorem; hoist cgcU3 (invariant to
@@ -689,13 +712,13 @@ namespace U3xU4
                   }
                 }
 
-#ifdef USE_OPENMP
-                auto& local_ = local;
-#else
-                auto& local_ = global;
-#endif
-
                 // std::cout << "Start to fill sparse matrix" << std::endl;
+                // Direct write into global: this thread owns every row of the
+                // current term_bra group (see the owner-group construction),
+                // so no other thread can touch these rows. The lower-triangle
+                // routing (row = max, col = min) is done here explicitly with
+                // add() -- add_symmetric() would redundantly store the
+                // symmetric_ flag from every thread.
                 for (size_t i = 0; i < R; i++)
                 {
                   Eigen::Index i_ = i + bra_offset;
@@ -708,9 +731,10 @@ namespace U3xU4
 
                     double v = MEs[i * C + j];
 #ifdef EXPLOIT_SYMMETRIC
-                    if (std::fabs(v) > 1e-8) local_.add_symmetric(i_, j_, v);
+                    if (std::fabs(v) > 1e-8)
+                      global.add(std::max(i_, j_), std::min(i_, j_), v);
 #else
-                    if (std::fabs(v) > 1e-8) local_.add(i_, j_, v);
+                    if (std::fabs(v) > 1e-8) global.add(i_, j_, v);
 #endif
                   }
                 }
@@ -721,56 +745,9 @@ namespace U3xU4
         }
       }
     }
+    } // group loop
 
 #ifdef USE_OPENMP
-    // Merge to global from local thread
-#pragma omp critical
-    {
-#ifdef USE_MPI
-      std::cerr << "Merge thread " << omp_get_thread_num()
-                << " on rank " << mpi_rank << std::endl;
-#else
-      std::cerr << "Merge thread " << omp_get_thread_num() << std::endl;
-#endif
-
-      for (Eigen::Index i = 0; i < dim; i++)
-      {
-/*
-        auto& l_row = local.rows[i];
-        if (l_row.empty()) continue;
-
-        for (auto& elem : l_row) assert(elem.first >= 0 && elem.first < dim);
-
-        auto& g_row = global.rows[i];
-
-        g_row.insert(g_row.end(),
-                     std::make_move_iterator(l_row.begin()),
-                     std::make_move_iterator(l_row.end()));
-
-        l_row.clear();
-        l_row.shrink_to_fit();
-*/
-        auto& l_row = local.rows[i];
-        if (l_row.cols.empty()) continue;
-
-        for (auto& col : l_row.cols) assert(col < (qcx_utils::CSRMatrix::ColIndex)dim);
-
-        auto& g_row = global.rows[i];
-
-        g_row.cols.insert(g_row.cols.end(),
-                          std::make_move_iterator(l_row.cols.begin()),
-                          std::make_move_iterator(l_row.cols.end()));
-        g_row.vals.insert(g_row.vals.end(),
-                          std::make_move_iterator(l_row.vals.begin()),
-                          std::make_move_iterator(l_row.vals.end()));
-
-        l_row.cols.clear();
-        l_row.cols.shrink_to_fit();
-        l_row.vals.clear();
-        l_row.vals.shrink_to_fit();
-      }
-    }
-
     sam::finalize_thread();
 } // pragma omp parallel
 #endif
@@ -778,7 +755,7 @@ namespace U3xU4
 #ifdef TIME_ASSEMBLY
     {
       auto _now = std::chrono::high_resolution_clock::now();
-      std::cerr << "[assembly] compute+merge: "
+      std::cerr << "[assembly] compute (direct-write, no merge): "
                 << std::chrono::duration<double>(_now - _asm_compute0).count()
                 << " s" << std::endl;
       double _u = 0, _r = 0, _w = 0;
@@ -1131,6 +1108,28 @@ namespace U3xU4
         reorder_into_blocks(connected_irreps, connected_tensors,
                             bras_irreps, kets_irreps, tensors);
 
+    // --- Row-owner groups for direct-write assembly ---------------------------
+    // Rectangular case: every entry's row i_ lies in bra_id's row range
+    // (add(i_, j_, ...) with i_ from the bra basis), and each bra_id has one
+    // terminal irrep. The work list is sorted by (term_bra, term_ket), so
+    // term_bra groups are contiguous ci ranges writing DISJOINT row sets:
+    // threads write straight into the global matrix -- no thread-local
+    // matrices, no serial merge. Heaviest groups first for load balance.
+    std::vector<size_t> group_start;
+    for (size_t ci = 0; ci < connected_irreps.size(); ci++)
+      if (ci == 0 ||
+          term_bra[std::get<0>(connected_irreps[ci])] !=
+          term_bra[std::get<0>(connected_irreps[ci - 1])])
+        group_start.push_back(ci);
+    group_start.push_back(connected_irreps.size());
+
+    const size_t n_groups = group_start.empty() ? 0 : group_start.size() - 1;
+    std::vector<size_t> group_order(n_groups);
+    for (size_t g = 0; g < n_groups; g++) group_order[g] = g;
+    std::sort(group_order.begin(), group_order.end(), [&](size_t a, size_t b)
+    { return (group_start[a + 1] - group_start[a]) >
+             (group_start[b + 1] - group_start[b]); });
+
     auto end = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
 #ifdef USE_MPI
@@ -1154,12 +1153,16 @@ namespace U3xU4
 #pragma omp parallel
 {
     sam::initialize_thread();
-
-    qcx_utils::CSRMatrix local(bras_dim, kets_dim);
 #endif
 
-#pragma omp for schedule(dynamic, 1024)
-    for (size_t ci = 0; ci < connected_irreps.size(); ci++)
+    // Dynamic loop over term_bra owner groups (heaviest first): each group
+    // owns a disjoint set of rows, so threads write straight into `global`
+    // (see the owner-group construction above).
+#pragma omp for schedule(dynamic, 1)
+    for (size_t gi = 0; gi < n_groups; gi++)
+    {
+    const size_t grp = group_order[gi];
+    for (size_t ci = group_start[grp]; ci < group_start[grp + 1]; ci++)
     {
       auto bra_id = std::get<0>(connected_irreps[ci]);
       auto ket_id = std::get<1>(connected_irreps[ci]);
@@ -1296,7 +1299,7 @@ namespace U3xU4
                                   for (size_t z = 0; z < zmax; z++)
                                   {
                                     const double sc = cgcU2 *
-                                        strengths[(tensor_a * kmax + k) * zmax + z];
+                                        (*strengths)[(tensor_a * kmax + k) * zmax + z];
 
                                     for (size_t rho = 0; rho < rhomax; rho++)
                                     {
@@ -1325,12 +1328,8 @@ namespace U3xU4
           }
         }
 
-#ifdef USE_OPENMP
-        auto& local_ = local;
-#else
-        auto& local_ = global;
-#endif
-
+        // Direct write into global: this thread owns every row of the current
+        // term_bra group (disjoint from all other groups).
         for (size_t i = 0; i < R; i++)
         {
           size_t i_ = i + bra_offset;
@@ -1338,39 +1337,14 @@ namespace U3xU4
           {
             size_t j_ = j + ket_offset;
             double v = MEs[i * C + j];
-            if (std::fabs(v) > 1e-10) local_.add(i_, j_, v);
+            if (std::fabs(v) > 1e-10) global.add(i_, j_, v);
           }
         }
       }
     }
+    } // group loop
 
 #ifdef USE_OPENMP
-    // Merge local into global
-#pragma omp critical
-    {
-      for (qcx_utils::CSRMatrix::Index i = 0; i < bras_dim; i++)
-      {
-        auto& l_row = local.rows[i];
-        if (l_row.cols.empty()) continue;
-
-        for (auto& col : l_row.cols)
-          assert(col < (qcx_utils::CSRMatrix::ColIndex)kets_dim);
-
-        auto& g_row = global.rows[i];
-        g_row.cols.insert(g_row.cols.end(),
-                          std::make_move_iterator(l_row.cols.begin()),
-                          std::make_move_iterator(l_row.cols.end()));
-        g_row.vals.insert(g_row.vals.end(),
-                          std::make_move_iterator(l_row.vals.begin()),
-                          std::make_move_iterator(l_row.vals.end()));
-
-        l_row.cols.clear();
-        l_row.cols.shrink_to_fit();
-        l_row.vals.clear();
-        l_row.vals.shrink_to_fit();
-      }
-    }
-
     sam::finalize_thread();
 } // pragma omp parallel
 #endif
