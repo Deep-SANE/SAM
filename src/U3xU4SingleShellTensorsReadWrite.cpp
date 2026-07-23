@@ -6,66 +6,6 @@
 
 namespace U3xU4
 {
-  std::ostream& operator<<(std::ostream& s, const ad_gelfand& x)
-  {
-    return s << "ad(" << x.sps3_[x.c_] << " ; " << x.sps4_[x.r_] << ")";
-  }
-
-  std::ostream& operator<<(std::ostream& s, const ad_phys& x)
-  {
-    auto [n, ll, jj, mmj, mmt] = x.getLabels();
-    return s << "ad(" << static_cast<int>(n) << "," 
-             << static_cast<int>(ll) << "," 
-             << static_cast<int>(jj) << "," 
-             << static_cast<int>(mmj) << "," 
-             << static_cast<int>(mmt) << ")";
-  }
-
-  std::ostream& operator<<(std::ostream& s, const at_gelfand& x)
-  {
-    if (x.tensor)
-      return s << "at(" << x.sps3_conj_[x.c_] 
-               << " ; " << x.sps4_conj_[x.r_] << ")";
-    else
-      return s << "a(" << x.sps3_[x.c_] << " ; " << x.sps4_[x.r_] << ")";
-  }
-
-  std::ostream& operator<<(std::ostream& s, const at_phys& x)
-  {
-    auto [n, ll, jj, mmj, mmt] = x.getLabels();
-    if (x.tensor)
-      return s << "at(" << static_cast<int>(n) << "," 
-               << static_cast<int>(ll) << "," 
-               << static_cast<int>(jj) << "," 
-               << static_cast<int>(mmj) << ","
-               << static_cast<int>(mmt) << ")";
-    else
-      return s << "a(" << static_cast<int>(n) << ","
-               << static_cast<int>(ll) << ","
-               << static_cast<int>(jj) << ","
-               << static_cast<int>(mmj) << ","
-               << static_cast<int>(mmt) << ")";
-  }
-
-  std::ostream& operator<<(std::ostream& s, const Expansion& e)
-  {
-    // One line per term: the coefficients, then the operators (ad_phys/at_phys
-    // are materialized here, purely for a human-readable dump).
-    for (std::size_t r = 0; r < e.rows(); ++r)
-    {
-      const double* c = e.coeff_row(r);
-      for (uint8_t j = 0; j < e.coeffs.ncols; ++j) s << c[j] << " ";
-      s << "\t";
-      for (uint8_t k = 0; k < e.nops; ++k)
-      {
-        if (e.is_ad(r, k)) s << ad_phys(e.index(r, k), *e.labels) << " ";
-        else               s << at_phys(e.index(r, k), *e.labels) << " ";
-      }
-      s << "\n";
-    }
-    return s;
-  }
-
   std::ostream& operator<<(std::ostream& s, const SingleShellTensor& x)
   {
     s << "[ (n=" << x.shell() << ") ";
