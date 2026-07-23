@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
   std::cin >> write;
   */
 
-  int Z = 4, N = 3, JJ = 1, Nmax = 2, hw = 16, write = 1, analyze = 1;
+  int Z = 3, N = 3, JJ = 2, Nmax = 6, hw = 20, write = 0, analyze = 0;
 
   // Example 1: LL
   // std::string name = "L.L";
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
   // std::string name = "CoMNumberOp";  
 
   // Example 6: Hamiltonian with N2LO_opt_bare
-  // std::string name = "Hamiltonian with N2LO_opt_bare";
+  std::string name = "Hamiltonian with N2LO_opt_bare";
 
   // Example 7: Hamiltonian with N3LO_EMN500_bare
   // std::string name = "Hamiltonian with N3LO_EMN500_bare";
@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
   // std::string name = "Hamiltonian with N3LO_EM500_srg2.0";
 
   // Example 10: NO2B interactions
-  std::string name = "Magic_Be7_e3_hw16_E39";
+  // std::string name = "HO_Li7_e10_hw16_E342";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
