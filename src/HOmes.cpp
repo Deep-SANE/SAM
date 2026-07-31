@@ -831,6 +831,19 @@ namespace HO
   void initialize_twbme_cache() { }
   void finalize_twbme_cache() { }
 
+  // Release this thread's m-scheme cache when it outgrows `max_entries`. swap()
+  // with a fresh empty map frees the buckets outright (clear() would keep the
+  // capacity reserved); the next getME lazily rebuilds. See declaration for the
+  // memory/reuse tradeoff. `max_entries == 0` => never release.
+  bool maybe_release_twbme_cache(std::size_t max_entries)
+  {
+    if (max_entries == 0) return false;
+    auto& c = twbme_mscheme_cache();
+    if (c.size() <= max_entries) return false;
+    TwBME_mscheme_cache_t().swap(c);
+    return true;
+  }
+
   // ---- m-scheme cache hit/miss counters (diagnostic) --------------------
 #ifdef COUNT_MSCHEME_CACHE
   namespace { unsigned long long g_ms_hits[256] = {}, g_ms_misses[256] = {}; }

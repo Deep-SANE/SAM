@@ -1,9 +1,12 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <tuple>
+#include <unordered_map>
+#include <vector>
 #include <omp.h>
 
 #include <qcx_convert.h>
@@ -19,6 +22,16 @@ using qcx_utils::print;
 
 namespace JT
 {
+  // Opt-in per-thread m-scheme cache cap (entries), from SAM_MSCHEME_CACHE_CAP.
+  // Unset/0 => uncapped (default, bit-for-bit the old behavior). Set it on large
+  // cold expansions (SuperMike Nmax>=10) to bound per-thread memory; see
+  // HO::maybe_release_twbme_cache.
+  static std::size_t mscheme_cache_cap()
+  {
+    const char* e = std::getenv("SAM_MSCHEME_CACHE_CAP");
+    return e ? std::strtoull(e, nullptr, 10) : 0;
+  }
+
 #define RESTRICT_WITH_NMAX
 #define RESTRICT_JJ // only used in expand_old()
   U3xU4::TwoBodyMultiShellTensors 
@@ -273,6 +286,8 @@ namespace JT
     // Shared cache of single-shell tensor decompositions (thread-safe)
     U3xU4::SSTDecomp_phys_db decompdb(maxShell_);
 
+    const std::size_t cache_cap = mscheme_cache_cap();
+
 #pragma omp parallel
 {
   sam::initialize_thread();
@@ -284,6 +299,7 @@ namespace JT
     {
       auto& [i, tensor] = tensors[k];
       setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
+      HO::maybe_release_twbme_cache(cache_cap);
 
       if (k % 1000 == 0)
       {
@@ -423,29 +439,81 @@ namespace JT
       }
     }
 
-    // (II) Run tensor expansion via OpenMP + MPI
+    // (II) Partition the tensor list across ranks by m-scheme-memory weight,
+    //      then run the expansion via OpenMP within each rank's block.
+    //
+    // The per-rank m-scheme cache footprint is set by the DISTINCT (a,b,c,d)
+    // shell quadruples the rank touches; tensors sharing a shell-combo `i` reuse
+    // the same cache entries. A strided round-robin (it += mpi_size) balances
+    // tensor COUNT but scatters each combo across all ranks, bloating every
+    // cache toward the full table and leaving a ~2x peak-memory skew. Instead we
+    // weight each shell-combo by an m-scheme-size proxy and cut the (already
+    // combo-contiguous) list into equal-weight CONTIGUOUS blocks -- one per rank,
+    // never splitting a combo. This balances peak per-rank memory, keeps each
+    // combo's cache reuse on a single rank, and -- because blocks are contiguous
+    // and merged in rank order -- makes the output canonical (global-index
+    // order, independent of rank count).
+    std::vector<size_t> block_begin(mpi_size + 1, tensors_rank.size());
+    block_begin[0] = 0;
+    {
+      // shell-degeneracy proxy: #m-scheme s.p. states in HO shell n
+      auto shell_deg = [](int n) -> double { return double((n + 1) * (n + 2)); };
 
-    size_t my_count = (mpi_rank < (int)tensors_rank.size())
-                      ? (tensors_rank.size() - mpi_rank + mpi_size - 1) / mpi_size
-                      : 0;
+      // per-combo tensor counts, so a combo's weight is charged once (cache
+      // reuse) but spread over its tensors for a smooth prefix sum
+      std::unordered_map<size_t, size_t> combo_count;
+      for (const auto& [i, t] : tensors_rank) combo_count[i]++;
+
+      std::vector<double> w(tensors_rank.size(), 0.0);
+      double total = 0.0;
+      for (size_t it = 0; it < tensors_rank.size(); ++it)
+      {
+        const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
+        double Q = shell_deg(s[0]) * shell_deg(s[1])
+                 * shell_deg(s[2]) * shell_deg(s[3]);
+        w[it] = Q / double(combo_count[tensors_rank[it].first]);
+        total += w[it];
+      }
+
+      // greedy equal-weight cuts, snapped to shell-combo boundaries
+      const double target = (mpi_size > 0) ? total / double(mpi_size) : total;
+      double acc = 0.0;
+      int r = 1;
+      for (size_t it = 0; it < tensors_rank.size() && r < mpi_size; )
+      {
+        size_t i = tensors_rank[it].first;
+        while (it < tensors_rank.size() && tensors_rank[it].first == i)
+          { acc += w[it]; ++it; }
+        if (acc >= target * r) block_begin[r++] = it;
+      }
+      for (; r <= mpi_size; ++r) block_begin[r] = tensors_rank.size();
+    }
+
+    const size_t my_begin = block_begin[mpi_rank];
+    const size_t my_end   = block_begin[mpi_rank + 1];
+    const size_t my_count = my_end - my_begin;
     std::cerr << "Rank " << mpi_rank << ": processing " << my_count
-              << " / " << tensors_rank.size() << " tensors" << std::endl;
+              << " / " << tensors_rank.size() << " tensors "
+              << "[" << my_begin << ", " << my_end << ")" << std::endl;
 
     // Shared cache of single-shell tensor decompositions (thread-safe)
     U3xU4::SSTDecomp_phys_db decompdb(maxShell_);
+
+    const std::size_t cache_cap = mscheme_cache_cap();
 
 #pragma omp parallel
 {
   sam::initialize_thread();
 
 #pragma omp for schedule(dynamic,1)
-    for (size_t it = mpi_rank; it < tensors_rank.size(); it += mpi_size)
+    for (size_t it = my_begin; it < my_end; ++it)
     {
       auto& [i, tensor] = tensors_rank[it];
 
       setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
+      HO::maybe_release_twbme_cache(cache_cap);
 
-      size_t local_idx = (it - (size_t)mpi_rank) / (size_t)mpi_size;
+      size_t local_idx = it - my_begin;
       if (local_idx % 1000 == 0)
       {
 #pragma omp critical
@@ -786,29 +854,81 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       }
     }
 
-    // (II) Run tensor expansion via OpenMP + MPI
+    // (II) Partition the tensor list across ranks by m-scheme-memory weight,
+    //      then run the expansion via OpenMP within each rank's block.
+    //
+    // The per-rank m-scheme cache footprint is set by the DISTINCT (a,b,c,d)
+    // shell quadruples the rank touches; tensors sharing a shell-combo `i` reuse
+    // the same cache entries. A strided round-robin (it += mpi_size) balances
+    // tensor COUNT but scatters each combo across all ranks, bloating every
+    // cache toward the full table and leaving a ~2x peak-memory skew. Instead we
+    // weight each shell-combo by an m-scheme-size proxy and cut the (already
+    // combo-contiguous) list into equal-weight CONTIGUOUS blocks -- one per rank,
+    // never splitting a combo. This balances peak per-rank memory, keeps each
+    // combo's cache reuse on a single rank, and -- because blocks are contiguous
+    // and merged in rank order -- makes the output canonical (global-index
+    // order, independent of rank count).
+    std::vector<size_t> block_begin(mpi_size + 1, tensors_rank.size());
+    block_begin[0] = 0;
+    {
+      // shell-degeneracy proxy: #m-scheme s.p. states in HO shell n
+      auto shell_deg = [](int n) -> double { return double((n + 1) * (n + 2)); };
 
-    size_t my_count = (mpi_rank < (int)tensors_rank.size())
-                      ? (tensors_rank.size() - mpi_rank + mpi_size - 1) / mpi_size
-                      : 0;
+      // per-combo tensor counts, so a combo's weight is charged once (cache
+      // reuse) but spread over its tensors for a smooth prefix sum
+      std::unordered_map<size_t, size_t> combo_count;
+      for (const auto& [i, t] : tensors_rank) combo_count[i]++;
+
+      std::vector<double> w(tensors_rank.size(), 0.0);
+      double total = 0.0;
+      for (size_t it = 0; it < tensors_rank.size(); ++it)
+      {
+        const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
+        double Q = shell_deg(s[0]) * shell_deg(s[1])
+                 * shell_deg(s[2]) * shell_deg(s[3]);
+        w[it] = Q / double(combo_count[tensors_rank[it].first]);
+        total += w[it];
+      }
+
+      // greedy equal-weight cuts, snapped to shell-combo boundaries
+      const double target = (mpi_size > 0) ? total / double(mpi_size) : total;
+      double acc = 0.0;
+      int r = 1;
+      for (size_t it = 0; it < tensors_rank.size() && r < mpi_size; )
+      {
+        size_t i = tensors_rank[it].first;
+        while (it < tensors_rank.size() && tensors_rank[it].first == i)
+          { acc += w[it]; ++it; }
+        if (acc >= target * r) block_begin[r++] = it;
+      }
+      for (; r <= mpi_size; ++r) block_begin[r] = tensors_rank.size();
+    }
+
+    const size_t my_begin = block_begin[mpi_rank];
+    const size_t my_end   = block_begin[mpi_rank + 1];
+    const size_t my_count = my_end - my_begin;
     std::cerr << "Rank " << mpi_rank << ": processing " << my_count
-              << " / " << tensors_rank.size() << " tensors" << std::endl;
+              << " / " << tensors_rank.size() << " tensors "
+              << "[" << my_begin << ", " << my_end << ")" << std::endl;
 
     // Shared cache of single-shell tensor decompositions (thread-safe)
     U3xU4::SSTDecomp_phys_db decompdb(maxShell_);
+
+    const std::size_t cache_cap = mscheme_cache_cap();
 
 #pragma omp parallel
 {
   sam::initialize_thread();
 
 #pragma omp for schedule(dynamic,1)
-    for (size_t it = mpi_rank; it < tensors_rank.size(); it += mpi_size)
+    for (size_t it = my_begin; it < my_end; ++it)
     {
       auto& [i, tensor] = tensors_rank[it];
 
       setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
+      HO::maybe_release_twbme_cache(cache_cap);
 
-      size_t local_idx = (it - (size_t)mpi_rank) / (size_t)mpi_size;
+      size_t local_idx = it - my_begin;
       if (local_idx % 1000 == 0)
       {
 #pragma omp critical

@@ -114,6 +114,15 @@ namespace HO
   void initialize_twbme_cache();
   void finalize_twbme_cache();
 
+  // Hard memory cap for very large model spaces (e.g. SuperMike Nmax>=10): if
+  // this thread's m-scheme cache has grown past `max_entries`, release it
+  // (swap-to-empty, so the buckets are actually returned to the allocator, not
+  // just logically cleared) and return true. A cap of 0 disables it. Trades
+  // some cache reuse (recompute) for a bounded per-thread footprint; results are
+  // unaffected -- the cache is a pure memo. Call between tensors in the
+  // expansion loop, where each shell-combo boundary is a natural reuse edge.
+  bool maybe_release_twbme_cache(std::size_t max_entries);
+
   // Diagnostic: per-thread m-scheme cache hit/miss counts (tells us whether the
   // getME cost is cache misses = CG recompute, or hits = probes into a big
   // table). Uncomment, rebuild, run, then call report_mscheme_cache_stats().
