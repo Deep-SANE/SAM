@@ -25,12 +25,14 @@ int main(int argc, char* argv[])
   // std::string name = "GamowTellerPlus";
   std::string name = "GamowTellerPlus_2B_N3LO_EM500_bare";
 
+/*
   u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
   u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
              irrs3_6 = {{9,0,0}, {8,1,0}, {7,2,0}, {6,3,0}, {5,4,0}},
              irrs3_8 = {{11,0,0}, {10,1,0}, {9,2,0}, {8,3,0}, {7,4,0}};
-  
-  int Zi = 4, Ni = 3, JJi = 3, TTi = 1;
+ */
+
+  int Zi = 4, Ni = 3, JJi = 1, TTi = 1;
   std::string dir_i = "Truncation_TT1";
 
   U3xU4::hw_subspace
@@ -45,7 +47,7 @@ int main(int argc, char* argv[])
   auto ket_irreps = kets.irreps();
   std::cout << "Ket basis dimension: " << kets.dim() << std::endl;
   
-  int Zf = 3, Nf = 4, JJf = 3, TTf = 1;
+  int Zf = 3, Nf = 4, JJf = 1, TTf = 1;
   std::string dir_f = "Truncation_TT1";
 
   U3xU4::hw_subspace
@@ -92,7 +94,7 @@ int main(int argc, char* argv[])
     std::cout << "Channel " << i << ": " << strengths[i] << std::endl;
 
   // Analyze contribution
-
+/*
   auto mat = op.matrix_Eigen(bras, kets);
 
   u4::irreps irrs = {{1,1,1,0}, {2,1,0,0}, {3,2,2,0}, {3,0,0,0}, {3,3,1,0}, 
@@ -174,7 +176,7 @@ int main(int argc, char* argv[])
       std::cout << "Contribution of (" << j << "," << i << "): " << me * factor << std::endl;
     }
   }
-
+*/
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();

@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 #endif
 
-  int hw = 16, valenceShell = 0, Nmax = 6, maxShell = 6;
+  int hw = 20, valenceShell = 0, Nmax = 12, maxShell = 12;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
   // std::string name = "Rrel";
 
   // Example 6: Two-body potential N2LO_opt_bare,srg1.0,2.0,4.0
-  // std::string name = "N2LO_opt_bare";
+  std::string name = "N2LO_opt_bare";
   // std::string name = "N2LO_opt_srg1.0";
   // std::string name = "N2LO_opt_srg2.0";
   // std::string name = "N2LO_opt_srg4.0";
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
   // std::string name = "Magic_Be7_e3_hw16_E39";
 
   // Example 12: Two-body GT operator
-  std::string name = "GamowTellerMinus_2B_N3LO_EM500_bare";
+  // std::string name = "GamowTellerMinus_2B_N3LO_EM500_bare";
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
