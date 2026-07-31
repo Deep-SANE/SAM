@@ -1592,7 +1592,8 @@ namespace HO
          c = orbit_map.getIndex(nc, lc, jjc, mmtc),
          d = orbit_map.getIndex(nd, ld, jjd, mmtd);
 
-    double norm_ab = (a == b) ? SQRT2 : 1.0, norm_cd = (c == d) ? SQRT2 : 1.0;
+    double norm_ab = (a == b) ? SQRT2 : 1.0, norm_cd = (c == d) ? SQRT2 : 1.0,
+           norm = std::sqrt(static_cast<double>(JJ_) + 1.0);
 
     auto& cgcs = qcx_utils::cgcs();
     double x = 0.0;
@@ -1620,9 +1621,9 @@ namespace HO
 
 #ifdef POSITIVE_INFINITY
     double phase = ((na + nb + nc + nd) % 2 == 0) ? 1.0 : -1.0;
-    return phase * x * norm_ab * norm_cd;
+    return phase * x * norm_ab * norm_cd / norm;
 #else
-    return x * norm_ab * norm_cd;
+    return x * norm_ab * norm_cd / norm;
 #endif
   }
 
