@@ -178,7 +178,7 @@ namespace U3xU4
 #endif
     }
 
-    int leading_shell(const std::string& filename)
+    [[maybe_unused]] int leading_shell(const std::string& filename)
     {
       // filenames look like "n<shell>_...": parse the digits after 'n'.
       size_t pos = 1;
@@ -223,8 +223,16 @@ namespace U3xU4
     cache_.reserve(cache_.size() + 16);
   }
 
+  // LAZY: do NOT preload the whole decomp_phys folder. The old body pulled EVERY
+  // file (<= maxShell) into RAM on EVERY rank -- replicated across all ranks on a
+  // node, plus a startup I/O storm (every rank scanning + reading the entire
+  // folder off the shared FS). getFile() loads each file on first access
+  // (thread-safe), so a rank only holds the decomposition files its own tensors
+  // actually touch, and the reads spread over the compute. maxShell is kept for
+  // signature compatibility; only requested (hence in-range) files ever load.
   SSTDecomp_phys_db::SSTDecomp_phys_db(int maxShell)
   {
+    (void)maxShell;
     dir = decomp_dir();
     std::filesystem::create_directories(dir);
 
@@ -232,31 +240,12 @@ namespace U3xU4
     int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     if (mpi_rank == 0)
-      std::cerr << "Start loading tensor-decomposition files" << std::endl;
+      std::cerr << "Tensor-decomposition files: lazy load on demand" << std::endl;
 #else
-    std::cout << "Start loading tensor-decomposition files" << std::endl;
+    std::cout << "Tensor-decomposition files: lazy load on demand" << std::endl;
 #endif
 
-    for (const auto& entry : std::filesystem::directory_iterator(dir))
-    {
-      if (entry.path().extension() != ".bin") continue;
-
-      std::string fn = entry.path().filename().string();
-      if (fn.empty() || fn[0] != 'n') continue;
-
-      if (leading_shell(fn) > maxShell) continue;
-
-      cache_.emplace(fn, std::make_unique<DecompFile>(entry.path().string()));
-    }
-
-#ifdef USE_MPI
-    if (mpi_rank == 0)
-      std::cerr << "Finish loading tensor-decomposition files" << std::endl;
-#else
-    std::cout << "Finish loading tensor-decomposition files" << std::endl;
-#endif
-
-    cache_.reserve(cache_.size() + 16);
+    cache_.reserve(64);
   }
 
   //=========================================================================

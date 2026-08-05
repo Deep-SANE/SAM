@@ -531,99 +531,103 @@ namespace JT
 
     const std::size_t cache_cap = mscheme_cache_cap();
 
+    // (III) Stream the expansion: compute this rank's tensors in chunks, and
+    //       after each chunk flush the just-computed tensors to the rank file and
+    //       free them. Peak RAM per rank = caches + one chunk -- independent of
+    //       total strength size, the per-tensor size imbalance, node count, and
+    //       Nmax, instead of holding ALL owned strengths until the end. Output is
+    //       byte-identical to the non-streaming path (same tensors, same order):
+    //       a placeholder count up front, patched via seekp at the end, exactly
+    //       like the rank-0 merge below.
+    const size_t flush_chunk = [] {
+      const char* e = std::getenv("SAM_EXPAND_FLUSH_CHUNK");
+      size_t c = e ? std::strtoull(e, nullptr, 10) : 0;
+      return c ? c : 2000;
+    }();
+
+    std::string rank_filename = filename + ".rank_" + std::to_string(mpi_rank);
+    std::cerr << "[expand_new] Rank " << mpi_rank << ": opening rank file "
+              << rank_filename << std::endl;
+    std::ofstream rf(rank_filename, std::ios::binary);
+    if (!rf) throw std::runtime_error("Failed to open rank file: " + rank_filename);
+    const auto count_pos = rf.tellp();     // rank file starts with the count
+    size_t n_written = 0;
+    qcx_utils::writeBinary(rf, n_written); // placeholder, patched below
+
 #pragma omp parallel
 {
   sam::initialize_thread();
 
-#pragma omp for schedule(dynamic,1)
-    for (size_t k = 0; k < my_indices.size(); ++k)
+    for (size_t base = 0; base < my_indices.size(); base += flush_chunk)
     {
-      const size_t it = my_indices[k];
-      auto& [i, tensor] = tensors_rank[it];
+      const size_t stop = std::min(base + flush_chunk, my_indices.size());
 
-      setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
-      HO::maybe_release_twbme_cache(cache_cap);
-
-      if (k % 1000 == 0)
+      // compute this chunk in parallel
+#pragma omp for schedule(dynamic,1)
+      for (size_t k = base; k < stop; ++k)
       {
+        const size_t it = my_indices[k];
+        auto& [i, tensor] = tensors_rank[it];
+
+        setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
+        HO::maybe_release_twbme_cache(cache_cap);
+
+        if (k % 1000 == 0)
+        {
 #pragma omp critical
-        std::cerr << "Rank " << mpi_rank << " [thread " << omp_get_thread_num()
-                  << "]: " << k << " / " << my_count << std::endl;
-      }
+          std::cerr << "Rank " << mpi_rank << " [thread " << omp_get_thread_num()
+                    << "]: " << k << " / " << my_count << std::endl;
+        }
+      } // implicit barrier: chunk fully computed before flush
+
+      // one thread streams this chunk to disk and frees it; the rest wait
+#pragma omp single
+      {
+        for (size_t k = base; k < stop; ++k)
+        {
+          auto tensor = std::move(tensors_rank[my_indices[k]].second);
+          if (!tensor.LLSSTTstrengths().empty())
+          {
+            tensor.writeBinary(rf);
+            ++n_written;
+          }
+          // tensor destructs here: chunk's strengths freed before the next chunk
+        }
+      } // implicit barrier: flush done before the next chunk computes
     }
-
-/*
-#pragma omp critical
-  {
-    tensors_local.reserve(tensors_local.size() + tensors_tl.size());
-
-    for (auto& t : tensors_tl)
-      tensors_local.push_back(std::move(t));
-  }
-*/
 
   sam::finalize_thread();
 }
 
-    // (III) Free everything no longer needed
+    // patch the real count into the placeholder slot at the head of the file
+    if (!rf) throw std::runtime_error("Write failed on rank file: " + rank_filename);
+    rf.seekp(count_pos);
+    qcx_utils::writeBinary(rf, n_written);
+    rf.close();
+    std::cerr << "[expand_new] Rank " << mpi_rank << ": rank file closed OK ("
+              << n_written << " tensors)" << std::endl;
 
+    // tensors_rank now holds only moved-from shells
+    tensors_rank.clear();
+    tensors_rank.shrink_to_fit();
+
+    // (IV) Free everything no longer needed. This runs AFTER the streaming loop
+    //      because the compute used TBME / all_inverse / all_phase / decompdb.
     // (a) release the TBME hash table
     if (on_the_fly == false)
     {
       if (TBME_scalar) TBME_scalar->clear();
       else TBME_general->clear();
     }
-
     // (b) release shell-combo arrays
     { decltype(all_na_nb_nc_nd)().swap(all_na_nb_nc_nd); }
     { decltype(all_inverse)().swap(all_inverse); }
     { decltype(all_phase)().swap(all_phase); }
-
     // (c) release u3/u4 databases
     sam::clear();
-
-    // (d) flush newly computed decompositions to disk (each rank writes its own
-    // contributions; finalize is internally MPI turn-based)
+    // (d) flush newly computed decompositions to disk (MPI turn-based)
     decompdb.finalize();
 
-    // (e) compact tensors_rank: keep only entries owned by this rank
-    U3xU4::MultiShellTensors_phys tensors_rank_final;
-    tensors_rank_final.reserve(my_count);
-    for (auto& [idx, t] : tensors_rank)
-    {
-      if (!t.LLSSTTstrengths().empty()) tensors_rank_final.push_back(std::move(t));
-      // else std::cout << "Ignore: " << t << std::endl;
-    }
-
-    tensors_rank.clear();
-    tensors_rank.shrink_to_fit();
-
-    // (IV) Each rank writes its tensors to its own temp file, then frees immediately.
-    //      All ranks write concurrently — no sequential dependency here.
-    std::string rank_filename = filename + ".rank_" + std::to_string(mpi_rank);
-    std::cerr << "[expand_new] Rank " << mpi_rank << ": opening rank file " << rank_filename << std::endl;
-    {
-      std::ofstream rf(rank_filename, std::ios::binary);
-      if (!rf) throw std::runtime_error("Failed to open rank file: " + rank_filename);
-      size_t n = tensors_rank_final.size();
-      std::cerr << "[expand_new] Rank " << mpi_rank << ": writing " << n << " tensors" << std::endl;
-      qcx_utils::writeBinary(rf, n);
-      for (size_t i = 0; i < tensors_rank_final.size(); ++i)
-      {
-        tensors_rank_final[i].writeBinary(rf);
-        if ((i + 1) % 1000 == 0 || i + 1 == tensors_rank_final.size())
-          std::cerr << "[expand_new] Rank " << mpi_rank << ": wrote tensor "
-                    << (i + 1) << " / " << tensors_rank_final.size() << std::endl;
-      }
-      if (!rf) throw std::runtime_error("Write failed on rank file: " + rank_filename);
-    }
-    std::cerr << "[expand_new] Rank " << mpi_rank << ": rank file closed OK ("
-              << tensors_rank_final.size() << " tensors)" << std::endl;
-
-    // Free immediately — all ranks drop their tensors before anyone starts the merge,
-    // so peak node memory = 1 rank's tensors (not mpi_size ranks simultaneously).
-    tensors_rank_final.clear();
-    tensors_rank_final.shrink_to_fit();
     std::cerr << "[expand_new] Rank " << mpi_rank << ": tensors freed, entering barrier" << std::endl;
 
     MPI_Barrier(MPI_COMM_WORLD); // wait for all rank files to be written
@@ -673,7 +677,17 @@ namespace JT
     MPI_Barrier(MPI_COMM_WORLD); // wait for merge before all ranks do final read
     std::cerr << "[expand_new] Rank " << mpi_rank << ": past final barrier, starting final read" << std::endl;
 
-    // (VI) Final read and return on all ranks
+    // (VI) Final read and return on all ranks -- UNLESS write-only. For a
+    //      cache-generation run the file is already banked by the merge, and
+    //      reloading the full expansion on every rank OOMs at large Nmax; set
+    //      SAM_EXPAND_WRITE_ONLY=1 to skip it and return empty.
+    if (std::getenv("SAM_EXPAND_WRITE_ONLY"))
+    {
+      std::cerr << "[expand_new] Rank " << mpi_rank
+                << ": WRITE_ONLY -- skipping final read-back" << std::endl;
+      return U3xU4::MultiShellTensors_phys{};
+    }
+
     std::ifstream s(filename, std::ios::binary);
     if (!s) throw std::runtime_error("Failed to open for final read: " + filename);
 
@@ -975,98 +989,100 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
     const std::size_t cache_cap = mscheme_cache_cap();
 
+    // (III) Stream the expansion in chunks: compute a chunk, then flush its
+    //       tensors to the rank file and free them. Peak RAM per rank = caches +
+    //       one chunk (see expand_new_MPI for the full rationale). Byte-identical
+    //       output to the non-streaming path; count is a placeholder patched via
+    //       seekp at the end.
+    const size_t flush_chunk = [] {
+      const char* e = std::getenv("SAM_EXPAND_FLUSH_CHUNK");
+      size_t c = e ? std::strtoull(e, nullptr, 10) : 0;
+      return c ? c : 2000;
+    }();
+
+    std::string rank_filename = filename + ".rank_" + std::to_string(mpi_rank);
+    std::cerr << "[expand_exist] Rank " << mpi_rank << ": opening rank file "
+              << rank_filename << std::endl;
+    std::ofstream rf(rank_filename, std::ios::binary);
+    if (!rf) throw std::runtime_error("Failed to open rank file: " + rank_filename);
+    const auto count_pos = rf.tellp();     // rank file starts with the count
+    size_t n_written = 0;
+    qcx_utils::writeBinary(rf, n_written); // placeholder, patched below
+
 #pragma omp parallel
 {
   sam::initialize_thread();
 
-#pragma omp for schedule(dynamic,1)
-    for (size_t k = 0; k < my_indices.size(); ++k)
+    for (size_t base = 0; base < my_indices.size(); base += flush_chunk)
     {
-      const size_t it = my_indices[k];
-      auto& [i, tensor] = tensors_rank[it];
+      const size_t stop = std::min(base + flush_chunk, my_indices.size());
 
-      setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
-      HO::maybe_release_twbme_cache(cache_cap);
-
-      if (k % 1000 == 0)
+      // compute this chunk in parallel
+#pragma omp for schedule(dynamic,1)
+      for (size_t k = base; k < stop; ++k)
       {
+        const size_t it = my_indices[k];
+        auto& [i, tensor] = tensors_rank[it];
+
+        setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
+        HO::maybe_release_twbme_cache(cache_cap);
+
+        if (k % 1000 == 0)
+        {
 #pragma omp critical
-        std::cerr << "Rank " << mpi_rank << " [thread " << omp_get_thread_num()
-                  << "]: " << k << " / " << my_count << std::endl;
-      }
+          std::cerr << "Rank " << mpi_rank << " [thread " << omp_get_thread_num()
+                    << "]: " << k << " / " << my_count << std::endl;
+        }
+      } // implicit barrier: chunk fully computed before flush
+
+      // one thread streams this chunk to disk and frees it; the rest wait
+#pragma omp single
+      {
+        for (size_t k = base; k < stop; ++k)
+        {
+          auto tensor = std::move(tensors_rank[my_indices[k]].second);
+          if (!tensor.LLSSTTstrengths().empty())
+          {
+            tensor.writeBinary(rf);
+            ++n_written;
+          }
+          // tensor destructs here: chunk's strengths freed before the next chunk
+        }
+      } // implicit barrier: flush done before the next chunk computes
     }
-
-/*
-#pragma omp critical
-  {
-    tensors_local.reserve(tensors_local.size() + tensors_tl.size());
-
-    for (auto& t : tensors_tl)
-      tensors_local.push_back(std::move(t));
-  }
-*/
 
   sam::finalize_thread();
 }
 
-    // (III) Free everything no longer needed
+    // patch the real count into the placeholder slot at the head of the file
+    if (!rf) throw std::runtime_error("Write failed on rank file: " + rank_filename);
+    rf.seekp(count_pos);
+    qcx_utils::writeBinary(rf, n_written);
+    rf.close();
+    std::cerr << "[expand_exist] Rank " << mpi_rank << ": rank file closed OK ("
+              << n_written << " tensors)" << std::endl;
 
+    // tensors_rank now holds only moved-from shells
+    tensors_rank.clear();
+    tensors_rank.shrink_to_fit();
+
+    // (IV) Free everything no longer needed. Runs AFTER the streaming loop
+    //      because the compute used TBME / all_inverse / all_phase / decompdb.
     // (a) release the TBME hash table
     if (on_the_fly == false)
     {
       if (TBME_scalar) TBME_scalar->clear();
       else TBME_general->clear();
     }
-
     // (b) release shell-combo arrays
     { decltype(all_na_nb_nc_nd)().swap(all_na_nb_nc_nd); }
     { decltype(all_inverse)().swap(all_inverse); }
     { decltype(all_phase)().swap(all_phase); }
-
     // (c) release u3/u4 databases
     sam::clear();
-
     // (d) flush newly computed decompositions to disk
     decompdb.finalize();
 
-    // (e) compact tensors_rank: keep only entries owned by this rank
-    U3xU4::MultiShellTensors_phys tensors_rank_final;
-    tensors_rank_final.reserve(my_count);
-    for (auto& [idx, t] : tensors_rank)
-    {
-      if (!t.LLSSTTstrengths().empty()) tensors_rank_final.push_back(std::move(t));
-      // else std::cout << "Ignore: " << t << std::endl;
-    }
-    
-    tensors_rank.clear();
-    tensors_rank.shrink_to_fit();
-
-    // (IV) Each rank writes its tensors to its own temp file, then frees immediately.
-    //      All ranks write concurrently — no sequential dependency here.
-    std::string rank_filename = filename + ".rank_" + std::to_string(mpi_rank);
-    std::cerr << "[expand_exist] Rank " << mpi_rank << ": opening rank file " << rank_filename << std::endl;
-    {
-      std::ofstream rf(rank_filename, std::ios::binary);
-      if (!rf) throw std::runtime_error("Failed to open rank file: " + rank_filename);
-      size_t n = tensors_rank_final.size();
-      std::cerr << "[expand_exist] Rank " << mpi_rank << ": writing " << n << " tensors" << std::endl;
-      qcx_utils::writeBinary(rf, n);
-      for (size_t i = 0; i < tensors_rank_final.size(); ++i)
-      {
-        tensors_rank_final[i].writeBinary(rf);
-        if ((i + 1) % 1000 == 0 || i + 1 == tensors_rank_final.size())
-          std::cerr << "[expand_exist] Rank " << mpi_rank << ": wrote tensor "
-                    << (i + 1) << " / " << tensors_rank_final.size() << std::endl;
-      }
-      if (!rf) throw std::runtime_error("Write failed on rank file: " + rank_filename);
-    }
-    std::cerr << "[expand_exist] Rank " << mpi_rank << ": rank file closed OK ("
-              << tensors_rank_final.size() << " tensors)" << std::endl;
-
-    // Free immediately — all ranks drop their tensors before anyone starts the merge,
-    // so peak node memory = 1 rank's tensors (not mpi_size ranks simultaneously).
-    tensors_rank_final.clear();
-    tensors_rank_final.shrink_to_fit();
     std::cerr << "[expand_exist] Rank " << mpi_rank << ": tensors freed, entering barrier" << std::endl;
 
     MPI_Barrier(MPI_COMM_WORLD); // wait for all rank files to be written
@@ -1127,7 +1143,16 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     std::cerr << "[expand_exist] Rank " << mpi_rank << ": past final barrier" << std::endl;
 
 /*
-    // Final read and return on all ranks
+    // Final read and return on all ranks -- UNLESS write-only (cache-gen run):
+    // the file is already banked by the merge, and reloading the full expansion
+    // on every rank OOMs at large Nmax. SAM_EXPAND_WRITE_ONLY=1 skips it.
+    if (std::getenv("SAM_EXPAND_WRITE_ONLY"))
+    {
+      std::cerr << "[expand_exist] Rank " << mpi_rank
+                << ": WRITE_ONLY -- skipping final read-back" << std::endl;
+      return U3xU4::MultiShellTensors_phys{};
+    }
+
     std::ifstream s(filename, std::ios::binary);
     if (!s) throw std::runtime_error("Failed to open: " + filename);
 
