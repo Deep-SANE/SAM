@@ -397,10 +397,20 @@ namespace JT
 
     // (I) Generate the entire list of tensors --- identical for all ranks
 
-    // U3xU4::MultiShellTensors_phys tensors_rank;
-    std::vector<std::pair<size_t, U3xU4::MultiShellTensor_phys>> tensors_rank;
+    // Under the default "strided" partition, apply ownership at BUILD time so
+    // each rank stores only its share of tensor STRUCTURES. The full 398788-
+    // tensor list is ~38 GB/rank at Nmax=12, and replicating it on every rank
+    // (it never distributes) is what OOM'd the multi-node run. g_tensor is the
+    // global tensor index -- the enumeration is identical on all ranks, so the
+    // strided split is consistent. "weighted" still needs the whole list, so
+    // under it every rank stores all.
+    const bool weighted_partition =
+      [] { const char* m = std::getenv("SAM_EXPAND_PARTITION");
+           return m != nullptr && std::string(m) == "weighted"; }();
 
-    // for (size_t i = mpi_rank; i < all_na_nb_nc_nd.size(); i += mpi_size)
+    std::vector<std::pair<size_t, U3xU4::MultiShellTensor_phys>> tensors_rank;
+    size_t g_tensor = 0; // global index over all selection-passing tensors
+
     for (size_t i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
       // auto groups_ns = group_same_shell(sorted_ns);
@@ -433,10 +443,12 @@ namespace JT
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
         if (tensor.shift_quanta() < 0 and symmetric_) continue;
 
-        // setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
-
-        // if (!tensor.LLSSTTstrengths().empty())
-          tensors_rank.emplace_back(i, std::move(tensor));
+        // Ownership at BUILD time: strided stores only this rank's share so the
+        // full structure list is never materialized; weighted stores all.
+        const bool owned = weighted_partition ||
+                           (g_tensor % (size_t)mpi_size == (size_t)mpi_rank);
+        ++g_tensor;
+        if (owned) tensors_rank.emplace_back(i, std::move(tensor));
       }
     }
 
@@ -464,60 +476,55 @@ namespace JT
     //  threads growing uncapped caches and loses NUMA locality -> pathologically
     //  slow. Prefer several ranks: separate address spaces, NUMA-local.)
     std::vector<size_t> my_indices;
+    if (weighted_partition)
     {
-      const char* mode = std::getenv("SAM_EXPAND_PARTITION");
-      const bool weighted = (mode != nullptr && std::string(mode) == "weighted");
+      // weighted stored the FULL list above; cut it into equal-weight
+      // contiguous blocks (broken cost proxy -- see note above; kept only for
+      // the future weight fix).
+      std::vector<size_t> block_begin(mpi_size + 1, tensors_rank.size());
+      block_begin[0] = 0;
 
-      if (weighted)
+      // shell-degeneracy proxy: #m-scheme s.p. states in HO shell n
+      auto shell_deg = [](int n) -> double { return double((n + 1) * (n + 2)); };
+
+      std::unordered_map<size_t, size_t> combo_count;
+      for (const auto& [i, t] : tensors_rank) combo_count[i]++;
+
+      std::vector<double> w(tensors_rank.size(), 0.0);
+      double total = 0.0;
+      for (size_t it = 0; it < tensors_rank.size(); ++it)
       {
-        std::vector<size_t> block_begin(mpi_size + 1, tensors_rank.size());
-        block_begin[0] = 0;
-
-        // shell-degeneracy proxy: #m-scheme s.p. states in HO shell n
-        auto shell_deg = [](int n) -> double { return double((n + 1) * (n + 2)); };
-
-        // per-combo tensor counts, so a combo's weight is charged once (cache
-        // reuse) but spread over its tensors for a smooth prefix sum
-        std::unordered_map<size_t, size_t> combo_count;
-        for (const auto& [i, t] : tensors_rank) combo_count[i]++;
-
-        std::vector<double> w(tensors_rank.size(), 0.0);
-        double total = 0.0;
-        for (size_t it = 0; it < tensors_rank.size(); ++it)
-        {
-          const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
-          double Q = shell_deg(s[0]) * shell_deg(s[1])
-                   * shell_deg(s[2]) * shell_deg(s[3]);
-          w[it] = Q / double(combo_count[tensors_rank[it].first]);
-          total += w[it];
-        }
-
-        // greedy equal-weight cuts, snapped to shell-combo boundaries
-        const double target = (mpi_size > 0) ? total / double(mpi_size) : total;
-        double acc = 0.0;
-        int r = 1;
-        for (size_t it = 0; it < tensors_rank.size() && r < mpi_size; )
-        {
-          size_t i = tensors_rank[it].first;
-          while (it < tensors_rank.size() && tensors_rank[it].first == i)
-            { acc += w[it]; ++it; }
-          if (acc >= target * r) block_begin[r++] = it;
-        }
-        for (; r <= mpi_size; ++r) block_begin[r] = tensors_rank.size();
-
-        for (size_t it = block_begin[mpi_rank]; it < block_begin[mpi_rank + 1]; ++it)
-          my_indices.push_back(it);
+        const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
+        double Q = shell_deg(s[0]) * shell_deg(s[1])
+                 * shell_deg(s[2]) * shell_deg(s[3]);
+        w[it] = Q / double(combo_count[tensors_rank[it].first]);
+        total += w[it];
       }
-      else // strided (default)
+
+      const double target = (mpi_size > 0) ? total / double(mpi_size) : total;
+      double acc = 0.0;
+      int r = 1;
+      for (size_t it = 0; it < tensors_rank.size() && r < mpi_size; )
       {
-        for (size_t it = mpi_rank; it < tensors_rank.size(); it += (size_t)mpi_size)
-          my_indices.push_back(it);
+        size_t i = tensors_rank[it].first;
+        while (it < tensors_rank.size() && tensors_rank[it].first == i)
+          { acc += w[it]; ++it; }
+        if (acc >= target * r) block_begin[r++] = it;
       }
+      for (; r <= mpi_size; ++r) block_begin[r] = tensors_rank.size();
+
+      for (size_t it = block_begin[mpi_rank]; it < block_begin[mpi_rank + 1]; ++it)
+        my_indices.push_back(it);
+    }
+    else // strided: ownership already applied at build time -> own all stored
+    {
+      my_indices.resize(tensors_rank.size());
+      for (size_t it = 0; it < tensors_rank.size(); ++it) my_indices[it] = it;
     }
 
     const size_t my_count = my_indices.size();
     std::cerr << "Rank " << mpi_rank << ": processing " << my_count
-              << " / " << tensors_rank.size() << " tensors" << std::endl;
+              << " / " << g_tensor << " tensors" << std::endl;
 
     // Shared cache of single-shell tensor decompositions (thread-safe)
     U3xU4::SSTDecomp_phys_db decompdb(maxShell_);
@@ -834,10 +841,20 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
     // (I) Generate the entire list of tensors --- identical for all ranks
 
-    // U3xU4::MultiShellTensors_phys tensors_rank;
-    std::vector<std::pair<size_t, U3xU4::MultiShellTensor_phys>> tensors_rank;
+    // Under the default "strided" partition, apply ownership at BUILD time so
+    // each rank stores only its share of tensor STRUCTURES. The full 398788-
+    // tensor list is ~38 GB/rank at Nmax=12, and replicating it on every rank
+    // (it never distributes) is what OOM'd the multi-node run. g_tensor is the
+    // global tensor index -- the enumeration is identical on all ranks, so the
+    // strided split is consistent. "weighted" still needs the whole list, so
+    // under it every rank stores all.
+    const bool weighted_partition =
+      [] { const char* m = std::getenv("SAM_EXPAND_PARTITION");
+           return m != nullptr && std::string(m) == "weighted"; }();
 
-    // for (size_t i = mpi_rank; i < all_na_nb_nc_nd.size(); i += mpi_size)
+    std::vector<std::pair<size_t, U3xU4::MultiShellTensor_phys>> tensors_rank;
+    size_t g_tensor = 0; // global index over all selection-passing tensors
+
     for (size_t i = 0; i < all_na_nb_nc_nd.size(); i++)
     {
       // auto groups_ns = group_same_shell(sorted_ns);
@@ -870,10 +887,12 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
         if (tensor.shift_quanta() < 0 and symmetric_) continue;
 
-        // setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
-
-        // if (!tensor.LLSSTTstrengths().empty())
-          tensors_rank.emplace_back(i, std::move(tensor));
+        // Ownership at BUILD time: strided stores only this rank's share so the
+        // full structure list is never materialized; weighted stores all.
+        const bool owned = weighted_partition ||
+                           (g_tensor % (size_t)mpi_size == (size_t)mpi_rank);
+        ++g_tensor;
+        if (owned) tensors_rank.emplace_back(i, std::move(tensor));
       }
     }
 
@@ -901,60 +920,55 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     //  threads growing uncapped caches and loses NUMA locality -> pathologically
     //  slow. Prefer several ranks: separate address spaces, NUMA-local.)
     std::vector<size_t> my_indices;
+    if (weighted_partition)
     {
-      const char* mode = std::getenv("SAM_EXPAND_PARTITION");
-      const bool weighted = (mode != nullptr && std::string(mode) == "weighted");
+      // weighted stored the FULL list above; cut it into equal-weight
+      // contiguous blocks (broken cost proxy -- see note above; kept only for
+      // the future weight fix).
+      std::vector<size_t> block_begin(mpi_size + 1, tensors_rank.size());
+      block_begin[0] = 0;
 
-      if (weighted)
+      // shell-degeneracy proxy: #m-scheme s.p. states in HO shell n
+      auto shell_deg = [](int n) -> double { return double((n + 1) * (n + 2)); };
+
+      std::unordered_map<size_t, size_t> combo_count;
+      for (const auto& [i, t] : tensors_rank) combo_count[i]++;
+
+      std::vector<double> w(tensors_rank.size(), 0.0);
+      double total = 0.0;
+      for (size_t it = 0; it < tensors_rank.size(); ++it)
       {
-        std::vector<size_t> block_begin(mpi_size + 1, tensors_rank.size());
-        block_begin[0] = 0;
-
-        // shell-degeneracy proxy: #m-scheme s.p. states in HO shell n
-        auto shell_deg = [](int n) -> double { return double((n + 1) * (n + 2)); };
-
-        // per-combo tensor counts, so a combo's weight is charged once (cache
-        // reuse) but spread over its tensors for a smooth prefix sum
-        std::unordered_map<size_t, size_t> combo_count;
-        for (const auto& [i, t] : tensors_rank) combo_count[i]++;
-
-        std::vector<double> w(tensors_rank.size(), 0.0);
-        double total = 0.0;
-        for (size_t it = 0; it < tensors_rank.size(); ++it)
-        {
-          const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
-          double Q = shell_deg(s[0]) * shell_deg(s[1])
-                   * shell_deg(s[2]) * shell_deg(s[3]);
-          w[it] = Q / double(combo_count[tensors_rank[it].first]);
-          total += w[it];
-        }
-
-        // greedy equal-weight cuts, snapped to shell-combo boundaries
-        const double target = (mpi_size > 0) ? total / double(mpi_size) : total;
-        double acc = 0.0;
-        int r = 1;
-        for (size_t it = 0; it < tensors_rank.size() && r < mpi_size; )
-        {
-          size_t i = tensors_rank[it].first;
-          while (it < tensors_rank.size() && tensors_rank[it].first == i)
-            { acc += w[it]; ++it; }
-          if (acc >= target * r) block_begin[r++] = it;
-        }
-        for (; r <= mpi_size; ++r) block_begin[r] = tensors_rank.size();
-
-        for (size_t it = block_begin[mpi_rank]; it < block_begin[mpi_rank + 1]; ++it)
-          my_indices.push_back(it);
+        const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
+        double Q = shell_deg(s[0]) * shell_deg(s[1])
+                 * shell_deg(s[2]) * shell_deg(s[3]);
+        w[it] = Q / double(combo_count[tensors_rank[it].first]);
+        total += w[it];
       }
-      else // strided (default)
+
+      const double target = (mpi_size > 0) ? total / double(mpi_size) : total;
+      double acc = 0.0;
+      int r = 1;
+      for (size_t it = 0; it < tensors_rank.size() && r < mpi_size; )
       {
-        for (size_t it = mpi_rank; it < tensors_rank.size(); it += (size_t)mpi_size)
-          my_indices.push_back(it);
+        size_t i = tensors_rank[it].first;
+        while (it < tensors_rank.size() && tensors_rank[it].first == i)
+          { acc += w[it]; ++it; }
+        if (acc >= target * r) block_begin[r++] = it;
       }
+      for (; r <= mpi_size; ++r) block_begin[r] = tensors_rank.size();
+
+      for (size_t it = block_begin[mpi_rank]; it < block_begin[mpi_rank + 1]; ++it)
+        my_indices.push_back(it);
+    }
+    else // strided: ownership already applied at build time -> own all stored
+    {
+      my_indices.resize(tensors_rank.size());
+      for (size_t it = 0; it < tensors_rank.size(); ++it) my_indices[it] = it;
     }
 
     const size_t my_count = my_indices.size();
     std::cerr << "Rank " << mpi_rank << ": processing " << my_count
-              << " / " << tensors_rank.size() << " tensors" << std::endl;
+              << " / " << g_tensor << " tensors" << std::endl;
 
     // Shared cache of single-shell tensor decompositions (thread-safe)
     U3xU4::SSTDecomp_phys_db decompdb(maxShell_);
