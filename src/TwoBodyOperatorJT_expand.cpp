@@ -1,14 +1,18 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <omp.h>
+#include <sys/resource.h>
+#include <unistd.h>
 
 #include <qcx_convert.h>
 #include <qcx_print.h>
@@ -31,6 +35,35 @@ namespace JT
   {
     const char* e = std::getenv("SAM_MSCHEME_CACHE_CAP");
     return e ? std::strtoull(e, nullptr, 10) : 0;
+  }
+
+  // --- per-rank memory monitor helpers (SAM_EXPAND_MEMLOG) -----------------
+  // Peak (high-water) RSS since process start -- the number that decides OOM.
+  static double rss_peak_gb()
+  {
+    struct rusage ru;
+    if (getrusage(RUSAGE_SELF, &ru) == 0)
+#if defined(__APPLE__)
+      return ru.ru_maxrss / (1024.0 * 1024.0 * 1024.0);  // bytes on macOS
+#else
+      return ru.ru_maxrss / (1024.0 * 1024.0);           // KB on Linux
+#endif
+    return 0.0;
+  }
+  // Current resident set (Linux /proc; peak suffices elsewhere).
+  static double rss_now_gb()
+  {
+#if defined(__linux__)
+    long total = 0, resident = 0;
+    if (FILE* f = std::fopen("/proc/self/statm", "r"))
+    {
+      if (std::fscanf(f, "%ld %ld", &total, &resident) != 2) resident = 0;
+      std::fclose(f);
+    }
+    return resident * (double)sysconf(_SC_PAGESIZE) / (1024.0 * 1024.0 * 1024.0);
+#else
+    return 0.0;
+#endif
   }
 
 #define RESTRICT_WITH_NMAX
@@ -545,6 +578,11 @@ namespace JT
       return c ? c : 2000;
     }();
 
+    // opt-in per-rank memory monitor (SAM_EXPAND_MEMLOG=1): prints RSS + cache
+    // attribution at each chunk boundary, non-collective (no cross-rank sync).
+    const bool memlog = std::getenv("SAM_EXPAND_MEMLOG") != nullptr;
+    size_t ms_entries_acc = 0; // shared: per-chunk sum of thread m-scheme sizes
+
     std::string rank_filename = filename + ".rank_" + std::to_string(mpi_rank);
     std::cerr << "[expand_new] Rank " << mpi_rank << ": opening rank file "
               << rank_filename << std::endl;
@@ -580,6 +618,16 @@ namespace JT
         }
       } // implicit barrier: chunk fully computed before flush
 
+      // memory monitor: each thread adds its m-scheme cache size before the
+      // single thread reads the total (memlog is uniform across threads, so the
+      // barrier is reached by all).
+      if (memlog)
+      {
+#pragma omp atomic
+        ms_entries_acc += HO::twbme_mscheme_cache().size();
+#pragma omp barrier
+      }
+
       // one thread streams this chunk to disk and frees it; the rest wait
 #pragma omp single
       {
@@ -592,6 +640,17 @@ namespace JT
             ++n_written;
           }
           // tensor destructs here: chunk's strengths freed before the next chunk
+        }
+
+        if (memlog)
+        {
+          auto [dfiles, drecs] = decompdb.cache_stats();
+          std::cerr << "[MEM] Rank " << mpi_rank << " @ " << stop << " / "
+                    << my_indices.size() << ": rss=" << rss_now_gb()
+                    << " peak=" << rss_peak_gb() << " GB  mscheme="
+                    << ms_entries_acc << " entries  decomp=" << dfiles
+                    << " files / " << drecs << " recs" << std::endl;
+          ms_entries_acc = 0;
         }
       } // implicit barrier: flush done before the next chunk computes
     }
@@ -1000,6 +1059,11 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       return c ? c : 2000;
     }();
 
+    // opt-in per-rank memory monitor (SAM_EXPAND_MEMLOG=1): prints RSS + cache
+    // attribution at each chunk boundary, non-collective (no cross-rank sync).
+    const bool memlog = std::getenv("SAM_EXPAND_MEMLOG") != nullptr;
+    size_t ms_entries_acc = 0; // shared: per-chunk sum of thread m-scheme sizes
+
     std::string rank_filename = filename + ".rank_" + std::to_string(mpi_rank);
     std::cerr << "[expand_exist] Rank " << mpi_rank << ": opening rank file "
               << rank_filename << std::endl;
@@ -1035,6 +1099,16 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         }
       } // implicit barrier: chunk fully computed before flush
 
+      // memory monitor: each thread adds its m-scheme cache size before the
+      // single thread reads the total (memlog is uniform across threads, so the
+      // barrier is reached by all).
+      if (memlog)
+      {
+#pragma omp atomic
+        ms_entries_acc += HO::twbme_mscheme_cache().size();
+#pragma omp barrier
+      }
+
       // one thread streams this chunk to disk and frees it; the rest wait
 #pragma omp single
       {
@@ -1047,6 +1121,17 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
             ++n_written;
           }
           // tensor destructs here: chunk's strengths freed before the next chunk
+        }
+
+        if (memlog)
+        {
+          auto [dfiles, drecs] = decompdb.cache_stats();
+          std::cerr << "[MEM] Rank " << mpi_rank << " @ " << stop << " / "
+                    << my_indices.size() << ": rss=" << rss_now_gb()
+                    << " peak=" << rss_peak_gb() << " GB  mscheme="
+                    << ms_entries_acc << " entries  decomp=" << dfiles
+                    << " files / " << drecs << " recs" << std::endl;
+          ms_entries_acc = 0;
         }
       } // implicit barrier: flush done before the next chunk computes
     }

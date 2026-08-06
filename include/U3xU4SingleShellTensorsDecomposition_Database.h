@@ -99,6 +99,10 @@ namespace U3xU4
     // Flush newly computed entries to disk and release in-memory data.
     void finalize();
 
+    // Diagnostic snapshot: (#files loaded, total #records) currently held in the
+    // in-memory cache. Cheap; for the per-rank memory monitor.
+    std::pair<std::size_t, std::size_t> cache_stats() const;
+
     // Borrow-or-own handle to an Expansion. On a cache hit get_view() borrows a
     // stable pointer into the in-memory cache (zero copy, valid for the db's
     // lifetime); the uncached single-operator case owns a freshly built one.

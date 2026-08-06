@@ -248,6 +248,18 @@ namespace U3xU4
     cache_.reserve(64);
   }
 
+  std::pair<std::size_t, std::size_t> SSTDecomp_phys_db::cache_stats() const
+  {
+    std::shared_lock lock(cache_mutex_);
+    std::size_t files = cache_.size(), records = 0;
+    for (const auto& [name, df] : cache_)
+    {
+      std::lock_guard flock(df->file_mutex_);
+      records += df->records.size();
+    }
+    return {files, records};
+  }
+
   //=========================================================================
   // finalize: flush newly computed entries to disk, then release memory.
   //=========================================================================
