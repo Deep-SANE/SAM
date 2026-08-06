@@ -412,6 +412,21 @@ namespace U3xU4
       return ExpansionRef(std::move(e));
     }
 
+    // A single-shell tensor with all four operators in one shell
+    // (num_ads + num_ats == 4) IS a complete one-shell two-body tensor -- it
+    // never recurs as a shared building block of a larger multishell tensor, so
+    // it gets exactly one lookup and a cache would never be hit. These are the
+    // bulk of decomp_phys (~1666 files / ~57 GB at maxShell 12), and once loaded
+    // they grow the in-memory cache until it OOMs. Compute on the fly and own the
+    // result; only the reusable (<= 3) cases are cached below. Bit-identical:
+    // expand() is deterministic, so this equals what the cache would have held.
+    if (t.num_ads() + t.num_ats() == 4)
+    {
+      auto e = std::make_unique<Expansion>(t.expand());
+      e->labels = &t.labels();
+      return ExpansionRef(std::move(e));
+    }
+
     std::string file = filename(t);
     DecompKey key(t.LL(), t.SS(), t.TT(), t.MMT(), t.JJ(), t.MMJ());
     auto& df = getFile(file);
