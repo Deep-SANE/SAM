@@ -1,6 +1,11 @@
+#include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <mutex>
+#include <string>
+#include <tuple>
 #include <utility>
+#include <vector>
 
 #include <U3xU4SingleShellTensorsDecomposition_Database.h>
 
@@ -74,6 +79,14 @@ namespace U3xU4
   //=========================================================================
   // DecompFile
   //=========================================================================
+  // In-memory payload size of one Expansion -- the unit the memory cap counts.
+  static std::size_t expansion_bytes(const Expansion& e)
+  {
+    return e.coeffs.data.size() * sizeof(double)
+         + e.op_index.size()   * sizeof(std::uint16_t)
+         + e.op_is_ad.size()   * sizeof(std::uint8_t);
+  }
+
   SSTDecomp_phys_db::DecompFile::DecompFile(const std::string& path_)
     : path(path_)
   {
@@ -105,6 +118,7 @@ namespace U3xU4
 
       if (!file) break; // truncated / corrupt -> stop loading
 
+      bytes += expansion_bytes(*e);
       records.emplace(DecompKey(qkey), std::move(e));
     }
 
@@ -130,8 +144,10 @@ namespace U3xU4
                                                    Expansion&& e)
   {
     std::lock_guard lock(file_mutex_);
+    const std::size_t nb = expansion_bytes(e); // before the move
     auto [it, inserted] =
         records.emplace(key, std::make_unique<Expansion>(std::move(e)));
+    if (inserted) bytes += nb;
     return it->second.get(); // existing one wins on race
   }
 
@@ -141,10 +157,17 @@ namespace U3xU4
   SSTDecomp_phys_db::DecompFile&
   SSTDecomp_phys_db::getFile(const std::string& file)
   {
+    const std::size_t stamp =
+        access_clock_.fetch_add(1, std::memory_order_relaxed);
     {
       std::shared_lock lock(cache_mutex_);
       auto it = cache_.find(file);
-      if (it != cache_.end()) return *(it->second);
+      if (it != cache_.end())
+      {
+        it->second->last_access.store(stamp, std::memory_order_relaxed);
+        it->second->refs.fetch_add(1, std::memory_order_relaxed);
+        return *(it->second);
+      }
     }
 
     auto path = dir + "/" + file;
@@ -152,8 +175,15 @@ namespace U3xU4
 
     std::unique_lock lock(cache_mutex_);
     auto it = cache_.find(file);
-    if (it != cache_.end()) return *(it->second);
+    if (it != cache_.end())
+    {
+      it->second->last_access.store(stamp, std::memory_order_relaxed);
+      it->second->refs.fetch_add(1, std::memory_order_relaxed);
+      return *(it->second);
+    }
 
+    new_file->last_access.store(stamp, std::memory_order_relaxed);
+    new_file->refs.fetch_add(1, std::memory_order_relaxed);
     auto [it_inserted, inserted] = cache_.emplace(file, std::move(new_file));
     return *(it_inserted->second);
   }
@@ -236,6 +266,9 @@ namespace U3xU4
     dir = decomp_dir();
     std::filesystem::create_directories(dir);
 
+    if (const char* e = std::getenv("SAM_DECOMP_CACHE_CAP"))
+      cache_cap_ = std::strtoull(e, nullptr, 10);
+
 #ifdef USE_MPI
     int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
@@ -258,6 +291,54 @@ namespace U3xU4
       records += df->records.size();
     }
     return {files, records};
+  }
+
+  std::size_t SSTDecomp_phys_db::cache_bytes() const
+  {
+    std::shared_lock lock(cache_mutex_);
+    std::size_t b = 0;
+    for (const auto& [fn, df] : cache_) b += df->bytes;
+    return b;
+  }
+
+  // Drop least-recently-used files until the live cache is under cache_cap_.
+  // Caller guarantees no ExpansionRef is outstanding (chunk-boundary omp single),
+  // so freeing a DecompFile's records can't dangle a borrowed pointer. New
+  // records in an evicted file are simply not persisted (recomputed if ever
+  // re-referenced); the on-disk copy is never touched here.
+  std::size_t SSTDecomp_phys_db::evict_to_cap()
+  {
+    if (cache_cap_ == 0) return 0;
+
+    std::unique_lock lock(cache_mutex_);
+
+    std::size_t total = 0;
+    for (const auto& [fn, df] : cache_) total += df->bytes;
+    if (total <= cache_cap_) return 0;
+
+    // Evict least-REUSED first (low refs), tie-break least-recently-used. The
+    // giant high-shell decomps are touched ~once so they go first; the small
+    // low-shell ones reused throughout the run stay resident.
+    std::vector<std::tuple<std::size_t, std::size_t, std::string>> order;
+    order.reserve(cache_.size());
+    for (const auto& [fn, df] : cache_)
+      order.emplace_back(df->refs.load(std::memory_order_relaxed),
+                         df->last_access.load(std::memory_order_relaxed), fn);
+    std::sort(order.begin(), order.end());
+
+    std::size_t freed = 0;
+    for (const auto& entry : order)
+    {
+      if (total <= cache_cap_) break;
+      const std::string& fn = std::get<2>(entry);
+      auto it = cache_.find(fn);
+      if (it == cache_.end()) continue;
+      const std::size_t b = it->second->bytes;
+      total -= b;
+      freed += b;
+      cache_.erase(it);
+    }
+    return freed;
   }
 
   //=========================================================================

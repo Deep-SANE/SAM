@@ -1,11 +1,14 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <mutex>
 #include <shared_mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <boost/container/flat_map.hpp>
@@ -65,6 +68,9 @@ namespace U3xU4
       std::string path;
       boost::container::flat_map<DecompKey, std::unique_ptr<Expansion>> records;
       size_t initial_size = 0;
+      size_t bytes = 0;                     // live memory of this file's records
+      std::atomic<size_t> last_access{0};   // LRU clock stamp (see evict_to_cap)
+      std::atomic<size_t> refs{0};          // # accesses; evict least-reused first
       mutable std::mutex file_mutex_;
 
       explicit DecompFile(const std::string& path_);
@@ -81,6 +87,10 @@ namespace U3xU4
     // Top-level cache: filename -> file.
     boost::unordered_flat_map<std::string, std::unique_ptr<DecompFile>> cache_;
     mutable std::shared_mutex cache_mutex_;
+
+    // Memory bound (SAM_DECOMP_CACHE_CAP, bytes; 0 = uncapped) + LRU clock.
+    std::size_t cache_cap_ = 0;
+    std::atomic<std::size_t> access_clock_{0};
 
     DecompFile& getFile(const std::string& file);
 
@@ -102,6 +112,17 @@ namespace U3xU4
     // Diagnostic snapshot: (#files loaded, total #records) currently held in the
     // in-memory cache. Cheap; for the per-rank memory monitor.
     std::pair<std::size_t, std::size_t> cache_stats() const;
+
+    // Live bytes held by the in-memory cache (what the cap counts). For the
+    // memory monitor / cap sizing.
+    std::size_t cache_bytes() const;
+
+    // Drop least-recently-used files until the live cache is under
+    // SAM_DECOMP_CACHE_CAP bytes. MUST be called from a point where NO
+    // ExpansionRef is outstanding (the expand loop's chunk-boundary omp single) --
+    // eviction frees records, so a borrowed pointer would dangle otherwise.
+    // No-op when uncapped. Returns bytes freed.
+    std::size_t evict_to_cap();
 
     // Borrow-or-own handle to an Expansion. On a cache hit get_view() borrows a
     // stable pointer into the in-memory cache (zero copy, valid for the db's

@@ -642,6 +642,11 @@ namespace JT
           // tensor destructs here: chunk's strengths freed before the next chunk
         }
 
+        // bound the decomp cache: evict LRU files over SAM_DECOMP_CACHE_CAP.
+        // Safe here -- all threads are parked at the barrier, so no borrowed
+        // ExpansionRef is live.
+        decompdb.evict_to_cap();
+
         if (memlog)
         {
           auto [dfiles, drecs] = decompdb.cache_stats();
@@ -649,7 +654,8 @@ namespace JT
                     << my_indices.size() << ": rss=" << rss_now_gb()
                     << " peak=" << rss_peak_gb() << " GB  mscheme="
                     << ms_entries_acc << " entries  decomp=" << dfiles
-                    << " files / " << drecs << " recs" << std::endl;
+                    << " files / " << drecs << " recs / "
+                    << decompdb.cache_bytes() / 1e9 << " GB" << std::endl;
           ms_entries_acc = 0;
         }
       } // implicit barrier: flush done before the next chunk computes
@@ -1123,6 +1129,11 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
           // tensor destructs here: chunk's strengths freed before the next chunk
         }
 
+        // bound the decomp cache: evict LRU files over SAM_DECOMP_CACHE_CAP.
+        // Safe here -- all threads are parked at the barrier, so no borrowed
+        // ExpansionRef is live.
+        decompdb.evict_to_cap();
+
         if (memlog)
         {
           auto [dfiles, drecs] = decompdb.cache_stats();
@@ -1130,7 +1141,8 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
                     << my_indices.size() << ": rss=" << rss_now_gb()
                     << " peak=" << rss_peak_gb() << " GB  mscheme="
                     << ms_entries_acc << " entries  decomp=" << dfiles
-                    << " files / " << drecs << " recs" << std::endl;
+                    << " files / " << drecs << " recs / "
+                    << decompdb.cache_bytes() / 1e9 << " GB" << std::endl;
           ms_entries_acc = 0;
         }
       } // implicit barrier: flush done before the next chunk computes
