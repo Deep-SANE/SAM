@@ -555,6 +555,24 @@ namespace JT
       for (size_t it = 0; it < tensors_rank.size(); ++it) my_indices[it] = it;
     }
 
+    // Fail-fast tuning (SAM_EXPAND_HEAVY_FIRST): reorder this rank's work so the
+    // memory-heaviest tensors are processed FIRST. The big high-shell decomps
+    // are naturally LAST in the enumeration, so a config that will OOM wastes
+    // hours before it reaches the peak; front-loading them makes a doomed run
+    // fail in minutes, and a run that survives the heavy front coasts through the
+    // light tail. We sort the INDEX list (no tensor moves). Changes output order
+    // -> re-validate; the physics is unchanged. Proxy: shell-degeneracy product.
+    if (std::getenv("SAM_EXPAND_HEAVY_FIRST"))
+    {
+      auto heaviness = [&](size_t it) {
+        const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
+        auto d = [](int n) { return double((n + 1) * (n + 2)); };
+        return d(s[0]) * d(s[1]) * d(s[2]) * d(s[3]);
+      };
+      std::stable_sort(my_indices.begin(), my_indices.end(),
+        [&](size_t a, size_t b) { return heaviness(a) > heaviness(b); });
+    }
+
     const size_t my_count = my_indices.size();
     std::cerr << "Rank " << mpi_rank << ": processing " << my_count
               << " / " << g_tensor << " tensors" << std::endl;
@@ -1043,6 +1061,24 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     {
       my_indices.resize(tensors_rank.size());
       for (size_t it = 0; it < tensors_rank.size(); ++it) my_indices[it] = it;
+    }
+
+    // Fail-fast tuning (SAM_EXPAND_HEAVY_FIRST): reorder this rank's work so the
+    // memory-heaviest tensors are processed FIRST. The big high-shell decomps
+    // are naturally LAST in the enumeration, so a config that will OOM wastes
+    // hours before it reaches the peak; front-loading them makes a doomed run
+    // fail in minutes, and a run that survives the heavy front coasts through the
+    // light tail. We sort the INDEX list (no tensor moves). Changes output order
+    // -> re-validate; the physics is unchanged. Proxy: shell-degeneracy product.
+    if (std::getenv("SAM_EXPAND_HEAVY_FIRST"))
+    {
+      auto heaviness = [&](size_t it) {
+        const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
+        auto d = [](int n) { return double((n + 1) * (n + 2)); };
+        return d(s[0]) * d(s[1]) * d(s[2]) * d(s[3]);
+      };
+      std::stable_sort(my_indices.begin(), my_indices.end(),
+        [&](size_t a, size_t b) { return heaviness(a) > heaviness(b); });
     }
 
     const size_t my_count = my_indices.size();

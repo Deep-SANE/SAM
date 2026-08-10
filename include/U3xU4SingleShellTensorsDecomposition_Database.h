@@ -92,6 +92,26 @@ namespace U3xU4
     std::size_t cache_cap_ = 0;
     std::atomic<std::size_t> access_clock_{0};
 
+    // Decomps bigger than this (SAM_DECOMP_NOCACHE_ABOVE, bytes; 0 = off) are
+    // never cached -- computed transiently and freed, since they're used ~once.
+    std::size_t nocache_bytes_ = 0;
+
+    // Optional disk-backed store for the big (uncached) decomps (SAM_DECOMP_
+    // OVERFLOW=1): instead of discarding a giant after use, append it to a
+    // per-rank file and index its offset, so a re-reference RELOADS it (seek)
+    // rather than recomputing. RAM stays bounded (only the offset is kept).
+    bool                 overflow_on_ = false;
+    std::string          overflow_path_;
+    std::ofstream        overflow_out_;               // append; flushed per write
+    mutable std::mutex   overflow_mutex_;             // guards file + index
+    boost::unordered_flat_map<std::string,
+        boost::unordered_flat_map<uint64_t, long long>> overflow_index_; // file->qkey->offset
+
+    std::unique_ptr<Expansion> load_overflow(const std::string& file,
+                                             const DecompKey& key);
+    void store_overflow(const std::string& file, const DecompKey& key,
+                        const Expansion& e);
+
     DecompFile& getFile(const std::string& file);
 
     // Per-tensor file name, built from the structural quantum numbers (same

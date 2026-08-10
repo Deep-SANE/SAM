@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <cstdlib>
 #include <mutex>
 #include <string>
@@ -11,6 +12,10 @@
 
 #ifdef USE_MPI
 #include <mpi.h>
+#endif
+
+#if defined(__GLIBC__)
+#include <malloc.h>   // malloc_trim: return evicted pages to the OS
 #endif
 
 namespace U3xU4
@@ -85,6 +90,36 @@ namespace U3xU4
     return e.coeffs.data.size() * sizeof(double)
          + e.op_index.size()   * sizeof(std::uint16_t)
          + e.op_is_ad.size()   * sizeof(std::uint8_t);
+  }
+
+  // Field-only (no qkey) Expansion I/O for the overflow store: the offset index
+  // already holds the key, so only the payload is written/read. Same field order
+  // as writeRecord / the DecompFile loader, minus the leading qkey.
+  static void write_expansion_fields(std::ostream& s, const Expansion& e)
+  {
+    uint64_t nrows = e.rows();
+    qcx_utils::writeBinary(s, nrows);
+    qcx_utils::writeBinary(s, e.coeffs.ncols);
+    qcx_utils::writeBinary(s, e.nops);
+    qcx_utils::writeBinary(s, e.coeffs.data);
+    qcx_utils::writeBinary(s, e.op_index);
+    qcx_utils::writeBinary(s, e.op_is_ad);
+  }
+
+  static bool read_expansion_fields(std::istream& s, Expansion& e)
+  {
+    uint64_t nrows;
+    qcx_utils::readBinary(s, nrows);
+    qcx_utils::readBinary(s, e.coeffs.ncols);
+    qcx_utils::readBinary(s, e.nops);
+    if (!s) return false;
+    e.coeffs.data.resize(nrows * e.coeffs.ncols);
+    e.op_index.resize(nrows * e.nops);
+    e.op_is_ad.resize(nrows * e.nops);
+    qcx_utils::readBinary(s, e.coeffs.data);
+    qcx_utils::readBinary(s, e.op_index);
+    qcx_utils::readBinary(s, e.op_is_ad);
+    return bool(s);
   }
 
   SSTDecomp_phys_db::DecompFile::DecompFile(const std::string& path_)
@@ -189,6 +224,47 @@ namespace U3xU4
   }
 
   //=========================================================================
+  // Overflow store (SAM_DECOMP_OVERFLOW=1): disk-back the big uncached decomps.
+  // Instead of discarding a giant after use, append it to a per-rank file and
+  // record its offset, so a re-reference RELOADS it (seek) rather than
+  // recomputing. Both paths hold overflow_mutex_, which serializes all overflow
+  // I/O -- acceptable since the big decomps are the minority. RAM stays bounded:
+  // only the offset lives in memory. Reads use a fresh ifstream (the writer is an
+  // append-only ofstream, flushed per write) so read/write never share a stream.
+  //=========================================================================
+  void SSTDecomp_phys_db::store_overflow(const std::string& file,
+                                         const DecompKey& key,
+                                         const Expansion& e)
+  {
+    std::lock_guard lock(overflow_mutex_);
+    if (!overflow_out_) return;
+    auto& slot = overflow_index_[file];
+    if (slot.find(key.qkey) != slot.end()) return; // already stored (race dup)
+
+    const long long off = static_cast<long long>(overflow_out_.tellp());
+    write_expansion_fields(overflow_out_, e);
+    overflow_out_.flush();               // make it visible to the read stream
+    if (overflow_out_) slot.emplace(key.qkey, off);
+  }
+
+  std::unique_ptr<Expansion>
+  SSTDecomp_phys_db::load_overflow(const std::string& file, const DecompKey& key)
+  {
+    std::lock_guard lock(overflow_mutex_);
+    auto fit = overflow_index_.find(file);
+    if (fit == overflow_index_.end()) return nullptr;
+    auto kit = fit->second.find(key.qkey);
+    if (kit == fit->second.end()) return nullptr;
+
+    std::ifstream in(overflow_path_, std::ios::binary);
+    if (!in) return nullptr;
+    in.seekg(kit->second);
+    auto e = std::make_unique<Expansion>();
+    if (!read_expansion_fields(in, *e)) return nullptr;
+    return e;
+  }
+
+  //=========================================================================
   // Constructors: discover the storage directory and preload existing files.
   //=========================================================================
   namespace
@@ -268,6 +344,22 @@ namespace U3xU4
 
     if (const char* e = std::getenv("SAM_DECOMP_CACHE_CAP"))
       cache_cap_ = std::strtoull(e, nullptr, 10);
+    if (const char* e = std::getenv("SAM_DECOMP_NOCACHE_ABOVE"))
+      nocache_bytes_ = std::strtoull(e, nullptr, 10);
+
+    // Disk-back the big uncached decomps (see store/load_overflow). Per-rank
+    // scratch file, truncated fresh each run. Off unless SAM_DECOMP_OVERFLOW set.
+    if (std::getenv("SAM_DECOMP_OVERFLOW"))
+    {
+      int r = 0;
+#ifdef USE_MPI
+      MPI_Comm_rank(MPI_COMM_WORLD, &r);
+#endif
+      overflow_path_ = dir + "/.overflow_rank" + std::to_string(r) + ".bin";
+      overflow_out_.open(overflow_path_,
+                         std::ios::binary | std::ios::out | std::ios::trunc);
+      overflow_on_ = static_cast<bool>(overflow_out_);
+    }
 
 #ifdef USE_MPI
     int mpi_rank = 0;
@@ -338,6 +430,14 @@ namespace U3xU4
       freed += b;
       cache_.erase(it);
     }
+
+#if defined(__GLIBC__)
+    // Return the freed pages to the OS. Without this glibc retains them, so RSS
+    // does NOT follow cache_bytes down -- the retained memory grows with the
+    // evict/grow churn and OOMs the node even though the cache is bounded. Safe
+    // here: caller (chunk-boundary omp single) has all other threads parked.
+    if (freed > 0) malloc_trim(0);
+#endif
     return freed;
   }
 
@@ -470,6 +570,16 @@ namespace U3xU4
 #endif
 
     cache_.clear();
+
+    // Drop the per-rank overflow scratch file (within-run only; not persisted).
+    if (overflow_on_)
+    {
+      std::lock_guard lock(overflow_mutex_);
+      overflow_out_.close();
+      std::remove(overflow_path_.c_str());
+      overflow_index_.clear();
+      overflow_on_ = false;
+    }
   }
 
   //=========================================================================
@@ -528,10 +638,33 @@ namespace U3xU4
     if (Expansion* e = df.get_ptr(key, t.labels()))
       return ExpansionRef(e);
 
+    // Big decomps aren't kept in the cache (below). With the overflow store on
+    // they were written to disk instead of discarded, so reload by seek rather
+    // than recompute. Owned (a private copy; not a stable cache pointer).
+    if (overflow_on_)
+      if (auto e = load_overflow(file, key))
+      {
+        e->labels = &t.labels();
+        return ExpansionRef(std::move(e));
+      }
+
     // Miss: compute WITHOUT a global lock (expand() is thread-safe; it sets the
-    // Expansion's labels), insert, and borrow the stable pointer. A duplicate
-    // compute on a race is harmless: append_or_get_ptr keeps the first entry.
-    Expansion* e = df.append_or_get_ptr(key, t.expand());
+    // Expansion's labels). Big high-shell decomps are used ~once, so caching
+    // them only floods memory and forces eviction: if the result exceeds
+    // SAM_DECOMP_NOCACHE_ABOVE bytes, keep it TRANSIENT (own it, never cached).
+    // Otherwise insert and borrow the stable pointer (a duplicate compute on a
+    // race is harmless -- append_or_get_ptr keeps the first entry).
+    Expansion ex = t.expand();
+    if (nocache_bytes_ && expansion_bytes(ex) > nocache_bytes_)
+    {
+      // Persist to the overflow store (if on) so a re-reference reloads it
+      // instead of recomputing this expensive expand().
+      if (overflow_on_) store_overflow(file, key, ex);
+      auto owned = std::make_unique<Expansion>(std::move(ex));
+      owned->labels = &t.labels();
+      return ExpansionRef(std::move(owned));
+    }
+    Expansion* e = df.append_or_get_ptr(key, std::move(ex));
     return ExpansionRef(e);
   }
 } // namespace U3xU4
