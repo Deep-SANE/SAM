@@ -13,6 +13,9 @@
 #include <omp.h>
 #include <sys/resource.h>
 #include <unistd.h>
+#if defined(__GLIBC__)
+#include <malloc.h>   // malloc_trim: return freed pages (m-scheme + decomp) to OS
+#endif
 
 #include <qcx_convert.h>
 #include <qcx_print.h>
@@ -35,6 +38,21 @@ namespace JT
   {
     const char* e = std::getenv("SAM_MSCHEME_CACHE_CAP");
     return e ? std::strtoull(e, nullptr, 10) : 0;
+  }
+
+  // Return freed heap pages to the OS. maybe_release_twbme_cache frees the
+  // per-thread m-scheme maps inside the parallel region but CANNOT trim there (a
+  // global malloc_trim would serialize every thread on the malloc lock); and the
+  // decomp cache's trim only fires when its cap is actually exceeded, which
+  // rarely happens once SAM_DECOMP_NOCACHE_ABOVE keeps the cache small. So the
+  // sawtooth of freed m-scheme buckets otherwise sits in glibc's arena and RSS
+  // creeps. Call this ONCE per chunk at the omp single (all threads parked -> no
+  // lock contention; ~once per flush_chunk tensors -> negligible cost).
+  static inline void trim_heap()
+  {
+#if defined(__GLIBC__)
+    malloc_trim(0);
+#endif
   }
 
   // --- per-rank memory monitor helpers (SAM_EXPAND_MEMLOG) -----------------
@@ -665,6 +683,11 @@ namespace JT
         // ExpansionRef is live.
         decompdb.evict_to_cap();
 
+        // Return this chunk's freed pages (the m-scheme maps released during the
+        // parallel for, plus anything evict_to_cap dropped) to the OS. Threads
+        // are parked here, so the malloc lock is uncontended.
+        trim_heap();
+
         if (memlog)
         {
           auto [dfiles, drecs] = decompdb.cache_stats();
@@ -1169,6 +1192,11 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         // Safe here -- all threads are parked at the barrier, so no borrowed
         // ExpansionRef is live.
         decompdb.evict_to_cap();
+
+        // Return this chunk's freed pages (the m-scheme maps released during the
+        // parallel for, plus anything evict_to_cap dropped) to the OS. Threads
+        // are parked here, so the malloc lock is uncontended.
+        trim_heap();
 
         if (memlog)
         {
