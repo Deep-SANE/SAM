@@ -25,6 +25,7 @@ using qcx_utils::print;
 #include <so3Coeffs/SO3_Fano.h>
 
 #include <sam.h>
+#include <u3lib.h>   // u3::clear(): wipe the coupling-coefficient caches
 
 #include <TwoBodyOperatorJT.h>
 
@@ -573,23 +574,24 @@ namespace JT
       for (size_t it = 0; it < tensors_rank.size(); ++it) my_indices[it] = it;
     }
 
+    // Memory-cost proxy for one tensor (shell-degeneracy product). Used both to
+    // front-load heavy work (SAM_EXPAND_HEAVY_FIRST) and to gate concurrent heavy
+    // computes (SAM_EXPAND_HEAVY_SEM). Imperfect -- it mis-ranks the true decomp
+    // size in detail (the real giants can sit mid-run, not first) -- but monotone
+    // enough to separate the memory-heavy tail from the light bulk.
+    auto heaviness = [&](size_t it) {
+      const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
+      auto d = [](int n) { return double((n + 1) * (n + 2)); };
+      return d(s[0]) * d(s[1]) * d(s[2]) * d(s[3]);
+    };
+
     // Fail-fast tuning (SAM_EXPAND_HEAVY_FIRST): reorder this rank's work so the
-    // memory-heaviest tensors are processed FIRST. The big high-shell decomps
-    // are naturally LAST in the enumeration, so a config that will OOM wastes
-    // hours before it reaches the peak; front-loading them makes a doomed run
-    // fail in minutes, and a run that survives the heavy front coasts through the
-    // light tail. We sort the INDEX list (no tensor moves). Changes output order
-    // -> re-validate; the physics is unchanged. Proxy: shell-degeneracy product.
+    // memory-heaviest tensors are processed FIRST, so a config that will OOM
+    // fails cheaply instead of hours in. Sorts the INDEX list (no tensor moves);
+    // changes output order -> re-validate, physics unchanged.
     if (std::getenv("SAM_EXPAND_HEAVY_FIRST"))
-    {
-      auto heaviness = [&](size_t it) {
-        const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
-        auto d = [](int n) { return double((n + 1) * (n + 2)); };
-        return d(s[0]) * d(s[1]) * d(s[2]) * d(s[3]);
-      };
       std::stable_sort(my_indices.begin(), my_indices.end(),
         [&](size_t a, size_t b) { return heaviness(a) > heaviness(b); });
-    }
 
     const size_t my_count = my_indices.size();
     std::cerr << "Rank " << mpi_rank << ": processing " << my_count
@@ -618,6 +620,13 @@ namespace JT
     // attribution at each chunk boundary, non-collective (no cross-rank sync).
     const bool memlog = std::getenv("SAM_EXPAND_MEMLOG") != nullptr;
     size_t ms_entries_acc = 0; // shared: per-chunk sum of thread m-scheme sizes
+
+    // Coeff-cache probe/fix: clear the u3lib coupling caches every N chunks to
+    // measure their footprint (RSS freed) and bound their growth. 0/unset = off.
+    const size_t coeff_clear_n = [] {
+      const char* e = std::getenv("SAM_EXPAND_COEFF_CLEAR");
+      return e ? std::strtoull(e, nullptr, 10) : (size_t)0;
+    }();
 
     std::string rank_filename = filename + ".rank_" + std::to_string(mpi_rank);
     std::cerr << "[expand_new] Rank " << mpi_rank << ": opening rank file "
@@ -688,6 +697,20 @@ namespace JT
         // are parked here, so the malloc lock is uncontended.
         trim_heap();
 
+        // Coeff-cache probe/fix (SAM_EXPAND_COEFF_CLEAR=N): every N chunks wipe
+        // the u3lib coupling-coefficient caches (uncapped, shared per rank, never
+        // released otherwise) and record the RSS they freed -- a direct footprint
+        // measurement and a periodic-clear knob. Safe here (all threads parked).
+        // -1 = no clear this chunk.
+        double coeff_freed_gb = -1.0;
+        if (coeff_clear_n && ((base / flush_chunk) % coeff_clear_n == 0))
+        {
+          const double r0 = rss_now_gb();
+          u3::clear();
+          trim_heap();
+          coeff_freed_gb = r0 - rss_now_gb();
+        }
+
         if (memlog)
         {
           auto [dfiles, drecs] = decompdb.cache_stats();
@@ -696,7 +719,8 @@ namespace JT
                     << " peak=" << rss_peak_gb() << " GB  mscheme="
                     << ms_entries_acc << " entries  decomp=" << dfiles
                     << " files / " << drecs << " recs / "
-                    << decompdb.cache_bytes() / 1e9 << " GB" << std::endl;
+                    << decompdb.cache_bytes() / 1e9 << " GB  coeff_freed="
+                    << coeff_freed_gb << " GB" << std::endl;
           ms_entries_acc = 0;
         }
       } // implicit barrier: flush done before the next chunk computes
@@ -1086,23 +1110,24 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       for (size_t it = 0; it < tensors_rank.size(); ++it) my_indices[it] = it;
     }
 
+    // Memory-cost proxy for one tensor (shell-degeneracy product). Used both to
+    // front-load heavy work (SAM_EXPAND_HEAVY_FIRST) and to gate concurrent heavy
+    // computes (SAM_EXPAND_HEAVY_SEM). Imperfect -- it mis-ranks the true decomp
+    // size in detail (the real giants can sit mid-run, not first) -- but monotone
+    // enough to separate the memory-heavy tail from the light bulk.
+    auto heaviness = [&](size_t it) {
+      const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
+      auto d = [](int n) { return double((n + 1) * (n + 2)); };
+      return d(s[0]) * d(s[1]) * d(s[2]) * d(s[3]);
+    };
+
     // Fail-fast tuning (SAM_EXPAND_HEAVY_FIRST): reorder this rank's work so the
-    // memory-heaviest tensors are processed FIRST. The big high-shell decomps
-    // are naturally LAST in the enumeration, so a config that will OOM wastes
-    // hours before it reaches the peak; front-loading them makes a doomed run
-    // fail in minutes, and a run that survives the heavy front coasts through the
-    // light tail. We sort the INDEX list (no tensor moves). Changes output order
-    // -> re-validate; the physics is unchanged. Proxy: shell-degeneracy product.
+    // memory-heaviest tensors are processed FIRST, so a config that will OOM
+    // fails cheaply instead of hours in. Sorts the INDEX list (no tensor moves);
+    // changes output order -> re-validate, physics unchanged.
     if (std::getenv("SAM_EXPAND_HEAVY_FIRST"))
-    {
-      auto heaviness = [&](size_t it) {
-        const auto& s = all_na_nb_nc_nd[tensors_rank[it].first];
-        auto d = [](int n) { return double((n + 1) * (n + 2)); };
-        return d(s[0]) * d(s[1]) * d(s[2]) * d(s[3]);
-      };
       std::stable_sort(my_indices.begin(), my_indices.end(),
         [&](size_t a, size_t b) { return heaviness(a) > heaviness(b); });
-    }
 
     const size_t my_count = my_indices.size();
     std::cerr << "Rank " << mpi_rank << ": processing " << my_count
@@ -1128,6 +1153,13 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     // attribution at each chunk boundary, non-collective (no cross-rank sync).
     const bool memlog = std::getenv("SAM_EXPAND_MEMLOG") != nullptr;
     size_t ms_entries_acc = 0; // shared: per-chunk sum of thread m-scheme sizes
+
+    // Coeff-cache probe/fix: clear the u3lib coupling caches every N chunks to
+    // measure their footprint (RSS freed) and bound their growth. 0/unset = off.
+    const size_t coeff_clear_n = [] {
+      const char* e = std::getenv("SAM_EXPAND_COEFF_CLEAR");
+      return e ? std::strtoull(e, nullptr, 10) : (size_t)0;
+    }();
 
     std::string rank_filename = filename + ".rank_" + std::to_string(mpi_rank);
     std::cerr << "[expand_exist] Rank " << mpi_rank << ": opening rank file "
@@ -1198,6 +1230,20 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         // are parked here, so the malloc lock is uncontended.
         trim_heap();
 
+        // Coeff-cache probe/fix (SAM_EXPAND_COEFF_CLEAR=N): every N chunks wipe
+        // the u3lib coupling-coefficient caches (uncapped, shared per rank, never
+        // released otherwise) and record the RSS they freed -- a direct footprint
+        // measurement and a periodic-clear knob. Safe here (all threads parked).
+        // -1 = no clear this chunk.
+        double coeff_freed_gb = -1.0;
+        if (coeff_clear_n && ((base / flush_chunk) % coeff_clear_n == 0))
+        {
+          const double r0 = rss_now_gb();
+          u3::clear();
+          trim_heap();
+          coeff_freed_gb = r0 - rss_now_gb();
+        }
+
         if (memlog)
         {
           auto [dfiles, drecs] = decompdb.cache_stats();
@@ -1206,7 +1252,8 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
                     << " peak=" << rss_peak_gb() << " GB  mscheme="
                     << ms_entries_acc << " entries  decomp=" << dfiles
                     << " files / " << drecs << " recs / "
-                    << decompdb.cache_bytes() / 1e9 << " GB" << std::endl;
+                    << decompdb.cache_bytes() / 1e9 << " GB  coeff_freed="
+                    << coeff_freed_gb << " GB" << std::endl;
           ms_entries_acc = 0;
         }
       } // implicit barrier: flush done before the next chunk computes
