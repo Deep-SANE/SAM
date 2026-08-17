@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 
   sam::initialize(&argc, &argv);
 
-  int Z = 3, N = 3, JJ = 2, TT = 0, Nmax = 8, hw = 20, write = 0;
+  int Z = 3, N = 3, JJ = 2, TT = 0, Nmax = 10, hw = 20, write = 1;
 
   u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
   u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
@@ -27,12 +27,13 @@ int main(int argc, char* argv[])
     hw2(2, {}, {}, {}, {TT}),
     hw4(4, {}, {}, {}, {TT}),
     hw6(6, {}, {}, {}, {TT}),
-    hw8(8, {}, {}, {}, {TT});
+    hw8(8, {}, {}, {}, {TT}),
+    hw10(10, {}, {}, {}, {TT});
 
-  U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ, {hw0, hw2, hw4, hw6, hw8});
+  U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ, {hw0, hw2, hw4, hw6, hw8, hw10});
   basis.construct();
 
-  std::string custom_dir = "Truncation_TT1";
+  std::string custom_dir = "Truncation_TT0";
 
   std::string name = "Hamiltonian with N2LO_opt_bare";
   // std::string name = "Hamiltonian with N3LO_EM500_srg2.0";

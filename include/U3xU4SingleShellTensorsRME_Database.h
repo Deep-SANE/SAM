@@ -49,6 +49,7 @@ namespace U3xU4
       // map key -> rmes
       boost::container::flat_map<RMEKey, std::vector<double>> rmes_map;
       size_t initial_size;
+      size_t bytes = 0;              // live memory of this file's rme vectors
 
       mutable std::mutex file_mutex_;
 
@@ -80,6 +81,11 @@ namespace U3xU4
 
     // Free all in-memory RME data (call after computation is done)
     void finalize();
+
+    // Diagnostic snapshot for the memory monitor: (#files loaded, #records)
+    // currently held, and the live bytes of the in-memory cache.
+    std::pair<std::size_t, std::size_t> cache_stats() const;
+    std::size_t cache_bytes() const;
 
   	sam::RME get(const U3xU4::SingleShellTensor& t,
                  const U3xU4::GammaElement& f, 

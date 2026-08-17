@@ -465,6 +465,9 @@ namespace U3xU4
     U3xU4::RME_db RMEdb(basis.maxShell());
 #ifdef DIAGNOSE_MEMORY
     print_rss("after RMEdb init", mpi_rank, mpi_size);
+    { auto [rf, rr] = RMEdb.cache_stats();
+      print_rme_mem("after RMEdb init", RMEdb.cache_bytes() / 1e9,
+                    rf, rr, mpi_rank, mpi_size); }
 #endif
 
 #ifdef TIME_ASSEMBLY
@@ -770,8 +773,11 @@ namespace U3xU4
 
 #ifdef DIAGNOSE_MEMORY
     print_rss("after OMP block (pre-finalize)", mpi_rank, mpi_size);
+    { auto [rf, rr] = RMEdb.cache_stats();
+      print_rme_mem("after OMP block (pre-finalize)", RMEdb.cache_bytes() / 1e9,
+                    rf, rr, mpi_rank, mpi_size); }
 #endif
-    
+
     sam::clear();
     RMEdb.finalize();
     connected_irreps.clear();

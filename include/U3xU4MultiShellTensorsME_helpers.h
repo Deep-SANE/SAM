@@ -94,6 +94,33 @@ inline void print_rss(const std::string& label, int = 0, int = 1)
 }
 #endif
 
+// Attribute part of the RSS to the (per-rank) RME_db cache -- pass its live GB
+// and (files, records) from RME_db::cache_bytes()/cache_stats(). With lazy
+// loading this should read ~0 right after RMEdb construction and grow to its
+// peak by the end of the OMP assembly block; the max across ranks is what a
+// node must hold x ranks-per-node.
+#ifdef USE_MPI
+inline void print_rme_mem(const std::string& label, double rme_gb,
+                          std::size_t files, std::size_t recs,
+                          int mpi_rank, int /*mpi_size*/)
+{
+  double rme_max = rme_gb, rme_sum = rme_gb;
+  MPI_Reduce(&rme_gb, &rme_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&rme_gb, &rme_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  if (mpi_rank == 0)
+    std::cerr << "[MEM] " << label << "  RME cache: max=" << rme_max
+              << " GB  total=" << rme_sum << " GB across ranks  (rank0 "
+              << files << " files / " << recs << " recs)" << std::endl;
+}
+#else
+inline void print_rme_mem(const std::string& label, double rme_gb,
+                          std::size_t files, std::size_t recs, int = 0, int = 1)
+{
+  std::cerr << "[MEM] " << label << "  RME cache: " << rme_gb << " GB  ("
+            << files << " files / " << recs << " recs)" << std::endl;
+}
+#endif
+
 #define EXPLOIT_SYMMETRIC
 
   // Uncomment to print a coarse split of the matrix-element assembly time

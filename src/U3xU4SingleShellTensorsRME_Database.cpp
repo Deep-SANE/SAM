@@ -1,4 +1,6 @@
 #include <mutex>
+#include <shared_mutex>
+#include <utility>
 #include <U3xU4SingleShellTensorsRME_Database.h>
 
 #ifdef USE_MPI
@@ -55,6 +57,7 @@ namespace U3xU4
       std::vector<double> rmes(num);
       qcx_utils::readBinary(file, rmes);
 
+      bytes += num * sizeof(double);
       rmes_map.emplace(RMEKey(su3, su4), std::move(rmes));
 
       if (!file) break;
@@ -88,8 +91,9 @@ namespace U3xU4
     const RMEKey& key, const std::vector<double>& rmes)
   {
     std::lock_guard lock(file_mutex_);
-    
+
     auto [it, inserted] = rmes_map.emplace(key, rmes);
+    if (inserted) bytes += rmes.size() * sizeof(double);
 
     return it->second;   // if already existed, returns old one
   }
@@ -138,36 +142,14 @@ namespace U3xU4
 
     std::filesystem::create_directories(dir);
 
-    // Preload all existing files
-#ifdef USE_MPI
-    int mpi_rank = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-
-    if (mpi_rank == 0) std::cerr << "Start loading rme files" << std::endl;
-#else
-    std::cout << "Start loading rme files" << std::endl;
-#endif
-
-    for (const auto& entry : std::filesystem::directory_iterator(dir))
-    {
-      if (entry.path().extension() != ".bin") continue;
-
-      std::string filename = entry.path().filename().string();
-      if (filename.empty() || filename[0] != 'n') continue;
-
-      std::string path = entry.path().string();
-
-      cache_.emplace(filename, std::make_unique<RMEFile>(path));
-    }
-
-#ifdef USE_MPI
-    if (mpi_rank == 0) std::cerr << "Finish loading rme files" << std::endl;
-#else
-    std::cout << "Finish loading rme files" << std::endl;
-#endif
-
-    // Reserve to avoid rehash under concurrency
-    cache_.reserve(cache_.size() + 16);
+    // LAZY: do NOT preload the rmes/ folder. The old body pulled EVERY rme file
+    // into RAM on EVERY rank at construction -- replicated across all ranks on a
+    // node, plus a startup I/O storm (every rank scanning + reading the whole
+    // folder off the shared FS). getFile() loads each file on first access
+    // (thread-safe), so a rank only holds the RME files its own irrep blocks
+    // actually touch, and the reads spread over the compute. Same fix as
+    // SSTDecomp_phys_db.
+    cache_.reserve(64);
   }
 
   RME_db::RME_db(int maxShell)
@@ -188,51 +170,11 @@ namespace U3xU4
     
     std::filesystem::create_directories(dir);
 
-    // Preload all existing files
-#ifdef USE_MPI
-    int mpi_rank = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-
-    if (mpi_rank == 0) std::cerr << "Start loading rme files" << std::endl;
-#else
-    std::cout << "Start loading rme files" << std::endl;
-#endif
-
-    for (const auto& entry : std::filesystem::directory_iterator(dir))
-    {
-      if (entry.path().extension() != ".bin") continue;
-
-      std::string filename = entry.path().filename().string();
-      if (filename.empty() || filename[0] != 'n') continue;
-
-      std::string path = entry.path().string();
-
-      size_t pos = 1;
-      int shell = 0;
-
-      while (pos < filename.size())
-      {
-        if (std::isdigit(filename[pos]))
-        {
-          shell = shell * 10 + (filename[pos] - '0');
-          pos++;
-        }
-        else
-          break;
-      }
-
-      if (shell > maxShell) continue;
-
-      cache_.emplace(filename, std::make_unique<RMEFile>(path));
-    }
-#ifdef USE_MPI
-    if (mpi_rank == 0) std::cerr << "Finish loading rme files" << std::endl;
-#else
-    std::cout << "Finish loading rme files" << std::endl;
-#endif
-
-    // Reserve to avoid rehash under concurrency
-    cache_.reserve(cache_.size() + 16);
+    // LAZY on-demand load (see the default ctor). maxShell is kept for signature
+    // compatibility; getFile() only ever loads requested (hence in-range) files,
+    // so the old shell filter + eager preload are no longer needed.
+    (void)maxShell;
+    cache_.reserve(64);
   }
 
   // RME_db::~RME_db()
@@ -367,6 +309,26 @@ namespace U3xU4
 #endif
 
     cache_.clear();
+  }
+
+  std::pair<std::size_t, std::size_t> RME_db::cache_stats() const
+  {
+    std::shared_lock lock(cache_mutex_);
+    std::size_t files = cache_.size(), records = 0;
+    for (const auto& [name, f] : cache_)
+    {
+      std::lock_guard flock(f->file_mutex_);
+      records += f->rmes_map.size();
+    }
+    return {files, records};
+  }
+
+  std::size_t RME_db::cache_bytes() const
+  {
+    std::shared_lock lock(cache_mutex_);
+    std::size_t b = 0;
+    for (const auto& [name, f] : cache_) b += f->bytes;
+    return b;
   }
 
   sam::RME RME_db::get(const U3xU4::SingleShellTensor& t,
