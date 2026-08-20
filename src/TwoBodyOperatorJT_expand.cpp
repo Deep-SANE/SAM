@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
@@ -460,6 +461,51 @@ namespace JT
       [] { const char* m = std::getenv("SAM_EXPAND_PARTITION");
            return m != nullptr && std::string(m) == "weighted"; }();
 
+    // Dynamic work-queue (SAM_EXPAND_DYNAMIC_BATCH=N, N>0): replace the static
+    // partition with a shared MPI atomic counter -- every rank pulls the next N
+    // tensors, so a rank that finishes early steals the slow giant-tail from a
+    // laggard (no idle ranks). Needs >1 rank and ALL tensors built on every rank
+    // (see `owned` below). Trades higher peak memory (more ranks computing giants
+    // at once) for wall time -- ideal on big-RAM nodes. 0/unset = static.
+    const size_t dyn_batch = [] {
+      const char* e = std::getenv("SAM_EXPAND_DYNAMIC_BATCH");
+      return e ? std::strtoull(e, nullptr, 10) : (size_t)0;
+    }();
+#ifdef USE_MPI
+    const bool dynamic_mode = (dyn_batch > 0) && (mpi_size > 1);
+#else
+    const bool dynamic_mode = false;
+#endif
+
+    // Resume from a prior (static) run: skip tensors it already finished. Their
+    // GLOBAL build indices are residues of that run's rank count -- a killed
+    // 4-rank run whose ranks 1,3 completed leaves residues {1,3} mod 4 done.
+    // SAM_EXPAND_DONE_MODULUS=M + SAM_EXPAND_DONE_RESIDUES=csv skip them here;
+    // SAM_EXPAND_DONE_DIR folds that run's .rank_* files into the merge below.
+    // With dynamic mode, only the FAILED residues recompute, balanced over all
+    // ranks -- reuse the done half, fix the imbalance on the rest.
+    size_t done_modulus = 0;
+    std::vector<int> done_residues;
+    if (const char* m = std::getenv("SAM_EXPAND_DONE_MODULUS"))
+      done_modulus = std::strtoull(m, nullptr, 10);
+    if (const char* rs = std::getenv("SAM_EXPAND_DONE_RESIDUES"))
+      for (const char* p = rs; *p; )
+      {
+        char* end = nullptr;
+        long v = std::strtol(p, &end, 10);
+        if (end == p) break;
+        done_residues.push_back((int)v);
+        p = (*end == ',') ? end + 1 : end;
+      }
+    const bool done_skip = (done_modulus > 0) && !done_residues.empty();
+    auto is_done = [done_skip, done_modulus, &done_residues](size_t k) -> bool
+    {
+      if (!done_skip) return false;
+      const int res = (int)(k % done_modulus);
+      for (int r : done_residues) if (r == res) return true;
+      return false;
+    };
+
     std::vector<std::pair<size_t, U3xU4::MultiShellTensor_phys>> tensors_rank;
     size_t g_tensor = 0; // global index over all selection-passing tensors
 
@@ -497,7 +543,10 @@ namespace JT
 
         // Ownership at BUILD time: strided stores only this rank's share so the
         // full structure list is never materialized; weighted stores all.
-        const bool owned = weighted_partition ||
+        // dynamic_mode needs every rank able to compute ANY claimed tensor, so
+        // every rank builds the full list (structures are small -- the owned-only
+        // build never moved memory materially).
+        const bool owned = dynamic_mode || weighted_partition ||
                            (g_tensor % (size_t)mpi_size == (size_t)mpi_rank);
         ++g_tensor;
         if (owned) tensors_rank.emplace_back(i, std::move(tensor));
@@ -528,7 +577,7 @@ namespace JT
     //  threads growing uncapped caches and loses NUMA locality -> pathologically
     //  slow. Prefer several ranks: separate address spaces, NUMA-local.)
     std::vector<size_t> my_indices;
-    if (weighted_partition)
+    if (weighted_partition && !dynamic_mode)
     {
       // weighted stored the FULL list above; cut it into equal-weight
       // contiguous blocks (broken cost proxy -- see note above; kept only for
@@ -589,7 +638,7 @@ namespace JT
     // memory-heaviest tensors are processed FIRST, so a config that will OOM
     // fails cheaply instead of hours in. Sorts the INDEX list (no tensor moves);
     // changes output order -> re-validate, physics unchanged.
-    if (std::getenv("SAM_EXPAND_HEAVY_FIRST"))
+    if (!dynamic_mode && std::getenv("SAM_EXPAND_HEAVY_FIRST"))
       std::stable_sort(my_indices.begin(), my_indices.end(),
         [&](size_t a, size_t b) { return heaviness(a) > heaviness(b); });
 
@@ -637,19 +686,81 @@ namespace JT
     size_t n_written = 0;
     qcx_utils::writeBinary(rf, n_written); // placeholder, patched below
 
+    // Dynamic work-queue: a single global counter (on rank 0) that ranks
+    // fetch-and-add to claim the next batch. Passive-target RMA, so a rank that
+    // finishes its share keeps pulling until the counter passes n_total -- the
+    // giant tail spreads across all ranks instead of stranding a laggard.
+#ifdef USE_MPI
+    MPI_Win   dyn_win     = MPI_WIN_NULL;
+    uint64_t* dyn_counter = nullptr;
+    if (dynamic_mode)
+    {
+      if (mpi_rank == 0)
+      {
+        MPI_Alloc_mem(sizeof(uint64_t), MPI_INFO_NULL, &dyn_counter);
+        *dyn_counter = 0;
+        MPI_Win_create(dyn_counter, sizeof(uint64_t), sizeof(uint64_t),
+                       MPI_INFO_NULL, MPI_COMM_WORLD, &dyn_win);
+      }
+      else
+        MPI_Win_create(nullptr, 0, sizeof(uint64_t), MPI_INFO_NULL,
+                       MPI_COMM_WORLD, &dyn_win);
+      MPI_Win_lock_all(0, dyn_win);
+    }
+#endif
+
+    // Progress for the STATIC path + a chunk counter for the coeff probe; both
+    // are advanced only inside the omp single, so no race.
+    size_t next_lo  = 0;
+    size_t chunk_no = 0;
+
 #pragma omp parallel
 {
   sam::initialize_thread();
 
-    for (size_t base = 0; base < my_indices.size(); base += flush_chunk)
+    while (true)
     {
-      const size_t stop = std::min(base + flush_chunk, my_indices.size());
+      size_t base = 0, stop = 0;
+      int    have_work = 0;
 
-      // compute this chunk in parallel
+      // One thread picks the next [base, stop) range and broadcasts it to the
+      // team (copyprivate). dynamic: an MPI atomic fetch-and-add on the shared
+      // work counter (SERIALIZED-safe -- only this single thread calls MPI, and
+      // it does so alone). static: a plain local counter, identical ranges/order
+      // to the old for-loop so the output is unchanged.
+#pragma omp single copyprivate(base, stop, have_work)
+      {
+        if (dynamic_mode)
+        {
+#ifdef USE_MPI
+          uint64_t inc = (uint64_t)dyn_batch, s = 0;
+          MPI_Fetch_and_op(&inc, &s, MPI_UINT64_T, 0, 0, MPI_SUM, dyn_win);
+          MPI_Win_flush(0, dyn_win);
+          if ((size_t)s < my_indices.size())
+          {
+            base = (size_t)s;
+            stop = std::min(base + dyn_batch, my_indices.size());
+            have_work = 1;
+          }
+#endif
+        }
+        else if (next_lo < my_indices.size())
+        {
+          base = next_lo;
+          stop = std::min(base + flush_chunk, my_indices.size());
+          next_lo = stop;
+          have_work = 1;
+        }
+      } // implicit barrier + copyprivate broadcast (all threads agree on base/stop)
+
+      if (!have_work) break; // all threads break together -> clean exit
+
+      // compute this batch in parallel
 #pragma omp for schedule(dynamic,1)
       for (size_t k = base; k < stop; ++k)
       {
         const size_t it = my_indices[k];
+        if (is_done(it)) continue; // finished by a prior run -> reused from done/
         auto& [i, tensor] = tensors_rank[it];
 
         setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
@@ -661,7 +772,7 @@ namespace JT
           std::cerr << "Rank " << mpi_rank << " [thread " << omp_get_thread_num()
                     << "]: " << k << " / " << my_count << std::endl;
         }
-      } // implicit barrier: chunk fully computed before flush
+      } // implicit barrier: batch fully computed before flush
 
       // memory monitor: each thread adds its m-scheme cache size before the
       // single thread reads the total (memlog is uniform across threads, so the
@@ -673,7 +784,7 @@ namespace JT
 #pragma omp barrier
       }
 
-      // one thread streams this chunk to disk and frees it; the rest wait
+      // one thread streams this batch to disk and frees it; the rest wait
 #pragma omp single
       {
         for (size_t k = base; k < stop; ++k)
@@ -684,7 +795,7 @@ namespace JT
             tensor.writeBinary(rf);
             ++n_written;
           }
-          // tensor destructs here: chunk's strengths freed before the next chunk
+          // tensor destructs here: batch's strengths freed before the next batch
         }
 
         // bound the decomp cache: evict LRU files over SAM_DECOMP_CACHE_CAP.
@@ -692,24 +803,25 @@ namespace JT
         // ExpansionRef is live.
         decompdb.evict_to_cap();
 
-        // Return this chunk's freed pages (the m-scheme maps released during the
+        // Return this batch's freed pages (the m-scheme maps released during the
         // parallel for, plus anything evict_to_cap dropped) to the OS. Threads
         // are parked here, so the malloc lock is uncontended.
         trim_heap();
 
-        // Coeff-cache probe/fix (SAM_EXPAND_COEFF_CLEAR=N): every N chunks wipe
+        // Coeff-cache probe/fix (SAM_EXPAND_COEFF_CLEAR=N): every N batches wipe
         // the u3lib coupling-coefficient caches (uncapped, shared per rank, never
         // released otherwise) and record the RSS they freed -- a direct footprint
         // measurement and a periodic-clear knob. Safe here (all threads parked).
-        // -1 = no clear this chunk.
+        // -1 = no clear this batch.
         double coeff_freed_gb = -1.0;
-        if (coeff_clear_n && ((base / flush_chunk) % coeff_clear_n == 0))
+        if (coeff_clear_n && (chunk_no % coeff_clear_n == 0))
         {
           const double r0 = rss_now_gb();
           u3::clear();
           trim_heap();
           coeff_freed_gb = r0 - rss_now_gb();
         }
+        ++chunk_no;
 
         if (memlog)
         {
@@ -723,11 +835,20 @@ namespace JT
                     << coeff_freed_gb << " GB" << std::endl;
           ms_entries_acc = 0;
         }
-      } // implicit barrier: flush done before the next chunk computes
+      } // implicit barrier: flush done before the next batch computes
     }
 
   sam::finalize_thread();
 }
+
+#ifdef USE_MPI
+    if (dynamic_mode)
+    {
+      MPI_Win_unlock_all(dyn_win);
+      MPI_Win_free(&dyn_win);        // collective: blocks until the last rank's
+      if (dyn_counter) MPI_Free_mem(dyn_counter); // claims are done
+    }
+#endif
 
     // patch the real count into the placeholder slot at the head of the file
     if (!rf) throw std::runtime_error("Write failed on rank file: " + rank_filename);
@@ -794,6 +915,29 @@ namespace JT
         std::remove(rf_name.c_str());
         std::cerr << "[expand_new] Rank 0: rank file " << r << " streamed and removed" << std::endl;
       }
+
+      // Fold in a prior run's completed rank files (SAM_EXPAND_DONE_DIR): stream
+      // them into the output too, so the reused (skipped) tensors are present.
+      // Kept on disk -- never removed.
+      if (const char* dd = std::getenv("SAM_EXPAND_DONE_DIR"))
+        for (const auto& e : std::filesystem::directory_iterator(dd))
+        {
+          if (e.path().filename().string().find(".rank_") == std::string::npos)
+            continue;
+          std::ifstream df(e.path(), std::ios::binary);
+          if (!df) continue;
+          size_t n; qcx_utils::readBinary(df, n);
+          std::cerr << "[expand_new] Rank 0: folding done file " << e.path()
+                    << " (" << n << " tensors)" << std::endl;
+          total_tensors += n;
+          if (n > 0)
+          {
+            out << df.rdbuf();
+            if (!out)
+              throw std::runtime_error("Write failed folding done file " +
+                                       e.path().string());
+          }
+        }
 
       // Seek back and overwrite the placeholder with the real count
       out.seekp(count_pos);
@@ -996,6 +1140,51 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       [] { const char* m = std::getenv("SAM_EXPAND_PARTITION");
            return m != nullptr && std::string(m) == "weighted"; }();
 
+    // Dynamic work-queue (SAM_EXPAND_DYNAMIC_BATCH=N, N>0): replace the static
+    // partition with a shared MPI atomic counter -- every rank pulls the next N
+    // tensors, so a rank that finishes early steals the slow giant-tail from a
+    // laggard (no idle ranks). Needs >1 rank and ALL tensors built on every rank
+    // (see `owned` below). Trades higher peak memory (more ranks computing giants
+    // at once) for wall time -- ideal on big-RAM nodes. 0/unset = static.
+    const size_t dyn_batch = [] {
+      const char* e = std::getenv("SAM_EXPAND_DYNAMIC_BATCH");
+      return e ? std::strtoull(e, nullptr, 10) : (size_t)0;
+    }();
+#ifdef USE_MPI
+    const bool dynamic_mode = (dyn_batch > 0) && (mpi_size > 1);
+#else
+    const bool dynamic_mode = false;
+#endif
+
+    // Resume from a prior (static) run: skip tensors it already finished. Their
+    // GLOBAL build indices are residues of that run's rank count -- a killed
+    // 4-rank run whose ranks 1,3 completed leaves residues {1,3} mod 4 done.
+    // SAM_EXPAND_DONE_MODULUS=M + SAM_EXPAND_DONE_RESIDUES=csv skip them here;
+    // SAM_EXPAND_DONE_DIR folds that run's .rank_* files into the merge below.
+    // With dynamic mode, only the FAILED residues recompute, balanced over all
+    // ranks -- reuse the done half, fix the imbalance on the rest.
+    size_t done_modulus = 0;
+    std::vector<int> done_residues;
+    if (const char* m = std::getenv("SAM_EXPAND_DONE_MODULUS"))
+      done_modulus = std::strtoull(m, nullptr, 10);
+    if (const char* rs = std::getenv("SAM_EXPAND_DONE_RESIDUES"))
+      for (const char* p = rs; *p; )
+      {
+        char* end = nullptr;
+        long v = std::strtol(p, &end, 10);
+        if (end == p) break;
+        done_residues.push_back((int)v);
+        p = (*end == ',') ? end + 1 : end;
+      }
+    const bool done_skip = (done_modulus > 0) && !done_residues.empty();
+    auto is_done = [done_skip, done_modulus, &done_residues](size_t k) -> bool
+    {
+      if (!done_skip) return false;
+      const int res = (int)(k % done_modulus);
+      for (int r : done_residues) if (r == res) return true;
+      return false;
+    };
+
     std::vector<std::pair<size_t, U3xU4::MultiShellTensor_phys>> tensors_rank;
     size_t g_tensor = 0; // global index over all selection-passing tensors
 
@@ -1033,7 +1222,10 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 
         // Ownership at BUILD time: strided stores only this rank's share so the
         // full structure list is never materialized; weighted stores all.
-        const bool owned = weighted_partition ||
+        // dynamic_mode needs every rank able to compute ANY claimed tensor, so
+        // every rank builds the full list (structures are small -- the owned-only
+        // build never moved memory materially).
+        const bool owned = dynamic_mode || weighted_partition ||
                            (g_tensor % (size_t)mpi_size == (size_t)mpi_rank);
         ++g_tensor;
         if (owned) tensors_rank.emplace_back(i, std::move(tensor));
@@ -1064,7 +1256,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     //  threads growing uncapped caches and loses NUMA locality -> pathologically
     //  slow. Prefer several ranks: separate address spaces, NUMA-local.)
     std::vector<size_t> my_indices;
-    if (weighted_partition)
+    if (weighted_partition && !dynamic_mode)
     {
       // weighted stored the FULL list above; cut it into equal-weight
       // contiguous blocks (broken cost proxy -- see note above; kept only for
@@ -1125,7 +1317,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     // memory-heaviest tensors are processed FIRST, so a config that will OOM
     // fails cheaply instead of hours in. Sorts the INDEX list (no tensor moves);
     // changes output order -> re-validate, physics unchanged.
-    if (std::getenv("SAM_EXPAND_HEAVY_FIRST"))
+    if (!dynamic_mode && std::getenv("SAM_EXPAND_HEAVY_FIRST"))
       std::stable_sort(my_indices.begin(), my_indices.end(),
         [&](size_t a, size_t b) { return heaviness(a) > heaviness(b); });
 
@@ -1170,19 +1362,81 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     size_t n_written = 0;
     qcx_utils::writeBinary(rf, n_written); // placeholder, patched below
 
+    // Dynamic work-queue: a single global counter (on rank 0) that ranks
+    // fetch-and-add to claim the next batch. Passive-target RMA, so a rank that
+    // finishes its share keeps pulling until the counter passes n_total -- the
+    // giant tail spreads across all ranks instead of stranding a laggard.
+#ifdef USE_MPI
+    MPI_Win   dyn_win     = MPI_WIN_NULL;
+    uint64_t* dyn_counter = nullptr;
+    if (dynamic_mode)
+    {
+      if (mpi_rank == 0)
+      {
+        MPI_Alloc_mem(sizeof(uint64_t), MPI_INFO_NULL, &dyn_counter);
+        *dyn_counter = 0;
+        MPI_Win_create(dyn_counter, sizeof(uint64_t), sizeof(uint64_t),
+                       MPI_INFO_NULL, MPI_COMM_WORLD, &dyn_win);
+      }
+      else
+        MPI_Win_create(nullptr, 0, sizeof(uint64_t), MPI_INFO_NULL,
+                       MPI_COMM_WORLD, &dyn_win);
+      MPI_Win_lock_all(0, dyn_win);
+    }
+#endif
+
+    // Progress for the STATIC path + a chunk counter for the coeff probe; both
+    // are advanced only inside the omp single, so no race.
+    size_t next_lo  = 0;
+    size_t chunk_no = 0;
+
 #pragma omp parallel
 {
   sam::initialize_thread();
 
-    for (size_t base = 0; base < my_indices.size(); base += flush_chunk)
+    while (true)
     {
-      const size_t stop = std::min(base + flush_chunk, my_indices.size());
+      size_t base = 0, stop = 0;
+      int    have_work = 0;
 
-      // compute this chunk in parallel
+      // One thread picks the next [base, stop) range and broadcasts it to the
+      // team (copyprivate). dynamic: an MPI atomic fetch-and-add on the shared
+      // work counter (SERIALIZED-safe -- only this single thread calls MPI, and
+      // it does so alone). static: a plain local counter, identical ranges/order
+      // to the old for-loop so the output is unchanged.
+#pragma omp single copyprivate(base, stop, have_work)
+      {
+        if (dynamic_mode)
+        {
+#ifdef USE_MPI
+          uint64_t inc = (uint64_t)dyn_batch, s = 0;
+          MPI_Fetch_and_op(&inc, &s, MPI_UINT64_T, 0, 0, MPI_SUM, dyn_win);
+          MPI_Win_flush(0, dyn_win);
+          if ((size_t)s < my_indices.size())
+          {
+            base = (size_t)s;
+            stop = std::min(base + dyn_batch, my_indices.size());
+            have_work = 1;
+          }
+#endif
+        }
+        else if (next_lo < my_indices.size())
+        {
+          base = next_lo;
+          stop = std::min(base + flush_chunk, my_indices.size());
+          next_lo = stop;
+          have_work = 1;
+        }
+      } // implicit barrier + copyprivate broadcast (all threads agree on base/stop)
+
+      if (!have_work) break; // all threads break together -> clean exit
+
+      // compute this batch in parallel
 #pragma omp for schedule(dynamic,1)
       for (size_t k = base; k < stop; ++k)
       {
         const size_t it = my_indices[k];
+        if (is_done(it)) continue; // finished by a prior run -> reused from done/
         auto& [i, tensor] = tensors_rank[it];
 
         setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
@@ -1194,7 +1448,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
           std::cerr << "Rank " << mpi_rank << " [thread " << omp_get_thread_num()
                     << "]: " << k << " / " << my_count << std::endl;
         }
-      } // implicit barrier: chunk fully computed before flush
+      } // implicit barrier: batch fully computed before flush
 
       // memory monitor: each thread adds its m-scheme cache size before the
       // single thread reads the total (memlog is uniform across threads, so the
@@ -1206,7 +1460,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 #pragma omp barrier
       }
 
-      // one thread streams this chunk to disk and frees it; the rest wait
+      // one thread streams this batch to disk and frees it; the rest wait
 #pragma omp single
       {
         for (size_t k = base; k < stop; ++k)
@@ -1217,7 +1471,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
             tensor.writeBinary(rf);
             ++n_written;
           }
-          // tensor destructs here: chunk's strengths freed before the next chunk
+          // tensor destructs here: batch's strengths freed before the next batch
         }
 
         // bound the decomp cache: evict LRU files over SAM_DECOMP_CACHE_CAP.
@@ -1225,24 +1479,25 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         // ExpansionRef is live.
         decompdb.evict_to_cap();
 
-        // Return this chunk's freed pages (the m-scheme maps released during the
+        // Return this batch's freed pages (the m-scheme maps released during the
         // parallel for, plus anything evict_to_cap dropped) to the OS. Threads
         // are parked here, so the malloc lock is uncontended.
         trim_heap();
 
-        // Coeff-cache probe/fix (SAM_EXPAND_COEFF_CLEAR=N): every N chunks wipe
+        // Coeff-cache probe/fix (SAM_EXPAND_COEFF_CLEAR=N): every N batches wipe
         // the u3lib coupling-coefficient caches (uncapped, shared per rank, never
         // released otherwise) and record the RSS they freed -- a direct footprint
         // measurement and a periodic-clear knob. Safe here (all threads parked).
-        // -1 = no clear this chunk.
+        // -1 = no clear this batch.
         double coeff_freed_gb = -1.0;
-        if (coeff_clear_n && ((base / flush_chunk) % coeff_clear_n == 0))
+        if (coeff_clear_n && (chunk_no % coeff_clear_n == 0))
         {
           const double r0 = rss_now_gb();
           u3::clear();
           trim_heap();
           coeff_freed_gb = r0 - rss_now_gb();
         }
+        ++chunk_no;
 
         if (memlog)
         {
@@ -1256,11 +1511,20 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
                     << coeff_freed_gb << " GB" << std::endl;
           ms_entries_acc = 0;
         }
-      } // implicit barrier: flush done before the next chunk computes
+      } // implicit barrier: flush done before the next batch computes
     }
 
   sam::finalize_thread();
 }
+
+#ifdef USE_MPI
+    if (dynamic_mode)
+    {
+      MPI_Win_unlock_all(dyn_win);
+      MPI_Win_free(&dyn_win);        // collective: blocks until the last rank's
+      if (dyn_counter) MPI_Free_mem(dyn_counter); // claims are done
+    }
+#endif
 
     // patch the real count into the placeholder slot at the head of the file
     if (!rf) throw std::runtime_error("Write failed on rank file: " + rank_filename);
@@ -1333,6 +1597,28 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         std::remove(rf_name.c_str());
         std::cerr << "[expand_exist] Rank 0: rank file " << r << " appended and removed" << std::endl;
       }
+
+      // Fold in a prior run's completed rank files (SAM_EXPAND_DONE_DIR): append
+      // them too, so the reused (skipped) tensors are present. Kept -- not removed.
+      if (const char* dd = std::getenv("SAM_EXPAND_DONE_DIR"))
+        for (const auto& e : std::filesystem::directory_iterator(dd))
+        {
+          if (e.path().filename().string().find(".rank_") == std::string::npos)
+            continue;
+          std::ifstream df(e.path(), std::ios::binary);
+          if (!df) continue;
+          size_t n; qcx_utils::readBinary(df, n);
+          std::cerr << "[expand_exist] Rank 0: folding done file " << e.path()
+                    << " (" << n << " tensors)" << std::endl;
+          n_new += n;
+          if (n > 0)
+          {
+            f << df.rdbuf();
+            if (!f)
+              throw std::runtime_error("Write failed folding done file " +
+                                       e.path().string());
+          }
+        }
 
       size_t total = n_tensors_prev + n_new;
       std::cerr << "[expand_exist] Rank 0: updating header (maxShell=" << maxShell_
