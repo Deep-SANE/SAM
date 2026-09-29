@@ -8,11 +8,11 @@
 
 namespace sam
 {
+  // u4::initialize cascades down to u3 and the qcx-utils foundation, so we only
+  // init the top of the chain here (+ SAM-specific caches).
   inline void initialize(int* argc, char*** argv)
   {
-    qcx_utils::initialize(argc, argv);
-  	u3::initialize();
-  	u4::initialize();
+    u4::initialize(argc, argv);   // cascades: u4 -> u3 -> qcx_utils
 #ifdef UNCOUPLE_ME_CACHE
     HO::initialize_twbme_cache();
 #endif
@@ -23,23 +23,17 @@ namespace sam
 #ifdef UNCOUPLE_ME_CACHE
     HO::finalize_twbme_cache();
 #endif
-    u4::finalize();
-    u3::finalize();
-  	qcx_utils::finalize();
+    u4::finalize();   // cascades: u4 -> u3 -> qcx_utils
   }
 
-  inline void initialize_thread() 
+  inline void initialize_thread()
   {
-    qcx_utils::initialize_thread();
-    u3::initialize_thread();
-    u4::initialize_thread();
+    u4::initialize_thread();   // cascades: u4 -> u3 -> qcx_utils
   }
 
   inline void finalize_thread()
   {
-    u4::finalize_thread();
-    u3::finalize_thread();
-    qcx_utils::finalize_thread();
+    u4::finalize_thread();   // cascades: u4 -> u3 -> qcx_utils
   }
 
   inline void clear() 
