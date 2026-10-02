@@ -29,8 +29,10 @@ from harmonic-oscillator $\mathrm{U}(3)$ and Wigner $\mathrm{SU}(4)$ group
 theory, and records their empirical validation across the chiral-EFT interaction
 family. The central results are: for a \emph{central} (rotational-scalar)
 two-body force the terminal $\mathrm{SU}(3)$ irrep obeys $\lm-\mumu=\shift$
-exactly, and its $\mathrm{SU}(4)$ content is restricted to the four
-self-conjugate irreps $\{(0,0,0),(0,2,0),(1,0,1),(2,0,2)\}$. Both are
+exactly and $\lm+\mumu$ even (translational invariance and parity), and its
+$\mathrm{SU}(4)$ content is
+restricted to the four self-conjugate irreps
+$\{(0,0,0),(0,2,0),(1,0,1),(2,0,2)\}$. Both are
 consequences of the force preserving the two-particle relative/exchange
 structure; a normal-ordered three-body force breaks both through the contracted
 core nucleon, in a controlled way that \emph{tags} the induced content.
@@ -65,9 +67,12 @@ We define the U(3) \emph{defect}
 \subsection{Empirical rules}
 For every \emph{genuine, central} two-body force examined,
 \[
-\diff = 0 \qquad\text{(exactly, for all matrix-element--nonzero tensors).}
+\diff = 0, \qquad \lm+\mumu \ \text{even}
+\qquad\text{(exactly, for all matrix-element--nonzero tensors).}
 \]
-Universally, for \emph{any} operator (scalar or not, two- or three-body),
+The first is the central/relative-motion rule ($h_2=0$); the second is parity
+conservation. Universally, for \emph{any} operator (scalar or not, two- or
+three-body),
 \[
 \diff \equiv 0 \pmod 3 .
 \]
@@ -93,26 +98,71 @@ $3$ is group-theoretically impossible.
 \emph{stretched} irrep $[h_1,0,h_3]$.
 \end{itemize}
 
-\subsection{Why a central force forces $h_2=0$}
-A central potential $V(|\mathbf r_1-\mathbf r_2|)$ acts only on the
-\emph{relative} coordinate; the center of mass is a spectator:
+\subsection{Why translational invariance forces $h_2=0$}
+The single property at work is \emph{translational invariance}, not centrality.
+A translationally invariant two-body operator depends only on the relative
+coordinate $\mathbf r_1-\mathbf r_2$; the center of mass is a spectator:
 \[
 V=(\text{relative-motion operator})\otimes(\text{CM identity}).
 \]
-The relative coordinate is a single 3D oscillator, so its states carry only
-symmetric irreps $(n_{\rm rel},0)$, and the relative tensor
-$a^\dagger_{\rm rel}\tilde a_{\rm rel}=(n',0)\times(0,n)$ decomposes into
-$(n'-k,\,n-k)$ --- every piece has $\lm-\mumu=n'-n$ and, as a $\mathrm{U}(3)$
-irrep of charge $n'-n$, has $h_2=0$. The CM identity is a $\mathrm{U}(3)$ scalar
-$(0,0)$. Coupling a two-rowed relative tensor to a scalar CM keeps $h_2=0$, so
-$\lm-\mumu=\shift_{\rm rel}$; and since the CM carries no quanta,
-$\shift_{\rm rel}=\shift$. Therefore
+The relative coordinate is a \emph{single} 3D oscillator, so any operator on it
+is a polynomial in $a^\dagger_{\rm rel},\tilde a_{\rm rel}$: a term
+$a^{\dagger\,p}_{\rm rel}\tilde a^{\,q}_{\rm rel}$ couples
+$(p,0)\otimes(0,q)=\bigoplus_k (p-k,\,q-k)$, and every piece has
+$\lm-\mumu=p-q$ --- as a $\mathrm{U}(3)$ irrep of charge $p-q$ it is two-rowed,
+$h_2=0$. (Rotational rank is irrelevant: a translationally invariant
+\emph{tensor} operator, e.g.\ the relative quadrupole, is equally two-rowed.)
+The CM identity is a $\mathrm{U}(3)$ scalar $(0,0)$, so coupling to it keeps
+$h_2=0$, and since the CM carries no quanta $\shift_{\rm rel}=\shift$. Therefore
 \[
 \lm-\mumu=\shift .\qquad\blacksquare
 \]
-Any tensor with $h_2\neq0$ (i.e.\ $\diff\neq0$) requires the CM coordinate to
-participate or a non-central structure; a scalar $V(r)$ gives it exactly zero
-strength. This is precisely the population of ``accepted-then-empty'' tensors.
+A central potential $V(|\mathbf r_1-\mathbf r_2|)$ is one such operator, but the
+result holds for any translationally invariant two-body operator. Conversely a
+tensor with $h_2\neq0$ (i.e.\ $\diff\neq0$) requires the CM coordinate to
+participate --- the operator is not of the form $V_{\rm rel}\otimes I_{\rm CM}$
+--- which is exactly the population of ``accepted-then-empty'' tensors.
+
+\subsection{Translational invariance and parity: $\lm+\mumu$ even}
+The terminal label is $n_{13}=\lm+\mumu$, and the filter requires
+\[
+\boxed{\ \lm+\mumu \ \text{even}\ } \qquad\text{(equivalently } \lm,\mumu \text{ share parity).}
+\]
+From the top Gelfand row, $\lm+\mumu=h_1-h_3$ and $\shift=h_1+h_2+h_3$, so
+\[
+\lm+\mumu \equiv \shift + h_2 \pmod 2,
+\qquad\text{hence}\qquad
+\lm+\mumu\ \text{even}\iff \shift\ \text{even}\ \wedge\ h_2\ \text{even}.
+\]
+The two conditions are two distinct symmetries:
+\begin{itemize}
+\item $\shift$ even is \textbf{parity}. The operator carries oscillator parity
+$(-1)^{\shift}$ (it changes the quanta by $\shift$); a parity-even scalar force
+has $\shift$ even.
+\item $h_2$ even is \textbf{translational invariance}. A translationally
+invariant two-body force acts only on the relative coordinate with the CM as a
+spectator, which forces $h_2=0$ (Sec.~3.3, the same origin as $\diff=-3h_2=0$);
+in particular $h_2$ is even. So $\lm+\mumu$ even is the mod-$2$ shadow of
+$\lm-\mumu=\shift$, and for a genuine two-body scalar the latter already implies
+it.
+\end{itemize}
+A nuclear force \emph{always} conserves parity, so $\shift$ is even for both
+genuine two-body potentials and normal-ordered $2\mathrm B{+}3\mathrm B$
+operators; parity is therefore \emph{not} what distinguishes them. The
+discriminator is $h_2$: translational invariance pins $h_2=0$ (even), whereas a
+normal-ordered three-body force \textbf{breaks translational invariance} --- the
+contracted core nucleon is not a CM spectator --- and admits $h_2\in\{0,\pm1,
+\pm2,\pm3\}$ (from $\diff=-3h_2\in\{0,\pm3,\pm6,\pm9\}$). Odd $h_2$ then gives
+$\lm+\mumu$ \emph{odd} with parity fully intact. Empirically HO\_Be7/Li7 keep
+many such tensors ($4688$ of $13164$ at Nmax6; $115752$ of $280354$ at Nmax10),
+so $\lm+\mumu$ even is a two-body-structure rule gated to recognized scalar
+potentials and must \emph{not} be imposed on NO-3B.
+
+The rule is also independent of triality ($\diff\equiv0\pmod3$ permits
+$\lm-\mumu=3$, i.e.\ $\lm+\mumu$ odd), and it is what makes the only realized
+parity classes $(\lm,\mumu)\bmod2\in\{(0,0),(1,1)\}$ --- the backdrop against
+which the $\mathrm{SU}(4)$-singlet rule (both even) sharpens to pick out the
+space-symmetric sector.
 
 \subsection{Non-scalar and three-body deviations}
 \begin{itemize}
@@ -202,10 +252,14 @@ non-self-conjugate $\mathrm{U}(4)$ irreps. (This is the spin--isospin face of th
 same ``the third nucleon is not a spectator'' that gives $\diff\neq0$ in U(3).)
 
 \section{Unified statement and practical filters}
-Both observations are one principle: \emph{a genuine central two-body force
-preserves the two-particle relative/exchange structure}, constraining both the
-spatial (U(3), $h_2=0$) and spin--isospin (U(4), self-conjugate) tensors; a
-normal-ordered three-body force breaks it through the contracted core nucleon.
+The spatial rules follow from \emph{translational invariance} (the operator is
+$V_{\rm rel}\otimes I_{\rm CM}$, forcing $h_2=0$, i.e.\ $\lm-\mumu=\shift$, and
+with parity $\lm+\mumu$ even) and the spin--isospin rules from \emph{fermion
+antisymmetry} (self-conjugate U(4), and the per-pair/supermultiplet rules
+below). A normal-ordered three-body force breaks translational invariance
+through the contracted core nucleon, which is why the spatial two-body-structure
+rules (R0, R1) --- and, in the spin--isospin sector, R4 --- must be switched off
+for it, while the antisymmetrization rules (R2, R3) survive.
 
 \begin{center}
 \small
@@ -215,9 +269,9 @@ normal-ordered three-body force breaks it through the contracted core nucleon.
 \toprule
 Operator class & U(3) rule & U(4) content \\
 \midrule
-Pure central 2-body & $\lm-\mumu=\shift$ ($\diff=0$)
+Pure central 2-body & $\lm-\mumu=\shift$ ($\diff=0$), $\lm+\mumu$ even
    & self-conjugate only: $\{(0,0,0),(0,2,0),(1,0,1),(2,0,2)\}$ \\
-Normal-ordered 2B+3B & $\diff\equiv0\pmod3$
+Normal-ordered 2B+3B & $\diff\equiv0\pmod3$ ($\lm+\mumu$ may be odd)
    & self-conjugate $+\ (2,1,0),(0,1,2)$ \\
 Non-scalar (rank $J_0$) & $\diff\equiv0\pmod3,\ |\diff|\le 3f(J_0)$
    & rank-dependent \\
@@ -231,21 +285,31 @@ elements are computed; a nonzero-strength tensor with $\diff\neq0$ in a scalar
 operator is either numerical noise ($\diff\in6\mathbb{Z}$, tiny strength) or
 normal-ordered three-body content ($\diff\in\{\pm3,\pm9,\dots\}$).
 
-\section{The four implemented filter rules}
-The expansion pre-filter (\texttt{TwoBodyOperator::passes\_selection}) applies
-four exact, strength-independent rules. Each was validated with \emph{zero
-false negatives} (no matrix-element--nonzero tensor is ever rejected); together
-they remove $96.6\%$ of the ``accepted-then-empty'' tensors of a scalar
-potential. Write the terminal irrep as $(\lm,\mumu)$ and $(P_1,P_2,P_3)$, and
+\section{The implemented filter rules}
+The expansion pre-filter (\texttt{TwoBodyOperator::passes\_selection}) applies a
+parity rule (R0, in \texttt{U3selection}) and four further exact,
+strength-independent rules (R1--R4), alongside the $\mathrm{U}(4)$
+self-conjugate restriction of Sec.~4 (in \texttt{U4selection}). Each was
+validated with \emph{zero false negatives} (no matrix-element--nonzero tensor is
+ever rejected). R0 is applied upstream of the matrix-element stage on which the
+coverage statistics are collected, so the $96.6\%$ figure below is the fraction
+of the remaining (parity-even) ``accepted-then-empty'' tensors removed by
+R1--R4. Write the terminal irrep as $(\lm,\mumu)$ and $(P_1,P_2,P_3)$, and
 recall the per-shell constituent pairs: a same-shell creation pair transforms in
 $(n,0)\otimes(n,0)$, an annihilation pair in the conjugate $(0,n)\otimes(0,n)$,
 with $\mathrm{SU}(4)$ either the symmetric $\mathbf{10}=(2,0,0)$ /
 $\overline{\mathbf{10}}=(0,0,2)$ or the antisymmetric $\mathbf 6=(0,1,0)$.
 
 \begin{description}
-\item[R1 --- Central / kinematic ($\lm-\mumu=\shift$).] Terminal defect
-$\diff=0$; equivalently $h_2=0$ (Sec.~3). A genuine central 2-body force carries
-no center-of-mass excitation.
+\item[R0 --- Translational invariance $+$ parity ($\lm+\mumu$ even).] The
+terminal label $n_{13}=\lm+\mumu$ must be even (equivalently $\lm,\mumu$ share
+parity). Since $\lm+\mumu\equiv\shift+h_2\pmod2$, this is $\shift$ even (parity)
+$\wedge$ $h_2$ even (translational invariance, $h_2=0$); it is the mod-$2$
+shadow of R1. Parity holds for NO2B too, so its failure there flags the broken
+translational invariance (Sec.~3.4).
+\item[R1 --- Translational invariance ($\lm-\mumu=\shift$).] Terminal defect
+$\diff=0$, equivalently $h_2=0$ (Sec.~3.3): a translationally invariant two-body
+operator is $V_{\rm rel}\otimes I_{\rm CM}$ and carries no CM excitation.
 \item[R2 --- Per-pair Pauli antisymmetry.] Every \emph{same-shell} two-particle
 (or two-hole) factor must be overall antisymmetric:
 \[
@@ -269,11 +333,11 @@ $S{+}T$ even, a central 2-body force conserves the parity of $S+T$.
 \paragraph{Two-tier gating.} R2 and R3 are \emph{antisymmetrization /
 supermultiplet} rules and hold for \emph{any} $J{=}0$ nuclear interaction,
 including the normal-ordered $2\mathrm B{+}3\mathrm B$ operators; they are gated
-to all such operators. R1 and R4 are \emph{genuine-2-body-structure} rules:
-the contracted core nucleon of a 3-body force breaks both, so they are gated to
-recognized scalar potentials only. Applying R1/R4 to NO-3B would discard real
-content ($5749$ and $318$ real losses on HO\_Be7/Li7, respectively), whereas
-R2/R3 lose nothing there.
+to all such operators. R0, R1 and R4 are \emph{genuine-2-body-structure} rules:
+the contracted core nucleon of a 3-body force breaks all three, so they are
+gated to recognized scalar potentials only. Applying them to NO-3B would discard
+real content (R0: $115752$, R1: $165929$, R4: $2734$ real losses on HO\_Be7/Li7
+at Nmax10), whereas R2/R3 lose nothing there.
 
 \begin{center}
 \small
@@ -282,6 +346,7 @@ R2/R3 lose nothing there.
 \toprule
 Rule & Type & Applies to & Ignores caught \\
 \midrule
+R0 $\ \lm+\mumu$ even & 2-body structure & potentials & upstream \\
 R1 $\ \lm-\mumu=\shift$ & 2-body structure & potentials & 3010 \\
 R2 per-pair Pauli & antisymmetrization & potentials $+$ NO2B & 5240 \\
 R3 singlet $\Rightarrow\lm,\mumu$ even & antisymmetrization & potentials $+$ NO2B & 1604 \\
