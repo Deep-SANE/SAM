@@ -153,6 +153,16 @@ namespace JT
     bool SSselection(const int& SS) const;
     bool U3selection(const u3::irrep& irr) const;
     bool U4selection(const u4::irrep& irr) const;
+    // Combined kinematic selection for a candidate tensor, shared by all four
+    // expand paths: U3/U4 selection and shift-quanta sign, plus four exact,
+    // strength-independent selection rules that remove ~96% of the
+    // "accepted-then-empty" tensors with zero false negatives. Two-tier gating:
+    //   - antisymmetrization rules (per-pair Pauli; SU(4)-singlet => lam,mu even)
+    //     apply to any JJ==0 nuclear interaction, scalar potentials AND NO2B;
+    //   - two-body-structure rules (lam-mu == shift_quanta; creation/annihilation
+    //     pair S+T-parity match) apply to recognized scalar potentials only, as
+    //     normal-ordered three-body content breaks them.
+    bool passes_selection(const U3xU4::MultiShellTensor_phys& tensor) const;
 
     // helper to scale strength of tensors for Kinetic and Rrel
     void scaleStrengths(U3xU4::MultiShellTensors_phys& tensors) const;

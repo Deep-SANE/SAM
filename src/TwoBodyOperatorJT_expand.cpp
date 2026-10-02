@@ -86,9 +86,107 @@ namespace JT
 #endif
   }
 
+  // Combined kinematic selection shared by all four expand paths (declared in
+  // the header). Returns false for a candidate tensor whose matrix element is
+  // known a priori to vanish, so it can be skipped before the expensive
+  // strength computation.
+  bool TwoBodyOperator::passes_selection(
+      const U3xU4::MultiShellTensor_phys& tensor) const
+  {
+    if (!U3selection(tensor.getLastIrrep().u3())) return false;
+    if (!U4selection(tensor.getLastIrrep().u4())) return false;
+    if (tensor.shift_quanta() < 0 && symmetric_) return false;
+    const auto u3 = tensor.getLastIrrep().u3();
+
+    // Central 2-body kinematic rule: for a genuine scalar potential the terminal
+    // SU(3) asymmetry equals the net HO quanta shift (lam - mu == shift_quanta),
+    // else the matrix element vanishes (diff == -3*h2; scalar forces require
+    // h2 == 0). Gated to recognized scalar potentials ONLY: it has real
+    // false-negatives on normal-ordered 2B+3B (genuine 3-body content gives
+    // diff in {0,+-3,+-6,+-9}) and on non-scalar operators. On scalar potentials
+    // the only kept tensors it drops carry |strength| < ~1e-4 numerical noise.
+    if (known_potentials.count(name_))
+    {
+      if (u3.lam() - u3.mu() != tensor.shift_quanta()) return false;
+
+      // Spin-isospin exchange (SU(4) 6 vs 10/10bar) must match between the
+      // creation pair and the annihilation pair. The SU(4) exchange type is the
+      // parity of S+T (6 == S+T odd, 10/10bar == S+T even), and a genuine 2-body
+      // scalar interaction conserves S+T parity, so it cannot connect a symmetric
+      // spin-isospin pair to an antisymmetric one. Like the lam-mu==shift rule
+      // this is a 2-body-structure rule: validated 0 false-negatives on all
+      // scalar NN potentials up to Nmax12, but NOT applied to NO2B, whose 3-body
+      // content breaks it (318 real false-negatives on Be7/Li7).
+      int cre_sign = 0, ann_sign = 0;
+      for (const auto& G : tensor.Gammas())
+      {
+        const auto& p = G.u4();
+        int s = 0;
+        if (p.P1() == 0 && p.P2() == 1 && p.P3() == 0) s = -1;          // 6
+        else if ((p.P1() == 2 && p.P2() == 0 && p.P3() == 0) ||          // 10
+                 (p.P1() == 0 && p.P2() == 0 && p.P3() == 2)) s = +1;    // 10bar
+        if (s == 0) continue;
+        if (G.num_ads() == 2 && G.num_ats() == 0) cre_sign = s;
+        else if (G.num_ads() == 0 && G.num_ats() == 2) ann_sign = s;
+      }
+      if (cre_sign != 0 && ann_sign != 0 && cre_sign != ann_sign) return false;
+    }
+
+    // Pauli + SU(4)-singlet rules apply to any JJ==0 nuclear scalar interaction:
+    // recognized scalar potentials AND NO2B-truncated operators (the else-branch
+    // in the constructor: read from TBME, not a known general operator, JJ==0).
+    // They are antisymmetry / supermultiplet selection rules independent of the
+    // potential and of 3-body content; validated 0 false-negatives on N2LO_opt/
+    // sat (up to Nmax12) and on NO2B (Be7, Li7). Helper ops (L.L, L.S, Kinetic,
+    // ... : on_the_fly) and non-scalar general ops (GamowTeller, JJ!=0) are
+    // excluded, not having been validated.
+    const bool scalar_nuclear =
+        !on_the_fly && JJ() == 0 && known_general_ops.count(name_) == 0;
+    if (scalar_nuclear)
+    {
+      // SU(4)-singlet parity rule: when the terminal SU(4) irrep is the singlet
+      // (spin-isospin scalar channel, P1=P2=P3=0), the spatial SU(3) irrep must
+      // lie in the space-symmetric sector, i.e. lam and mu both even; an odd
+      // (lam,mu) forces compensating spin-isospin exchange the singlet cannot
+      // carry. Catches the bulk of the density-chain residual the lam-mu==shift
+      // rule leaves (that rule is vacuous for number-conserving density tensors,
+      // shift_quanta==0).
+      {
+        const auto p = tensor.getLastIrrep().u4();
+        if (p.P1() == 0 && p.P2() == 0 && p.P3() == 0 &&
+            (u3.lam() % 2 != 0 || u3.mu() % 2 != 0))
+          return false;
+      }
+
+      // Per-pair Pauli antisymmetrization rule: a genuine same-shell two-particle
+      // factor (a+a+, num_ads==2) or two-hole factor (aa, num_ats==2) must have
+      // its spatial SU(3) exchange symmetry opposite to its SU(4) exchange
+      // symmetry (overall antisymmetric). The SU(3) exchange sign is (-1)^mu for
+      // a creation pair in (n,0)x(n,0) and (-1)^lam for an annihilation pair in
+      // (0,n)x(0,n); the SU(4) sign is +1 for the symmetric 10/10bar and -1 for
+      // the antisymmetric 6.
+      for (const auto& G : tensor.Gammas())
+      {
+        const bool cre = (G.num_ads() == 2 && G.num_ats() == 0);
+        const bool ann = (G.num_ads() == 0 && G.num_ats() == 2);
+        if (!cre && !ann) continue; // density/single factors carry no Pauli rule
+        const auto& p = G.u4();
+        int su4_sign = 0;
+        if (p.P1() == 0 && p.P2() == 1 && p.P3() == 0) su4_sign = -1;   // 6
+        else if ((p.P1() == 2 && p.P2() == 0 && p.P3() == 0) ||          // 10
+                 (p.P1() == 0 && p.P2() == 0 && p.P3() == 2)) su4_sign = +1; // 10bar
+        if (su4_sign == 0) continue;
+        const int q = cre ? G.u3().mu() : G.u3().lam();
+        const int spatial_sign = (q % 2 == 0) ? +1 : -1;
+        if (spatial_sign * su4_sign != -1) return false;
+      }
+    }
+    return true;
+  }
+
 #define RESTRICT_WITH_NMAX
 #define RESTRICT_JJ // only used in expand_old()
-  U3xU4::TwoBodyMultiShellTensors 
+  U3xU4::TwoBodyMultiShellTensors
     TwoBodyOperator::expand_old()
   {
     if (on_the_fly == false)
@@ -323,9 +421,7 @@ namespace JT
                                             MMT_, JJ_, MMJ_, HO_labels_);
 
         // selection rules
-        if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
-        if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
-        if (tensor.shift_quanta() < 0 and symmetric_) continue;
+        if (!passes_selection(tensor)) continue;
 
         // setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
 
@@ -402,13 +498,29 @@ namespace JT
     // diagnostic: intra-tensor quad reuse (no-op unless MEASURE_MSCHEME_REUSE)
     HO::report_mscheme_reuse();
 
-    // (e) compact tensors_rank: keep only entries owned by this rank
+    // (e) compact: keep only tensors whose matrix elements survived (non-empty
+    //     LLSSTT strengths). A tensor that passed the kinematic selection but
+    //     produced empty strengths is dropped HERE -- i.e. the real ~half
+    //     rejection is post-ME, not kinematic.
+    //
+    //     Discovery mode (env SAM_EXPAND_DISCOVERY): emit the terminal-irrep
+    //     labels of every tensor tagged KEEP / IGNORE, so a post-ME selection
+    //     pattern can be searched for. Intended for small-Nmax runs.
+    //       grep '\[DISCOVERY\] IGNORE' <log>   -> the vanishing tensors
+    const bool discovery = (std::getenv("SAM_EXPAND_DISCOVERY") != nullptr);
     U3xU4::MultiShellTensors_phys tensors_final;
     tensors_final.reserve(tensors.size());
     for (auto& [i, t] : tensors)
     {
-      if (!t.LLSSTTstrengths().empty()) tensors_final.push_back(std::move(t));
-      // else std::cout << "Ignore: " << t << std::endl;
+      const bool kept = !t.LLSSTTstrengths().empty();
+      if (discovery)
+        std::cout << "[DISCOVERY] " << (kept ? "KEEP  " : "IGNORE")
+                  << " u3=" << t.getLastIrrep().u3()
+                  << " u4=" << t.getLastIrrep().u4()
+                  << " shift_q=" << t.shift_quanta()
+                  << " nLSTT=" << t.LLSSTTstrengths().size()
+                  << " | " << t << std::endl;
+      if (kept) tensors_final.push_back(std::move(t));
     }
 
     return tensors_final;
@@ -424,6 +536,13 @@ namespace JT
     int mpi_rank, mpi_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    // Discovery mode (env SAM_EXPAND_DISCOVERY): at each write point, emit the
+    // terminal-irrep labels of every tensor tagged KEEP / IGNORE, so a post-ME
+    // selection pattern can be searched for (IGNORE = passed kinematic selection
+    // but produced empty strengths). Intended for small-Nmax, single-rank runs.
+    //   grep '\[DISCOVERY\] IGNORE' <log>   -> the vanishing tensors
+    const bool discovery = (std::getenv("SAM_EXPAND_DISCOVERY") != nullptr);
 
     if (on_the_fly == false)
     {
@@ -537,9 +656,7 @@ namespace JT
                                             MMT_, JJ_, MMJ_, HO_labels_);
 
         // selection rules
-        if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
-        if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
-        if (tensor.shift_quanta() < 0 and symmetric_) continue;
+        if (!passes_selection(tensor)) continue;
 
         // Ownership at BUILD time: strided stores only this rank's share so the
         // full structure list is never materialized; weighted stores all.
@@ -790,7 +907,16 @@ namespace JT
         for (size_t k = base; k < stop; ++k)
         {
           auto tensor = std::move(tensors_rank[my_indices[k]].second);
-          if (!tensor.LLSSTTstrengths().empty())
+          const bool kept = !tensor.LLSSTTstrengths().empty();
+          if (discovery)
+            std::cout << "[DISCOVERY] " << (kept ? "KEEP  " : "IGNORE")
+                      << " rank=" << mpi_rank
+                      << " u3=" << tensor.getLastIrrep().u3()
+                      << " u4=" << tensor.getLastIrrep().u4()
+                      << " shift_q=" << tensor.shift_quanta()
+                      << " nLSTT=" << tensor.LLSSTTstrengths().size()
+                      << " | " << tensor << std::endl;
+          if (kept)
           {
             tensor.writeBinary(rf);
             ++n_written;
@@ -1058,9 +1184,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
                                             MMT_, JJ_, MMJ_, HO_labels_);
 
         // selection rules
-        if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
-        if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
-        if (tensor.shift_quanta() < 0 and symmetric_) continue;
+        if (!passes_selection(tensor)) continue;
 
         setTensorStrength(tensor, all_inverse[i], all_phase[i], decompdb);
 
@@ -1102,6 +1226,10 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     int mpi_rank, mpi_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    // Discovery mode (env SAM_EXPAND_DISCOVERY): see expand_new_MPI. Tags each
+    // written/ignored tensor with its terminal-irrep labels.
+    const bool discovery = (std::getenv("SAM_EXPAND_DISCOVERY") != nullptr);
 
     if (on_the_fly == false)
     {
@@ -1216,9 +1344,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
                                             MMT_, JJ_, MMJ_, HO_labels_);
 
         // selection rules
-        if (U3selection(tensor.getLastIrrep().u3()) == false) continue;
-        if (U4selection(tensor.getLastIrrep().u4()) == false) continue;
-        if (tensor.shift_quanta() < 0 and symmetric_) continue;
+        if (!passes_selection(tensor)) continue;
 
         // Ownership at BUILD time: strided stores only this rank's share so the
         // full structure list is never materialized; weighted stores all.
@@ -1466,7 +1592,16 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         for (size_t k = base; k < stop; ++k)
         {
           auto tensor = std::move(tensors_rank[my_indices[k]].second);
-          if (!tensor.LLSSTTstrengths().empty())
+          const bool kept = !tensor.LLSSTTstrengths().empty();
+          if (discovery)
+            std::cout << "[DISCOVERY] " << (kept ? "KEEP  " : "IGNORE")
+                      << " rank=" << mpi_rank
+                      << " u3=" << tensor.getLastIrrep().u3()
+                      << " u4=" << tensor.getLastIrrep().u4()
+                      << " shift_q=" << tensor.shift_quanta()
+                      << " nLSTT=" << tensor.LLSSTTstrengths().size()
+                      << " | " << tensor << std::endl;
+          if (kept)
           {
             tensor.writeBinary(rf);
             ++n_written;

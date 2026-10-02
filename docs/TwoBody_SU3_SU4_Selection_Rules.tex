@@ -1,0 +1,345 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+
+\newcommand{\shift}{\ensuremath{\Delta N}}
+\newcommand{\diff}{\ensuremath{\delta}}
+\newcommand{\lm}{\ensuremath{\lambda}}
+\newcommand{\mumu}{\ensuremath{\mu}}
+
+\title{\bf Selection Rules for the U(3)$\times$U(4) Tensor Expansion\\
+of Two-Body Operators}
+\author{SAM --- Symmetry-Adapted Many-body framework}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+When a two-body operator is expanded into $\mathrm{U}(3)\times\mathrm{U}(4)$
+(space $\times$ Wigner spin--isospin) tensors, roughly half of the tensors that
+pass the current kinematic filters are found to have vanishing matrix elements.
+This note collects the selection rules that explain that structure, derives them
+from harmonic-oscillator $\mathrm{U}(3)$ and Wigner $\mathrm{SU}(4)$ group
+theory, and records their empirical validation across the chiral-EFT interaction
+family. The central results are: for a \emph{central} (rotational-scalar)
+two-body force the terminal $\mathrm{SU}(3)$ irrep obeys $\lm-\mumu=\shift$
+exactly, and its $\mathrm{SU}(4)$ content is restricted to the four
+self-conjugate irreps $\{(0,0,0),(0,2,0),(1,0,1),(2,0,2)\}$. Both are
+consequences of the force preserving the two-particle relative/exchange
+structure; a normal-ordered three-body force breaks both through the contracted
+core nucleon, in a controlled way that \emph{tags} the induced content.
+\end{abstract}
+
+\section{Setup and notation}
+Single-particle creation operators in oscillator shell $n$ transform as the
+symmetric $\mathrm{SU}(3)$ irrep $(n,0)$ and the $\mathrm{SU}(4)$ fundamental
+$\mathbf 4=(1,0,0)$; annihilation operators transform as the conjugates $(0,n)$
+and $\bar{\mathbf 4}=(0,0,1)$. A two-body operator
+$a^\dagger_{n_a}a^\dagger_{n_b}\,\tilde a_{n_c}\tilde a_{n_d}$, coupled to good
+$\mathrm{U}(3)\times\mathrm{U}(4)$, terminates in an irrep whose labels we write
+as
+\[
+\text{U(3): } [n_{13},n_{23},n_{33}],\quad
+(\lm,\mumu)=(n_{13}-n_{23},\,n_{23}-n_{33}); \qquad
+\text{U(4): } [n_{14},n_{24},n_{34},n_{44}],\quad
+(P_1,P_2,P_3).
+\]
+The net oscillator-quanta change carried by the operator is
+\[
+\shift \;=\; \text{shift\_quanta} \;=\; (n_a+n_b)-(n_c+n_d)
+      \;=\;\sum_{\text{shells}} n\,(n_{\text{ads}}-n_{\text{ats}}).
+\]
+We define the U(3) \emph{defect}
+\[
+\boxed{\ \diff \;\equiv\; (\lm-\mumu)-\shift\ }.
+\]
+
+\section{U(3) sector}
+
+\subsection{Empirical rules}
+For every \emph{genuine, central} two-body force examined,
+\[
+\diff = 0 \qquad\text{(exactly, for all matrix-element--nonzero tensors).}
+\]
+Universally, for \emph{any} operator (scalar or not, two- or three-body),
+\[
+\diff \equiv 0 \pmod 3 .
+\]
+
+\subsection{The governing identity}
+The operator is a $\mathrm{U}(3)$ tensor with a top Gelfand--Tsetlin row
+$[h_1,h_2,h_3]$. Its $\mathrm{U}(1)$ charge (number of quanta) is
+$h_1+h_2+h_3=\shift$, and $(\lm,\mumu)=(h_1-h_2,\,h_2-h_3)$. Hence
+\[
+\lm-\mumu=(h_1-h_2)-(h_2-h_3)=(h_1+h_2+h_3)-3h_2=\shift-3h_2,
+\]
+so that
+\[
+\boxed{\ \diff = -3\,h_2\ }
+\qquad (h_2 = \text{middle entry of the operator's top Gelfand row}).
+\]
+Two corollaries follow immediately:
+\begin{itemize}
+\item $\diff=-3h_2$ is \emph{always} a multiple of $3$ --- this is the
+$\mathrm{SU}(3)$ triality law $\diff\equiv0\pmod3$; a defect not divisible by
+$3$ is group-theoretically impossible.
+\item $\diff=0 \iff h_2=0$: the operator lives in a two-rowed, maximally
+\emph{stretched} irrep $[h_1,0,h_3]$.
+\end{itemize}
+
+\subsection{Why a central force forces $h_2=0$}
+A central potential $V(|\mathbf r_1-\mathbf r_2|)$ acts only on the
+\emph{relative} coordinate; the center of mass is a spectator:
+\[
+V=(\text{relative-motion operator})\otimes(\text{CM identity}).
+\]
+The relative coordinate is a single 3D oscillator, so its states carry only
+symmetric irreps $(n_{\rm rel},0)$, and the relative tensor
+$a^\dagger_{\rm rel}\tilde a_{\rm rel}=(n',0)\times(0,n)$ decomposes into
+$(n'-k,\,n-k)$ --- every piece has $\lm-\mumu=n'-n$ and, as a $\mathrm{U}(3)$
+irrep of charge $n'-n$, has $h_2=0$. The CM identity is a $\mathrm{U}(3)$ scalar
+$(0,0)$. Coupling a two-rowed relative tensor to a scalar CM keeps $h_2=0$, so
+$\lm-\mumu=\shift_{\rm rel}$; and since the CM carries no quanta,
+$\shift_{\rm rel}=\shift$. Therefore
+\[
+\lm-\mumu=\shift .\qquad\blacksquare
+\]
+Any tensor with $h_2\neq0$ (i.e.\ $\diff\neq0$) requires the CM coordinate to
+participate or a non-central structure; a scalar $V(r)$ gives it exactly zero
+strength. This is precisely the population of ``accepted-then-empty'' tensors.
+
+\subsection{Non-scalar and three-body deviations}
+\begin{itemize}
+\item \textbf{Non-scalar operators} (e.g.\ Gamow--Teller, $JJ=2$): the
+spin/orbital tensor structure couples CM and relative motion, so $h_2\neq0$
+components acquire strength and $\diff=-3h_2\in\{0,\pm3,\pm6,\pm9\}$.
+\item \textbf{Normal-ordered three-body forces}: the contracted third nucleon
+is a \emph{core} orbital, not a CM spectator, and injects $h_2\neq0$. Even a
+$J$-scalar Hamiltonian (e.g.\ HO\_Be7/Li7) then shows
+$\diff\in\{\pm3,\pm6,\pm9\}$ with substantial strength. Thus, \emph{for a scalar
+operator}, $\diff\neq0$ with nonzero strength \emph{tags} the three-body-induced
+content, with no strength evaluation needed.
+\end{itemize}
+
+\section{U(4) (Wigner supermultiplet) sector}
+
+\subsection{Empirical rule}
+For a central two-body force, the terminal $\mathrm{U}(4)$ irrep is restricted
+to the four \emph{self-conjugate} $\mathrm{SU}(4)$ irreps:
+\[
+\begin{array}{llll}
+\text{[0,0,0,0]} & (0,0,0) & \mathbf 1 \\
+\text{[2,2,0,0]} & (0,2,0) & \mathbf{20} \\
+\text{[2,1,1,0]} & (1,0,1) & \mathbf{15} \\
+\text{[4,2,2,0]} & (2,0,2) & \mathbf{84}
+\end{array}
+\qquad\text{(self-conjugate}\iff P_1=P_3\text{).}
+\]
+
+\subsection{Group-theoretic origin}
+The two constituent pairs decompose as
+\[
+\mathbf 4\otimes\mathbf 4=\underbrace{\mathbf{10}}_{(2,0,0)\text{ sym}}
+   \oplus\underbrace{\mathbf 6}_{(0,1,0)\text{ antisym}},\qquad
+\bar{\mathbf 4}\otimes\bar{\mathbf 4}=\overline{\mathbf{10}}\oplus\mathbf 6 ,
+\]
+($\mathbf 6$ is self-conjugate). The operator
+$a^\dagger a^\dagger\,\tilde a\tilde a$ is (creation pair)$\otimes$(annihilation
+pair), i.e.\ four products:
+\[
+\begin{aligned}
+\mathbf{10}\otimes\overline{\mathbf{10}} &= (0,0,0)\oplus(1,0,1)\oplus(2,0,2)
+   &&\text{(all self-conjugate)},\\
+\mathbf 6\otimes\mathbf 6 &= (0,0,0)\oplus(1,0,1)\oplus(0,2,0)
+   &&\text{(all self-conjugate)},\\
+\mathbf{10}\otimes\mathbf 6 &= (2,1,0)\oplus(1,0,1)
+   &&[\,\mathbf{45}\oplus\mathbf{15}\,],\\
+\mathbf 6\otimes\overline{\mathbf{10}} &= (0,1,2)\oplus(1,0,1)
+   &&[\,\overline{\mathbf{45}}\oplus\mathbf{15}\,].
+\end{aligned}
+\]
+The union of the two \emph{diagonal} products is exactly the four self-conjugate
+irreps above. The two \emph{cross} products contribute, beyond the (already
+self-conjugate) $(1,0,1)$, the only two \emph{non}-self-conjugate irreps that a
+two-body operator can carry:
+\[
+(2,1,0)=\mathbf{45}\to[3,1,0,0],\quad
+(0,1,2)=\overline{\mathbf{45}}\to[3,3,2,0].
+\]
+These are exactly the extra $\mathrm{U}(4)$ types seen in the normal-ordered
+$2\mathrm{B}{+}3\mathrm{B}$ Hamiltonians (HO\_Be7, HO\_Li7), and are absent from
+the pure two-body potentials.
+
+\subsection{Why the diagonal (self-conjugate) part only}
+Fermion antisymmetry ties $\mathrm{SU}(4)$ type to spatial exchange symmetry:
+\[
+\mathbf{10}\ (\text{SU(4) sym})\leftrightarrow\text{spatial antisym},\quad
+\mathbf 6\ (\text{SU(4) antisym})\leftrightarrow\text{spatial sym}.
+\]
+A central $V(|\mathbf r_1-\mathbf r_2|)$ commutes with the exchange operator
+$P_{12}$, so it cannot change the spatial exchange symmetry: it connects
+sym$\to$sym and antisym$\to$antisym only, i.e.\ $\mathbf 6\to\mathbf 6$ and
+$\mathbf{10}\to\mathbf{10}$. That selects the diagonal products
+$\mathbf 6\otimes\mathbf 6$ and $\mathbf{10}\otimes\overline{\mathbf{10}}$ ---
+the four self-conjugate irreps. The cross terms $\mathbf{10}\otimes\mathbf 6$
+and $\mathbf 6\otimes\overline{\mathbf{10}}$ --- which alone can produce the
+non-self-conjugate $(2,1,0)$ and $(0,1,2)$ --- would require flipping the
+spatial exchange symmetry, which a central force is forbidden to do.
+
+\subsection{Three-body deviations}
+The 2-body piece of a normal-ordered 3-body force is
+$\sum_{\rm core}\langle(12)c|W|(12)c\rangle$: the third leg is contracted against
+a core nucleon, which carries its own spin--isospin and coordinate. This
+contraction does not commute with $P_{12}$ the way $V(r_{12})$ does; it provides
+the handle to connect $\mathbf{10}\leftrightarrow\mathbf 6$, populating the
+non-self-conjugate $\mathrm{U}(4)$ irreps. (This is the spin--isospin face of the
+same ``the third nucleon is not a spectator'' that gives $\diff\neq0$ in U(3).)
+
+\section{Unified statement and practical filters}
+Both observations are one principle: \emph{a genuine central two-body force
+preserves the two-particle relative/exchange structure}, constraining both the
+spatial (U(3), $h_2=0$) and spin--isospin (U(4), self-conjugate) tensors; a
+normal-ordered three-body force breaks it through the contracted core nucleon.
+
+\begin{center}
+\small
+\setlength{\tabcolsep}{5pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lll@{}}
+\toprule
+Operator class & U(3) rule & U(4) content \\
+\midrule
+Pure central 2-body & $\lm-\mumu=\shift$ ($\diff=0$)
+   & self-conjugate only: $\{(0,0,0),(0,2,0),(1,0,1),(2,0,2)\}$ \\
+Normal-ordered 2B+3B & $\diff\equiv0\pmod3$
+   & self-conjugate $+\ (2,1,0),(0,1,2)$ \\
+Non-scalar (rank $J_0$) & $\diff\equiv0\pmod3,\ |\diff|\le 3f(J_0)$
+   & rank-dependent \\
+\bottomrule
+\end{tabular}}
+\end{center}
+
+\noindent As a pre-filter for the scalar-potential workload, $\diff=0$ safely
+removes the $\mathrm{U}(3)$-forbidden tensors before their (expensive) matrix
+elements are computed; a nonzero-strength tensor with $\diff\neq0$ in a scalar
+operator is either numerical noise ($\diff\in6\mathbb{Z}$, tiny strength) or
+normal-ordered three-body content ($\diff\in\{\pm3,\pm9,\dots\}$).
+
+\section{The four implemented filter rules}
+The expansion pre-filter (\texttt{TwoBodyOperator::passes\_selection}) applies
+four exact, strength-independent rules. Each was validated with \emph{zero
+false negatives} (no matrix-element--nonzero tensor is ever rejected); together
+they remove $96.6\%$ of the ``accepted-then-empty'' tensors of a scalar
+potential. Write the terminal irrep as $(\lm,\mumu)$ and $(P_1,P_2,P_3)$, and
+recall the per-shell constituent pairs: a same-shell creation pair transforms in
+$(n,0)\otimes(n,0)$, an annihilation pair in the conjugate $(0,n)\otimes(0,n)$,
+with $\mathrm{SU}(4)$ either the symmetric $\mathbf{10}=(2,0,0)$ /
+$\overline{\mathbf{10}}=(0,0,2)$ or the antisymmetric $\mathbf 6=(0,1,0)$.
+
+\begin{description}
+\item[R1 --- Central / kinematic ($\lm-\mumu=\shift$).] Terminal defect
+$\diff=0$; equivalently $h_2=0$ (Sec.~3). A genuine central 2-body force carries
+no center-of-mass excitation.
+\item[R2 --- Per-pair Pauli antisymmetry.] Every \emph{same-shell} two-particle
+(or two-hole) factor must be overall antisymmetric:
+\[
+\boxed{\ (-1)^{\sigma_{\rm space}}\,(-1)^{\sigma_{\rm SU(4)}}=-1\ },\qquad
+(-1)^{\sigma_{\rm space}}=\begin{cases}(-1)^{\mumu_{\rm pair}} & \text{creation }(n,0)^{2}\\[2pt]
+(-1)^{\lm_{\rm pair}} & \text{annihilation }(0,n)^{2}\end{cases}
+\]
+with $(-1)^{\sigma_{\rm SU(4)}}=+1$ for $\mathbf{10}/\overline{\mathbf{10}}$ and
+$-1$ for $\mathbf 6$.
+\item[R3 --- $\mathrm{SU}(4)$-singlet parity.] If the terminal $\mathrm{SU}(4)$
+is the singlet $(0,0,0)$ (spin--isospin scalar channel) then
+$\lm$ and $\mumu$ are \emph{both even}. The singlet cannot supply the
+spin--isospin exchange that an odd spatial irrep would require.
+\item[R4 --- $S{+}T$ parity match.] When a tensor contains both a same-shell
+creation pair and annihilation pair, their $\mathrm{SU}(4)$ exchange types must
+agree (both $\mathbf 6$, or both $\mathbf{10}/\overline{\mathbf{10}}$). Since
+$\mathbf 6$ carries $S{+}T$ odd and $\mathbf{10}/\overline{\mathbf{10}}$ carries
+$S{+}T$ even, a central 2-body force conserves the parity of $S+T$.
+\end{description}
+
+\paragraph{Two-tier gating.} R2 and R3 are \emph{antisymmetrization /
+supermultiplet} rules and hold for \emph{any} $J{=}0$ nuclear interaction,
+including the normal-ordered $2\mathrm B{+}3\mathrm B$ operators; they are gated
+to all such operators. R1 and R4 are \emph{genuine-2-body-structure} rules:
+the contracted core nucleon of a 3-body force breaks both, so they are gated to
+recognized scalar potentials only. Applying R1/R4 to NO-3B would discard real
+content ($5749$ and $318$ real losses on HO\_Be7/Li7, respectively), whereas
+R2/R3 lose nothing there.
+
+\begin{center}
+\small
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+Rule & Type & Applies to & Ignores caught \\
+\midrule
+R1 $\ \lm-\mumu=\shift$ & 2-body structure & potentials & 3010 \\
+R2 per-pair Pauli & antisymmetrization & potentials $+$ NO2B & 5240 \\
+R3 singlet $\Rightarrow\lm,\mumu$ even & antisymmetrization & potentials $+$ NO2B & 1604 \\
+R4 $S{+}T$-parity match & 2-body structure & potentials & 114 \\
+\midrule
+\multicolumn{3}{@{}l}{combined (0 false negatives)} & $9968/10324=96.6\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{The residual: a recoupling boundary}
+The remaining $3.4\%$ is not numerical noise --- at Nmax6 the empty tensors are
+reproduced \emph{exactly} by their labels (identically for N2LO\_opt and
+N2LO\_sat). They are dominated by density-chain structures
+$\rho_i\otimes\rho_j=a^\dagger_i a^\dagger_j\tilde a_j\tilde a_i$ built from
+$\mathrm{SU}(4)$-adjoint densities. Their vanishing is the same antisymmetry
+principle as R2/R4 applied at the \emph{particle--hole (recoupling) level}: the
+$\mathrm{SU}(3)$ spatial coupling and the $\mathrm{SU}(4)$ spin--isospin coupling
+of the two density factors must carry matching exchange symmetry, or the direct
+and exchange contributions cancel. Unlike R1--R4 this is not a one-line label
+inequality: it is the structural zero of the $\mathrm{SU}(3)\times\mathrm{SU}(4)$
+recoupling (Pandya / $9$-$(\lm\mumu)$) coefficient, which depends jointly on the
+factor irreps, the outer multiplicity, and the result. It is left out of the
+pre-filter because evaluating that coefficient costs comparably to the matrix
+element it would guard.
+
+\section{Numerical validation}
+The U(3) rule $\lm-\mumu=\shift$ was verified on the accepted-tensor sets of
+the interaction library (Nmax as indicated). ``Real violations'' counts tensors
+with $\diff\neq0$ and $\max|\text{strength}|>10^{-6}$.
+
+\begin{center}
+\small
+\setlength{\tabcolsep}{5pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llccl@{}}
+\toprule
+Operator & $JJ$ & \#tensors & real viol. & note \\
+\midrule
+N2LO\_opt / sat / srg2.0 (Nmax8) & 0 & 34{,}273 & 0 & scalar 2B \\
+N3LO / N4LO chiral, bare \& SRG (Nmax8) & 0 & $\sim$34{,}273 & 0 & scalar 2B \\
+N2LO\_opt (Nmax10 / Nmax12) & 0 & 86{,}575 / 256{,}854 & 0 / 0 & noise only ($\sim10^{-8}$) \\
+Kinetic, Rrel, CoMNumberOp & 0 & $\le609$ & 0 & scalar \\
+\midrule
+Gamow--Teller ($N^3$LO EM500) & 2 & 11{,}420 & --- & $\diff\in\{0,\pm3,\pm6,\pm9\}$ (rank) \\
+HO\_Be7 / HO\_Li7 (2B $+$ NO-3B) & 0 & 13{,}164 & --- & $\diff\in\{0,\pm3,\pm6,\pm9\}$ (3-body) \\
+\bottomrule
+\end{tabular}}
+\end{center}
+
+\noindent The apparent $\le0.2\%$ ``violations'' at Nmax10/12 are floating-point
+noise: their strengths (median $\sim1.6\times10^{-8}$) are $7$--$9$ orders of
+magnitude below genuine tensors (median $\sim0.34$), and they still obey
+$\diff\equiv0\pmod3$. The two interactions N2LO\_opt and N2LO\_sat give
+byte-identical accept/reject statistics, confirming the rule is kinematic (label
+dependent), not dynamical (strength dependent). A controlled cross-check:
+\texttt{N3LO\_EM500\_srg2.0} and \texttt{HO\_Li7} share $JJ=0,\,TT=2$, yet the
+genuine 2-body force has $\diff=0$ only while the NO-3B Hamiltonian reaches
+$\diff=\pm3,\pm6,\pm9$ --- isolating the three-body origin.
+
+\end{document}
