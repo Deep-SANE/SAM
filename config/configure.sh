@@ -166,25 +166,69 @@ else
   USE_MPI=0
 fi
 
-# 5. Resolve Spectra
+# 5. Resolve Spectra (required header-only eigensolver)
 SPECTRA_DIR="${OPT_spectra:-}"
-if [[ -z "$SPECTRA_DIR" ]]; then
-  if [[ -f "/opt/homebrew/include/Spectra/SymEigsSolver.h" ]]; then
-    SPECTRA_DIR="/opt/homebrew/include"
-  elif [[ -f "/usr/local/include/Spectra/SymEigsSolver.h" ]]; then
-    SPECTRA_DIR="/usr/local/include"
-  else
-    CANDIDATE="$(find /opt/homebrew/Cellar/spectra -name "SymEigsSolver.h" 2>/dev/null | head -1 || true)"
-    if [[ -n "$CANDIDATE" ]]; then
-      SPECTRA_DIR="$(cd "$(dirname "$CANDIDATE")/../.." && pwd)"
+
+valid_spectra() {
+  local p="$1"
+  [[ -n "$p" && -f "$p/Spectra/SymEigsSolver.h" ]]
+}
+
+if ! valid_spectra "$SPECTRA_DIR"; then
+  CANDIDATES=(
+    "$ROOT/external-libs/spectra/include"
+    "/opt/homebrew/include"
+    "/opt/homebrew/opt/spectra/include"
+    "/usr/local/include"
+    "/usr/include"
+    "/opt/local/include"
+    "$HOME/.local/include"
+  )
+
+  if command -v pkg-config >/dev/null 2>&1; then
+    PKGCFG_SPECTRA="$(pkg-config --variable=includedir spectra 2>/dev/null || true)"
+    if [[ -n "$PKGCFG_SPECTRA" ]]; then
+      CANDIDATES=( "$PKGCFG_SPECTRA" "${CANDIDATES[@]}" )
+    fi
+  fi
+
+  if [[ -d "/opt/homebrew/Cellar/spectra" ]]; then
+    for c in /opt/homebrew/Cellar/spectra/*/include; do
+      if [[ -d "$c" ]]; then CANDIDATES+=( "$c" ); fi
+    done
+  fi
+
+  for cand in "${CANDIDATES[@]}"; do
+    if valid_spectra "$cand"; then
+      SPECTRA_DIR="$cand"
+      break
+    fi
+  done
+fi
+
+if [[ "$SPECTRA_DIR" == "fetch" ]] || (! valid_spectra "$SPECTRA_DIR" && [[ $YES -eq 1 ]]); then
+  if command -v git >/dev/null 2>&1; then
+    EXT="$ROOT/external-libs"
+    mkdir -p "$EXT"
+    say "Fetching Spectra (header-only) -> external-libs/spectra"
+    rm -rf "$EXT/spectra"
+    if git clone --depth 1 --branch "v1.0.1" https://github.com/yixuan/spectra "$EXT/spectra" >/dev/null 2>&1; then
+      SPECTRA_DIR="$EXT/spectra/include"
     fi
   fi
 fi
 
-if [[ -n "$SPECTRA_DIR" && -f "$SPECTRA_DIR/Spectra/SymEigsSolver.h" ]]; then
+if valid_spectra "$SPECTRA_DIR"; then
   say "Found Spectra at $SPECTRA_DIR"
 else
-  warn "Spectra not found at standard paths. If eigensolver fails, specify --spectra=PATH."
+  die "Spectra eigensolver library was not found!
+SAM requires Spectra (https://spectralib.org) for large-scale symmetric matrix diagonalization.
+Please install Spectra:
+  macOS:  brew install spectra
+  Ubuntu: sudo apt-get install libspectra-dev
+  Manual: git clone https://github.com/yixuan/spectra external-libs/spectra
+Or specify:
+  ./configure.sh --spectra=/path/to/include"
 fi
 
 # 6. SAM Data Directory
