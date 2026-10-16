@@ -12,7 +12,13 @@ namespace sam
   // init the top of the chain here (+ SAM-specific caches).
   inline void initialize(int* argc, char*** argv)
   {
-    u4::initialize(argc, argv);   // cascades: u4 -> u3 -> qcx_utils
+#ifdef SAM_DEFAULT_DATA_DIR
+    if (!std::getenv("SAM_DATA_DIR") && !std::getenv("SAM_DIR"))
+    {
+      setenv("SAM_DATA_DIR", SAM_DEFAULT_DATA_DIR, 0);
+    }
+#endif
+    u4::initialize(argc, argv);   // cascades: u4 -> u3 -> utils
 #ifdef UNCOUPLE_ME_CACHE
     HO::initialize_twbme_cache();
 #endif

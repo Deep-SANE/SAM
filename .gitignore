@@ -1,50 +1,38 @@
-# files with extensions in all directories:
+# Generated configuration (written by `make config`)
+config/config.generated.mk
 
+# Build outputs
+bin/
+lib/
 *.a
-*.aux
-*.d
-*.bbl
-*.blg
-*.docx
-*.e
-*.e*
-*.exe
-*.e*
-*.fdb_latexmk
-*.fls
-*.gz
-*.log
+*.so
 *.o
 *.o*
-*.out
-*.pbs
-*.pdf
-*.slurm
-*.so
-*.swp
-*.xlsx
+src/obj/
+app/obj/
 
-# '.DS_Store' file in all directories:
+# Compiler dependency files (except make.d directories)
+*.d
+!config/make.d/
+!config/make.d/**
 
-.DS_Store
-
-# all built executable binary files:
-
-bin/
-
-# all data files:
-
+# All built data files (selectively tracked if needed)
 data/
 
-# Doxygen output:
+# Logs and batch scripts
+*.log
+*.out
+*.pbs
+*.slurm
+*.aux
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
 
-doxygen/html/
-
-# GDB history file:
-
+# macOS / editor / agent cruft
+.DS_Store
 .gdb_history
-
-
-# AI agent:
-
+.swp
 .claude/
+doxygen/html/

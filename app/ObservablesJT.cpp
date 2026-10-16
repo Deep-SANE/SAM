@@ -15,11 +15,11 @@ int main(int argc, char* argv[])
   sam::initialize(&argc, &argv);
 
   // Specify Hamiltonian
-  std::string Hamil_name = "HO_Li7_e10_hw16_E342";
+  std::string Hamil_name = "Hamiltonian_with_N2LO_opt_bare";
 
   // Specify operator name
   // Example 1: E2
-  std::string name = "E2";
+  // std::string name = "E2";
 
   // Example 2: M1
   // std::string name = "M1";
@@ -32,14 +32,15 @@ int main(int argc, char* argv[])
   // std::string name = "FermiPlus";
 
   // Example 12: Gamow-Teller for beta decay
-  // std::string name = "GamowTellerMinus";
+  std::string name = "GamowTellerMinus";
   // std::string name = "GamowTellerPlus";
 
   ////////////// WITHIN THE SAME BASIS //////////////
-  
-  int Z = 3, N = 4, Nmax = 8, JJ = 3, TT = 1, hw = 16;
+  /*
+  int Z = 3, N = 3, Nmax = 10, JJ = 6, TT = 0, hw = 20;
 
-  u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
+  u4::irreps irrs4 = {{1,1,0,0}, {3,3,0,0}, {3,2,1,0}};
+
   u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
              irrs3_6 = {{9,0,0}, {8,1,0}, {7,2,0}, {6,3,0}, {5,4,0}},
              irrs3_8 = {{11,0,0}, {10,1,0}, {9,2,0}, {8,3,0}, {7,4,0}};
@@ -49,12 +50,14 @@ int main(int argc, char* argv[])
     hw2(2, {}, {}, {}, {TT}),
     hw4(4, {}, {}, {}, {TT}),
     hw6(6, {}, {}, {}, {TT}),
-    hw8(8, {}, {}, {}, {TT});
+    hw8(8, {}, {}, {}, {TT}),
+    hw10(10, {}, {irrs4}, {}, {TT});
 
-  U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ, {hw0, hw2, hw4, hw6, hw8});
+  U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ, {hw0, hw2, hw4, hw6, hw8, hw10});
   basis.construct();
+  std::cout << "Basis dimension: " << basis.dim() << std::endl;
 
-  std::string custom_dir = "Truncation_TT1";
+  std::string custom_dir = "Truncation_TT0_8to10_18Aug26";
 
   HO::Table_nljmjmt HO_labels(basis.maxShell());
   U3xU4::Table_gelfand gelfand_labels(basis.maxShell());
@@ -78,7 +81,7 @@ int main(int argc, char* argv[])
   std::cout << "Expectation values of " << name << " are" << std::endl;
   for (int i = 0; i < vals.size(); i++)
     std::cout << "State " << i << ": " << vals[i] << std::endl;
-  
+  */ 
 
   // transition
   /*
@@ -91,15 +94,16 @@ int main(int argc, char* argv[])
   */
 
   // End time measurement
-  auto t1 = std::chrono::high_resolution_clock::now();
+  // auto t1 = std::chrono::high_resolution_clock::now();
   
 
   ////////////// BETWEEN TWO DIFFERENT BASES //////////////
-  /*
-  int Zi = 4, Ni = 3, Nmax = 2, JJi = 3, TTi = 1, hw = 16;
-  std::string dir_i = "Truncation_TT1";
+  
+  int Zi = 2, Ni = 4, Nmax = 10, JJi = 0, TTi = 2, hw = 20;
+  std::string dir_i = "Truncation_TT2_8to10_18Aug26";
 
-  u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
+  u4::irreps irrs4 = {{1,1,0,0}, {3,2,1,0}, {3,3,0,0}};
+
   u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
              irrs3_6 = {{9,0,0}, {8,1,0}, {7,2,0}, {6,3,0}, {5,4,0}},
              irrs3_8 = {{11,0,0}, {10,1,0}, {9,2,0}, {8,3,0}, {7,4,0}};
@@ -109,23 +113,25 @@ int main(int argc, char* argv[])
     hw2i(2, {}, {}, {}, {TTi}),
     hw4i(4, {}, {}, {}, {TTi}),
     hw6i(6, {}, {}, {}, {TTi}),
-    hw8i(8, {}, {}, {}, {TTi});
+    hw8i(8, {}, {}, {}, {TTi}),
+    hw10i(10, {}, {irrs4}, {}, {TTi});
 
-  U3xU4::ManyNucleonBasis kets(Ni, Zi, Nmax, JJi, {hw0i, hw2i, hw4i, hw6i, hw8i});
+  U3xU4::ManyNucleonBasis kets(Ni, Zi, Nmax, JJi, {hw0i, hw2i, hw4i, hw6i, hw8i, hw10i});
   kets.construct();
   std::cout << "Ket basis dimension: " << kets.dim() << std::endl;
   
-  int Zf = 4, Nf = 3, JJf = 1, TTf = 1;
-  std::string dir_f = "Truncation_TT1";
+  int Zf = 3, Nf = 3, JJf = 2, TTf = 0;
+  std::string dir_f = "Truncation_TT0_8to10_18Aug26";
 
   U3xU4::hw_subspace
     hw0f(0, {}, {}, {}, {TTf}),
     hw2f(2, {}, {}, {}, {TTf}),
     hw4f(4, {}, {}, {}, {TTf}),
     hw6f(6, {}, {}, {}, {TTf}),
-    hw8f(8, {}, {}, {}, {TTf});
+    hw8f(8, {}, {}, {}, {TTf}),
+    hw10f(10, {}, {irrs4}, {}, {TTf});
 
-  U3xU4::ManyNucleonBasis bras(Nf, Zf, Nmax, JJf, {hw0f, hw2f, hw4f, hw6f, hw8f});
+  U3xU4::ManyNucleonBasis bras(Nf, Zf, Nmax, JJf, {hw0f, hw2f, hw4f, hw6f, hw8f, hw10f});
   bras.construct();
   std::cout << "Bra basis dimension: " << bras.dim() << std::endl;
 
@@ -160,7 +166,7 @@ int main(int argc, char* argv[])
   
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
-  */
+  
 
   ////////////// DON'T EDIT ANYTHING HERE //////////////
   

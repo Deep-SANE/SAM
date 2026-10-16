@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 
   sam::initialize(&argc, &argv);
 
-  int Z = 3, N = 3, JJ = 2, TT = 0, Nmax = 10, hw = 20, write = 1;
+  int Z = 2, N = 2, JJ = 0, TT = 0, Nmax = 10, hw = 20, write = 1;
 
   u4::irreps irrs4 = {{1,1,1,0}, {2,1,0,0}, {3,3,1,0}};
   u3::irreps irrs3_4 = {{7,0,0}, {6,1,0}, {5,2,0}, {4,3,0}, {3,1,0}},
@@ -35,8 +35,10 @@ int main(int argc, char* argv[])
 
   std::string custom_dir = "Truncation_TT0";
 
-  std::string name = "Hamiltonian with N2LO_opt_bare";
+  // std::string name = "Hamiltonian with N2LO_opt_bare";
   // std::string name = "Hamiltonian with N3LO_EM500_srg2.0";
+  // std::string name = "Hamiltonian with N3LO_EMN500_bare";
+  std::string name = "Hamiltonian with N4LO_EMN500_bare";
   // std::string name = "Magic_Be7_e3_hw16_E39";
 
 #ifdef USE_MPI

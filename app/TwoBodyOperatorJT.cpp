@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 #endif
 
-  int hw = 20, valenceShell = 0, Nmax = 12, maxShell = 12;
+  int hw = 16, valenceShell = 0, Nmax = 6, maxShell = 6;
   HO::Table_nljmjmt HO_labels(maxShell);
   U3xU4::Table_gelfand gelfand_labels(maxShell);
 
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
   // std::string name = "Rrel";
 
   // Example 6: Two-body potential N2LO_opt_bare,srg1.0,2.0,4.0
-  std::string name = "N2LO_opt_bare";
+  // std::string name = "N2LO_opt_bare";
   // std::string name = "N2LO_opt_srg1.0";
   // std::string name = "N2LO_opt_srg2.0";
   // std::string name = "N2LO_opt_srg4.0";
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
   // std::string name = "N3LO_EMN500_srg4.0";
 
   // Example 11: Two-body potential with custom name
-  // std::string name = "Magic_Be7_e3_hw16_E39";
+  std::string name = "HO_Li7_e10_hw16_E342";
 
   // Example 12: Two-body GT operator
   // std::string name = "GamowTellerMinus_2B_N3LO_EM500_bare";
@@ -91,8 +91,8 @@ int main(int argc, char* argv[])
 #endif
     op.is();
 
-  auto tensors = op.expand();
-  // auto tensors = op.expand_new();
+  // auto tensors = op.expand();
+  auto tensors = op.expand_new();
 
   // End time measurement
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -102,12 +102,12 @@ int main(int argc, char* argv[])
 #endif
   {
     std::cout << "There are " << tensors.size() << " tensors" << std::endl;
-    for (const auto& tensor : tensors)  std::cout << tensor << std::endl;
+    // for (const auto& tensor : tensors)  std::cout << tensor << std::endl;
 
-/*
+
     // This might be helpful for comparison
     std::string filename = op.dirname() + "/Expansion/" + name + "_hw" 
-                           + std::to_string(hw) + "_Nmax10";
+                           + std::to_string(hw) + "_Nmax6";
     auto tensors_old = op.readBinary(filename);
     std::cout << "There are " << tensors_old.size() << " old tensors" << std::endl;
 
@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
       // else std::cout << "Not found: " << tensor << "\n" << std::endl;
       assert(found);
     }
-*/
+
 
     // Calculate the duration
     std::chrono::duration<double> duration = t1 - t0;
