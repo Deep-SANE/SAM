@@ -12,7 +12,7 @@
 #include <U4irrep.h>
 #include <U4decomposition.h>
 
-#include <qcx_readwrite.h>
+#include <readwrite.h>
 
 #ifdef HAVE_FMT
 #include <fmt/format.h>

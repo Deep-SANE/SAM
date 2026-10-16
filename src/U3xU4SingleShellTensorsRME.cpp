@@ -58,7 +58,7 @@ namespace U3xU4
   sam::RME SingleShellTensor::RME(const U3xU4::GammaElement& f,
                                   const U3xU4::GammaElement& i) const
   {
-    auto& cgcs = qcx_utils::cgcs();
+    auto& cgcs = utils::cgcs();
     auto& wigU3U2db = u3::wigU3U2db();
     auto& wigU4U3db = u4::wigU4U3db();
 
@@ -436,7 +436,7 @@ namespace U3xU4
     auto start = std::chrono::high_resolution_clock::now();
 #endif
 
-    auto& cgcs = qcx_utils::cgcs();
+    auto& cgcs = utils::cgcs();
     auto& wigU3U2db = u3::wigU3U2db();
     auto& wigU4U3db = u4::wigU4U3db();
 

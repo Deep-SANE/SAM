@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include <qcx_Int.h>
+#include <Int.h>
 
 #include <HOutilities.h>
 #include <OneBodyOperatorJT.h>
@@ -78,14 +78,14 @@ namespace JT
 
     // Matrix representation
     // symmetric
-    qcx_utils::CSRMatrix
+    utils::CSRMatrix
     matrix_CSR(const U3xU4::ManyNucleonBasis& basis);
 
     Eigen::SparseMatrix<double>
     matrix_Eigen(const U3xU4::ManyNucleonBasis& basis);
 
     // rectangular
-    qcx_utils::CSRMatrix
+    utils::CSRMatrix
     matrix_CSR(const U3xU4::ManyNucleonBasis& bras,
                const U3xU4::ManyNucleonBasis& kets);
     

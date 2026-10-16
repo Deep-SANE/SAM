@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include <qcx_readwrite.h>
+#include <readwrite.h>
 
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Fano.h>
@@ -41,10 +41,10 @@ namespace U3xU4
         n22p = g4_conj.n22(), n11p = g4_conj.n11();
 
     u3::gelfand g3(n13b, 0, 0, n13b - n22b, 0, n13b - n11b);
-    c_ = qcx_utils::itou8(u3::findGelfand(g3, sps3_));
+    c_ = utils::itou8(u3::findGelfand(g3, sps3_));
 
     u4::gelfand g4(1, 0, 0, 0, 1 - n33p, 0, 0, 1 - n22p, 0, 1 - n11p);
-    r_ = qcx_utils::itou8(u4::findGelfand(g4, sps4_));
+    r_ = utils::itou8(u4::findGelfand(g4, sps4_));
 
     int phase = n22b + n11b + n33p + n22p + n11p;
 
@@ -106,7 +106,7 @@ namespace U3xU4
   std::pair<std::vector<double>, std::vector<U3xU4::ats_gelfand>>
   Tat_gelfand::expand() const
   {
-    auto& cgcs = qcx_utils::cgcs();
+    auto& cgcs = utils::cgcs();
     auto& wigU3U2db = u3::wigU3U2db();
     auto& wigU4U3db = u4::wigU4U3db();
 
@@ -338,8 +338,8 @@ namespace U3xU4
   // expand in terms of uncoupled products of at's
   Expansion Tat_phys::expand() const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 

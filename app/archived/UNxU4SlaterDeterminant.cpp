@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <qcx_utils.h>
+#include <utils.h>
 
 #include <u3lib.h>
 #include <u4lib.h>
@@ -9,7 +9,7 @@
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
+  utils::initialize(&argc, &argv);
   u3::initialize();
   u4::initialize();
 
@@ -57,5 +57,5 @@ int main(int argc, char* argv[])
 
   u4::finalize();
   u3::finalize();
-  qcx_utils::finalize();
+  utils::finalize();
 }

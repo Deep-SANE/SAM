@@ -6,9 +6,9 @@
 #include <tuple>
 #include <omp.h>
 
-#include <qcx_convert.h>
-#include <qcx_print.h>
-using qcx_utils::print;
+#include <convert.h>
+#include <print.h>
+using utils::print;
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
 #include <so3Coeffs/SO3_Fano.h>
@@ -28,10 +28,10 @@ namespace JT
     if (maxShell > 14)
       throw std::out_of_range("Sorry, we only have maxShell up to 14");
 
-    hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
-    Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
-    valenceShell_ = (valenceShell > 0) ? qcx_utils::ito8(valenceShell) : 0;
-    maxShell_ = (maxShell >= 0) ? qcx_utils::ito8(maxShell) : 14;
+    hw_ = (hw >= 0) ? utils::ito8(hw) : 20;
+    Nmax_ = (Nmax >= 0) ? utils::ito8(Nmax) : 14;
+    valenceShell_ = (valenceShell > 0) ? utils::ito8(valenceShell) : 0;
+    maxShell_ = (maxShell >= 0) ? utils::ito8(maxShell) : 14;
 
     name_ = name;
     JJ_ = 0;
@@ -176,11 +176,11 @@ namespace JT
     if (!s)
       throw std::runtime_error("Failed to open file for writing: " + filename);
 
-    qcx_utils::writeBinary(s, maxShell_);
+    utils::writeBinary(s, maxShell_);
 
     // Number of tensors
     size_t n_tensors = tensors.size();
-    qcx_utils::writeBinary(s, n_tensors);
+    utils::writeBinary(s, n_tensors);
 
     for (const auto& tensor : tensors) tensor.writeBinary(s);
 
@@ -200,7 +200,7 @@ namespace JT
       throw std::runtime_error("Failed to open file for reading: " + filename);
 
     HO::qn_t maxShell;
-    qcx_utils::readBinary(s, maxShell);
+    utils::readBinary(s, maxShell);
 
 #ifdef USE_MPI
     int mpi_rank = 0;
@@ -217,7 +217,7 @@ namespace JT
 
     // Read number of tensors
     size_t n_tensors;
-    qcx_utils::readBinary(s, n_tensors);
+    utils::readBinary(s, n_tensors);
 
     U3xU4::MultiShellTensors_phys tensors;
     tensors.reserve(n_tensors);
@@ -291,7 +291,7 @@ namespace JT
       throw std::runtime_error("Failed to open file for reading: " + filename);
 
     HO::qn_t maxShell; /* = Nmax */
-    qcx_utils::readBinary(s, maxShell);
+    utils::readBinary(s, maxShell);
 
     if ((maxShell_ > maxShell) or (maxShell_ - 2 * valenceShell_ > maxShell))
     {
@@ -312,7 +312,7 @@ namespace JT
       hw_ = requested_hw;
 
       s.open(filename, std::ios::binary); // reopen updated file
-      qcx_utils::readBinary(s, maxShell); // re-read header
+      utils::readBinary(s, maxShell); // re-read header
     }
 
     std::cerr << "Start reading " << name_ 
@@ -321,7 +321,7 @@ namespace JT
 
     // Read number of tensors
     size_t n_tensors;
-    qcx_utils::readBinary(s, n_tensors);
+    utils::readBinary(s, n_tensors);
 
     U3xU4::MultiShellTensors_phys tensors;
     tensors.reserve(n_tensors);
@@ -358,7 +358,7 @@ namespace JT
   }
 
   // Matrix representation
-  qcx_utils::CSRMatrix 
+  utils::CSRMatrix 
   TwoBodyOperator::matrix_CSR(const U3xU4::ManyNucleonBasis& basis)
   {
     auto tensors = expand();

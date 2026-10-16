@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include <eigensolver.h>
-#include <qcx_readwrite.h>
+#include <readwrite.h>
 
 #include <sam.h>
 
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 
   // read wave functions
   auto wfns_file = Hamil.wfns_file(basis, custom_dir);
-  auto [evals, evecs] = qcx_utils::readEigenBinary(wfns_file);
+  auto [evals, evecs] = utils::readEigenBinary(wfns_file);
   
   // moments
   
@@ -149,11 +149,11 @@ int main(int argc, char* argv[])
 
   // read initial wave functions
   auto wfns_file_i = Hamil_i.wfns_file(kets, dir_i);
-  auto [evals_i, evecs_i] = qcx_utils::readEigenBinary(wfns_file_i);
+  auto [evals_i, evecs_i] = utils::readEigenBinary(wfns_file_i);
 
   // read final wave functions
   auto wfns_file_f = Hamil_f.wfns_file(bras, dir_f);
-  auto [evals_f, evecs_f] = qcx_utils::readEigenBinary(wfns_file_f);
+  auto [evals_f, evecs_f] = utils::readEigenBinary(wfns_file_f);
   
   // transition
   

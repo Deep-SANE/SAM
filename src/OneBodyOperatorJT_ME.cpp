@@ -3,8 +3,8 @@
 #include <filesystem>
 #include <fstream>
 
-#include <qcx_convert.h>
-#include <qcx_readwrite.h>
+#include <convert.h>
+#include <readwrite.h>
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
 #include <so3Coeffs/SO3_Fano.h>
@@ -23,9 +23,9 @@ namespace JT
                                       int mmta, int nb, int llb, int jjb,
                                       int mmjb, int mmtb) const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah = qcx_utils::racahs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah = utils::racahs();
+    auto& racah9 = utils::fanos();
 
     double x = 0.0;
 

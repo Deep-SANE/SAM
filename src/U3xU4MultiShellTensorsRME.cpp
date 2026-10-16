@@ -4,8 +4,8 @@
 
 #include <boost/container_hash/hash.hpp>
 
-#include <qcx_convert.h>
-#include <qcx_ND.h>
+#include <convert.h>
+#include <ND.h>
 
 #include <U3_U9Coeffs.h>
 #include <U4_U9Coeffs.h>
@@ -294,7 +294,7 @@ namespace U3xU4
       // (III) combine RMEsL, RMEsR, U3U9coeff, and U4U9coeff into RMEs:
 
       // multiplicities for calculated RMEs:
-      qcx_utils::NDIndex14 ndi_res;
+      utils::NDIndex14 ndi_res;
       //std::cout << "Start adding dimensions" << std::endl;
       ndi_res.add_dimensions(RMEsL.afmax(), RMEsR.afmax(), rhoABCDmax,
                              etaABCDmax, RMEsL.aimax(), RMEsR.aimax(), rhoACmax,
@@ -481,7 +481,7 @@ namespace U3xU4
       // (III) combine RMEsL, RMEsR, U3U9coeff, and U4U9coeff into RMEs:
 
       // multiplicities for calculated RMEs:
-      qcx_utils::NDIndex14 ndi_res;
+      utils::NDIndex14 ndi_res;
       //std::cout << "Start adding dimensions" << std::endl;
       ndi_res.add_dimensions(RMEsL.afmax(), RMEsR.afmax(), rhoABCDmax,
                              etaABCDmax, RMEsL.aimax(), RMEsR.aimax(), rhoACmax,
@@ -683,7 +683,7 @@ namespace U3xU4
         // (III) combine RMEsL, RMEsR, U3U9coeff, and U4U9coeff into RMEs:
 
         // multiplicities for calculated RMEs:
-        qcx_utils::NDIndex14 ndi_res;
+        utils::NDIndex14 ndi_res;
         //std::cout << "Start adding dimensions" << std::endl;
         ndi_res.add_dimensions(RMEsL.afmax(), RMEsR.afmax(), rhoABCDmax,
                                etaABCDmax, RMEsL.aimax(), RMEsR.aimax(), rhoACmax,

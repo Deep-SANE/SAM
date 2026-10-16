@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <qcx_readwrite.h>
+#include <readwrite.h>
 
 #include <U3xU4SingleShellTensors.h>
 
@@ -27,8 +27,8 @@ namespace U3xU4
   void SingleShellTensor::writeBinary(std::ostream& s) const
   {
     U3xU4::GammaElement::writeBinary(s); // T, shell, rho0max, eta0max
-    qcx_utils::writeBinary(s, ads_);
-    qcx_utils::writeBinary(s, ats_);
+    utils::writeBinary(s, ads_);
+    utils::writeBinary(s, ats_);
 
     for (const auto& ir : Omega_ads_) ir.writeBinary(s);
     for (const auto& ir : Omega_ats_) ir.writeBinary(s);
@@ -37,8 +37,8 @@ namespace U3xU4
   void SingleShellTensor::readBinary(std::istream& s)
   {
     U3xU4::GammaElement::readBinary(s); // T, shell, rho0max, eta0max
-    qcx_utils::readBinary(s, ads_);
-    qcx_utils::readBinary(s, ats_);
+    utils::readBinary(s, ads_);
+    utils::readBinary(s, ats_);
 
     Omega_ads_.resize(std::max(0, static_cast<int>(ads_) - 1));
     for (auto& ir : Omega_ads_) ir.readBinary(s);

@@ -28,7 +28,7 @@
 #include <U3xU4SingleShellTensorsRME_Database.h>
 #include <U3xU4SingleShellTensorsDecomposition_Database.h>
 
-#include <qcx_Int.h>
+#include <Int.h>
 
 namespace U3xU4
 {
@@ -62,9 +62,9 @@ namespace U3xU4
     // Constructor
     OneBodyMultiShellTensor(
       const U3xU4::irrep& a, const U3xU4::irrep& b, const U3xU4::irrep& t, 
-      qcx_utils::UInt8 kappamax, qcx_utils::Int8 LL, qcx_utils::Int8 SS, 
-      qcx_utils::Int8 TT, qcx_utils::Int8 MMT, qcx_utils::Int8 JJ,
-      qcx_utils::Int8 MMJ, const std::vector<double>& coeffs)
+      utils::UInt8 kappamax, utils::Int8 LL, utils::Int8 SS, 
+      utils::Int8 TT, utils::Int8 MMT, utils::Int8 JJ,
+      utils::Int8 MMJ, const std::vector<double>& coeffs)
         : a_(a),
           b_(b),
           t_(t),
@@ -174,10 +174,10 @@ namespace U3xU4
     {}
     TwoBodyMultiShellTensor(
       const U3xU4::SingleShellTensors& Gammas, const U3xU4::irreps& Omegas, 
-      qcx_utils::UInt8 rhomax, qcx_utils::UInt8 etamax,
-      qcx_utils::UInt8 kappamax, qcx_utils::Int8 LL, 
-      qcx_utils::UInt8 zetamax, qcx_utils::Int8 SS, qcx_utils::Int8 TT, 
-      qcx_utils::Int8 MMT, qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ, 
+      utils::UInt8 rhomax, utils::UInt8 etamax,
+      utils::UInt8 kappamax, utils::Int8 LL, 
+      utils::UInt8 zetamax, utils::Int8 SS, utils::Int8 TT, 
+      utils::Int8 MMT, utils::Int8 JJ, utils::Int8 MMJ, 
       const std::vector<double>& coeffs, const HO::Table_nljmjmt& labels)
         : Gammas_(Gammas),
           Omegas_(Omegas),
@@ -356,7 +356,7 @@ namespace U3xU4
      - The 2nd dimension has varying size, depending on the multiplicities of
        the tensor, including all multiplicities of SingleShellTensors, 
        intershell couplings, kappamax and zetamax. All of these can be extracted
-       easily using qcx_utils::NDIndex object. 
+       easily using utils::NDIndex object. 
   */
   class MultiShellTensor_phys : public U3xU4::MultiShellTensor
   {
@@ -382,7 +382,7 @@ namespace U3xU4
     MultiShellTensor_phys(
       const U3xU4::SingleShellTensors& Gammas,
       const U3xU4::OmegaElements& Omegas,
-      qcx_utils::Int8 MMT, qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ,
+      utils::Int8 MMT, utils::Int8 JJ, utils::Int8 MMJ,
       const HO::Table_nljmjmt& labels)
         : U3xU4::MultiShellTensor(Gammas, Omegas),
           MMT_(MMT), JJ_(JJ), MMJ_(MMJ), labels_(labels)
@@ -529,7 +529,7 @@ namespace U3xU4
       U3xU4::SingleShellTensors Gammas,
       std::vector<std::pair<U3xU4::OmegaElements,
                         std::vector<labels_type>>> Omegas_LLSSTTstrengths,
-      qcx_utils::Int8 MMT, qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ)
+      utils::Int8 MMT, utils::Int8 JJ, utils::Int8 MMJ)
       : Gammas_(std::move(Gammas)),
         MMT_(MMT),
         JJ_(JJ),
@@ -647,7 +647,7 @@ namespace U3xU4
 
   // Symmetric matrix
   template <typename TensorType>
-  qcx_utils::CSRMatrix MatrixElements_CSR(
+  utils::CSRMatrix MatrixElements_CSR(
                   const std::vector<TensorType>& tensors, 
                   const U3xU4::ManyNucleonBasis& basis,
                   const U3xU4::Table_gelfand& gelfand_labels);
@@ -668,7 +668,7 @@ namespace U3xU4
 
   // Rectangular matrix (CSR, block-distributed across MPI ranks)
   template <typename TensorType>
-  qcx_utils::CSRMatrix MatrixElements_CSR(
+  utils::CSRMatrix MatrixElements_CSR(
                   const std::vector<TensorType>& tensors,
                   const U3xU4::ManyNucleonBasis& bras,
                   const U3xU4::ManyNucleonBasis& kets,

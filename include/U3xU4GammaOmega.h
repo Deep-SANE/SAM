@@ -6,8 +6,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include <qcx_convert.h>
-#include <qcx_readwrite.h>
+#include <convert.h>
+#include <readwrite.h>
 
 #include <UNtoU3.h>
 
@@ -50,30 +50,30 @@ namespace U3xU4
     GammaElement(int shell, int alphamax, const u3::irrep& u3,
                  const u4::irrep& u4)
         : U3xU4::irrep(u3, u4),
-          shell_(qcx_utils::itou8(shell)),
-          alphamax_(qcx_utils::itou16(alphamax)),
+          shell_(utils::itou8(shell)),
+          alphamax_(utils::itou16(alphamax)),
           state_(State::Basis)
     { }
 
     // constructs a basis gamma element without alphamax:
     GammaElement(int shell, const u3::irrep& u3, const u4::irrep& u4)
         : U3xU4::irrep(u3, u4),
-          shell_(qcx_utils::itou8(shell)),
+          shell_(utils::itou8(shell)),
           state_(State::Basis)
     { 
       int N = (shell + 1) * (shell + 2) / 2;
       untou3::UNtoU3<4> gen;
       gen.set_shell(shell);
       gen.reduceU4(u4, N);
-      alphamax_ = qcx_utils::itou16(gen.multiplicity(u3));
+      alphamax_ = utils::itou16(gen.multiplicity(u3));
     }
 
     // constructs a tensor gamma element:
     GammaElement(int shell, int rhomax, const u3::irrep& u3, int etamax,
                  const u4::irrep& u4)
         : U3xU4::irrep(u3, u4),
-          shell_(qcx_utils::itou8(shell)),
-          t_(qcx_utils::itou8(rhomax), qcx_utils::itou8(etamax)),
+          shell_(utils::itou8(shell)),
+          t_(utils::itou8(rhomax), utils::itou8(etamax)),
           state_(State::Tensor)
     { }
 
@@ -151,14 +151,14 @@ namespace U3xU4
     void writeBinary(std::ostream& s) const
     {
       U3xU4::irrep::writeBinary(s);
-      qcx_utils::writeBinary(s, shell_);
+      utils::writeBinary(s, shell_);
 
       if (state_ == State::Basis)
-        qcx_utils::writeBinary(s, alphamax_);
+        utils::writeBinary(s, alphamax_);
       else if (state_ == State::Tensor)
       {
-        qcx_utils::writeBinary(s, t_.rhomax_);
-        qcx_utils::writeBinary(s, t_.etamax_);
+        utils::writeBinary(s, t_.rhomax_);
+        utils::writeBinary(s, t_.etamax_);
       }
       else
         throw std::runtime_error("Invalid state of U3xU4::GammaElement!");
@@ -168,14 +168,14 @@ namespace U3xU4
     void readBinary(std::istream& s)
     {
       U3xU4::irrep::readBinary(s);
-      qcx_utils::readBinary(s, shell_);
+      utils::readBinary(s, shell_);
 
       if (state_ == State::Basis)
-        qcx_utils::readBinary(s, alphamax_);
+        utils::readBinary(s, alphamax_);
       else if (state_ == State::Tensor)
       {
-        qcx_utils::readBinary(s, t_.rhomax_);
-        qcx_utils::readBinary(s, t_.etamax_);
+        utils::readBinary(s, t_.rhomax_);
+        utils::readBinary(s, t_.etamax_);
       }
       else
         throw std::runtime_error("Invalid state of U3xU4::GammaElement!");
@@ -205,8 +205,8 @@ namespace U3xU4
     OmegaElement(int rhomax, const u3::irrep& u3, int etamax,
                  const u4::irrep& u4)
         : U3xU4::irrep(u3, u4),
-          rhomax_(qcx_utils::itou8(rhomax)),
-          etamax_(qcx_utils::itou8(etamax))
+          rhomax_(utils::itou8(rhomax)),
+          etamax_(utils::itou8(etamax))
     { }
 
     // comparison:
@@ -222,16 +222,16 @@ namespace U3xU4
     void writeBinary(std::ostream& s) const
     {
       U3xU4::irrep::writeBinary(s);
-      qcx_utils::writeBinary(s, rhomax_);
-      qcx_utils::writeBinary(s, etamax_);
+      utils::writeBinary(s, rhomax_);
+      utils::writeBinary(s, etamax_);
     }
 
     // read from binary file
     void readBinary(std::istream& s)
     {
       U3xU4::irrep::readBinary(s);
-      qcx_utils::readBinary(s, rhomax_);
-      qcx_utils::readBinary(s, etamax_);
+      utils::readBinary(s, rhomax_);
+      utils::readBinary(s, etamax_);
     }
   };
   using OmegaElements = std::vector<U3xU4::OmegaElement>;

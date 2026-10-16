@@ -206,7 +206,7 @@ namespace JT
 
     // Matrix representation
     // symmetric
-    qcx_utils::CSRMatrix
+    utils::CSRMatrix
     matrix_CSR(const U3xU4::ManyNucleonBasis& basis);
 
     Eigen::SparseMatrix<double>

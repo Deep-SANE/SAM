@@ -3,8 +3,8 @@
 
 #include <HObasics.h>
 
-#include <qcx_convert.h>
-#include <qcx_print.h>
+#include <convert.h>
+#include <print.h>
 
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Fano.h>
@@ -70,7 +70,7 @@ namespace HO
   {
     if (na == nb + 1)
     {
-      double factor = qcx_utils::fanos().get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
+      double factor = utils::fanos().get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
       return factor * bosonCreatorRME(na, lla, nb, llb);
     }
     else
@@ -107,7 +107,7 @@ namespace HO
   {
     if (na == nb - 1)
     {
-      double factor = qcx_utils::fanos().get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
+      double factor = utils::fanos().get({llb, 2, lla, 1, 0, 1, jjb, 2, jja});
       return factor * bosonAnnihilatorRME(na, lla, nb, llb);
     }
     else

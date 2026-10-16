@@ -1,6 +1,6 @@
 #pragma once
 
-#include <qcx_utils.h>
+#include <utils.h>
 #include <u3lib.h>
 #include <u4lib.h>
 
@@ -8,7 +8,7 @@
 
 namespace sam
 {
-  // u4::initialize cascades down to u3 and the qcx-utils foundation, so we only
+  // u4::initialize cascades down to u3 and the utils foundation, so we only
   // init the top of the chain here (+ SAM-specific caches).
   inline void initialize(int* argc, char*** argv)
   {
@@ -29,17 +29,17 @@ namespace sam
 #ifdef UNCOUPLE_ME_CACHE
     HO::finalize_twbme_cache();
 #endif
-    u4::finalize();   // cascades: u4 -> u3 -> qcx_utils
+    u4::finalize();   // cascades: u4 -> u3 -> utils
   }
 
   inline void initialize_thread()
   {
-    u4::initialize_thread();   // cascades: u4 -> u3 -> qcx_utils
+    u4::initialize_thread();   // cascades: u4 -> u3 -> utils
   }
 
   inline void finalize_thread()
   {
-    u4::finalize_thread();   // cascades: u4 -> u3 -> qcx_utils
+    u4::finalize_thread();   // cascades: u4 -> u3 -> utils
   }
 
   inline void clear() 

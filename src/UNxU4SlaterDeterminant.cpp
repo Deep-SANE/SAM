@@ -4,17 +4,17 @@
 
 #include <UNxU4SlaterDeterminant.h>
 
-#include <qcx_convert.h>
+#include <convert.h>
 
 namespace UNxU4
 {
 
   SlaterDeterminant::SlaterDeterminant(int n)
-    : bits_(2 * (n + 1) * (n + 2)), N_(qcx_utils::itou8((n + 1) * (n + 2) / 2))
+    : bits_(2 * (n + 1) * (n + 2)), N_(utils::itou8((n + 1) * (n + 2) / 2))
   { }
 
   SlaterDeterminant::SlaterDeterminant(const boost::dynamic_bitset<>& b)
-    : bits_(b), N_(qcx_utils::itou8(b.size() / 4))
+    : bits_(b), N_(utils::itou8(b.size() / 4))
   { }
 
   SlaterDeterminant::SlaterDeterminant(const SlaterDeterminant& other)

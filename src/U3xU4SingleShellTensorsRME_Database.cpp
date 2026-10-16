@@ -13,14 +13,14 @@ namespace U3xU4
                          const U3xU4::GammaElement& i)
   {
     // Pack SU(3) labels into 32-bit key
-    std::array<qcx_utils::UInt8, 4> su3key_safe = {f.lam(), f.mu(), 
+    std::array<utils::UInt8, 4> su3key_safe = {f.lam(), f.mu(), 
                                                    i.lam(), i.mu()};
     su3key = (uint32_t(su3key_safe[0]) << 24) |
              (uint32_t(su3key_safe[1]) << 16) |
              (uint32_t(su3key_safe[2]) << 8) | uint32_t(su3key_safe[3]);
 
     // Pack SU(4) labels into 64-bit key
-    std::array<qcx_utils::UInt8, 6> su4key_safe = {f.P1(), f.P2(), f.P3(),
+    std::array<utils::UInt8, 6> su4key_safe = {f.P1(), f.P2(), f.P3(),
                                                    i.P1(), i.P2(), i.P3()};
     su4key =
         (uint64_t(su4key_safe[0]) << 56) | (uint64_t(su4key_safe[1]) << 48) |
@@ -45,17 +45,17 @@ namespace U3xU4
     while (true)
     {
       uint32_t su3;
-      qcx_utils::readBinary(file, su3);
+      utils::readBinary(file, su3);
 
       uint64_t su4;
-      qcx_utils::readBinary(file, su4);
+      utils::readBinary(file, su4);
 
       uint64_t num;
-      qcx_utils::readBinary(file, num);
+      utils::readBinary(file, num);
       if (num == 0) break;
 
       std::vector<double> rmes(num);
-      qcx_utils::readBinary(file, rmes);
+      utils::readBinary(file, rmes);
 
       bytes += num * sizeof(double);
       rmes_map.emplace(RMEKey(su3, su4), std::move(rmes));
@@ -220,11 +220,11 @@ namespace U3xU4
             }
             for (const auto& [key, rmes] : file.rmes_map)
             {
-              qcx_utils::writeBinary(out, key.su3key);
-              qcx_utils::writeBinary(out, key.su4key);
+              utils::writeBinary(out, key.su3key);
+              utils::writeBinary(out, key.su4key);
               uint64_t num = rmes.size();
-              qcx_utils::writeBinary(out, num);
-              qcx_utils::writeBinary(out, rmes);
+              utils::writeBinary(out, num);
+              utils::writeBinary(out, rmes);
             }
           }
           else
@@ -235,9 +235,9 @@ namespace U3xU4
             {
               while (true)
               {
-                uint32_t su3; qcx_utils::readBinary(in, su3);
-                uint64_t su4; qcx_utils::readBinary(in, su4);
-                uint64_t num; qcx_utils::readBinary(in, num);
+                uint32_t su3; utils::readBinary(in, su3);
+                uint64_t su4; utils::readBinary(in, su4);
+                uint64_t num; utils::readBinary(in, num);
                 if (num == 0 || !in) break;
                 in.seekg(num * sizeof(double), std::ios::cur);
                 file.rmes_map.erase(RMEKey(su3, su4));
@@ -256,12 +256,12 @@ namespace U3xU4
             }
             for (const auto& [key, rmes] : file.rmes_map)
             {
-              qcx_utils::writeBinary(out, key.su3key);
-              qcx_utils::writeBinary(out, key.su4key);
+              utils::writeBinary(out, key.su3key);
+              utils::writeBinary(out, key.su4key);
               
               uint64_t num = rmes.size();
-              qcx_utils::writeBinary(out, num);
-              qcx_utils::writeBinary(out, rmes);
+              utils::writeBinary(out, num);
+              utils::writeBinary(out, rmes);
             }
           }
         }
@@ -297,12 +297,12 @@ namespace U3xU4
 
       for (const auto& [key, rmes] : file.rmes_map)
       {
-        qcx_utils::writeBinary(out, key.su3key);
-        qcx_utils::writeBinary(out, key.su4key);
+        utils::writeBinary(out, key.su3key);
+        utils::writeBinary(out, key.su4key);
 
         uint64_t num = rmes.size();
-        qcx_utils::writeBinary(out, num);
-        qcx_utils::writeBinary(out, rmes);
+        utils::writeBinary(out, num);
+        utils::writeBinary(out, rmes);
       }
     }
     std::cout << "Finish destructing RME database" << std::endl;

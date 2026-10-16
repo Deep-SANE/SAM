@@ -1,6 +1,6 @@
 #include <cassert>
 
-#include <qcx_ND.h>
+#include <ND.h>
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Fano.h>
 
@@ -53,8 +53,8 @@ namespace U3xU4
   // ((rho * etamax + eta) * kappamax + kappa) * zetamax + zeta
   Expansion TwoBodyMultiShellTensor::expand(SSTDecomp_phys_db& db) const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -390,8 +390,8 @@ namespace U3xU4
   Expansion MultiShellTensor_phys::expand(int LL, int SS, int TT,
                                           SSTDecomp_phys_db& db) const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -440,7 +440,7 @@ namespace U3xU4
       int alphamax2 = t2.rho0max() * t2.eta0max();
 
       // Multiplicities
-      qcx_utils::NDIndex6 multis;
+      utils::NDIndex6 multis;
       multis.add_dimensions(alphamax1, alphamax2, T.rhomax(), 
                             T.etamax(), kappamax, zetamax);
       size_t n_multis = multis.cardinality();
@@ -611,7 +611,7 @@ namespace U3xU4
       for (const auto& O : Omegas_new) alphamax1 *= O.rhomax() * O.etamax();
 
       // Multiplicities
-      qcx_utils::NDIndex6 multis;
+      utils::NDIndex6 multis;
       multis.add_dimensions(alphamax1, alphamax2, T.rhomax(), 
                             T.etamax(), kappamax, zetamax);
       size_t n_multis = multis.cardinality();
@@ -772,8 +772,8 @@ namespace U3xU4
     const std::vector<int>& phase,
     SSTDecomp_phys_db& db) const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -824,7 +824,7 @@ namespace U3xU4
       int alphamax2 = t2.rho0max() * t2.eta0max();
 
       // Multiplicities
-      qcx_utils::NDIndex6 multis;
+      utils::NDIndex6 multis;
       multis.add_dimensions(alphamax1, alphamax2, T.rhomax(), 
                             T.etamax(), kappamax, zetamax);
       size_t n_multis = multis.cardinality();
@@ -1011,7 +1011,7 @@ namespace U3xU4
       for (const auto& O : Omegas_new) alphamax1 *= O.rhomax() * O.etamax();
 
       // Multiplicities
-      qcx_utils::NDIndex6 multis;
+      utils::NDIndex6 multis;
       multis.add_dimensions(alphamax1, alphamax2, T.rhomax(), 
                             T.etamax(), kappamax, zetamax);
       size_t n_multis = multis.cardinality();
@@ -1175,8 +1175,8 @@ namespace U3xU4
     const std::vector<int>& phase,
     SSTDecomp_phys_db& db) const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -1227,7 +1227,7 @@ namespace U3xU4
       int alphamax2 = t2.rho0max() * t2.eta0max();
 
       // Multiplicities
-      qcx_utils::NDIndex6 multis;
+      utils::NDIndex6 multis;
       multis.add_dimensions(alphamax1, alphamax2, T.rhomax(), 
                             T.etamax(), kappamax, zetamax);
       size_t n_multis = multis.cardinality();
@@ -1414,7 +1414,7 @@ namespace U3xU4
       for (const auto& O : Omegas_new) alphamax1 *= O.rhomax() * O.etamax();
 
       // Multiplicities
-      qcx_utils::NDIndex6 multis;
+      utils::NDIndex6 multis;
       multis.add_dimensions(alphamax1, alphamax2, T.rhomax(), 
                             T.etamax(), kappamax, zetamax);
       size_t n_multis = multis.cardinality();

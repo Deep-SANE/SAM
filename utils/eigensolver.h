@@ -12,6 +12,4 @@ namespace utils
   }
 } // namespace utils
 
-namespace qcx_utils = utils;
-
 #endif

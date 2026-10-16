@@ -5,8 +5,8 @@
 
 #include <HOorbits.h>
 
-#include <qcx_convert.h>
-#include <qcx_print.h>
+#include <convert.h>
+#include <print.h>
 
 namespace HO
 {
@@ -68,7 +68,7 @@ namespace HO
   {
     assert(emax <= 44);
     // It does not take in lmax, it is set to default lmax = emax
-    emax_ = qcx_utils::ito8(emax);
+    emax_ = utils::ito8(emax);
 
     if (style == "NuHamil")
     {

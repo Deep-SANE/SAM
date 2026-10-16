@@ -141,7 +141,7 @@ namespace JT
     const U3xU4::ManyNucleonBasis& basis, 
     const std::vector<std::pair<Col_t, Col_t>>& states)
   {
-    auto& cgcs = qcx_utils::cgcs();
+    auto& cgcs = utils::cgcs();
     
     auto res = expectationValue(basis, states);
     
@@ -171,7 +171,7 @@ namespace JT
     const U3xU4::ManyNucleonBasis& basis,
     const std::vector<std::pair<Col_t, Col_t>>& states)
   {
-    auto& cgcs = qcx_utils::cgcs();
+    auto& cgcs = utils::cgcs();
 
     auto res = expectationValue_Eigen(basis, states);
 
@@ -200,7 +200,7 @@ namespace JT
     const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,
     const std::vector<std::pair<Col_t, Col_t>>& states)
   {
-    auto& cgcs = qcx_utils::cgcs();
+    auto& cgcs = utils::cgcs();
 
     auto JJf = bras.JJ();
     auto JJi = kets.JJ();
@@ -285,7 +285,7 @@ namespace JT
     const U3xU4::ManyNucleonBasis& bras, const U3xU4::ManyNucleonBasis& kets,
     const std::vector<std::pair<Col_t, Col_t>>& states)
   {
-    auto& cgcs = qcx_utils::cgcs();
+    auto& cgcs = utils::cgcs();
 
     auto JJf = bras.JJ();
     auto JJi = kets.JJ();

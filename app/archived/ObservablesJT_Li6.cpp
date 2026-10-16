@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include <eigensolver.h>
-#include <qcx_readwrite.h>
+#include <readwrite.h>
 
 #include <sam.h>
 
@@ -53,9 +53,9 @@ int main(int argc, char* argv[])
 
   // read Hamiltonian matrix
   auto filename = Hamil.filename(basis);
-  auto mat = qcx_utils::readBinary(filename);
+  auto mat = utils::readBinary(filename);
 
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 2);
+  auto [evals, evecs] = utils::eigensolver_symmetric(mat, 2);
   
   // Q2
   auto Q2 = E2.expectationValue(basis, {{evecs.col(0), evecs.col(0)}});
@@ -112,15 +112,15 @@ int main(int argc, char* argv[])
 
   // read Hamiltonian matrix
   auto filename_i = Hamil_i.filename(kets);
-  auto mat_i = qcx_utils::readBinary(filename_i);
+  auto mat_i = utils::readBinary(filename_i);
 
-  auto [evals_i, evecs_i] = qcx_utils::eigensolver_symmetric(mat_i, mat_i.rows());
+  auto [evals_i, evecs_i] = utils::eigensolver_symmetric(mat_i, mat_i.rows());
 
   // read Hamiltonian matrix
   auto filename_f = Hamil_f.filename(bras);
-  auto mat_f = qcx_utils::readBinary(filename_f);
+  auto mat_f = utils::readBinary(filename_f);
 
-  auto [evals_f, evecs_f] = qcx_utils::eigensolver_symmetric(mat_f, mat_f.rows());
+  auto [evals_f, evecs_f] = utils::eigensolver_symmetric(mat_f, mat_f.rows());
   
   // transition
   

@@ -2,8 +2,8 @@
 #include <cstdint>
 #include <iostream>
 
-#include <qcx_print.h>
-#include <qcx_utils.h>
+#include <print.h>
+#include <utils.h>
 
 #include <sam.h>
 
@@ -11,7 +11,7 @@
 
 int main(int argc, char* argv[])
 {
-  using qcx_utils::print;
+  using utils::print;
 
   sam::initialize(&argc, &argv);
 

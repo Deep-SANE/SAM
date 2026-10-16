@@ -15,8 +15,8 @@
 #include <U3xU4irrep.h>
 #include <RME.h>
 
-#include <qcx_convert.h>
-#include <qcx_Int.h>
+#include <convert.h>
+#include <Int.h>
 
 #ifdef HAVE_FMT
 #include <fmt/format.h>
@@ -62,12 +62,12 @@ namespace U3xU4
     SingleShellTensor() : U3xU4::GammaElement(0, 0, {}, 0, {})
     { }
 
-    SingleShellTensor(qcx_utils::UInt8 n,
-                      qcx_utils::UInt8 ads, qcx_utils::UInt8 ats,
+    SingleShellTensor(utils::UInt8 n,
+                      utils::UInt8 ads, utils::UInt8 ats,
                       const U3xU4::irreps& Omega_ads,
                       const U3xU4::irreps& Omega_ats,
                       const U3xU4::irrep& T, 
-                      qcx_utils::UInt8 rho0max, qcx_utils::UInt8 eta0max)
+                      utils::UInt8 rho0max, utils::UInt8 eta0max)
         : U3xU4::GammaElement(n, rho0max, T.u3(), eta0max, T.u4()),
           ads_(ads),
           ats_(ats),
@@ -172,14 +172,14 @@ namespace U3xU4
   public:
     // Constructor
     SingleShellTensor_gelfand(
-      qcx_utils::UInt8 n, 
+      utils::UInt8 n, 
       const u3::gelfands& sps3, const u3::gelfands& sps3_conj,
       const u4::gelfands& sps4, const u4::gelfands& sps4_conj, 
-      qcx_utils::UInt8 ads, qcx_utils::UInt8 ats,
+      utils::UInt8 ads, utils::UInt8 ats,
       const U3xU4::irreps& Omega_ads,
       const U3xU4::irreps& Omega_ats,
       const U3xU4::irrep& T, 
-      qcx_utils::UInt8 rho0max, qcx_utils::UInt8 eta0max,
+      utils::UInt8 rho0max, utils::UInt8 eta0max,
       const u3::gelfand& g3, const u4::gelfand& g4)
         : SingleShellTensor(n, ads, ats, Omega_ads, Omega_ats, 
                                             T, rho0max, eta0max),
@@ -225,9 +225,9 @@ namespace U3xU4
   public:
     // Constructor
     SingleShellTensor_phys(const U3xU4::SingleShellTensor& T,
-      qcx_utils::Int8 LL, qcx_utils::Int8 SS,
-      qcx_utils::Int8 TT, qcx_utils::Int8 MMT,
-      qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ,
+      utils::Int8 LL, utils::Int8 SS,
+      utils::Int8 TT, utils::Int8 MMT,
+      utils::Int8 JJ, utils::Int8 MMJ,
       const HO::Table_nljmjmt& labels)
         : SingleShellTensor(T),
           LL_(LL),
@@ -238,19 +238,19 @@ namespace U3xU4
           MMJ_(MMJ),
           labels_(labels)
     {
-      kappamax_ = qcx_utils::itou8(u3::Kappa(u3(), LL_ / 2));
-      zetamax_ = qcx_utils::itou8(u4::Zeta(u4(), SS_, TT_));
+      kappamax_ = utils::itou8(u3::Kappa(u3(), LL_ / 2));
+      zetamax_ = utils::itou8(u4::Zeta(u4(), SS_, TT_));
     }
     SingleShellTensor_phys(
-      qcx_utils::UInt8 n, 
-      qcx_utils::UInt8 ads, qcx_utils::UInt8 ats,
+      utils::UInt8 n, 
+      utils::UInt8 ads, utils::UInt8 ats,
       const U3xU4::irreps& Omega_ads,
       const U3xU4::irreps& Omega_ats,
       const U3xU4::irrep& T, 
-      qcx_utils::UInt8 rho0max, qcx_utils::UInt8 eta0max,
-      qcx_utils::Int8 LL, qcx_utils::Int8 SS,
-      qcx_utils::Int8 TT, qcx_utils::Int8 MMT,
-      qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ,
+      utils::UInt8 rho0max, utils::UInt8 eta0max,
+      utils::Int8 LL, utils::Int8 SS,
+      utils::Int8 TT, utils::Int8 MMT,
+      utils::Int8 JJ, utils::Int8 MMJ,
       const HO::Table_nljmjmt& labels)
         : SingleShellTensor(n, ads, ats, Omega_ads, Omega_ats, 
                                             T, rho0max, eta0max),
@@ -262,8 +262,8 @@ namespace U3xU4
           MMJ_(MMJ),
           labels_(labels)
     {
-      kappamax_ = qcx_utils::itou8(u3::Kappa(u3(), LL_ / 2));
-      zetamax_ = qcx_utils::itou8(u4::Zeta(u4(), SS_, TT_));
+      kappamax_ = utils::itou8(u3::Kappa(u3(), LL_ / 2));
+      zetamax_ = utils::itou8(u4::Zeta(u4(), SS_, TT_));
     }
 
     // Getters

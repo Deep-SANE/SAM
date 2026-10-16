@@ -1,7 +1,7 @@
-#include <qcx_print.h>
-#include <qcx_utils.h>
+#include <print.h>
+#include <utils.h>
 
-using qcx_utils::print;
+using utils::print;
 
 #include <u3lib.h>
 #include <u4lib.h>
@@ -58,8 +58,8 @@ double ME_CoM_2B(int na, int lla, int jja, int mmja, int mmta, int nb,
 {
   double x = 0.0;
 
-  auto& cgcs = qcx_utils::cgcs();
-  auto& racah9 = qcx_utils::fanos();
+  auto& cgcs = utils::cgcs();
+  auto& racah9 = utils::fanos();
 
   if (mmta == mmtc && mmtb == mmtd)
   {
@@ -93,7 +93,7 @@ double RME_CoM_2B_AS(int na, int lla, int jja, int nb, int llb, int jjb,
 							int nc, int llc, int jjc, int nd, int lld, int jjd,
 							int JJ, int TT)
 {
-  auto& cgcs = qcx_utils::cgcs();
+  auto& cgcs = utils::cgcs();
 
   //Since the RME is the same as ME, choose MJ=J, MT=T
 
@@ -138,11 +138,11 @@ double RME_CoM_2B_AS(int na, int lla, int jja, int nb, int llb, int jjb,
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
+  utils::initialize(&argc, &argv);
   u3::initialize();
   u4::initialize();
 
-  auto& racah9 = qcx_utils::fanos();
+  auto& racah9 = utils::fanos();
   auto& wigU3SO3db = u3::wigU3SO3db();
   auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -383,5 +383,5 @@ int main(int argc, char* argv[])
 
   u4::finalize();
   u3::finalize();
-  qcx_utils::finalize();
+  utils::finalize();
 }

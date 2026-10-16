@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include <eigensolver.h>
-#include <qcx_readwrite.h>
+#include <readwrite.h>
 
 #include <sam.h>
 
@@ -77,12 +77,12 @@ int main(int argc, char* argv[])
   // read initial wave functions
   // auto wfns_file_i = Hamil_i.wfns_file(kets);
   auto wfns_file_i = Hamil_i.wfns_file(kets, dir_i);
-  auto [evals_i, evecs_i] = qcx_utils::readEigenBinary(wfns_file_i);
+  auto [evals_i, evecs_i] = utils::readEigenBinary(wfns_file_i);
 
   // read final wave functions
   // auto wfns_file_f = Hamil_f.wfns_file(bras);
   auto wfns_file_f = Hamil_f.wfns_file(bras, dir_f);
-  auto [evals_f, evecs_f] = qcx_utils::readEigenBinary(wfns_file_f);
+  auto [evals_f, evecs_f] = utils::readEigenBinary(wfns_file_f);
   
   // transition
   
@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
   extract_elem(evecs_f, bra_pos, bra_extract);
 
   auto MMJ = std::min(JJf, JJi);
-  auto cgc = qcx_utils::cgcs().get({JJi, 2, JJf, MMJ, 0, MMJ});
+  auto cgc = utils::cgcs().get({JJi, 2, JJf, MMJ, 0, MMJ});
   double factor = std::sqrt(JJf + 1.0) / cgc;
 
   for (int i = 0; i < irrs.size(); i++)

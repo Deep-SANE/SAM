@@ -3,8 +3,8 @@
 #include <filesystem>
 #include <fstream>
 
-#include <qcx_convert.h>
-#include <qcx_readwrite.h>
+#include <convert.h>
+#include <readwrite.h>
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
 #include <so3Coeffs/SO3_Fano.h>
@@ -23,8 +23,8 @@ namespace JT
                                      int P30, int kappa0, int LL0, int SS0,
                                      int na, int nb) const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -144,8 +144,8 @@ namespace JT
                                      int P30, int kappa0, int LL0, int SS0,
                                      int na, int nb) const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -459,8 +459,8 @@ namespace JT
   void OneBodyOperator::setTensorStrength(U3xU4::MultiShellTensor_phys& tensor,
                                     int na, int nb) const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 

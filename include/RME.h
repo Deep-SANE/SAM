@@ -7,14 +7,14 @@
 #include <utility>
 #include <vector>
 
-#include <qcx_ND.h>
+#include <ND.h>
 
 namespace sam
 {
   class RME
   {
     std::vector<double> rmes_;
-    qcx_utils::NDIndex5 ndi_;
+    utils::NDIndex5 ndi_;
 
   public:
     RME() = default;

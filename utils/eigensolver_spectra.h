@@ -1,6 +1,6 @@
 #pragma once
 
-#include "qcx_matrix.h"
+#include "matrix.h"
 
 #include <algorithm>
 #include <iostream>
@@ -272,5 +272,3 @@ namespace utils
     return std::pair(std::move(evals_vec), std::move(evecs_mat));
   }
 } // namespace utils
-
-namespace qcx_utils = utils;

@@ -25,7 +25,7 @@ namespace U3xU4
              std::vector<U3xU4::ats_gelfand>> // a's
   SingleShellTensor_gelfand::expand() const
   {
-    auto& cgcs = qcx_utils::cgcs();
+    auto& cgcs = utils::cgcs();
     auto& wigU3U2db = u3::wigU3U2db();
     auto& wigU4U3db = u4::wigU4U3db();
 
@@ -219,8 +219,8 @@ namespace U3xU4
   // in terms of creation and annihilation operators (ad's and a's)
   Expansion SingleShellTensor_phys::expand() const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -436,8 +436,8 @@ namespace U3xU4
 
     return strengths;
 /*
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 

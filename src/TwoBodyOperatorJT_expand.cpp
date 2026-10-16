@@ -18,9 +18,9 @@
 #include <malloc.h>   // malloc_trim: return freed pages (m-scheme + decomp) to OS
 #endif
 
-#include <qcx_convert.h>
-#include <qcx_print.h>
-using qcx_utils::print;
+#include <convert.h>
+#include <print.h>
+using utils::print;
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
 #include <so3Coeffs/SO3_Fano.h>
@@ -801,7 +801,7 @@ namespace JT
     if (!rf) throw std::runtime_error("Failed to open rank file: " + rank_filename);
     const auto count_pos = rf.tellp();     // rank file starts with the count
     size_t n_written = 0;
-    qcx_utils::writeBinary(rf, n_written); // placeholder, patched below
+    utils::writeBinary(rf, n_written); // placeholder, patched below
 
     // Dynamic work-queue: a single global counter (on rank 0) that ranks
     // fetch-and-add to claim the next batch. Passive-target RMA, so a rank that
@@ -979,7 +979,7 @@ namespace JT
     // patch the real count into the placeholder slot at the head of the file
     if (!rf) throw std::runtime_error("Write failed on rank file: " + rank_filename);
     rf.seekp(count_pos);
-    qcx_utils::writeBinary(rf, n_written);
+    utils::writeBinary(rf, n_written);
     rf.close();
     std::cerr << "[expand_new] Rank " << mpi_rank << ": rank file closed OK ("
               << n_written << " tensors)" << std::endl;
@@ -1017,10 +1017,10 @@ namespace JT
       // Single pass — no pre-counting loop needed.
       std::ofstream out(filename, std::ios::binary);
       if (!out) throw std::runtime_error("Failed to open output file: " + filename);
-      qcx_utils::writeBinary(out, maxShell_);
+      utils::writeBinary(out, maxShell_);
       auto count_pos = out.tellp();          // save position of n_tensors field
       size_t placeholder = 0;
-      qcx_utils::writeBinary(out, placeholder);
+      utils::writeBinary(out, placeholder);
       std::cerr << "[expand_new] Rank 0: header written, streaming rank files" << std::endl;
 
       size_t total_tensors = 0;
@@ -1029,7 +1029,7 @@ namespace JT
         std::string rf_name = filename + ".rank_" + std::to_string(r);
         std::cerr << "[expand_new] Rank 0: streaming rank file " << r << std::endl;
         std::ifstream rf(rf_name, std::ios::binary);
-        size_t n; qcx_utils::readBinary(rf, n); // read per-rank count
+        size_t n; utils::readBinary(rf, n); // read per-rank count
         std::cerr << "[expand_new] Rank 0: rank " << r << " has " << n << " tensors" << std::endl;
         total_tensors += n;
         if (n > 0)  // rdbuf() sets failbit if 0 bytes extracted — skip for empty ranks
@@ -1052,7 +1052,7 @@ namespace JT
             continue;
           std::ifstream df(e.path(), std::ios::binary);
           if (!df) continue;
-          size_t n; qcx_utils::readBinary(df, n);
+          size_t n; utils::readBinary(df, n);
           std::cerr << "[expand_new] Rank 0: folding done file " << e.path()
                     << " (" << n << " tensors)" << std::endl;
           total_tensors += n;
@@ -1067,7 +1067,7 @@ namespace JT
 
       // Seek back and overwrite the placeholder with the real count
       out.seekp(count_pos);
-      qcx_utils::writeBinary(out, total_tensors);
+      utils::writeBinary(out, total_tensors);
       out.close();
       std::cerr << "[expand_new] Rank 0: merged " << total_tensors
                 << " tensors into " << filename << std::endl;
@@ -1092,11 +1092,11 @@ namespace JT
     if (!s) throw std::runtime_error("Failed to open for final read: " + filename);
 
     HO::qn_t maxShell;
-    qcx_utils::readBinary(s, maxShell);
+    utils::readBinary(s, maxShell);
 
     // Read number of tensors
     size_t n_tensors;
-    qcx_utils::readBinary(s, n_tensors);
+    utils::readBinary(s, n_tensors);
     std::cerr << "[expand_new] Rank " << mpi_rank << ": final read expects "
               << n_tensors << " tensors" << std::endl;
 
@@ -1486,7 +1486,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     if (!rf) throw std::runtime_error("Failed to open rank file: " + rank_filename);
     const auto count_pos = rf.tellp();     // rank file starts with the count
     size_t n_written = 0;
-    qcx_utils::writeBinary(rf, n_written); // placeholder, patched below
+    utils::writeBinary(rf, n_written); // placeholder, patched below
 
     // Dynamic work-queue: a single global counter (on rank 0) that ranks
     // fetch-and-add to claim the next batch. Passive-target RMA, so a rank that
@@ -1664,7 +1664,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     // patch the real count into the placeholder slot at the head of the file
     if (!rf) throw std::runtime_error("Write failed on rank file: " + rank_filename);
     rf.seekp(count_pos);
-    qcx_utils::writeBinary(rf, n_written);
+    utils::writeBinary(rf, n_written);
     rf.close();
     std::cerr << "[expand_exist] Rank " << mpi_rank << ": rank file closed OK ("
               << n_written << " tensors)" << std::endl;
@@ -1705,10 +1705,10 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       if (!f) throw std::runtime_error("Failed to open: " + filename);
       auto maxShell_pos = f.tellg();       // byte 0: position of maxShell field
       HO::qn_t maxShell;
-      qcx_utils::readBinary(f, maxShell);
+      utils::readBinary(f, maxShell);
       auto count_pos = f.tellg();          // right after maxShell: position of n_tensors field
       size_t n_tensors_prev;
-      qcx_utils::readBinary(f, n_tensors_prev);
+      utils::readBinary(f, n_tensors_prev);
       std::cerr << "[expand_exist] Rank 0: existing file has " << n_tensors_prev
                 << " tensors (maxShell " << (int)maxShell << " -> " << (int)maxShell_ 
                 << "), seeking to end" << std::endl;
@@ -1720,7 +1720,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
         std::string rf_name = filename + ".rank_" + std::to_string(r);
         std::cerr << "[expand_exist] Rank 0: appending rank file " << r << std::endl;
         std::ifstream rf(rf_name, std::ios::binary);
-        size_t n; qcx_utils::readBinary(rf, n); // read per-rank count
+        size_t n; utils::readBinary(rf, n); // read per-rank count
         std::cerr << "[expand_exist] Rank 0: rank " << r << " has " << n << " tensors" << std::endl;
         n_new += n;
         if (n > 0)  // rdbuf() sets failbit if 0 bytes extracted — skip for empty ranks
@@ -1742,7 +1742,7 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
             continue;
           std::ifstream df(e.path(), std::ios::binary);
           if (!df) continue;
-          size_t n; qcx_utils::readBinary(df, n);
+          size_t n; utils::readBinary(df, n);
           std::cerr << "[expand_exist] Rank 0: folding done file " << e.path()
                     << " (" << n << " tensors)" << std::endl;
           n_new += n;
@@ -1759,8 +1759,8 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       std::cerr << "[expand_exist] Rank 0: updating header (maxShell=" << maxShell_
                 << ", n_tensors=" << total << ")" << std::endl;
       f.seekp(maxShell_pos);
-      qcx_utils::writeBinary(f, maxShell_);  // update maxShell to new (larger) value
-      qcx_utils::writeBinary(f, total);      // update tensor count (lands at count_pos)
+      utils::writeBinary(f, maxShell_);  // update maxShell to new (larger) value
+      utils::writeBinary(f, total);      // update tensor count (lands at count_pos)
       f.close();
 
       std::cerr << "[expand_exist] Rank 0: appended " << n_new
@@ -1786,11 +1786,11 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
     if (!s) throw std::runtime_error("Failed to open: " + filename);
 
     HO::qn_t maxShell;
-    qcx_utils::readBinary(s, maxShell);
+    utils::readBinary(s, maxShell);
 
     // Read number of tensors
     size_t n_tensors;
-    qcx_utils::readBinary(s, n_tensors);
+    utils::readBinary(s, n_tensors);
 
     U3xU4::MultiShellTensors_phys tensors;
     tensors.reserve(n_tensors);

@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include <qcx_readwrite.h>
+#include <readwrite.h>
 
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Fano.h>
@@ -37,7 +37,7 @@ namespace U3xU4
   std::pair<std::vector<double>, std::vector<U3xU4::ads_gelfand>>
   Tad_gelfand::expand() const
   {
-    auto& cgcs = qcx_utils::cgcs();
+    auto& cgcs = utils::cgcs();
     auto& wigU3U2db = u3::wigU3U2db();
     auto& wigU4U3db = u4::wigU4U3db();
 
@@ -250,8 +250,8 @@ namespace U3xU4
   // Expand in terms of uncoupled products of ad's
   Expansion Tad_phys::expand() const
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 

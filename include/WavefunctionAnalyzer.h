@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <eigensolver.h>
-#include <qcx_convert.h>
+#include <convert.h>
 
 #include <U3irrep.h>
 
@@ -193,10 +193,10 @@ namespace sam
     auto labels = basis.decomposition();
     auto dim = basis.dim();
 
-    auto H = qcx_utils::readBinary(matrix_file);
+    auto H = utils::readBinary(matrix_file);
     assert(dim == H.cols());
 
-    auto [evals, evecs] = qcx_utils::eigensolver_symmetric(H, H.rows());
+    auto [evals, evecs] = utils::eigensolver_symmetric(H, H.rows());
     std::vector<double> evals_extracted(evals.begin(),
                                         evals.begin() + num_states);
 
@@ -289,10 +289,10 @@ namespace sam
     auto labels = basis.decomposition();
     auto dim = basis.dim();
 
-    auto H = qcx_utils::readBinary(matrix_file);
+    auto H = utils::readBinary(matrix_file);
     assert(dim == H.cols());
 
-    auto [evals, evecs] = qcx_utils::eigensolver_symmetric(H, H.rows());
+    auto [evals, evecs] = utils::eigensolver_symmetric(H, H.rows());
     std::vector<double> evals_extracted(evals.begin(),
                                         evals.begin() + num_states);
 

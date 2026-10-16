@@ -29,8 +29,8 @@ namespace U3xU4
                         const U3xU4::irrep& c, int LL3, int SS3, int TT3,
                         int MMT3, int JJ3, int MMJ3)
     {
-      auto& cgcs = qcx_utils::cgcs();
-      auto& racah9 = qcx_utils::fanos();
+      auto& cgcs = utils::cgcs();
+      auto& racah9 = utils::fanos();
       auto& wigU3SO3db = u3::wigU3SO3db();
       auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 

@@ -6,10 +6,10 @@
 
 #include <boost/container_hash/hash.hpp>
 
-#include <qcx_matrix.h>
-#include <qcx_ND.h>
-#include <qcx_print.h>
-using qcx_utils::print;
+#include <matrix.h>
+#include <ND.h>
+#include <print.h>
+using utils::print;
 
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Fano.h>
@@ -26,17 +26,17 @@ using qcx_utils::print;
 
 namespace U3xU4
 {
-  // Custom sparse format defined in qcx_matrix.h with OpenMP
+  // Custom sparse format defined in matrix.h with OpenMP
   template <typename TensorType>
-  qcx_utils::CSRMatrix MatrixElements_CSR(
+  utils::CSRMatrix MatrixElements_CSR(
                   const std::vector<TensorType>& tensors, 
                   const U3xU4::ManyNucleonBasis& basis,
                   const U3xU4::Table_gelfand& gelfand_labels)
   {
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -60,7 +60,7 @@ namespace U3xU4
     if (tensors_count == 0 || std::fabs(cgcJ) == 0.0)
     {
       // Eigen::SparseMatrix<double> mat(dim, dim);
-      qcx_utils::CSRMatrix mat(dim);
+      utils::CSRMatrix mat(dim);
       return mat;
     }
 
@@ -453,7 +453,7 @@ namespace U3xU4
     std::cout << "Start computing matrix" << std::endl;
 #endif
 
-    qcx_utils::CSRMatrix global(dim);
+    utils::CSRMatrix global(dim);
 #ifdef EXPLOIT_SYMMETRIC
     // Only the lower triangle is stored; mark global BEFORE the parallel
     // region (the compute loop uses add() with explicit max/min routing so no
@@ -818,12 +818,12 @@ namespace U3xU4
     return global;
   }
 
-  template qcx_utils::CSRMatrix MatrixElements_CSR(
+  template utils::CSRMatrix MatrixElements_CSR(
                   const MultiShellTensors_phys& tensors, 
                   const U3xU4::ManyNucleonBasis& basis,
                   const U3xU4::Table_gelfand& gelfand_labels);
 
-  template qcx_utils::CSRMatrix MatrixElements_CSR(
+  template utils::CSRMatrix MatrixElements_CSR(
                   const MultiShellTensors_ShareGammas_phys& tensors, 
                   const U3xU4::ManyNucleonBasis& basis,
                   const U3xU4::Table_gelfand& gelfand_labels);
@@ -838,14 +838,14 @@ namespace U3xU4
   // block-local coupling-coefficient caches (cached_U3SO3/cached_U4SU2SU2 via
   // g_asm_block), matching the square CSR path.
   template <typename TensorType>
-  qcx_utils::CSRMatrix MatrixElements_CSR(
+  utils::CSRMatrix MatrixElements_CSR(
                   const std::vector<TensorType>& tensors,
                   const U3xU4::ManyNucleonBasis& bras,
                   const U3xU4::ManyNucleonBasis& kets,
                   const U3xU4::Table_gelfand& gelfand_labels)
   {
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -877,7 +877,7 @@ namespace U3xU4
     auto cgcJ = cgcs.get({kets_JJ, JJ_opt, bras_JJ, MMJ, MMJ_opt, MMJ});
 
     if (tensors_count == 0 || std::fabs(cgcJ) == 0.0)
-      return qcx_utils::CSRMatrix(bras_dim, kets_dim);
+      return utils::CSRMatrix(bras_dim, kets_dim);
 
     // Get MPI info
 #ifdef USE_MPI
@@ -1150,7 +1150,7 @@ namespace U3xU4
 
     // PREPARATION PHASE --- END
 
-    qcx_utils::CSRMatrix global(bras_dim, kets_dim);
+    utils::CSRMatrix global(bras_dim, kets_dim);
 
     // RME database
     U3xU4::RME_db RMEdb(std::max(bras.maxShell(), kets.maxShell()));
@@ -1376,13 +1376,13 @@ namespace U3xU4
     return global;
   }
 
-  template qcx_utils::CSRMatrix
+  template utils::CSRMatrix
     MatrixElements_CSR(const MultiShellTensors_phys& tensors,
                   const U3xU4::ManyNucleonBasis& bras,
                   const U3xU4::ManyNucleonBasis& kets,
                   const U3xU4::Table_gelfand& gelfand_labels);
 
-  template qcx_utils::CSRMatrix
+  template utils::CSRMatrix
     MatrixElements_CSR(const MultiShellTensors_ShareGammas_phys& tensors,
                   const U3xU4::ManyNucleonBasis& bras,
                   const U3xU4::ManyNucleonBasis& kets,

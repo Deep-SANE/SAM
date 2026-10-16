@@ -11,7 +11,7 @@
 #include <set>
 #include <vector>
 
-#include <qcx_utils.h>
+#include <utils.h>
 
 #include <u3lib.h>
 #include <u4lib.h>
@@ -511,7 +511,7 @@ uint64_t dimDistribution(const tSHELLSCONFIG& distribution, int MMT, int JJ)
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
+  utils::initialize(&argc, &argv);
   u3::initialize();
   u4::initialize();
 
@@ -548,7 +548,7 @@ int main(int argc, char* argv[])
 
   u4::finalize();
   u3::finalize();
-  qcx_utils::finalize();
+  utils::finalize();
 }
 
 /*

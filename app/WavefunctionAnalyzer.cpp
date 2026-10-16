@@ -1,6 +1,6 @@
 #include <sam.h>
 
-#include <qcx_print.h>
+#include <print.h>
 
 #include <OperatorJT.h>
 #include <WavefunctionAnalyzer.h>
@@ -37,18 +37,18 @@ int main(int argc, char* argv[])
   std::string Hamil_name = "Hamiltonian with N2LO_opt_bare";
   JT::Operator Hamil(Hamil_name, N, Z, hw, Nmax, HO_labels, gelfand_labels);
 
-  qcx_utils::print("N={}, Z={}, Nmax={}, JJ={}, hw={} with {}\n",
+  utils::print("N={}, Z={}, Nmax={}, JJ={}, hw={} with {}\n",
                     N, Z, Nmax, JJ, hw, Hamil_name);
 
   // read Hamiltonian matrix
   auto filename = Hamil.matrix_file(basis);
-  auto mat = qcx_utils::readBinary(filename);
+  auto mat = utils::readBinary(filename);
 
   // Start time measurement
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric(mat, 3);
-  qcx_utils::print("Eigenvalues: {}\n", evals);
+  auto [evals, evecs] = utils::eigensolver_symmetric(mat, 3);
+  utils::print("Eigenvalues: {}\n", evals);
 
   auto subspaces_u3 = sam::U3_wavefunction_analyzer(basis, evecs, 2);
 

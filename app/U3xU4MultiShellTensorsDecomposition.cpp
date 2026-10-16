@@ -2,7 +2,7 @@
 #include <iostream>
 #include <utility>
 
-#include <qcx_convert.h>
+#include <convert.h>
 
 #include <sam.h>
 
@@ -192,11 +192,11 @@ int main(int argc, char* argv[])
   int kappamax = u3::Kappa(T.getLastIrrep().u3(), LL / 2);
   int zetamax = u4::Zeta(T.getLastIrrep().u4(), SS, TT);
 
-  T.setLLSSTTstrengths({{qcx_utils::itou8(kappamax), 
-                         qcx_utils::ito8(LL), 
-                         qcx_utils::itou8(zetamax), 
-                         qcx_utils::ito8(SS), 
-                         qcx_utils::ito8(TT), {}}});
+  T.setLLSSTTstrengths({{utils::itou8(kappamax), 
+                         utils::ito8(LL), 
+                         utils::itou8(zetamax), 
+                         utils::ito8(SS), 
+                         utils::ito8(TT), {}}});
   
   std::cout << T << std::endl;
 

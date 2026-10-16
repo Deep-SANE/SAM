@@ -1,6 +1,6 @@
 // clang-format off
 
-#include <qcx_print.h>
+#include <print.h>
 
 #include <sam.h>
 
@@ -9,7 +9,7 @@
 #include <U3xU4MultiShellTensors.h>
 #include <U3xU4ManyNucleonBasis.h>
 
-using qcx_utils::print;
+using utils::print;
 
 int main(int argc, char* argv[])
 {

@@ -8,7 +8,7 @@
 #include <U3xU4SingleShellTensors.h>
 #include <U3xU4SingleShellTensorsRME_Database.h>
 
-#include <qcx_ND.h>
+#include <ND.h>
 
 int main(int argc, char* argv[])
 {
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
 
   std::cout << "af\tai\trho0\teta0\trho\teta" << std::endl;
 
-  qcx_utils::NDIndex multis;
+  utils::NDIndex multis;
   multis.add_dimensions(f.alphamax(), i.alphamax(), rho0max, eta0max, 
                         RMEs.rhomax(), RMEs.etamax());
 

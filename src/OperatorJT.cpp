@@ -183,7 +183,7 @@ namespace JT
   }
 
   // Matrix representation
-  qcx_utils::CSRMatrix
+  utils::CSRMatrix
   Operator::matrix_CSR(const U3xU4::ManyNucleonBasis& basis)
   {
     // auto tensors = expand_old();
@@ -228,7 +228,7 @@ namespace JT
   // this returns the Minus matrix in (kets_dim x bras_dim) layout, i.e. the
   // transpose of the requested operator. expectationValue (two-basis) accounts
   // for this by swapping the bra/ket roles in the vec-mat-vec.
-  qcx_utils::CSRMatrix Operator::matrix_CSR(
+  utils::CSRMatrix Operator::matrix_CSR(
     const U3xU4::ManyNucleonBasis& bras,
     const U3xU4::ManyNucleonBasis& kets)
   {

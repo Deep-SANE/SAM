@@ -15,8 +15,8 @@
 #include <U3xU4irrep.h>
 #include <RME.h>
 
-#include <qcx_convert.h>
-#include <qcx_Int.h>
+#include <convert.h>
+#include <Int.h>
 
 #ifdef HAVE_FMT
 #include <fmt/format.h>
@@ -55,7 +55,7 @@ namespace U3xU4
 
   public:
     // Constructor
-    ad_gelfand(qcx_utils::UInt8 c, qcx_utils::UInt8 r,
+    ad_gelfand(utils::UInt8 c, utils::UInt8 r,
                const u3::gelfands& sps3,
                const u4::gelfands& sps4)
         : c_(c), r_(r), sps3_(sps3), sps4_(sps4)
@@ -96,11 +96,11 @@ namespace U3xU4
   public:
     // Constructor
     
-    ad_phys(qcx_utils::Int8 n,   // shell number
-            qcx_utils::Int8 ll,  // twice orbital angular momentum
-            qcx_utils::Int8 jj,  // twice total angular momentum
-            qcx_utils::Int8 mmj, // twice total angular momentum projection
-            qcx_utils::Int8 mmt, // twice isospin projection
+    ad_phys(utils::Int8 n,   // shell number
+            utils::Int8 ll,  // twice orbital angular momentum
+            utils::Int8 jj,  // twice total angular momentum
+            utils::Int8 mmj, // twice total angular momentum projection
+            utils::Int8 mmt, // twice isospin projection
             const HO::Table_nljmjmt& labels)
         : labels_(labels)
     {
@@ -153,7 +153,7 @@ namespace U3xU4
 
   public:
     // Constructor
-    Tad_gelfand(qcx_utils::Int8 n, 
+    Tad_gelfand(utils::Int8 n, 
                 const u3::gelfands& sps3, const u4::gelfands& sps4,
                 const U3xU4::irreps& Omegas, 
                 const u3::gelfand& g3, const u4::gelfand& g4)
@@ -200,10 +200,10 @@ namespace U3xU4
 
   public:
     // Constructor
-    Tad_phys(qcx_utils::Int8 n, const U3xU4::irreps& Omegas, 
-             qcx_utils::Int8 LL, qcx_utils::Int8 SS, 
-             qcx_utils::Int8 TT, qcx_utils::Int8 MMT, 
-             qcx_utils::Int8 JJ, qcx_utils::Int8 MMJ,
+    Tad_phys(utils::Int8 n, const U3xU4::irreps& Omegas, 
+             utils::Int8 LL, utils::Int8 SS, 
+             utils::Int8 TT, utils::Int8 MMT, 
+             utils::Int8 JJ, utils::Int8 MMJ,
              const HO::Table_nljmjmt& labels)
         : n_(n), Omegas_(Omegas), LL_(LL), SS_(SS), TT_(TT),
           MMT_(MMT), JJ_(JJ), MMJ_(MMJ), labels_(labels)
@@ -211,7 +211,7 @@ namespace U3xU4
       if (Omegas_.empty())
         kappamax_ = 1;
       else
-        kappamax_ = qcx_utils::itou8(
+        kappamax_ = utils::itou8(
                    u3::Kappa(Omegas_.back().u3(), static_cast<int>(LL_) / 2));
     }
 

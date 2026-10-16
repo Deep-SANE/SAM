@@ -1,6 +1,6 @@
-#include <qcx_print.h>
-#include <qcx_optional_reference.h>
-#include <qcx_utils.h>
+#include <print.h>
+#include <optional_reference.h>
+#include <utils.h>
 
 #include <u3lib.h>
 #include <u4lib.h>
@@ -8,11 +8,11 @@
 #include <U3xU4irrep.h>
 #include <U3xU4GammaOmega.h>
 
-using qcx_utils::print;
+using utils::print;
 
 int main(int argc, char* argv[])
 {
-  qcx_utils::initialize(&argc, &argv);
+  utils::initialize(&argc, &argv);
   u3::initialize();
   u4::initialize();
 
@@ -41,16 +41,16 @@ int main(int argc, char* argv[])
 
   print("{}\n", ioe);
 
-  qcx_utils::optional_reference<const U3xU4::irrep> rw1 = ge_tensor;
+  utils::optional_reference<const U3xU4::irrep> rw1 = ge_tensor;
 
   print("{}\n", rw1.get());
 
-  qcx_utils::optional_reference<const U3xU4::irrep> rw2;
+  utils::optional_reference<const U3xU4::irrep> rw2;
   rw2 = oe;
 
   print("{}\n", rw2.get());
 
-  auto rw3 = qcx_utils::cref<U3xU4::irrep>(ge_tensor);
+  auto rw3 = utils::cref<U3xU4::irrep>(ge_tensor);
 
   print("{}\n", rw3.get());
   print("{}\n", rw3->su3());
@@ -59,5 +59,5 @@ int main(int argc, char* argv[])
 
   u4::finalize();
   u3::finalize();
-  qcx_utils::finalize();
+  utils::finalize();
 }

@@ -6,9 +6,9 @@
 #include <tuple>
 #include <omp.h>
 
-#include <qcx_convert.h>
-#include <qcx_print.h>
-using qcx_utils::print;
+#include <convert.h>
+#include <print.h>
+using utils::print;
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Racah.h>
 #include <so3Coeffs/SO3_Fano.h>

@@ -10,9 +10,9 @@
 #include <utility>
 #include <vector>
 
-#include <qcx_convert.h>
-#include <qcx_Int.h>
-#include <qcx_matrix.h>
+#include <convert.h>
+#include <Int.h>
+#include <matrix.h>
 
 #include <U3irrep.h>
 #include <U4irrep.h>
@@ -42,11 +42,11 @@ namespace U3xU4
 
     // Constructors
     hw_subspace() = default;
-    hw_subspace(qcx_utils::Int8 hw_, const u3::irreps& u3s_, const u4::irreps& u4s_,
+    hw_subspace(utils::Int8 hw_, const u3::irreps& u3s_, const u4::irreps& u4s_,
       const std::vector<HO::qn_t>& SSs_, const std::vector<HO::qn_t>& TTs_)
         : hw(hw_), u3s(u3s_), u4s(u4s_), SSs(SSs_), TTs(TTs_)
     {}
-    hw_subspace(qcx_utils::Int8 hw_, const u3::irreps& u3s_, const u4::irreps& u4s_,
+    hw_subspace(utils::Int8 hw_, const u3::irreps& u3s_, const u4::irreps& u4s_,
       const std::vector<HO::qn_t>& SSs_, const std::vector<HO::qn_t>& TTs_,
                 const std::vector<std::vector<double>>& probs_)
         : hw(hw_), u3s(u3s_), u4s(u4s_), SSs(SSs_), TTs(TTs_), probs(probs_)
@@ -58,9 +58,9 @@ namespace U3xU4
     // if u4s is empty, no selection is performed
     bool U4_selection(const u4::irrep& irr) const;
     // if SSs is empty, no selection is performed
-    bool SS_selection(qcx_utils::Int8 SS) const;
+    bool SS_selection(utils::Int8 SS) const;
     // if TTs is empty, no selection is performed
-    bool TT_selection(qcx_utils::Int8 TT) const;
+    bool TT_selection(utils::Int8 TT) const;
 
     // sort u3s in decreasing order of C2; u4s, SSs, TTs must be empty
     // if probs is not empty, it will be sorted too
@@ -210,7 +210,7 @@ namespace U3xU4
       GammaElement() : alphamax(1) { }
 
       GammaElement(const u4::irrep& u4, int alphamax, const su3::irrep& su3)
-          : u4(u4), alphamax(qcx_utils::itou16(alphamax)), su3(su3)
+          : u4(u4), alphamax(utils::itou16(alphamax)), su3(su3)
       { }
     };
 
@@ -224,7 +224,7 @@ namespace U3xU4
       OmegaElementSU3() : rhomax(1) { }
 
       OmegaElementSU3(int rhomax, const su3::irrep& su3)
-          : rhomax(qcx_utils::itou16(rhomax)), su3(su3)
+          : rhomax(utils::itou16(rhomax)), su3(su3)
       { }
     };
 
@@ -238,7 +238,7 @@ namespace U3xU4
       OmegaElementU4() : etamax(1) { }
 
       OmegaElementU4(int etamax, const u4::irrep& u4)
-          : etamax(qcx_utils::itou16(etamax)), u4(u4)
+          : etamax(utils::itou16(etamax)), u4(u4)
       { }
     };
 
@@ -583,7 +583,7 @@ namespace U3xU4
 
     // Symmetric matrix
     template <typename TensorType>
-    friend qcx_utils::CSRMatrix MatrixElements_CSR(
+    friend utils::CSRMatrix MatrixElements_CSR(
                   const std::vector<TensorType>& tensors, 
                   const U3xU4::ManyNucleonBasis& basis,
                   const U3xU4::Table_gelfand& gelfand_labels);
@@ -604,7 +604,7 @@ namespace U3xU4
 
     // Rectangular matrix (CSR)
     template <typename TensorType>
-    friend qcx_utils::CSRMatrix MatrixElements_CSR(
+    friend utils::CSRMatrix MatrixElements_CSR(
                   const std::vector<TensorType>& tensors,
                   const U3xU4::ManyNucleonBasis& bras,
                   const U3xU4::ManyNucleonBasis& kets,

@@ -27,7 +27,7 @@
 #endif
 #include <nullspace_error.h>
 
-#include <qcx_readwrite.h>
+#include <readwrite.h>
 
 namespace U3xU4
 {
@@ -354,7 +354,7 @@ namespace U3xU4
     auto mat = RaisingGenerator(SDarr, sps3, sps4);
 
 #if defined(NULLSPACE_SOLVER_SNS)
-    Eigen::MatrixXd expansion = qcx_utils::null_space_sns(mat, G.alphamax());
+    Eigen::MatrixXd expansion = utils::null_space_sns(mat, G.alphamax());
 #elif defined(NULLSPACE_SOLVER_SLEPC)
     /* 
     untou3::UNtoU3<4> gen;
@@ -362,14 +362,14 @@ namespace U3xU4
     gen.reduceU4(x.u4(), N);
     auto multi = gen.multiplicity(x.u3()); 
     */
-    Eigen::MatrixXd expansion = qcx_utils::null_space_slepc(mat, G.alphamax());
+    Eigen::MatrixXd expansion = utils::null_space_slepc(mat, G.alphamax());
 #else
-    Eigen::MatrixXd expansion = qcx_utils::null_space(mat);
+    Eigen::MatrixXd expansion = utils::null_space(mat);
 #endif
 
     // check error
     // std::cout << "The matrix size is " << mat.size() << " with error "
-    //          << qcx_utils::nullspace_error(mat, expansion) << std::endl;
+    //          << utils::nullspace_error(mat, expansion) << std::endl;
 
     return std::make_pair(SDarr, expansion);
   }
@@ -427,17 +427,17 @@ namespace U3xU4
       auto [SDarr, coeffs] = HWS_to_SD(G, sps3, sps4);
 
       size_t bit_count = SDarr[0].num_sps();
-      qcx_utils::writeBinary(file, bit_count);
+      utils::writeBinary(file, bit_count);
 
       size_t rows = SDarr.size(), cols = coeffs.cols();
-      qcx_utils::writeBinary(file, rows);
-      qcx_utils::writeBinary(file, cols);
+      utils::writeBinary(file, rows);
+      utils::writeBinary(file, cols);
 
       for (size_t i = 0; i < rows; i++)
       {
         std::vector<unsigned long> blocks;
         boost::to_block_range(SDarr[i].bits(), std::back_inserter(blocks));
-        qcx_utils::writeBinary(file, blocks);
+        utils::writeBinary(file, blocks);
 
         file.write(reinterpret_cast<const char*>(coeffs.row(i).data()),
                    cols * sizeof(double));
@@ -462,13 +462,13 @@ namespace U3xU4
                                path.string());
 
     size_t bit_count;
-    qcx_utils::readBinary(file, bit_count);
+    utils::readBinary(file, bit_count);
     size_t block_count = (bit_count + 
       sizeof(unsigned long) * 8 - 1) / (sizeof(unsigned long) * 8);
 
     size_t rows, cols;
-    qcx_utils::readBinary(file, rows);
-    qcx_utils::readBinary(file, cols);
+    utils::readBinary(file, rows);
+    utils::readBinary(file, cols);
 
     UNxU4::SlaterDeterminants SDarr;
     SDarr.reserve(rows);
@@ -480,14 +480,14 @@ namespace U3xU4
     for (size_t i = 0; i < rows; i++)
     {      
       std::vector<unsigned long> blocks(block_count);
-      qcx_utils::readBinary(file, blocks);
+      utils::readBinary(file, blocks);
 
       boost::dynamic_bitset<> bits(bit_count);
       boost::from_block_range(blocks.begin(), blocks.end(), bits);
       SDarr.emplace_back(bits);
 
       std::vector<double> coeff(cols);
-      qcx_utils::readBinary(file, coeff);
+      utils::readBinary(file, coeff);
       for (size_t j = 0; j < cols; j++) coeffs(i, j) = coeff[j];
     }
 

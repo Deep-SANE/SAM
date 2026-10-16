@@ -15,9 +15,9 @@
 
 #include <HOmes.h>
 
-#include <qcx_convert.h>
-#include <qcx_print.h>
-#include <qcx_readwrite.h>
+#include <convert.h>
+#include <print.h>
+#include <readwrite.h>
 
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Fano.h>
@@ -57,10 +57,10 @@ namespace HO
       throw std::out_of_range("Sorry, we only have maxShell up to 14");
 
     name_ = name;
-    hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
-    Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
-    valenceShell_ = (valenceShell > 0) ? qcx_utils::ito8(valenceShell) : 0;
-    maxShell_ = (maxShell >= 0) ? qcx_utils::ito8(maxShell) : 14;
+    hw_ = (hw >= 0) ? utils::ito8(hw) : 20;
+    Nmax_ = (Nmax >= 0) ? utils::ito8(Nmax) : 14;
+    valenceShell_ = (valenceShell > 0) ? utils::ito8(valenceShell) : 0;
+    maxShell_ = (maxShell >= 0) ? utils::ito8(maxShell) : 14;
     
     custom_name = true;
 
@@ -252,10 +252,10 @@ namespace HO
       throw std::out_of_range("Sorry, we only have maxShell up to 14");
 
     name_ = name;
-    hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
-    Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
-    valenceShell_ = (valenceShell > 0) ? qcx_utils::ito8(valenceShell) : 0;
-    maxShell_ = (maxShell >= 0) ? qcx_utils::ito8(maxShell) : 14;
+    hw_ = (hw >= 0) ? utils::ito8(hw) : 20;
+    Nmax_ = (Nmax >= 0) ? utils::ito8(Nmax) : 14;
+    valenceShell_ = (valenceShell > 0) ? utils::ito8(valenceShell) : 0;
+    maxShell_ = (maxShell >= 0) ? utils::ito8(maxShell) : 14;
 
     if (known_potentials.count(name))
     {
@@ -402,7 +402,7 @@ namespace HO
 
     // Read number of matrix elements
     int num_me;
-    qcx_utils::readBinary(infile, num_me);
+    utils::readBinary(infile, num_me);
     if (!infile)
         throw std::runtime_error("Failed to read count from: " + filename);
 
@@ -412,7 +412,7 @@ namespace HO
     
     if (mpi_rank == 0)
 #endif
-    qcx_utils::print("Number of mes: {}\n", num_me);
+    utils::print("Number of mes: {}\n", num_me);
 
     // Allocate temporary buffers
     /* From subroutine write_scalar_operator_binary_myg(this, f)
@@ -425,12 +425,12 @@ namespace HO
     std::vector<double> v(num_me);
 
     // Read data arrays
-    qcx_utils::readBinary(infile, ia);
-    qcx_utils::readBinary(infile, ib);
-    qcx_utils::readBinary(infile, ic);
-    qcx_utils::readBinary(infile, id);
-    qcx_utils::readBinary(infile, J);
-    qcx_utils::readBinary(infile, v);
+    utils::readBinary(infile, ia);
+    utils::readBinary(infile, ib);
+    utils::readBinary(infile, ic);
+    utils::readBinary(infile, id);
+    utils::readBinary(infile, J);
+    utils::readBinary(infile, v);
 
     if (!infile)
       throw std::runtime_error("Failed to read matrix elements from: " + filename);
@@ -569,11 +569,11 @@ namespace HO
 
     // Read number of matrix elements
     fortran_int num_me;
-    qcx_utils::readBinary(infile, num_me);
+    utils::readBinary(infile, num_me);
     if (!infile)
       throw std::runtime_error("Failed to read count from: " + filename);
 
-    // qcx_utils::print("Number of mes: {}\n", num_me);
+    // utils::print("Number of mes: {}\n", num_me);
 
     // Allocate temporary buffers
     /* From subroutine write_scalar_operator_binary_myg(this, f)
@@ -586,12 +586,12 @@ namespace HO
     std::vector<fortran_real8> v(num_me);
 
     // Read data arrays
-    qcx_utils::readBinary(infile, ia);
-    qcx_utils::readBinary(infile, ib);
-    qcx_utils::readBinary(infile, ic);
-    qcx_utils::readBinary(infile, id);
-    qcx_utils::readBinary(infile, J);
-    qcx_utils::readBinary(infile, v);
+    utils::readBinary(infile, ia);
+    utils::readBinary(infile, ib);
+    utils::readBinary(infile, ic);
+    utils::readBinary(infile, id);
+    utils::readBinary(infile, J);
+    utils::readBinary(infile, v);
 
     if (!infile)
       throw std::runtime_error("Failed to read matrix elements from: " + filename);
@@ -1098,8 +1098,8 @@ namespace HO
       if ((a == b && JJ % 4 != 0) || (c == d && JJ % 4 != 0))
         continue;
 
-      x += qcx_utils::cgcs().get({jja, jjb, JJ, mmja, mmjb, MMJab}) *
-           qcx_utils::cgcs().get({jjc, jjd, JJ, mmjc, mmjd, MMJab}) *
+      x += utils::cgcs().get({jja, jjb, JJ, mmja, mmjb, MMJab}) *
+           utils::cgcs().get({jjc, jjd, JJ, mmjc, mmjd, MMJab}) *
            getME(a, b, c, d, JJ / 2);
     }
 
@@ -1136,10 +1136,10 @@ namespace HO
       throw std::out_of_range("Sorry, we only have maxShell up to 14");
 
     name_ = name;
-    hw_ = (hw >= 0) ? qcx_utils::ito8(hw) : 20;
-    Nmax_ = (Nmax >= 0) ? qcx_utils::ito8(Nmax) : 14;
-    valenceShell_ = (valenceShell > 0) ? qcx_utils::ito8(valenceShell) : 0;
-    maxShell_ = (maxShell >= 0) ? qcx_utils::ito8(maxShell) : 14;
+    hw_ = (hw >= 0) ? utils::ito8(hw) : 20;
+    Nmax_ = (Nmax >= 0) ? utils::ito8(Nmax) : 14;
+    valenceShell_ = (valenceShell > 0) ? utils::ito8(valenceShell) : 0;
+    maxShell_ = (maxShell >= 0) ? utils::ito8(maxShell) : 14;
 
     // overwritten from the file header in read_from_gzip_nuhamil()
     JJ_ = 0; parity_ = 0; TT_ = 0;
@@ -1299,10 +1299,10 @@ namespace HO
     {
       int J = 0, P = 1, Z = 0;
       next_i(J); next_i(P); next_i(Z); next_i(file_emax); next_i(file_e2max);
-      JJ_ = 2 * qcx_utils::ito8(J);
+      JJ_ = 2 * utils::ito8(J);
       // operator parity in (0=even,1=odd) form, matching imsrg's (1-P)/2
-      parity_ = (1 - qcx_utils::ito8(P)) / 2;
-      TT_ = 2 * qcx_utils::ito8(Z);
+      parity_ = (1 - utils::ito8(P)) / 2;
+      TT_ = 2 * utils::ito8(Z);
       skip_line(); // discard the rest of the header line (Lmax)
     }
 
@@ -1608,7 +1608,7 @@ namespace HO
     double norm_ab = (a == b) ? SQRT2 : 1.0, norm_cd = (c == d) ? SQRT2 : 1.0,
            norm = std::sqrt(static_cast<double>(JJ_) + 1.0);
 
-    auto& cgcs = qcx_utils::cgcs();
+    auto& cgcs = utils::cgcs();
     double x = 0.0;
     for (qn_t JJab = std::abs(jja - jjb); JJab <= jja + jjb; JJab += 2)
     {
@@ -1669,7 +1669,7 @@ namespace HO
     qn_t M0 = mmja - mmjb; // 2*M0 (operator projection)
 
     // Wigner-Eckart: CG(jb OpJ ja; mb M0 ma), all in 2x units
-    double cg = qcx_utils::cgcs().get({jjb, JJ_, jja, mmjb, M0, mmja});
+    double cg = utils::cgcs().get({jjb, JJ_, jja, mmjb, M0, mmja});
     if (cg == 0.0) return 0.0;
 
     double R = getME(a, b); // stored reduced one-body ME

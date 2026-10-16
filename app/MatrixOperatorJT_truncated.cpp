@@ -2,8 +2,8 @@
 #include <iostream>
 
 #include <eigensolver.h>
-#include <qcx_print.h>
-#include <qcx_readwrite.h>
+#include <print.h>
+#include <readwrite.h>
 
 #include <sam.h>
 #include <OperatorJT.h>
@@ -11,7 +11,7 @@
 
 int main(int argc, char* argv[])
 {
-  using qcx_utils::print;
+  using utils::print;
 
   sam::initialize(&argc, &argv);
 
@@ -79,13 +79,13 @@ int main(int argc, char* argv[])
   if (write == 1)
   {
     auto matrix_file = op.matrix_file(basis, custom_dir);
-    qcx_utils::writeBinary(matrix_file, mat);
+    utils::writeBinary(matrix_file, mat);
   }
 */
   // Diagonalize
   auto t2 = std::chrono::high_resolution_clock::now();
 
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric_spectra(mat, 5, 1e-10, 100000);
+  auto [evals, evecs] = utils::eigensolver_symmetric_spectra(mat, 5, 1e-10, 100000);
 
   auto t3 = std::chrono::high_resolution_clock::now();
 
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
     {
       // auto wfns_file = op.wfns_file(basis);
       auto wfns_file = op.wfns_file(basis, custom_dir);
-      qcx_utils::writeEigenBinary(wfns_file, evals, evecs);
+      utils::writeEigenBinary(wfns_file, evals, evecs);
     }
 
     // Analyze wfns

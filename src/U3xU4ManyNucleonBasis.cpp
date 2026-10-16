@@ -9,10 +9,10 @@
 #include <utility>
 #include <vector>
 
-#include <qcx_convert.h>
-#include <qcx_ND.h>
-#include <qcx_print.h>
-#include <qcx_tree_generator.h>
+#include <convert.h>
+#include <ND.h>
+#include <print.h>
+#include <tree_generator.h>
 #include <so3Coeffs/SO3_CGC.h>
 
 #include <U3basis.h>
@@ -68,7 +68,7 @@ namespace U3xU4
     }
   }
 
-  bool hw_subspace::SS_selection(qcx_utils::Int8 SS) const
+  bool hw_subspace::SS_selection(utils::Int8 SS) const
   {
     if (SSs.empty())
       return true;
@@ -85,7 +85,7 @@ namespace U3xU4
     }
   }
 
-  bool hw_subspace::TT_selection(qcx_utils::Int8 TT) const
+  bool hw_subspace::TT_selection(utils::Int8 TT) const
   {
     if (TTs.empty())
       return true;
@@ -343,8 +343,8 @@ namespace U3xU4
 
     auto dist = basis_.distribution(dist_id);
 
-    // qcx_utils::print("dist_id {}: {};\t", dist_id, dist);
-    // qcx_utils::print("gamma_id {};\t irrep_id {}\n", gamma_id, irrep_id);
+    // utils::print("dist_id {}: {};\t", dist_id, dist);
+    // utils::print("gamma_id {};\t irrep_id {}\n", gamma_id, irrep_id);
 
     size_t n = 0; // active shell candidate
 
@@ -644,7 +644,7 @@ namespace U3xU4
 
     // (2) gammas = Cartesian product of single-shell gamma elements:
 
-    qcx_utils::NDSpan<GammaElement> nds;
+    utils::NDSpan<GammaElement> nds;
 
     for (const auto& shell_elements : shells_elements)
       nds.add_dimension(shell_elements);
@@ -915,7 +915,7 @@ namespace U3xU4
         stack.emplace(mults[i], u4s[i]);
     };
 
-    qcx_utils::tree_generator<OmegaElementU4> te_u4;
+    utils::tree_generator<OmegaElementU4> te_u4;
 
     te_u4.generate(gamma, couple_u4, omegas_u4);
 
@@ -945,7 +945,7 @@ namespace U3xU4
         stack.emplace(mults[i], su3s[i]);
     };
 
-    qcx_utils::tree_generator<OmegaElementSU3> te_su3;
+    utils::tree_generator<OmegaElementSU3> te_su3;
 
     te_su3.generate(gamma, couple_su3, omegas_su3);
 

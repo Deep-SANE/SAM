@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include <eigensolver.h>
-#include <qcx_readwrite.h>
+#include <readwrite.h>
 
 #include <sam.h>
 
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
   // Diagonalize
   auto t2 = std::chrono::high_resolution_clock::now();
 
-  auto [evals, evecs] = qcx_utils::eigensolver_symmetric_spectra(mat, 10, 1e-6);
+  auto [evals, evecs] = utils::eigensolver_symmetric_spectra(mat, 10, 1e-6);
 
   auto t3 = std::chrono::high_resolution_clock::now();
 
@@ -102,10 +102,10 @@ int main(int argc, char* argv[])
     if (write == 1)
     {
       // auto matrix_file = op.matrix_file(basis);
-      // qcx_utils::writeBinary(matrix_file, mat);
+      // utils::writeBinary(matrix_file, mat);
 
       auto wfns_file = op.wfns_file(basis);
-      qcx_utils::writeEigenBinary(wfns_file, evals, evecs);
+      utils::writeEigenBinary(wfns_file, evals, evecs);
     }
 
     // Analyze wfns

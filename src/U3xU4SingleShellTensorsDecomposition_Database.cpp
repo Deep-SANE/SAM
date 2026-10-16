@@ -72,13 +72,13 @@ namespace U3xU4
                                       const Expansion& e)
   {
     uint64_t nrows = e.rows();
-    qcx_utils::writeBinary(s, key.qkey);
-    qcx_utils::writeBinary(s, nrows);
-    qcx_utils::writeBinary(s, e.coeffs.ncols);
-    qcx_utils::writeBinary(s, e.nops);
-    qcx_utils::writeBinary(s, e.coeffs.data);
-    qcx_utils::writeBinary(s, e.op_index);
-    qcx_utils::writeBinary(s, e.op_is_ad);
+    utils::writeBinary(s, key.qkey);
+    utils::writeBinary(s, nrows);
+    utils::writeBinary(s, e.coeffs.ncols);
+    utils::writeBinary(s, e.nops);
+    utils::writeBinary(s, e.coeffs.data);
+    utils::writeBinary(s, e.op_index);
+    utils::writeBinary(s, e.op_is_ad);
   }
 
   //=========================================================================
@@ -98,27 +98,27 @@ namespace U3xU4
   static void write_expansion_fields(std::ostream& s, const Expansion& e)
   {
     uint64_t nrows = e.rows();
-    qcx_utils::writeBinary(s, nrows);
-    qcx_utils::writeBinary(s, e.coeffs.ncols);
-    qcx_utils::writeBinary(s, e.nops);
-    qcx_utils::writeBinary(s, e.coeffs.data);
-    qcx_utils::writeBinary(s, e.op_index);
-    qcx_utils::writeBinary(s, e.op_is_ad);
+    utils::writeBinary(s, nrows);
+    utils::writeBinary(s, e.coeffs.ncols);
+    utils::writeBinary(s, e.nops);
+    utils::writeBinary(s, e.coeffs.data);
+    utils::writeBinary(s, e.op_index);
+    utils::writeBinary(s, e.op_is_ad);
   }
 
   static bool read_expansion_fields(std::istream& s, Expansion& e)
   {
     uint64_t nrows;
-    qcx_utils::readBinary(s, nrows);
-    qcx_utils::readBinary(s, e.coeffs.ncols);
-    qcx_utils::readBinary(s, e.nops);
+    utils::readBinary(s, nrows);
+    utils::readBinary(s, e.coeffs.ncols);
+    utils::readBinary(s, e.nops);
     if (!s) return false;
     e.coeffs.data.resize(nrows * e.coeffs.ncols);
     e.op_index.resize(nrows * e.nops);
     e.op_is_ad.resize(nrows * e.nops);
-    qcx_utils::readBinary(s, e.coeffs.data);
-    qcx_utils::readBinary(s, e.op_index);
-    qcx_utils::readBinary(s, e.op_is_ad);
+    utils::readBinary(s, e.coeffs.data);
+    utils::readBinary(s, e.op_index);
+    utils::readBinary(s, e.op_is_ad);
     return bool(s);
   }
 
@@ -135,21 +135,21 @@ namespace U3xU4
     while (true)
     {
       uint64_t qkey;
-      qcx_utils::readBinary(file, qkey);
+      utils::readBinary(file, qkey);
       if (!file) break; // clean EOF
 
       auto e = std::make_unique<Expansion>();
       uint64_t nrows;
-      qcx_utils::readBinary(file, nrows);
-      qcx_utils::readBinary(file, e->coeffs.ncols);
-      qcx_utils::readBinary(file, e->nops);
+      utils::readBinary(file, nrows);
+      utils::readBinary(file, e->coeffs.ncols);
+      utils::readBinary(file, e->nops);
 
       e->coeffs.data.resize(nrows * e->coeffs.ncols);
       e->op_index.resize(nrows * e->nops);
       e->op_is_ad.resize(nrows * e->nops);
-      qcx_utils::readBinary(file, e->coeffs.data);
-      qcx_utils::readBinary(file, e->op_index);
-      qcx_utils::readBinary(file, e->op_is_ad);
+      utils::readBinary(file, e->coeffs.data);
+      utils::readBinary(file, e->op_index);
+      utils::readBinary(file, e->op_is_ad);
 
       if (!file) break; // truncated / corrupt -> stop loading
 
@@ -497,15 +497,15 @@ namespace U3xU4
               while (true)
               {
                 uint64_t qkey;
-                qcx_utils::readBinary(in, qkey);
+                utils::readBinary(in, qkey);
                 if (!in) break;
 
                 uint64_t nrows;
                 uint8_t ncols;
                 uint8_t nops;
-                qcx_utils::readBinary(in, nrows);
-                qcx_utils::readBinary(in, ncols);
-                qcx_utils::readBinary(in, nops);
+                utils::readBinary(in, nrows);
+                utils::readBinary(in, ncols);
+                utils::readBinary(in, nops);
                 size_t ncoeff = static_cast<size_t>(nrows) * ncols;
                 size_t nop = static_cast<size_t>(nrows) * nops;
                 in.seekg(ncoeff * sizeof(double) + nop * sizeof(uint16_t) +

@@ -6,10 +6,10 @@
 
 #include <boost/container_hash/hash.hpp>
 
-#include <qcx_matrix.h>
-#include <qcx_ND.h>
-#include <qcx_print.h>
-using qcx_utils::print;
+#include <matrix.h>
+#include <ND.h>
+#include <print.h>
+using utils::print;
 
 #include <so3Coeffs/SO3_CGC.h>
 #include <so3Coeffs/SO3_Fano.h>
@@ -35,8 +35,8 @@ namespace U3xU4
   {
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
@@ -616,8 +616,8 @@ namespace U3xU4
   {
     // for (auto tensor : tensors) std::cout << tensor << std::endl;
 
-    auto& cgcs = qcx_utils::cgcs();
-    auto& racah9 = qcx_utils::fanos();
+    auto& cgcs = utils::cgcs();
+    auto& racah9 = utils::fanos();
     auto& wigU3SO3db = u3::wigU3SO3db();
     auto& wigU4SU2SU2db = u4::wigU4SU2SU2db();
 
