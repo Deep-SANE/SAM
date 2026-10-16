@@ -10,6 +10,10 @@ endif
 
 include $(GEN_MK)
 
+# Ensure the MPI compiler wrapper (mpicxx) invokes the inherited GCC, not the
+# system default (e.g. Apple clang), by exporting these into the build env.
+export OMPI_CXX MPICH_CXX
+
 # Include paths
 INCLUDES := -I$(SAM_ROOT)/include \
             -I$(SAM_ROOT)/utils \
