@@ -4,7 +4,7 @@
 
 SAM constructs symmetry-adapted many-nucleon bases, computes and expands single- and two-body nuclear interactions and electroweak transition operators in terms of U(3)×U(4) tensors, computes matrix elements across multiple harmonic oscillator shells, and calculates observables using high-performance parallel eigensolvers (Spectra, OpenMP, MPI).
 
-- **Prerequisites / Sibling libraries:** [u3lib](https://github.com/Deep-SANE/u3lib) (SU(3) algebra), [u4lib](https://github.com/Deep-SANE/u4lib) (SU(4) algebra), and [untou3](https://github.com/Deep-SANE/untou3) (U(N) to U(3) reductions).
+- **Prerequisites / Sibling libraries:** [u3lib](https://github.com/Deep-SANE/u3lib) (U(3) algebra), [u4lib](https://github.com/Deep-SANE/u4lib) (U(4) algebra), and [untou3](https://github.com/Deep-SANE/untou3) (U(N) to U(3) reductions).
 
 ---
 
