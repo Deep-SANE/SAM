@@ -9,7 +9,7 @@
 #include <convert.h>
 #include <readwrite.h>
 
-#include <UNtoU3.h>
+#include <UNtoU3_adapter.h>
 
 #include <U3irrep.h>
 #include <U3xU4irrep.h>
@@ -62,7 +62,7 @@ namespace U3xU4
           state_(State::Basis)
     { 
       int N = (shell + 1) * (shell + 2) / 2;
-      untou3::UNtoU3<4> gen;
+      UNtoU3<4> gen;
       gen.set_shell(shell);
       gen.reduceU4(u4, N);
       alphamax_ = utils::itou16(gen.multiplicity(u3));

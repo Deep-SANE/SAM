@@ -8,7 +8,7 @@
 #include <string>
 #include <utility>
 
-#include <UNtoU3.h>
+#include <UNtoU3_adapter.h>
 
 #ifdef USE_MPI
 #include <mpi.h>
@@ -22,8 +22,8 @@
 #include <nullspace_solver_qr.h>
 #if defined(NULLSPACE_SOLVER_SLEPC)
 #include <nullspace_solver_slepc.h>
-#elif defined(NULLSPACE_SOLVER_SNS)
-#include <nullspace_solver_sns.h>
+#elif defined(NULLSPACE_SOLVER_KRANS)
+#include <nullspace_solver_krans.h>
 #endif
 #include <nullspace_error.h>
 
@@ -353,11 +353,11 @@ namespace U3xU4
 
     auto mat = RaisingGenerator(SDarr, sps3, sps4);
 
-#if defined(NULLSPACE_SOLVER_SNS)
-    Eigen::MatrixXd expansion = utils::null_space_sns(mat, G.alphamax());
+#if defined(NULLSPACE_SOLVER_KRANS)
+    Eigen::MatrixXd expansion = utils::null_space_krans(mat, G.alphamax());
 #elif defined(NULLSPACE_SOLVER_SLEPC)
     /* 
-    untou3::UNtoU3<4> gen;
+    UNtoU3<4> gen;
     gen.set_shell(n);
     gen.reduceU4(x.u4(), N);
     auto multi = gen.multiplicity(x.u3()); 

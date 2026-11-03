@@ -23,7 +23,7 @@
 #include <U4decomposition.h>
 #include <U4irrep.h>
 
-#include <UNtoU3.h>
+#include <UNtoU3_adapter.h>
 
 #include <U3xU4GammaOmega.h>
 #include <U3xU4irrep.h>
@@ -733,7 +733,7 @@ namespace U3xU4
     std::vector<u4::irrep> u4_irreps;
     generate_U4_irreps(n, A, u4_irreps);
 
-    untou3::UNtoU3<4> gen;
+    UNtoU3<4> gen;
     gen.set_shell(n);
     int N = (n + 1) * (n + 2) / 2;
 

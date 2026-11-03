@@ -57,8 +57,12 @@ ifeq ($(USE_WIGNERNJ),1)
   LDFLAGS += -lwignernj
 endif
 
-ifeq ($(NULLSPACE_SOLVER),sns)
-  CXXFLAGS += -DNULLSPACE_SOLVER_SNS -DNULLSPACE_SPARSE
+ifeq ($(NULLSPACE_SOLVER),krans)
+  CXXFLAGS += -DUSE_KRANS -DNULLSPACE_SOLVER_KRANS -DNULLSPACE_SPARSE
+  ifneq ($(strip $(KRANS_DIR)),)
+    INCLUDES += -I$(KRANS_DIR)/include
+    LDFLAGS += -L$(KRANS_DIR)/build -lkrans_eigen -lkrans_core
+  endif
 endif
 
 # zlib for gzipped two-body matrix elements reader
