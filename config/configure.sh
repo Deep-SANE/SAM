@@ -67,6 +67,7 @@ if [[ -z "$U3LIB_DIR" || ! -f "$U3LIB_DIR/include/u3lib.h" ]]; then
   die "u3lib was not found!
 SAM requires u3lib as a foundation prerequisite.
 Please ensure u3lib is cloned and configured:
+  git clone https://github.com/Deep-SANE/u3lib.git ../u3lib
   cd ../u3lib && make config && make"
 fi
 
@@ -82,22 +83,31 @@ if [[ -z "$U4LIB_DIR" || ! -f "$U4LIB_DIR/include/u4lib.h" ]]; then
   die "u4lib was not found!
 SAM requires u4lib as a foundation prerequisite.
 Please ensure u4lib is cloned and configured:
+  git clone https://github.com/Deep-SANE/u4lib.git ../u4lib
   cd ../u4lib && make config"
 fi
 
 # 3. Resolve and validate untou3
+UNTOU3_REPO="https://github.com/Deep-SANE/untou3.git"
 UNTOU3_DIR="${OPT_untou3:-${UNTOU3_DIR:-}}"
 if [[ -z "$UNTOU3_DIR" ]]; then
   if [[ -f "$ROOT/../untou3/include/UNtoU3.h" ]]; then
     UNTOU3_DIR="$(cd "$ROOT/../untou3" 2>/dev/null && pwd || true)"
+  else
+    UNTOU3_DIR="$(cd "$ROOT/.." && pwd)/untou3"
   fi
 fi
 
-if [[ -z "$UNTOU3_DIR" || ! -f "$UNTOU3_DIR/include/UNtoU3.h" ]]; then
-  die "untou3 was not found!
-SAM requires untou3 for U(N) to U(3) reductions.
-Please ensure untou3 is cloned:
-  cd ../untou3 && make config"
+if [[ ! -f "$UNTOU3_DIR/include/UNtoU3.h" ]]; then
+  command -v git >/dev/null 2>&1 || die "git required to fetch untou3"
+  say "untou3 not found; cloning -> $UNTOU3_DIR"
+  git clone "$UNTOU3_REPO" "$UNTOU3_DIR" >/dev/null 2>&1 || die "untou3 clone failed ($UNTOU3_REPO).
+Please clone it manually:
+  git clone $UNTOU3_REPO \"$UNTOU3_DIR\""
+fi
+
+if [[ ! -f "$UNTOU3_DIR/include/UNtoU3.h" ]]; then
+  die "untou3 was not found at $UNTOU3_DIR (missing include/UNtoU3.h)"
 fi
 
 say "Found u3lib at $U3LIB_DIR"
