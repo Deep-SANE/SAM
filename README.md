@@ -23,7 +23,7 @@ SAM constructs symmetry-adapted many-nucleon bases, computes and expands single-
 SAM uses a self-contained configuration system matching `u3lib` and `u4lib`. No environment variables are required:
 
 ```bash
-make config    # Auto-detects u3lib, u4lib, untou3, MPI, OpenMP, Spectra, Boost, Eigen, fmt
+make config    # Auto-detects u3lib, u4lib, untou3, MPI (required), OpenMP, Spectra, Boost, Eigen, fmt
 make           # Compiles lib/libsam.a and all bin/* applications
 make lib       # Compiles only lib/libsam.a
 make apps      # Compiles only the applications in app/ -> bin/
@@ -31,14 +31,29 @@ make clean     # Cleans build artifacts
 make distclean # Resets to pristine state
 ```
 
+### Data Directory and Released Data
+`make config` asks where SAM should keep its data (operator expansions, rmes, hws, decompositions). The default is `SAM/data`. On a cluster, give a path on a work file system instead (e.g. `/work/$USER/sam-data`): the data then lives there and `SAM/data` becomes a link to it. The chosen path is built into the binaries; setting the `SAM_DATA_DIR` environment variable overrides it at run time.
+
+Expanding operators is the most expensive step, so precomputed expansions are released with SAM:
+
+```bash
+make data          # download the released expansions into the data directory
+make data-verify   # check them against the release checksums
+make data-list     # show what is available
+```
+
+See [config/data_release/README.md](config/data_release/README.md) for the list of files and their details; `make data` also puts a copy in `<data dir>/data_release/`.
+
 ### Configuration Options
 Run `./config/configure.sh --help` for available options:
 - `--u3lib=PATH`: Path to `u3lib` root [default: `../u3lib`]
 - `--u4lib=PATH`: Path to `u4lib` root [default: `../u4lib`]
 - `--untou3=PATH`: Path to `untou3` root [default: `../untou3`]
 - `--spectra=PATH`: Path to Spectra headers
-- `--no-mpi`: Disable MPI (serial/OpenMP-only build)
-- `--data-dir=PATH`: Path to SAM data files [default: `./data`]
+- `--mpicxx=PATH`: MPI compiler wrapper [default: `mpicxx` on the path]
+- `--cxx=PATH`: Compiler that the MPI wrapper calls [default: the one u3lib/u4lib were built with]
+- `--data-dir=PATH`: Where SAM keeps its data [default: `SAM/data`]; another path makes `SAM/data` a link to it
+- `--yes`, `-y`: Non-interactive mode (accept all defaults)
 
 ---
 
@@ -47,8 +62,9 @@ Run `./config/configure.sh --help` for available options:
 - `include/` — Public headers defining the SAM API (`sam.h`, basis, tensor expansion, operators).
 - `src/` — Implementation files building `lib/libsam.a`.
 - `app/` — Driver applications and physics calculation programs (`bin/*`).
+- `config/` — Configuration script and the data release definition (`config/data_release/`: README, checksums, download script).
 - `utils/` — Self-contained numerical utilities (CSRMatrix, Spectra eigensolver, compatibility forwarding to `u3lib/utils`).
-- `data/` — Nuclear interaction matrix elements, tensor decompositions, and precomputed databases.
+- `data/` — Data directory (or a link to it): operator expansions, interaction matrix elements, tensor decompositions and precomputed databases. Not tracked by git.
 
 ---
 

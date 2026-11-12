@@ -5,12 +5,16 @@
 #   make apps       build only bin/* applications
 #   make clean      clean built objects, lib, and binaries
 #   make distclean  reset to pristine state
+#   make data       download the released operator expansions into the data
+#                   directory (OPS="Kinetic N2LO_opt_bare" for some only)
+#   make data-verify  check downloaded files against the release checksums
+#   make data-list  show what the data release contains
 
 SAM_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 CONFIG_DIR := $(SAM_ROOT)/config
 export SAM_ROOT CONFIG_DIR
 
-NOCONFIG_GOALS := config reconfigure clean distclean help
+NOCONFIG_GOALS := config reconfigure clean distclean help data-list
 
 ifeq ($(filter $(NOCONFIG_GOALS),$(MAKECMDGOALS)),)
 include $(CONFIG_DIR)/config.mk
@@ -41,3 +45,16 @@ clean:
 .PHONY: distclean
 distclean: clean
 	rm -f $(CONFIG_DIR)/config.generated.mk
+
+# Released data (see config/data_release/README.md). Files go into the data directory
+# chosen at `make config`; `make data SAM_DATA_DIR=/path` overrides it.
+.PHONY: data data-verify data-list
+data:
+	@SAM_DATA_DIR="$(SAM_DATA_DIR)" FORCE="$(FORCE)" \
+	  bash $(SAM_ROOT)/config/data_release/fetch.sh get $(OPS)
+
+data-verify:
+	@SAM_DATA_DIR="$(SAM_DATA_DIR)" bash $(SAM_ROOT)/config/data_release/fetch.sh verify
+
+data-list:
+	@bash $(SAM_ROOT)/config/data_release/fetch.sh list
