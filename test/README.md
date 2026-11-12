@@ -54,6 +54,20 @@ Multi-shell tensors:
   `MultiShellTensor::RME()`: Example 1 (first coupling) equals Example 7 of
   `test_multishelltensors_rme.cpp`, and Example 2 equals its Example 1.
 
+Operator expansions (Nmax = maxShell = 4, hw = 20 MeV, the cheap operators
+computed on the fly; no nuclear potentials, which need interaction files):
+
+- `test_onebodyoperator_expansion.cpp`: `Kinetic` and `CoMNumberOp` with
+  `OneBodyOperator::expand_new()`. Number of tensors, a checksum over all
+  strengths, and every strength exactly: with N_n = 2(n+1)(n+2),
+  `CoMNumberOp` gives n sqrt(N_n) in shell n, and `Kinetic` gives
+  (hw/2)(n + 3/2) sqrt(N_n) in shell n and -(hw/2) sqrt((n+1)(n+2)(n+3)(n+4))/2
+  between shells n and n+2. Also the file round trip: `expand()` stops on a
+  missing file with the `make data` message and reads the file back after
+  `writeBinary()`; the maxShell-4 file serves maxShell 3 (equal to
+  `expand_new()` there) but not maxShell 5 (the "only reaches" error); read at
+  hw = 25, `Kinetic` strengths scale by 25/20 and `CoMNumberOp` stays.
+
 ## Tolerances
 
 - Normalizations and exact values: absolute 1e-10 (1e-9 for multi-shell
