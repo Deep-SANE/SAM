@@ -82,6 +82,13 @@ Operator matrices (`JT::Operator::matrix_CSR`):
   so both matrices must be diagonal with L(L+1) and
   [J(J+1) - L(L+1) - S(S+1)]/2 exactly. The test makes its own expansions of
   `L.L` and `L.S`.
+- `test_operator_radius_e2.cpp`: the proton- and neutron-only operators
+  `Radius_p`, `Radius_n` and `E2` keep both their isoscalar and isovector
+  parts. At Nmax = 0 every state of 4He, 6Li and 6He has exact radii
+  (b^2 times the sum of N + 3/2 over the protons or neutrons); in 6He at
+  Nmax = 2, `Radius_p` + (b_p/b_n)^2 `Radius_n` = `Radius` element by element
+  while the two differ; the E2 from 0+ to 2+ in 6He at Nmax = 0 vanishes
+  (the protons fill the s shell), the 1+ to 3+ in 6Li does not.
 - `test_operator_hamiltonian.cpp`: "Hamiltonian with N2LO_opt_bare" at
   hw = 20 MeV and Nmax = 4 for 4He (J = 0), 6Li (J = 1) and 6He (J = 0): the
   five lowest eigenvalues and the ground-state U(3) and U(4) probabilities in
