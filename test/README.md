@@ -20,6 +20,8 @@ and each program ends with a summary. `make test` fails if any case fails.
 Each test program is a copy of an example program in `app/`, using the same
 examples, with the numbers they produce added as checks.
 
+Single-shell tensors:
+
 - `test_singleshelltensors_decomposition_phys.cpp` (from `app/U3xU4SingleShellTensorsDecomposition_Phys.cpp`):
   five examples expanded with `SingleShellTensor_phys::expand()`. Checks the
   number of terms, the normalization (sum of squared coefficients = 1 per
@@ -36,14 +38,32 @@ examples, with the numbers they produce added as checks.
   < at > = sqrt(N), < [ad x at]^0 > = 1/sqrt(N), and the identity gives a
   unit matrix.
 
+Multi-shell tensors:
+
+- `test_multishelltensors_decomposition.cpp` (from `app/U3xU4MultiShellTensorsDecomposition.cpp`):
+  Examples 1-7 expanded with `MultiShellTensor_phys::expand()` (Example 8 of
+  the app is marked "should not run"). The same checks as for single-shell
+  tensors, plus Example 1 expanded again from the single-shell pieces that the
+  decomposition database wrote to disk.
+- `test_multishelltensors_rme.cpp` (from `app/U3xU4MultiShellTensorsRME.cpp`):
+  seven examples of multi-shell RMEs with `MultiShellTensor::RME()`, compared
+  value by value.
+- `test_multishelltensors_sharegammas_rme.cpp` (from `app/U3xU4MultiShellTensors_ShareGammas_RME.cpp`):
+  RMEs of `MultiShellTensor_ShareGammas_phys` through the RME database, as in
+  the matrix-element code. They are also cross-checked against
+  `MultiShellTensor::RME()`: Example 1 (first coupling) equals Example 7 of
+  `test_multishelltensors_rme.cpp`, and Example 2 equals its Example 1.
+
 ## Tolerances
 
-- Normalizations and exact values: absolute 1e-10 (1e-12 for single
-  coefficients).
+- Normalizations and exact values: absolute 1e-10 (1e-9 for multi-shell
+  normalizations, 1e-12 for single coefficients).
 - Expansion checksums: absolute 1e-10 plus relative 1e-8. A checksum sums
   millions of terms, and the summation order changes with the compiler and
   the number of threads.
-- RMEs: absolute 1e-12 plus relative 1e-11.
+- RMEs: absolute 1e-12 plus relative 1e-11. Where highest-weight states come
+  from the iterative null-space solver (KraNS LOBPCG, tolerance 1e-14, random
+  start), the last digits vary slightly from run to run, about 1e-14 relative.
 
 ## Reference values
 
