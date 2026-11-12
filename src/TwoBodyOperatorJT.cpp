@@ -194,9 +194,13 @@ namespace JT
     HO::qn_t maxShell;
     utils::readBinary(s, maxShell);
 
-    // stop if the file does not reach this calculation's shells
-    if ((maxShell_ > maxShell) or (maxShell_ - 2 * valenceShell_ > maxShell))
-      sam::throw_expansion_too_small(filename, maxShell, maxShell_,
+    // stop if the file does not reach this calculation's shells. A file
+    // expanded with Nmax = maxShell = M holds the pairs of total quanta <= M;
+    // a calculation with valence shell v and Nmax needs pairs up to
+    // 2v + Nmax = maxShell_ + valenceShell_ quanta.
+    if (maxShell_ + valenceShell_ > maxShell)
+      sam::throw_expansion_too_small(filename, maxShell,
+                                     maxShell_ + valenceShell_,
                                      "TwoBodyOperatorJT");
 
 #ifdef USE_MPI
@@ -267,9 +271,13 @@ namespace JT
     HO::qn_t maxShell; /* = Nmax */
     utils::readBinary(s, maxShell);
 
-    // stop if the file does not reach this calculation's shells
-    if ((maxShell_ > maxShell) or (maxShell_ - 2 * valenceShell_ > maxShell))
-      sam::throw_expansion_too_small(filename, maxShell, maxShell_,
+    // stop if the file does not reach this calculation's shells. A file
+    // expanded with Nmax = maxShell = M holds the pairs of total quanta <= M;
+    // a calculation with valence shell v and Nmax needs pairs up to
+    // 2v + Nmax = maxShell_ + valenceShell_ quanta.
+    if (maxShell_ + valenceShell_ > maxShell)
+      sam::throw_expansion_too_small(filename, maxShell,
+                                     maxShell_ + valenceShell_,
                                      "TwoBodyOperatorJT");
 
     std::cerr << "Start reading " << name_ 

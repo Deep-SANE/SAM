@@ -1842,7 +1842,8 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
 #endif
     }
 
-    sam::throw_missing_expansion(filename, name_, maxShell_, "TwoBodyOperatorJT");
+    sam::throw_missing_expansion(filename, name_, maxShell_ + valenceShell_,
+                                 "TwoBodyOperatorJT");
   }
 
 } // namespace JT

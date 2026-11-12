@@ -65,8 +65,12 @@ and SAM can't detect it while reading. For that reason:
 | Two | `Rrel` | two-body part of the intrinsic radius squared | 14 | 608 | 65 kB |
 <!-- table:end -->
 
-**maxShell** is the highest harmonic-oscillator shell the expansion covers. A
-calculation can use the file when its own maxShell is not larger. Otherwise,
+**maxShell** is the highest harmonic-oscillator shell the expansion covers (it
+was made with Nmax = maxShell and no valence shell). A one-body file serves a
+calculation whose maxShell (valence shell v + Nmax) is not larger. A two-body
+file holds the pairs of up to maxShell quanta, and a calculation needs pairs of
+up to 2v + Nmax quanta: the maxShell-12 interactions serve 4He up to Nmax = 12
+and p-shell nuclei up to Nmax = 10. Otherwise,
 or when a file is missing, SAM stops with a message: expanding is very costly,
 so SAM never does it automatically. To expand or extend an operator yourself,
 set the operator name, hw and maxShell in `app/OneBodyOperatorJT.cpp` or

@@ -262,10 +262,10 @@ namespace JT
               << static_cast<int>(maxShell) << std::endl;
 #endif
     
-    // stop if the file does not reach this calculation's shells
-    if (maxShell_ - valenceShell_ > maxShell /* Nmax */)
-      sam::throw_expansion_too_small(filename, maxShell,
-                                     maxShell_ - valenceShell_,
+    // stop if the file does not reach this calculation's shells: a one-body
+    // tensor a+_m a~_n needs both shells m, n <= maxShell_
+    if (maxShell_ > maxShell)
+      sam::throw_expansion_too_small(filename, maxShell, maxShell_,
                                      "OneBodyOperatorJT");
 
     // Read number of tensors

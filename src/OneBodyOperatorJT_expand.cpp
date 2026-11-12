@@ -725,7 +725,7 @@ namespace JT
       return readBinary(filename);
     }
 
-    sam::throw_missing_expansion(filename, name_, maxShell_ - valenceShell_,
+    sam::throw_missing_expansion(filename, name_, maxShell_,
                                  "OneBodyOperatorJT");
   }
 } // namespace JT
