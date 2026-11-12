@@ -70,7 +70,9 @@ namespace JT
     // expand into a sum of U3xU4::MultiShellTensor_phys
     U3xU4::MultiShellTensors_phys expand_old();
 
-    // expand into a sum of U3xU4::MultiShellTensor_phys
+    // combine the expansions of the one- and two-body pieces; they are loaded
+    // from the data directory with their expand(), which never expands and
+    // stops with an error if a piece's file is missing or too small
     U3xU4::MultiShellTensors_ShareGammas_phys expand();
 
     // set scale for Lawson operator

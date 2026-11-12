@@ -27,7 +27,7 @@ namespace JT
     std::string name_;
     bool on_the_fly, symmetric_;
 
-    // only read input file during expand() or writeBinary()
+    // only read input file during expansion (expand_new*, expand_exist*)
     std::optional<HO::TwBME_scalar> TBME_scalar; 
     std::optional<HO::TwBME_general> TBME_general;
 
@@ -177,30 +177,38 @@ namespace JT
       U3xU4::MultiShellTensors_phys& tensors);
 
     // Expand into a sum of U3xU4::MultiShellTensor_phys with hybrid MPI + OpenMP
-    // writeBinary and readBinary are carried out on each MPI rank upon complete
+    // and write the result to filename (each rank writes its part, rank 0
+    // merges them). expand_exist_MPI extends an existing file, written up to
+    // Nmax_old / maxShell_old, to this operator's maxShell_ by appending only
+    // the new tensors. Both are the costly expansion step, called only from
+    // the expansion program (app/TwoBodyOperatorJT.cpp); both stop at once if
+    // filename cannot be written (e.g. a read-only file from `make data`).
     U3xU4::MultiShellTensors_phys expand_new_MPI(const std::string& filename);
     void expand_exist_MPI(const std::string& filename,
                                                   int Nmax_old, int maxShell_old);
 
-    // If non-exisitng, expand into a sum of U3xU4::MultiShellTensor_phys
-    // Otherwise, expand only the new ones
+    // Load the expansion from the data directory; never expands.
     U3xU4::MultiShellTensors_phys expand();
     /* Note for expand():
-    - When this method is called, a filename is determined. If the file exists,
-      proceed to readBinary() or readBinary_MPI(); otherwise, a list of tensors 
-      is obtained from expand_new() or expand_new_MPI() and written to the file.
-    - For operators whose matrix elements are computed on the fly: 
-      + expand_new() or expand_new_MPI() always requires hw_ = 20, thus filename 
-        will always end with hw20
-      + when readBinary() or readBinary_MPI() is called, strength of tensors are 
-        scaled accordingly 
+    - The filename is <data dir>/TwoBodyOperatorJT/<name>/Expansion/<name>_hw<hw>.
+      If the file exists, it is read with readBinary() or readBinary_MPI().
+    - If the file is missing, or reaches a smaller maxShell than this operator
+      needs, expand() stops with an error that says how to get the file:
+      download it (`make data`) or run the expansion program separately.
+      Expanding is very costly, so it is never started from here.
+    - For operators whose matrix elements are computed on the fly:
+      + the expansion is always done at hw_ = 20, thus filename will always
+        end with hw20
+      + when readBinary() or readBinary_MPI() is called, strength of tensors are
+        scaled to the requested hw
     */
 
     // Write to binary file
     void writeBinary(const std::string& filename, 
                      const U3xU4::MultiShellTensors_phys& tensors) const;
 
-    // Read from binary file
+    // Read from binary file; stops with an error if the file reaches a smaller
+    // maxShell than this operator needs
     U3xU4::MultiShellTensors_phys readBinary(const std::string& filename);
     U3xU4::MultiShellTensors_phys readBinary_MPI(const std::string& filename);
 

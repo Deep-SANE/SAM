@@ -2,6 +2,8 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
+#include <string>
 
 #include <convert.h>
 #include <readwrite.h>
@@ -16,6 +18,7 @@
 #include <HOutilities.h>
 #include <OneBodyOperatorJT.h>
 #include <DataDirectory.h>
+#include <ExpansionFiles.h>
 
 namespace JT
 {
@@ -259,31 +262,11 @@ namespace JT
               << static_cast<int>(maxShell) << std::endl;
 #endif
     
+    // stop if the file does not reach this calculation's shells
     if (maxShell_ - valenceShell_ > maxShell /* Nmax */)
-    {
-#ifdef USE_MPI
-      if (mpi_rank == 0)
-#endif
-      std::cout << "File doesn't reach your Nmax, it will be expanded now" << std::endl;
-
-      valenceShell_ = 0;
-      Nmax_ = maxShell_;
-
-      auto requested_hw = hw_;
-      // only change hw to 20 if the matrix elements are computed on the fly
-      if (on_the_fly) hw_ = 20;
-
-      auto tensors = expand_new();
-
-#ifdef USE_MPI
-      if (mpi_rank == 0)
-#endif
-      writeBinary(filename, tensors);
-
-      hw_ = requested_hw;
-      // return tensors;
-      return readBinary(filename);
-    }
+      sam::throw_expansion_too_small(filename, maxShell,
+                                     maxShell_ - valenceShell_,
+                                     "OneBodyOperatorJT");
 
     // Read number of tensors
     size_t n_tensors;

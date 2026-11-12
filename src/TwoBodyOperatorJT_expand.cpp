@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -29,6 +30,7 @@ using utils::print;
 #include <u3lib.h>   // u3::clear(): wipe the coupling-coefficient caches
 
 #include <TwoBodyOperatorJT.h>
+#include <ExpansionFiles.h>
 
 namespace JT
 {
@@ -529,6 +531,8 @@ namespace JT
   U3xU4::MultiShellTensors_phys 
     TwoBodyOperator::expand_new_MPI(const std::string& filename)
   {
+    sam::require_writable(filename);
+
     if (valenceShell_ > 0) throw std::runtime_error("Set valenceShell to 0 for reusability");
 
     // if (Nmax_ != maxShell_) throw std::runtime_error("Set Nmax and maxShell equal");
@@ -1219,6 +1223,8 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
   void TwoBodyOperator::expand_exist_MPI(const std::string& filename,
                                       int Nmax_old, int maxShell_old)
   {
+    sam::require_writable(filename);
+
     if (valenceShell_ > 0) throw std::runtime_error("Set valenceShell to 0 for reusability");
 
     // if (Nmax_ != maxShell_) throw std::runtime_error("Set Nmax and maxShell equal");
@@ -1835,24 +1841,8 @@ std::cerr << i << "/" << all_na_nb_nc_nd.size() << " : " << all_results.size() <
       return readBinary(filename); // rescale internally
 #endif
     }
-    else
-    {
-      auto requested_hw = hw_;
-      // only change hw to 20 if the matrix elements are computed on the fly
-      if (on_the_fly) hw_ = 20;
 
-#ifdef USE_MPI
-      auto tensors = expand_new_MPI(filename);
-#else
-      auto tensors = expand_new();
-      writeBinary(filename, tensors); // persist hw=20
-#endif
-
-      hw_ = requested_hw;
-      scaleStrengths(tensors); // scale to requested hw
-      
-      return tensors;
-    }
+    sam::throw_missing_expansion(filename, name_, maxShell_, "TwoBodyOperatorJT");
   }
 
 } // namespace JT

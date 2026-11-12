@@ -90,23 +90,31 @@ namespace JT
     // Expand into a sum of U3xU4::OneBodyMultiShellTensor
     U3xU4::OneBodyMultiShellTensors expand_old();
 
-    // Expand into a sum of U3xU4::MultiShellTensor_phys
+    // Expand into a sum of U3xU4::MultiShellTensor_phys. This is the expansion
+    // step, called from the expansion program (app/OneBodyOperatorJT.cpp),
+    // which writes the result with writeBinary().
     U3xU4::MultiShellTensors_phys expand_new();
+
+    // Load the expansion from the data directory; never expands.
     U3xU4::MultiShellTensors_phys expand();
     /* Note for expand():
-    - When this method is called, a filename is determined. If the file exists,
-      proceed to readBinary; otherwise, a list of tensors is obtained from 
-      expand_new() and written to the file.
-    - For operators whose matrix elements are computed on the fly: 
-      + expand_new() always requires hw_ = 20, thus filename will always end with hw20
-      + when readBinary() is called, strength of tensors are scaled accordingly 
+    - The filename is <data dir>/OneBodyOperatorJT/<name>/Expansion/<name>_hw<hw>.
+      If the file exists, it is read with readBinary().
+    - If the file is missing, or reaches a smaller maxShell than this operator
+      needs, expand() stops with an error that says how to get the file:
+      download it (`make data`) or run the expansion program separately.
+    - For operators whose matrix elements are computed on the fly:
+      + the expansion is always done at hw_ = 20, thus filename will always
+        end with hw20
+      + when readBinary() is called, strength of tensors are scaled accordingly
     */
 
     // Write to binary file
     void writeBinary(const std::string& filename, 
                      const U3xU4::MultiShellTensors_phys& tensors) const;
 
-    // Read from binary file
+    // Read from binary file; stops with an error if the file reaches a smaller
+    // maxShell than this operator needs
     U3xU4::MultiShellTensors_phys readBinary(
       const std::string& filename);
 

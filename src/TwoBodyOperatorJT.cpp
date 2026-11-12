@@ -3,6 +3,8 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
+#include <string>
 #include <tuple>
 #include <omp.h>
 
@@ -17,6 +19,7 @@ using utils::print;
 
 #include <TwoBodyOperatorJT.h>
 #include <DataDirectory.h>
+#include <ExpansionFiles.h>
 
 namespace JT
 {
@@ -191,6 +194,11 @@ namespace JT
     HO::qn_t maxShell;
     utils::readBinary(s, maxShell);
 
+    // stop if the file does not reach this calculation's shells
+    if ((maxShell_ > maxShell) or (maxShell_ - 2 * valenceShell_ > maxShell))
+      sam::throw_expansion_too_small(filename, maxShell, maxShell_,
+                                     "TwoBodyOperatorJT");
+
 #ifdef USE_MPI
     int mpi_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
@@ -242,29 +250,6 @@ namespace JT
     std::cout << "Finish reading to binary file" << std::endl;
 #endif
 
-    if ((maxShell_ > maxShell) or (maxShell_ - 2 * valenceShell_ > maxShell /* = Nmax */))
-    {
-#ifdef USE_MPI
-      if (mpi_rank == 0)
-#endif
-      std::cout << "File doesn't reach your maxShell/Nmax, it will be expanded now" << std::endl;
-
-      valenceShell_ = 0;
-      Nmax_ = maxShell_;
-
-      auto requested_hw = hw_;
-      // only change hw to 20 if the matrix elements are computed on the fly
-      if (on_the_fly) hw_ = 20;
-
-      // auto tensors = expand_new();
-      expand_exist(maxShell, maxShell, tensors); // maxShell is from file
-      writeBinary(filename, tensors);
-
-      hw_ = requested_hw;
-      scaleStrengths(tensors);
-      return tensors;
-    }
-
     scaleStrengths(tensors);
     return tensors;
   }
@@ -282,27 +267,10 @@ namespace JT
     HO::qn_t maxShell; /* = Nmax */
     utils::readBinary(s, maxShell);
 
+    // stop if the file does not reach this calculation's shells
     if ((maxShell_ > maxShell) or (maxShell_ - 2 * valenceShell_ > maxShell))
-    {
-      if (mpi_rank == 0)
-        std::cout << "File doesn't reach your maxShell/Nmax, it will be expanded now"
-                  << std::endl;
-
-      valenceShell_ = 0;
-      Nmax_ = maxShell_;
-
-      auto requested_hw = hw_;
-      // only change hw to 20 if the matrix elements are computed on the fly
-      if (on_the_fly) hw_ = 20;
-
-      s.close(); // close before expansion rewrites the file
-      expand_exist_MPI(filename, maxShell, maxShell); // maxShell is from file
-
-      hw_ = requested_hw;
-
-      s.open(filename, std::ios::binary); // reopen updated file
-      utils::readBinary(s, maxShell); // re-read header
-    }
+      sam::throw_expansion_too_small(filename, maxShell, maxShell_,
+                                     "TwoBodyOperatorJT");
 
     std::cerr << "Start reading " << name_ 
               << " from binary file with capacity maxShell = " 

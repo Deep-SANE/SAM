@@ -2,6 +2,8 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
+#include <string>
 
 #include <convert.h>
 #include <readwrite.h>
@@ -15,6 +17,7 @@
 #include <GlobalConstants.h>
 #include <HOutilities.h>
 #include <OneBodyOperatorJT.h>
+#include <ExpansionFiles.h>
 
 namespace JT
 {
@@ -696,30 +699,8 @@ namespace JT
     {
       return readBinary(filename);
     }
-    else
-    {
-#ifdef USE_MPI
-      int mpi_rank = 0;
-      MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
 
-      if (mpi_rank == 0)
-        std::cout << "File doesn't exist, new expansion is called" << std::endl;
-#endif
-
-      auto requested_hw = hw_;
-      // only change hw to 20 if the matrix elements are computed on the fly
-      if (on_the_fly) hw_ = 20;
-
-      auto tensors = expand_new();
-
-#ifdef USE_MPI
-      if (mpi_rank == 0)
-#endif
-      writeBinary(filename, tensors);
-
-      hw_ = requested_hw;
-      // return tensors;
-      return readBinary(filename);
-    }
+    sam::throw_missing_expansion(filename, name_, maxShell_ - valenceShell_,
+                                 "OneBodyOperatorJT");
   }
 } // namespace JT
