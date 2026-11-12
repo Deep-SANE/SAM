@@ -15,6 +15,7 @@
 #include <GlobalConstants.h>
 #include <HOutilities.h>
 #include <OneBodyOperatorJT.h>
+#include <DataDirectory.h>
 
 namespace JT
 {
@@ -189,19 +190,7 @@ namespace JT
 
   std::string OneBodyOperator::dirname() const
   {
-#ifdef SAM_DATA_DIR
-    const char* sam_data = std::getenv("SAM_DATA_DIR");    
-    if (!sam_data)
-      throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
-
-    std::string dir = std::string(sam_data) + "/OneBodyOperatorJT/" + name_;
-#else
-    const char* sam_dir = std::getenv("SAM_DIR");
-    if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR isn't set");
-      
-    std::string dir = std::string(sam_dir) + "/data/OneBodyOperatorJT/" + name_;
-#endif
+    std::string dir = sam::data_dir() + "/OneBodyOperatorJT/" + name_;
 
     std::filesystem::create_directories(dir);
     return dir;

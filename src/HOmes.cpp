@@ -14,6 +14,7 @@
 #include <zlib.h>
 
 #include <HOmes.h>
+#include <DataDirectory.h>
 
 #include <convert.h>
 #include <print.h>
@@ -111,17 +112,8 @@ namespace HO
 
     if (custom_name)
     {
-#ifdef SAM_DATA_DIR
-      const char* sam_data = std::getenv("SAM_DATA_DIR");    
-      if (!sam_data)
-        throw std::runtime_error(
-          "Environment variable SAM_DATA_DIR is not set");
-
-      filename = std::string(sam_data) +
+      filename = sam::data_dir() +
         "/Ab-initio_Interactions/OneBodyOperatorJT/" + name_ + ".myg";
-#else
-      filename = "data/Ab-initio_Interactions/OneBodyOperatorJT/" + name_ + ".myg";
-#endif
 
 #ifdef USE_MPI
       int mpi_rank = 0;
@@ -152,20 +144,9 @@ namespace HO
           std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
 #else
 
-#ifdef SAM_DATA_DIR
-      const char* sam_data = std::getenv("SAM_DATA_DIR");    
-      if (!sam_data)
-        throw std::runtime_error(
-          "Environment variable SAM_DATA_DIR is not set");
-
-      filename = std::string(sam_data) +
+      filename = sam::data_dir() +
         "/Ab-initio_Interactions/TwBME-HO_NN-only_" + name_ + "_hw" +
         std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
-#else
-      filename =
-          "data/Ab-initio_Interactions/TwBME-HO_NN-only_" + name_ + "_hw" +
-          std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
-#endif
 
 #endif
 
@@ -320,17 +301,8 @@ namespace HO
 
     if (custom_name)
     {
-#ifdef SAM_DATA_DIR
-      const char* sam_data = std::getenv("SAM_DATA_DIR");    
-      if (!sam_data)
-        throw std::runtime_error(
-          "Environment variable SAM_DATA_DIR is not set");
-
-      filename = std::string(sam_data) +
+      filename = sam::data_dir() +
         "/Ab-initio_Interactions/TwoBodyOperatorJT/" + name_ + ".myg.bin";
-#else
-      filename = "data/Ab-initio_Interactions/TwoBodyOperatorJT/" + name_ + ".myg.bin";
-#endif
 
 #ifdef USE_MPI
       if (mpi_rank == 0)
@@ -358,20 +330,9 @@ namespace HO
           std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
 #else
 
-#ifdef SAM_DATA_DIR
-      const char* sam_data = std::getenv("SAM_DATA_DIR"); 
-
-      if (!sam_data)
-        throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
-
-      filename = std::string(sam_data) +
+      filename = sam::data_dir() +
         "/Ab-initio_Interactions/TwBME-HO_NN-only_" + name_ + "_hw" +
         std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
-#else
-      filename =
-          "data/Ab-initio_Interactions/TwBME-HO_NN-only_" + name_ + "_hw" +
-          std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28.myg";
-#endif
 
 #endif
 
@@ -1207,15 +1168,7 @@ namespace HO
     // General operators live under data/General_operators/
     std::string filename;
 
-#ifdef SAM_DATA_DIR
-    const char* sam_data = std::getenv("SAM_DATA_DIR");
-    if (!sam_data)
-      throw std::runtime_error("Environment variable SAM_DATA_DIR is not set");
-      
-    filename = std::string(sam_data) + "/General_operators/" + name_;
-#else
-    filename = "data/General_operators/" + name_;
-#endif
+    filename = sam::data_dir() + "/General_operators/" + name_;
 
     if (!custom_name)
       filename += "_hw" + std::to_string(static_cast<int>(hw_)) + "_emax14_e2max28";

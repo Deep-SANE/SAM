@@ -16,8 +16,9 @@ app/obj/
 !config/make.d/
 !config/make.d/**
 
-# All built data files (selectively tracked if needed)
-data/
+# Data directory (a folder, or a link to e.g. /work; a trailing-slash pattern
+# would not match a link, since git sees links as files)
+/data
 
 # Logs and batch scripts
 *.log

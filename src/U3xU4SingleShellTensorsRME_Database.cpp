@@ -2,6 +2,7 @@
 #include <shared_mutex>
 #include <utility>
 #include <U3xU4SingleShellTensorsRME_Database.h>
+#include <DataDirectory.h>
 
 #ifdef USE_MPI
 #include <mpi.h>
@@ -126,19 +127,7 @@ namespace U3xU4
 
   RME_db::RME_db()
   {
-#ifdef SAM_DATA_DIR
-    const char* sam_data = std::getenv("SAM_DATA_DIR");    
-    if (!sam_data)
-      throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
-
-    dir = std::string(sam_data) + "/rmes";
-#else
-    const char* sam_dir = std::getenv("SAM_DIR");
-    if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR isn't set");
-
-    dir = std::string(sam_dir) + "/data/rmes";
-#endif
+    dir = sam::data_dir() + "/rmes";
 
     std::filesystem::create_directories(dir);
 
@@ -154,19 +143,7 @@ namespace U3xU4
 
   RME_db::RME_db(int maxShell)
   {
-#ifdef SAM_DATA_DIR
-    const char* sam_data = std::getenv("SAM_DATA_DIR");    
-    if (!sam_data)
-      throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
-
-    dir = std::string(sam_data) + "/rmes";
-#else
-    const char* sam_dir = std::getenv("SAM_DIR");
-    if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR isn't set");
-
-    dir = std::string(sam_dir) + "/data/rmes";
-#endif
+    dir = sam::data_dir() + "/rmes";
     
     std::filesystem::create_directories(dir);
 

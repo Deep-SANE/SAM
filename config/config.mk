@@ -68,8 +68,8 @@ endif
 # zlib for gzipped two-body matrix elements reader
 LDFLAGS += -lz
 
-# SAM data path support
-CXXFLAGS += -DSAM_DATA_DIR
+# SAM data directory chosen at `make config` (the real path, not the SAM/data
+# link). sam::data_dir() returns it unless SAM_DATA_DIR is set at run time.
 ifneq ($(strip $(SAM_DATA_DIR)),)
   CXXFLAGS += -DSAM_DEFAULT_DATA_DIR=\"$(SAM_DATA_DIR)\"
 endif

@@ -1,6 +1,7 @@
 #include <ranges>
 
 #include <OperatorJT.h>
+#include <DataDirectory.h>
 
 namespace JT
 {
@@ -111,21 +112,8 @@ namespace JT
 
   std::string Operator::dirname() const
   {
-#ifdef SAM_DATA_DIR
-    const char* sam_data = std::getenv("SAM_DATA_DIR");    
-    if (!sam_data)
-      throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
-
-    std::string dir = std::string(sam_data) + "/OperatorJT/" + name_;
+    std::string dir = sam::data_dir() + "/OperatorJT/" + name_;
     std::filesystem::create_directories(dir);
-#else
-    const char* sam_dir = std::getenv("SAM_DIR");
-    if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR isn't set");
-      
-    std::string dir = std::string(sam_dir) + "/data/OperatorJT/" + name_;
-    std::filesystem::create_directories(dir);
-#endif
 
     return dir;
   }

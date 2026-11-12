@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <U3xU4SingleShellTensorsDecomposition_Database.h>
+#include <DataDirectory.h>
 
 #ifdef USE_MPI
 #include <mpi.h>
@@ -271,17 +272,7 @@ namespace U3xU4
   {
     std::string decomp_dir()
     {
-#ifdef SAM_DATA_DIR
-      const char* sam_data = std::getenv("SAM_DATA_DIR");
-      if (!sam_data)
-        throw std::runtime_error("Environment variable SAM_DATA_DIR isn't set");
-      return std::string(sam_data) + "/decomp_phys";
-#else
-      const char* sam_dir = std::getenv("SAM_DIR");
-      if (!sam_dir)
-        throw std::runtime_error("Environment variable SAM_DIR isn't set");
-      return std::string(sam_dir) + "/data/decomp_phys";
-#endif
+      return sam::data_dir() + "/decomp_phys";
     }
 
     [[maybe_unused]] int leading_shell(const std::string& filename)

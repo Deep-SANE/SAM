@@ -45,8 +45,9 @@ Options:
   --spectra=PATH    Path to Spectra include directory
   --cxx=PATH        C++ compiler to use [default: mpicxx or compiler from u3lib]
   --no-mpi          Disable MPI (compile in serial / OpenMP mode)
-  --data-dir=PATH   Path to SAM data directory [default: ./data]
-  --yes, -y         Non-interactive mode
+  --data-dir=PATH   Where SAM keeps its data [default: SAM/data]. Another
+                    path makes SAM/data a link to it (e.g. on /work).
+  --yes, -y         Non-interactive mode (accept all defaults)
 HELP
       exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
@@ -260,12 +261,84 @@ Or specify:
   ./configure.sh --spectra=/path/to/include"
 fi
 
-# 6. SAM Data Directory
-SAM_DATA_DIR="${OPT_data_dir:-$ROOT/data}"
-if [[ -d "$SAM_DATA_DIR" ]]; then
+# 6. SAM data directory
+#
+# Data lives in SAM/data by default. On a cluster the user usually wants it on
+# a work file system instead; then the data goes there and SAM/data becomes a
+# symbolic link to it, so scripts can keep using SAM/data. The real (resolved)
+# path is what gets built into the binaries, so compute nodes never need to go
+# through the home directory. SAM_DATA_DIR still overrides it at run time.
+LOCAL_DATA="$ROOT/data"
+
+# current choice: the link target if SAM/data is already a link, else SAM/data
+if [[ -L "$LOCAL_DATA" ]]; then
+  CURRENT_DATA="$(cd "$LOCAL_DATA" 2>/dev/null && pwd -P || readlink "$LOCAL_DATA")"
+else
+  CURRENT_DATA="$LOCAL_DATA"
+fi
+
+DATA_IN="$OPT_data_dir"
+if [[ -z "$DATA_IN" && $YES -eq 0 && -t 0 ]]; then
+  say "Where should SAM keep its data (operator expansions, rmes, hws, ...)?"
+  echo "    Press Enter for the default, or give another path (e.g. on /work)."
+  read -r -p "    data directory [$CURRENT_DATA]: " DATA_IN
+fi
+DATA_IN="${DATA_IN:-$CURRENT_DATA}"
+DATA_IN="${DATA_IN/#\~/$HOME}"
+
+[[ "$DATA_IN" == *[[:space:]]* ]] && die "The data directory path contains a space,
+which the build cannot pass to the compiler: $DATA_IN
+Please choose a path without spaces."
+
+CREATED_DATA=0
+[[ -e "$DATA_IN" ]] || CREATED_DATA=1
+mkdir -p "$DATA_IN" 2>/dev/null || die "Cannot create the data directory $DATA_IN"
+SAM_DATA_DIR="$(cd "$DATA_IN" && pwd -P)"
+
+# is the chosen directory SAM/data itself (a real folder, not a link)?
+IS_LOCAL=0
+if [[ -d "$LOCAL_DATA" && ! -L "$LOCAL_DATA" ]]; then
+  [[ "$(cd "$LOCAL_DATA" && pwd -P)" == "$SAM_DATA_DIR" ]] && IS_LOCAL=1
+fi
+
+if [[ $IS_LOCAL -eq 1 ]]; then
   say "Using SAM data directory: $SAM_DATA_DIR"
 else
-  warn "Data directory $SAM_DATA_DIR does not exist yet."
+  if [[ -L "$LOCAL_DATA" ]]; then
+    OLD_TARGET="$(readlink "$LOCAL_DATA")"
+    if [[ "$(cd "$LOCAL_DATA" 2>/dev/null && pwd -P)" != "$SAM_DATA_DIR" ]]; then
+      if [[ $YES -eq 0 && -t 0 ]]; then
+        read -r -p "    SAM/data points to $OLD_TARGET. Re-point it to $SAM_DATA_DIR? [y/N] " ans
+        if [[ "$ans" != [yY]* ]]; then
+          [[ $CREATED_DATA -eq 1 ]] && rmdir "$SAM_DATA_DIR" 2>/dev/null
+          die "Kept SAM/data -> $OLD_TARGET. Nothing was changed."
+        fi
+      else
+        warn "re-pointing SAM/data from $OLD_TARGET to $SAM_DATA_DIR"
+      fi
+      rm "$LOCAL_DATA" && ln -s "$SAM_DATA_DIR" "$LOCAL_DATA" \
+        || die "Could not re-point the SAM/data link"
+    fi
+  elif [[ -d "$LOCAL_DATA" ]]; then
+    # a real folder: replace it only if it holds nothing but Finder cruft
+    if [[ -z "$(ls -A "$LOCAL_DATA" | grep -v '^\.DS_Store$')" ]]; then
+      rm -f "$LOCAL_DATA/.DS_Store"
+      rmdir "$LOCAL_DATA" || die "Could not remove the empty folder SAM/data"
+      ln -s "$SAM_DATA_DIR" "$LOCAL_DATA" || die "Could not create the SAM/data link"
+    else
+      [[ $CREATED_DATA -eq 1 ]] && rmdir "$SAM_DATA_DIR" 2>/dev/null
+      die "SAM/data is a real folder that already holds files, so it cannot
+become a link to $SAM_DATA_DIR. Nothing was changed. Either keep the default
+(run 'make config' and press Enter), or move the files and try again:
+  mv \"$LOCAL_DATA\"/* \"$SAM_DATA_DIR\"/ && rmdir \"$LOCAL_DATA\"
+  make config"
+    fi
+  elif [[ -e "$LOCAL_DATA" ]]; then
+    die "SAM/data exists but is not a folder or a link; please remove it first."
+  else
+    ln -s "$SAM_DATA_DIR" "$LOCAL_DATA" || die "Could not create the SAM/data link"
+  fi
+  say "Using SAM data directory: $SAM_DATA_DIR (SAM/data -> $SAM_DATA_DIR)"
 fi
 
 # 7. Write config/config.generated.mk

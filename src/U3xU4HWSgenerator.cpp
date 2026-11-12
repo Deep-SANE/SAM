@@ -15,6 +15,7 @@
 #endif
 
 #include <U3xU4HWSgenerator.h>
+#include <DataDirectory.h>
 #ifdef NULLSPACE_SPARSE
 #include <Eigen/Sparse>
 #endif
@@ -379,20 +380,7 @@ namespace U3xU4
   {
     assert(!G.vacuum());
 
-#ifdef SAM_DATA_DIR
-    const char* sam_data = std::getenv("SAM_DATA_DIR");    
-    if (!sam_data)
-      throw std::runtime_error(
-        "Environment variable SAM_DATA_DIR is not set");
-
-    std::filesystem::path dir = std::filesystem::path(sam_data) / "hws";
-#else
-    const char* sam_dir = std::getenv("SAM_DIR");
-    if (!sam_dir)
-      throw std::runtime_error("Environment variable SAM_DIR not set");
-
-    std::filesystem::path dir = std::filesystem::path(sam_dir) / "data/hws";
-#endif
+    std::filesystem::path dir = std::filesystem::path(sam::data_dir()) / "hws";
 
     // Create the directory (and parent dirs) if it doesn't exist
     std::filesystem::create_directories(dir);
