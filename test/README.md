@@ -67,6 +67,9 @@ computed on the fly; no nuclear potentials, which need interaction files):
   `writeBinary()`; the maxShell-4 file serves maxShell 3 (equal to
   `expand_new()` there) but not maxShell 5 (the "only reaches" error); read at
   hw = 25, `Kinetic` strengths scale by 25/20 and `CoMNumberOp` stays.
+- `test_twobodyoperator_expansion.cpp`: the same for the two-body parts with
+  `TwoBodyOperator::expand_new()`, which runs on OpenMP threads, and both
+  `expand()` (MPI reader) and `readBinary()`.
 
 ## Tolerances
 
