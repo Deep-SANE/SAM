@@ -74,7 +74,17 @@ computed on the fly; no nuclear potentials, which need interaction files):
   `TwoBodyOperator::expand_new()`, which runs on OpenMP threads, and both
   `expand()` (MPI reader) and `readBinary()`.
 
+Operator matrices (`JT::Operator::matrix_CSR`):
+
+- `test_operator_ll_ls.cpp`: `L.L` and `L.S` for 4He and 6He (J = 0,
+  Nmax = 2) and 6Li (J = 1, Nmax = 0 and 2). The basis has good L, S and J,
+  so both matrices must be diagonal with L(L+1) and
+  [J(J+1) - L(L+1) - S(S+1)]/2 exactly. The test makes its own expansions of
+  `L.L` and `L.S`.
+
 ## Tolerances
+
+- Operator matrices: exact values to absolute 1e-10.
 
 - Normalizations and exact values: absolute 1e-10 (1e-9 for multi-shell
   normalizations, 1e-12 for single coefficients).

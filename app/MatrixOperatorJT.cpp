@@ -122,53 +122,6 @@ int main(int argc, char* argv[])
         std::cout << subspace << std::endl;
     }
 
-/*
-    // L.L and L.S are analytical
-    if (name == "L.L" || name == "L.S")
-    {
-      auto irreps = basis.irreps();
-      auto labels = basis.decomposition();
-      std::vector<double> analyticals;
-
-      for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
-      {
-        auto alphamax = irreps[irrep_id].alphamax();
-
-        for (const auto& [kmax, LL, zmax, SS, TT, offset] : labels[irrep_id])
-        {
-          for (size_t j = 0; j < alphamax * kmax * zmax; j++)
-          {
-            if (name == "L.L")
-              analyticals.push_back(LL * (LL + 2.0) / 4.0);
-            else
-            {
-              double jj = JJ * (JJ + 2.0) / 4.0, 
-                     ll = LL * (LL + 2.0) / 4.0,
-                     ss = SS * (SS + 2.0) / 4.0;
-              analyticals.push_back((jj - ll - ss) / 2.0);
-            }
-          }
-        }
-      }
-    
-      // std::cout << "Total matrix representation is " << std::endl;
-      // std::cout << mat << std::endl;
-      for (int k = 0; k < mat.outerSize(); ++k) 
-        for (Eigen::SparseMatrix<double>::InnerIterator it(mat, k); it; ++it) 
-        {
-          if (std::fabs(it.value()) > 1e-10)
-          {
-            std::cout << "(" << it.row() << "," << it.col() << "): "
-                      << it.value() << "\t";
-            if (it.row() != it.col())
-              std::cout << "Off-diagonal\t";
-            if (std::fabs(analyticals[it.row()] - it.value()) > 1e-10)
-              std::cout << "Not analytical";
-            std::cout << std::endl;
-          }
-        }
-    }
-*/
     // Calculate the duration
     std::chrono::duration<double> duration1 = t1 - t0, duration2 = t3 - t2;
 
