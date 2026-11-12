@@ -1,0 +1,58 @@
+# SAM regression tests
+
+From the SAM root, after `make config`:
+
+```sh
+make test
+```
+
+This builds `lib/libsam.a` if needed, compiles every `test_*.cpp` into
+`bin/test/`, and runs each one as a single MPI process. On a cluster, choose
+the launcher with `make test MPIRUN="srun -n 1"`. The tests need no data
+files: each program runs with `SAM_DATA_DIR` set to a fresh temporary
+directory, removed afterwards, so your data directory is never touched.
+
+Each case prints `[TEST]` and then `[PASS]` or `[FAIL]` with what went wrong,
+and each program ends with a summary. `make test` fails if any case fails.
+
+## Coverage
+
+Each test program is a copy of an example program in `app/`, using the same
+examples, with the numbers they produce added as checks.
+
+- `test_singleshelltensors_decomposition_phys.cpp` (from `app/U3xU4SingleShellTensorsDecomposition_Phys.cpp`):
+  five examples expanded with `SingleShellTensor_phys::expand()`. Checks the
+  number of terms, the normalization (sum of squared coefficients = 1 per
+  multiplicity) and a signed checksum over all terms (`expansion_checksum.h`).
+  Example 3 is also checked exactly: all 12 coefficients of the scalar ad . a
+  in shell 1 are 1/sqrt(12).
+- `test_singleshelltensors_decomposition_gelfand.cpp` (from `app/U3xU4SingleShellTensorsDecomposition_Gelfand.cpp`):
+  three examples expanded with `SingleShellTensor_gelfand::expand()`; the same
+  checks, with Example 2 exact.
+- `test_singleshelltensors_rme.cpp` (from `app/U3xU4SingleShellTensorsRME.cpp`):
+  six examples of single-shell triple-reduced matrix elements, compared value
+  by value. Examples 3-6 are exact and are checked for every shell
+  n = 0..8: with N = 2(n+1)(n+2) single-particle states, < ad > = 1,
+  < at > = sqrt(N), < [ad x at]^0 > = 1/sqrt(N), and the identity gives a
+  unit matrix.
+
+## Tolerances
+
+- Normalizations and exact values: absolute 1e-10 (1e-12 for single
+  coefficients).
+- Expansion checksums: absolute 1e-10 plus relative 1e-8. A checksum sums
+  millions of terms, and the summation order changes with the compiler and
+  the number of threads.
+- RMEs: absolute 1e-12 plus relative 1e-11.
+
+## Reference values
+
+The expected numbers are written in the test sources next to each example.
+They were produced by this code on Linux (GCC 13, Open MPI) in November 2026.
+If a deliberate change in conventions alters them, update them there and say
+why in the commit message.
+
+## Adding a test
+
+Create `test_<topic>.cpp` using `test_helpers.h` (`require`, `near`,
+`Suite`); `make test` picks it up automatically.

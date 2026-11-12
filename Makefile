@@ -3,6 +3,7 @@
 #   make            build lib/libsam.a and bin/* applications
 #   make lib        build only lib/libsam.a
 #   make apps       build only bin/* applications
+#   make test       build and run the regression tests in test/
 #   make clean      clean built objects, lib, and binaries
 #   make distclean  reset to pristine state
 #   make data       download the released operator expansions into the data
@@ -32,6 +33,10 @@ lib:
 apps: lib
 	$(MAKE) -C app
 
+.PHONY: test
+test: lib
+	$(MAKE) -C test
+
 .PHONY: config reconfigure
 config reconfigure:
 	@bash $(CONFIG_DIR)/configure.sh $(CONFIG_ARGS)
@@ -41,6 +46,7 @@ clean:
 	rm -rf $(SAM_ROOT)/bin $(SAM_ROOT)/lib
 	$(MAKE) -C src clean 2>/dev/null || true
 	$(MAKE) -C app clean 2>/dev/null || true
+	$(MAKE) -C test clean 2>/dev/null || true
 
 .PHONY: distclean
 distclean: clean

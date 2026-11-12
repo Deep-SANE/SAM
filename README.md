@@ -27,6 +27,7 @@ make config    # Auto-detects u3lib, u4lib, untou3, MPI (required), OpenMP, Spec
 make           # Compiles lib/libsam.a and all bin/* applications
 make lib       # Compiles only lib/libsam.a
 make apps      # Compiles only the applications in app/ -> bin/
+make test      # Builds and runs the regression tests in test/
 make clean     # Cleans build artifacts
 make distclean # Resets to pristine state
 ```
@@ -63,6 +64,7 @@ Run `./config/configure.sh --help` for available options:
 - `src/` — Implementation files building `lib/libsam.a`.
 - `app/` — Driver applications and physics calculation programs (`bin/*`).
 - `config/` — Configuration script and the data release definition (`config/data_release/`: README, checksums, download script).
+- `test/` — Regression tests run by `make test` (see [test/README.md](test/README.md)).
 - `utils/` — Self-contained numerical utilities (CSRMatrix, Spectra eigensolver, compatibility forwarding to `u3lib/utils`).
 - `data/` — Data directory (or a link to it): operator expansions, interaction matrix elements, tensor decompositions and precomputed databases. Not tracked by git.
 
