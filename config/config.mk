@@ -42,8 +42,11 @@ endif
 # MPI is required (checked by `make config`)
 CXXFLAGS += -DUSE_MPI
 
+# USE_OPENMP must be defined as a macro too: u3lib/u4lib headers use it to
+# give each OpenMP thread its own work buffers and to make utils::Cache
+# thread-safe (boost::concurrent_flat_map), exactly as u3lib/u4lib build them.
 ifeq ($(USE_OPENMP),1)
-  CXXFLAGS += $(OMP_CXXFLAGS)
+  CXXFLAGS += -DUSE_OPENMP $(OMP_CXXFLAGS)
   LDFLAGS += $(OMP_LDFLAGS)
 endif
 
