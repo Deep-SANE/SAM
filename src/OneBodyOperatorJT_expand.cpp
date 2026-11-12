@@ -358,13 +358,17 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "Rrel" ||
+    if (name_ == "L.L" || name_ == "Rrel" ||
         name_ == "Radius" || name_ == "Radius_p" || name_ == "Radius_n" ||
         name_ == "CoMNumberOp" || name_ == "Kinetic" || 
         name_ == "FermiPlus" || name_ == "FermiMinus" ||
         name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus")
     {
       if (LL != 0) flag = false;
+    }
+    else if (name_ == "L.S") // orbital part is L (rank 1)
+    {
+      if (LL != 2) flag = false;
     }
     else if (name_ == "E2")
     {
@@ -382,12 +386,16 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "E2" ||
+    if (name_ == "L.L" || name_ == "E2" ||
         name_ == "Rrel" || name_ == "Radius" || name_ == "Radius_p" ||
         name_ == "Radius_n" || name_ == "CoMNumberOp" || name_ == "Kinetic" || 
         name_ == "FermiPlus" || name_ == "FermiMinus")
     {
       if (SS != 0) flag = false;
+    }
+    else if (name_ == "L.S") // spin part is S (rank 1)
+    {
+      if (SS != 2) flag = false;
     }
     else if (name_ == "M1")
     {
@@ -405,11 +413,23 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "CoMNumberOp" || 
+    if (name_ == "CoMNumberOp" || 
         name_ == "FermiPlus" || name_ == "FermiMinus" ||
         name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus")
     {
       if (irr != u3::irrep(0, 0, 0)) flag = false;
+    }
+    else if (name_ == "L.L")
+    {
+      // L.L is quadratic in the SU(3) generators L (1,1): its L = 0 parts
+      // are in (1,1) x (1,1) -> (0,0) and (2,2)
+      if (irr != u3::irrep(0, 0, 0) && irr != u3::irrep(4, 2, 0))
+        flag = false;
+    }
+    else if (name_ == "L.S")
+    {
+      // L is an SU(3) generator: (1,1)
+      if (irr != u3::irrep(2, 1, 0)) flag = false;
     }
     else if (name_ == "Rrel" || name_ == "Radius" || name_ == "Radius_p" ||
              name_ == "Radius_n" || name_ == "Kinetic")
@@ -439,11 +459,16 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "L.S" || name_ == "E2" ||
+    if (name_ == "L.L" || name_ == "E2" ||
         name_ == "Rrel" || name_ == "Radius" || name_ == "Radius_p" ||
         name_ == "Radius_n" || name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (irr != u4::irrep(0, 0, 0, 0)) flag = false;
+    }
+    else if (name_ == "L.S")
+    {
+      // S is an SU(4) generator: the adjoint 15
+      if (irr != u4::irrep(2, 1, 1, 0)) flag = false;
     }
     else if (name_ == "M1")
     {
