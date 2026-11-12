@@ -54,8 +54,10 @@ namespace U3xU4
 
     // final tensor coupling stored in GammaElement base class
 
-    // name of binary file that stores RMEs
+    // name of binary file that stores RMEs; a function of the labels above,
+    // set by every constructor and by readBinary()
     std::optional<std::string> filename_;
+    void set_filename();
 
   public:
     // Constructor
@@ -73,7 +75,9 @@ namespace U3xU4
           ats_(ats),
           Omega_ads_(Omega_ads),
           Omega_ats_(Omega_ats)
-    { }
+    {
+      set_filename();
+    }
 
     // comparison:
     // auto operator<=>(const SingleShellTensor&) const = default;

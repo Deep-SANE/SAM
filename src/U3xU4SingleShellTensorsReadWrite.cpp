@@ -46,6 +46,11 @@ namespace U3xU4
     Omega_ats_.resize(std::max(0, static_cast<int>(ats_) - 1));
     for (auto& ir : Omega_ats_) ir.readBinary(s);
 
+    set_filename();
+  }
+
+  void SingleShellTensor::set_filename()
+  {
     using std::to_string;
 
     std::string shell = "n" + to_string(U3xU4::GammaElement::shell());
