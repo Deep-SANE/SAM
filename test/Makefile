@@ -1,10 +1,11 @@
 # SAM regression tests. Run from the SAM root with `make test` (after
 # `make config` and `make`), or here with `make`.
 #
-# Each test_*.cpp is built against lib/libsam.a into bin/test/ and run as one
-# MPI process, with SAM_DATA_DIR set to a fresh temporary directory (removed
-# afterwards), so the tests never read or write your data. Override the
-# launcher if needed, e.g. on a cluster:
+# Each test_*.cpp is built against lib/libsam.a into bin/test/ and run by
+# run_tests.sh as one MPI process, with SAM_DATA_DIR set to a fresh temporary
+# directory (removed afterwards), so the tests never read or write your data.
+# A summary table follows the output. Override the launcher if needed, e.g. on
+# a cluster:
 #   make test MPIRUN="srun -n 1"
 
 SAM_ROOT ?= $(abspath $(CURDIR)/..)
@@ -27,15 +28,7 @@ TEST_FLAGS = $(CXXFLAGS) -UNDEBUG
 all: test
 
 test: $(PROGRAMS)
-	@failed=0; for program in $(PROGRAMS); do \
-	  echo "=== $$(basename $$program) ==="; \
-	  data=$$(mktemp -d); \
-	  if SAM_DATA_DIR="$$data" $(MPIRUN) "$$program"; then :; else failed=1; fi; \
-	  rm -rf "$$data"; \
-	done; \
-	if [ $$failed -eq 0 ]; then echo "PASS: all SAM tests"; \
-	else echo "FAIL: one or more SAM tests"; fi; \
-	exit $$failed
+	@bash run_tests.sh "$(MPIRUN)" $(PROGRAMS)
 
 $(BIN)/test_%: test_%.cpp $(wildcard *.h) $(SAM_LIB) | $(BIN)
 	$(call pretty_print,CXX,$@)

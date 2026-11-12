@@ -13,7 +13,10 @@ files: each program runs with `SAM_DATA_DIR` set to a fresh temporary
 directory, removed afterwards, so your data directory is never touched.
 
 Each case prints `[TEST]` and then `[PASS]` or `[FAIL]` with what went wrong,
-and each program ends with a summary. `make test` fails if any case fails.
+and each program ends with a summary. At the end, `make test` prints a table
+with every program's passed and failed cases, run time and result (`ok`,
+`FAIL` or `CRASHED`), and the totals. `make test` fails if any case fails or
+any program crashes.
 
 ## Coverage
 
