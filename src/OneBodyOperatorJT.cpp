@@ -44,8 +44,11 @@ namespace JT
     parity_ = 0;
     on_the_fly = true;
 
-    if (known_scalar_ops.count(name_)) { }
-    else if (name_ == "E2") { JJ_ = 4; }
+    // proton-only and neutron-only operators: (1 -+ tau_z)/2 has an
+    // isoscalar and an isovector (T = 1) part, so isospin is mixed
+    if (name_ == "Radius_p" || name_ == "Radius_n") { TT_ = -1; }
+    else if (known_scalar_ops.count(name_)) { }
+    else if (name_ == "E2") { JJ_ = 4; TT_ = -1; } // protons only
     else if (name_ == "M1")
     { 
       TT_ = -1;

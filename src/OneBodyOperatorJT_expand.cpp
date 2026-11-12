@@ -459,11 +459,17 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "L.L" || name_ == "E2" ||
-        name_ == "Rrel" || name_ == "Radius" || name_ == "Radius_p" ||
-        name_ == "Radius_n" || name_ == "CoMNumberOp" || name_ == "Kinetic")
+    if (name_ == "L.L" || name_ == "Rrel" || name_ == "Radius" ||
+        name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (irr != u4::irrep(0, 0, 0, 0)) flag = false;
+    }
+    else if (name_ == "Radius_p" || name_ == "Radius_n" || name_ == "E2")
+    {
+      // proton- or neutron-only: (1 -+ tau_z)/2 = isoscalar [0,0,0,0] plus
+      // isovector tau_z, an SU(4) generator in the adjoint 15 [2,1,1,0]
+      if (irr != u4::irrep(0, 0, 0, 0) && irr != u4::irrep(2, 1, 1, 0))
+        flag = false;
     }
     else if (name_ == "L.S")
     {
