@@ -11,8 +11,8 @@
 // small in-repo test framework, the same as in u3lib/u4lib:
 //   require(cond, what)                    a check that must hold
 //   near(actual, expected, what, atol, rtol)
-//   Suite: runs named cases, prints [TEST]/[PASS]/[FAIL] and a summary, and
-//          returns a nonzero exit code if any case failed.
+//   Suite: runs named cases, prints [TEST]/[PASS]/[FAIL] (or [SKIP]) and a
+//          summary, and returns a nonzero exit code if any case failed.
 namespace test
 {
   inline void require(bool ok, const std::string& what)
@@ -36,7 +36,7 @@ namespace test
 
   struct Suite
   {
-    int passed = 0, failed = 0;
+    int passed = 0, failed = 0, skipped = 0;
 
     template <class F>
     void run(const std::string& label, F work)
@@ -55,10 +55,18 @@ namespace test
       }
     }
 
+    // a case that cannot run here (e.g. it needs data that is not
+    // downloaded); reported, but not counted as a failure
+    void skip(const std::string& label, const std::string& reason)
+    {
+      ++skipped;
+      std::cout << "[SKIP] " << label << ": " << reason << std::endl;
+    }
+
     int result() const
     {
       std::cout << "Summary: " << passed << " passed, " << failed
-                << " failed\n";
+                << " failed, " << skipped << " skipped\n";
       return failed ? 1 : 0;
     }
   };

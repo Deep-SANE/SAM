@@ -28,7 +28,7 @@ TEST_FLAGS = $(CXXFLAGS) -UNDEBUG
 all: test
 
 test: $(PROGRAMS)
-	@bash run_tests.sh "$(MPIRUN)" $(PROGRAMS)
+	@SAM_TEST_DATA_DIR="$(SAM_DATA_DIR)" bash run_tests.sh "$(MPIRUN)" $(PROGRAMS)
 
 $(BIN)/test_%: test_%.cpp $(wildcard *.h) $(SAM_LIB) | $(BIN)
 	$(call pretty_print,CXX,$@)

@@ -14,8 +14,9 @@ directory, removed afterwards, so your data directory is never touched.
 
 Each case prints `[TEST]` and then `[PASS]` or `[FAIL]` with what went wrong,
 and each program ends with a summary. At the end, `make test` prints a table
-with every program's passed and failed cases, run time and result (`ok`,
-`FAIL` or `CRASHED`), and the totals. `make test` fails if any case fails or
+with every program's passed, failed and skipped cases, run time and result
+(`ok`, `FAIL` or `CRASHED`), and the totals. A case is skipped (`[SKIP]`) when
+it needs released data that is not in the data directory. `make test` fails if any case fails or
 any program crashes.
 
 ## Coverage
@@ -81,10 +82,19 @@ Operator matrices (`JT::Operator::matrix_CSR`):
   so both matrices must be diagonal with L(L+1) and
   [J(J+1) - L(L+1) - S(S+1)]/2 exactly. The test makes its own expansions of
   `L.L` and `L.S`.
+- `test_operator_hamiltonian.cpp`: "Hamiltonian with N2LO_opt_bare" at
+  hw = 20 MeV and Nmax = 4 for 4He (J = 0), 6Li (J = 1) and 6He (J = 0): the
+  five lowest eigenvalues and the ground-state U(3) and U(4) probabilities in
+  each hw subspace. It needs the released expansions
+  (`make data OPS="N2LO_opt_bare Kinetic CoMNumberOp"`), which it links from
+  the configured data directory; without them its cases are skipped, not
+  failed.
 
 ## Tolerances
 
-- Operator matrices: exact values to absolute 1e-10.
+- Operator matrices: exact values to absolute 1e-10. Eigenvalues: absolute
+  1e-7 MeV plus relative 1e-9; probabilities: absolute 1e-6 % plus relative
+  1e-7.
 
 - Normalizations and exact values: absolute 1e-10 (1e-9 for multi-shell
   normalizations, 1e-12 for single coefficients).
