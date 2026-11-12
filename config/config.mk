@@ -39,9 +39,8 @@ ifneq ($(strip $(SPECTRA_DIR)),)
   INCLUDES += -I$(SPECTRA_DIR)
 endif
 
-ifeq ($(USE_MPI),1)
-  CXXFLAGS += -DUSE_MPI
-endif
+# MPI is required (checked by `make config`)
+CXXFLAGS += -DUSE_MPI
 
 ifeq ($(USE_OPENMP),1)
   CXXFLAGS += $(OMP_CXXFLAGS)

@@ -4,7 +4,7 @@
 #
 # Usage:
 #   ./configure.sh [--u3lib=PATH] [--u4lib=PATH] [--untou3=PATH]
-#                  [--spectra=PATH] [--cxx=PATH] [--no-mpi]
+#                  [--spectra=PATH] [--cxx=PATH] [--mpicxx=PATH]
 #                  [--data-dir=PATH] [--yes|-y]
 set -uo pipefail
 
@@ -22,7 +22,7 @@ OPT_untou3=""
 OPT_spectra=""
 OPT_cxx=""
 OPT_data_dir=""
-NO_MPI=0
+OPT_mpicxx=""
 
 for arg in "$@"; do
   case "$arg" in
@@ -33,7 +33,7 @@ for arg in "$@"; do
     --spectra=*) OPT_spectra="${arg#*=}" ;;
     --cxx=*) OPT_cxx="${arg#*=}" ;;
     --data-dir=*) OPT_data_dir="${arg#*=}" ;;
-    --no-mpi) NO_MPI=1 ;;
+    --mpicxx=*) OPT_mpicxx="${arg#*=}" ;;
     --help|-h)
       cat << 'HELP'
 Usage: ./configure.sh [OPTIONS]
@@ -43,8 +43,8 @@ Options:
   --u4lib=PATH      Path to u4lib root [default: ../u4lib]
   --untou3=PATH     Path to untou3 root [default: ../untou3]
   --spectra=PATH    Path to Spectra include directory
-  --cxx=PATH        C++ compiler to use [default: mpicxx or compiler from u3lib]
-  --no-mpi          Disable MPI (compile in serial / OpenMP mode)
+  --cxx=PATH        C++ compiler wrapped by MPI [default: compiler from u3lib/u4lib]
+  --mpicxx=PATH     MPI compiler wrapper (MPI is required) [default: mpicxx]
   --data-dir=PATH   Where SAM keeps its data [default: SAM/data]. Another
                     path makes SAM/data a link to it (e.g. on /work).
   --yes, -y         Non-interactive mode (accept all defaults)
@@ -149,15 +149,13 @@ USE_OPENMP="$(read_var USE_OPENMP "$SRC_GEN")"
 OMP_CXXFLAGS="$(read_var OMP_CXXFLAGS "$SRC_GEN")"
 OMP_LDFLAGS="$(read_var OMP_LDFLAGS "$SRC_GEN")"
 
-# 4. MPI & Toolchain
+# 4. MPI & Toolchain (MPI is required)
 #
 # The underlying compiler always follows the prerequisite libraries (u3lib /
-# u4lib) -- never Apple clang. When MPI is enabled we keep the mpicxx wrapper as
-# CXX but point it at that inherited compiler through OMPI_CXX / MPICH_CXX, so
-# the OpenMP flags (-fopenmp) and ABI inherited from u3lib/u4lib stay valid.
-USE_MPI=0
-CXX=""
-MPI_UNDERLYING_CXX=""
+# u4lib) -- never Apple clang. We use the MPI wrapper (mpicxx) as CXX but point
+# it at that inherited compiler through OMPI_CXX / MPICH_CXX, so the OpenMP
+# flags (-fopenmp) and ABI inherited from u3lib/u4lib stay valid.
+USE_MPI=1
 
 # Compiler inherited from the prerequisites (overridable with --cxx).
 UNDERLYING_CXX="${OPT_cxx:-$INHERIT_CXX}"
@@ -171,30 +169,55 @@ if [[ "$UNDERLYING_CXX" == *clang* ]]; then
   warn "Prerequisite compiler looks like clang ($UNDERLYING_CXX); u3lib/u4lib use GCC with -fopenmp. If the build rejects -fopenmp, reconfigure u3lib/u4lib with GCC."
 fi
 
-if [[ $NO_MPI -eq 0 ]]; then
-  # Look for mpicxx
-  MPICXX_BIN=""
+# Find the MPI compiler wrapper.
+MPICXX_BIN="$OPT_mpicxx"
+if [[ -z "$MPICXX_BIN" ]]; then
   if command -v mpicxx >/dev/null 2>&1; then
     MPICXX_BIN="$(command -v mpicxx)"
   elif [[ -x "/opt/homebrew/bin/mpicxx" ]]; then
     MPICXX_BIN="/opt/homebrew/bin/mpicxx"
   fi
-
-  if [[ -n "$MPICXX_BIN" ]]; then
-    CXX="$MPICXX_BIN"
-    MPI_UNDERLYING_CXX="$UNDERLYING_CXX"   # make mpicxx wrap the inherited GCC
-    USE_MPI=1
-    say "Using MPI compiler: $CXX (wrapping $MPI_UNDERLYING_CXX)"
-  else
-    warn "mpicxx not found; configuring in serial / OpenMP mode."
-    CXX="$UNDERLYING_CXX"
-    USE_MPI=0
-  fi
-else
-  say "MPI explicitly disabled (--no-mpi)."
-  CXX="$UNDERLYING_CXX"
-  USE_MPI=0
 fi
+
+if [[ -z "$MPICXX_BIN" || ! -x "$MPICXX_BIN" ]]; then
+  die "MPI was not found, and SAM requires it (mpicxx is missing).
+Please install an MPI library:
+  macOS:    brew install open-mpi
+  Ubuntu:   sudo apt-get install libopenmpi-dev openmpi-bin
+  Cluster:  load the MPI module, e.g. 'module load openmpi' or 'module load mpich'
+Or point to the compiler wrapper:
+  ./config/configure.sh --mpicxx=/path/to/mpicxx"
+fi
+
+# Check that the wrapper can compile and link an MPI + OpenMP program with the
+# inherited compiler, so problems show up now and not halfway through `make`.
+MPI_TEST_DIR="$(mktemp -d)"
+cat > "$MPI_TEST_DIR/mpi_test.cpp" << 'MPITEST'
+#include <mpi.h>
+int main(int argc, char** argv)
+{
+  MPI_Init(&argc, &argv);
+  int rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Finalize();
+  return rank;
+}
+MPITEST
+if ! OMPI_CXX="$UNDERLYING_CXX" MPICH_CXX="$UNDERLYING_CXX" \
+     "$MPICXX_BIN" -std=c++20 ${OMP_CXXFLAGS:--fopenmp} \
+     "$MPI_TEST_DIR/mpi_test.cpp" -o "$MPI_TEST_DIR/mpi_test" \
+     > "$MPI_TEST_DIR/log" 2>&1; then
+  sed 's/^/    /' "$MPI_TEST_DIR/log" | tail -15 >&2
+  rm -rf "$MPI_TEST_DIR"
+  die "$MPICXX_BIN (wrapping $UNDERLYING_CXX) cannot build a test MPI program.
+Make sure the MPI library was built for this compiler, or choose another one
+with --mpicxx=PATH or --cxx=PATH."
+fi
+rm -rf "$MPI_TEST_DIR"
+
+CXX="$MPICXX_BIN"
+MPI_UNDERLYING_CXX="$UNDERLYING_CXX"   # make mpicxx wrap the inherited GCC
+say "Using MPI compiler: $CXX (wrapping $MPI_UNDERLYING_CXX); test program OK"
 
 # 5. Resolve Spectra (required header-only eigensolver)
 SPECTRA_DIR="${OPT_spectra:-}"
@@ -342,7 +365,7 @@ become a link to $SAM_DATA_DIR. Nothing was changed. Either keep the default
 fi
 
 # 7. Write config/config.generated.mk
-# When MPI is on, make the mpicxx wrapper invoke the inherited (GCC) compiler.
+# Make the mpicxx wrapper invoke the inherited (GCC) compiler.
 MPI_WRAP_BLOCK=""
 if [[ -n "$MPI_UNDERLYING_CXX" ]]; then
   MPI_WRAP_BLOCK="OMPI_CXX := $MPI_UNDERLYING_CXX
