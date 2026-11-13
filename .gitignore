@@ -16,6 +16,9 @@ app/obj/
 !config/make.d/
 !config/make.d/**
 
+# Third-party code downloaded by make config (e.g. Spectra)
+/external-libs/
+
 # Data directory (a folder, or a link to e.g. /work; a trailing-slash pattern
 # would not match a link, since git sees links as files)
 /data

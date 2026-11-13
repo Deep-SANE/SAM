@@ -42,7 +42,8 @@ Options:
   --u3lib=PATH      Path to u3lib root [default: ../u3lib]
   --u4lib=PATH      Path to u4lib root [default: ../u4lib]
   --untou3=PATH     Path to untou3 root [default: ../untou3]
-  --spectra=PATH    Path to Spectra include directory
+  --spectra=PATH    Spectra include directory or source root; "fetch"
+                    downloads it [default: found, else ask]
   --cxx=PATH        C++ compiler wrapped by MPI [default: compiler from u3lib/u4lib]
   --mpicxx=PATH     MPI compiler wrapper (MPI is required) [default: mpicxx]
   --data-dir=PATH   Where SAM keeps its data [default: SAM/data]. Another
@@ -220,16 +221,52 @@ MPI_UNDERLYING_CXX="$UNDERLYING_CXX"   # make mpicxx wrap the inherited GCC
 say "Using MPI compiler: $CXX (wrapping $MPI_UNDERLYING_CXX); test program OK"
 
 # 5. Resolve Spectra (required header-only eigensolver)
-SPECTRA_DIR="${OPT_spectra:-}"
+#
+# Order: --spectra=PATH, then known locations, then (interactive) ask for a
+# path or download it, (--yes) download it. PATH may be the include directory
+# or the Spectra source root; --spectra=fetch downloads it.
+SPECTRA_VERSION="v1.0.1"
 
 valid_spectra() {
   local p="$1"
   [[ -n "$p" && -f "$p/Spectra/SymEigsSolver.h" ]]
 }
 
-if ! valid_spectra "$SPECTRA_DIR"; then
+# the include directory for PATH (include dir or source root), or nothing
+spectra_include() {
+  local p="${1%/}"
+  p="${p/#\~/$HOME}"
+  if valid_spectra "$p"; then echo "$p"
+  elif valid_spectra "$p/include"; then echo "$p/include"
+  fi
+}
+
+fetch_spectra() {
+  command -v git >/dev/null 2>&1 || die "git is needed to download Spectra"
+  local ext="$ROOT/external-libs"
+  mkdir -p "$ext" || die "cannot create $ext"
+  say "Downloading Spectra $SPECTRA_VERSION (header-only) -> external-libs/spectra"
+  rm -rf "$ext/spectra"
+  git clone --depth 1 --branch "$SPECTRA_VERSION" \
+      https://github.com/yixuan/spectra "$ext/spectra" >/dev/null 2>&1 ||
+    die "could not download Spectra from https://github.com/yixuan/spectra
+(no network here? On a cluster, run make config on a login node, or clone it
+elsewhere and pass ./configure.sh --spectra=/path/to/spectra)"
+  SPECTRA_DIR="$ext/spectra/include"
+}
+
+SPECTRA_DIR=""
+if [[ "$OPT_spectra" == "fetch" ]]; then
+  fetch_spectra
+elif [[ -n "$OPT_spectra" ]]; then
+  SPECTRA_DIR="$(spectra_include "$OPT_spectra")"
+  [[ -n "$SPECTRA_DIR" ]] ||
+    die "--spectra=$OPT_spectra: no Spectra/SymEigsSolver.h there or in its include/"
+else
   CANDIDATES=(
     "$ROOT/external-libs/spectra/include"
+    "$ROOT/../spectra/include"            # DeepSANE/spectra next to SAM
+    "${SPECTRA_ROOT:+$SPECTRA_ROOT/include}"
     "/opt/homebrew/include"
     "/opt/homebrew/opt/spectra/include"
     "/usr/local/include"
@@ -257,32 +294,36 @@ if ! valid_spectra "$SPECTRA_DIR"; then
       break
     fi
   done
-fi
 
-if [[ "$SPECTRA_DIR" == "fetch" ]] || (! valid_spectra "$SPECTRA_DIR" && [[ $YES -eq 1 ]]); then
-  if command -v git >/dev/null 2>&1; then
-    EXT="$ROOT/external-libs"
-    mkdir -p "$EXT"
-    say "Fetching Spectra (header-only) -> external-libs/spectra"
-    rm -rf "$EXT/spectra"
-    if git clone --depth 1 --branch "v1.0.1" https://github.com/yixuan/spectra "$EXT/spectra" >/dev/null 2>&1; then
-      SPECTRA_DIR="$EXT/spectra/include"
+  if [[ -z "$SPECTRA_DIR" ]]; then
+    if [[ $YES -eq 0 && -t 0 ]]; then
+      say "Spectra (https://spectralib.org, header-only eigensolver) was not found."
+      echo "    Give the path to an existing copy (its include directory or source"
+      echo "    root), or press Enter to download $SPECTRA_VERSION into SAM/external-libs/spectra."
+      while [[ -z "$SPECTRA_DIR" ]]; do
+        read -r -p "    Spectra path [download]: " ans || ans=""
+        if [[ -z "$ans" ]]; then
+          fetch_spectra
+        else
+          SPECTRA_DIR="$(spectra_include "$ans")"
+          [[ -n "$SPECTRA_DIR" ]] ||
+            warn "no Spectra/SymEigsSolver.h under $ans or $ans/include; try again"
+        fi
+      done
+    elif [[ $YES -eq 1 ]]; then
+      fetch_spectra
+    else
+      die "Spectra eigensolver library was not found!
+SAM requires Spectra (https://spectralib.org) for large-scale symmetric matrix diagonalization.
+Run make config in a terminal to be asked for its path or to download it, or:
+  ./configure.sh --spectra=/path/to/spectra    an existing copy
+  ./configure.sh --spectra=fetch               download it into external-libs/spectra"
     fi
   fi
 fi
 
-if valid_spectra "$SPECTRA_DIR"; then
-  say "Found Spectra at $SPECTRA_DIR"
-else
-  die "Spectra eigensolver library was not found!
-SAM requires Spectra (https://spectralib.org) for large-scale symmetric matrix diagonalization.
-Please install Spectra:
-  macOS:  brew install spectra
-  Ubuntu: sudo apt-get install libspectra-dev
-  Manual: git clone https://github.com/yixuan/spectra external-libs/spectra
-Or specify:
-  ./configure.sh --spectra=/path/to/include"
-fi
+valid_spectra "$SPECTRA_DIR" || die "Spectra not usable at $SPECTRA_DIR"
+say "Found Spectra at $SPECTRA_DIR"
 
 # 6. SAM data directory
 #
