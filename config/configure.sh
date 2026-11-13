@@ -447,4 +447,29 @@ SAM_DATA_DIR := $SAM_DATA_DIR
 EOF
 
 say "Configuration written to $GEN"
-say "Run 'make' to build SAM library and executables."
+
+# how many of the released operator expansions are in the data directory
+MANIFEST="$ROOT/config/data_release/manifest.tsv"
+N_RELEASED=0; N_PRESENT=0
+if [[ -f "$MANIFEST" ]]; then
+  while IFS=$'\t' read -r asset path rest; do
+    [[ -z "$path" || "$asset" == \#* || "$asset" == asset ]] && continue
+    N_RELEASED=$((N_RELEASED + 1))
+    [[ -f "$SAM_DATA_DIR/$path" ]] && N_PRESENT=$((N_PRESENT + 1))
+  done < "$MANIFEST"
+fi
+
+if [[ $N_RELEASED -gt 0 && $N_PRESENT -eq 0 ]]; then
+  say "The data directory has none of the $N_RELEASED released operator expansions yet. Next:"
+  echo "    1. make data          download them (or only some: make data OPS=\"N2LO_opt_bare Kinetic CoMNumberOp\")"
+  echo "    2. make -j 8          build the SAM library and programs"
+  echo "    3. make -j 8 test     build and run the regression tests"
+elif [[ $N_PRESENT -lt $N_RELEASED ]]; then
+  say "Data: $N_PRESENT of $N_RELEASED released operator expansions present ('make data' gets the rest). Next:"
+  echo "    1. make -j 8          build the SAM library and programs"
+  echo "    2. make -j 8 test     build and run the regression tests"
+else
+  say "Data: all $N_RELEASED released operator expansions present. Next:"
+  echo "    1. make -j 8          build the SAM library and programs"
+  echo "    2. make -j 8 test     build and run the regression tests"
+fi

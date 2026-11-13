@@ -23,14 +23,19 @@ SAM constructs symmetry-adapted many-nucleon bases, computes and expands single-
 SAM uses a self-contained configuration system matching `u3lib` and `u4lib`. No environment variables are required:
 
 ```bash
-make config    # Auto-detects u3lib, u4lib, untou3, MPI (required), OpenMP, Spectra, Boost, Eigen, fmt
-make           # Compiles lib/libsam.a and all bin/* applications
-make lib       # Compiles only lib/libsam.a
-make apps      # Compiles only the applications in app/ -> bin/
-make test      # Builds and runs the regression tests in test/
-make clean     # Cleans build artifacts
-make distclean # Resets to pristine state
+make config         # Auto-detects u3lib, u4lib, untou3, MPI (required), OpenMP, Spectra, Boost, Eigen, fmt
+make data           # Downloads the released operator expansions (see below)
+make -j 8           # Compiles lib/libsam.a and all bin/* applications
+make -j 8 lib       # Compiles only lib/libsam.a
+make -j 8 apps      # Compiles only the applications in app/ -> bin/
+make -j 8 test      # Builds and runs the regression tests in test/
+make clean          # Cleans build artifacts
+make distclean      # Resets to pristine state
 ```
+
+`-j 8` compiles 8 files at a time; use about the number of cores, but not
+many more than 8: each of the heavier sources needs about 1 GB of memory to
+compile, and a shared login node is not yours alone.
 
 ### Data Directory and Released Data
 `make config` asks where SAM should keep its data (operator expansions, rmes, hws, decompositions). The default is `SAM/data`. On a cluster, give a path on a work file system instead (e.g. `/work/$USER/sam-data`): the data then lives there and `SAM/data` becomes a link to it. The chosen path is built into the binaries; setting the `SAM_DATA_DIR` environment variable overrides it at run time.

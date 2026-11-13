@@ -3,7 +3,7 @@
 From the SAM root, after `make config`:
 
 ```sh
-make test
+make -j 8 test
 ```
 
 This builds `lib/libsam.a` if needed, compiles every `test_*.cpp` into
