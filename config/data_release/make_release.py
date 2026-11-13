@@ -38,6 +38,7 @@ DESCRIPTIONS = {
   ("OneBodyOperatorJT", "L.L"): "one-body part of L.L",
   ("OneBodyOperatorJT", "L.S"): "one-body part of L.S",
   ("OneBodyOperatorJT", "M1"): "magnetic dipole",
+  ("OneBodyOperatorJT", "NumberOp"): "HO number operator (total quanta)",
   ("OneBodyOperatorJT", "Radius"): "point-nucleon radius squared",
   ("OneBodyOperatorJT", "Radius_n"): "point-neutron radius squared",
   ("OneBodyOperatorJT", "Radius_p"): "point-proton radius squared",

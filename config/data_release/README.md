@@ -48,6 +48,7 @@ and SAM can't detect it while reading. For that reason:
 | One | `L.L` | one-body part of L.L | 4 | 7 | 0 kB |
 | One | `L.S` | one-body part of L.S | 2 | 2 | 0 kB |
 | One | `M1` | magnetic dipole | 14 | 43 | 3 kB |
+| One | `NumberOp` | HO number operator (total quanta) | 14 | 14 | 1 kB |
 | One | `Radius` | point-nucleon radius squared | 14 | 41 | 3 kB |
 | One | `Radius_n` | point-neutron radius squared | 14 | 56 | 4 kB |
 | One | `Radius_p` | point-proton radius squared | 14 | 56 | 4 kB |
