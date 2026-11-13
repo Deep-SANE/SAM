@@ -7,6 +7,11 @@
 //
 // Exact checks, with b_p^2, b_n^2 the oscillator lengths SAM uses for protons
 // and neutrons (r^2 conserving HO quanta is b^2 (N + 3/2) per nucleon):
+//   - CoMNumberOp (one-body + two-body parts, 1/A each) in 6Li, J = 1: the
+//     Nmax truncation keeps the center-of-mass motion exactly separable, so
+//     the matrix vanishes at Nmax = 0, and at Nmax = 2 its eigenvalues are
+//     0, 1 and 2 only: M (M - 1) (M - 2) = 0, with spurious states present
+//     (trace > 0).
 //   - Radii, Nmax = 0, every state: Radius_p = b_p^2 sum_protons (N + 3/2),
 //     Radius_n the same over neutrons, Radius = b_p^2 sum_all (N + 3/2):
 //       4He: 3 b_p^2, 3 b_n^2;  6Li: 5.5 b_p^2, 5.5 b_n^2;
@@ -65,6 +70,7 @@
 #include <GlobalConstants.h>
 #include <HObasics.h>
 #include <OperatorJT.h>
+#include <TwoBodyOperatorJT.h>
 
 #include "test_helpers.h"
 
@@ -225,6 +231,53 @@ int main(int argc, char* argv[])
                                   "FermiMinus", "FermiPlus",
                                   "GamowTellerMinus", "GamowTellerPlus"})
     write_expansion(name, 3);
+
+  {
+    HO::Table_nljmjmt HO_labels(4);
+    U3xU4::Table_gelfand gelfand_labels(4);
+    JT::TwoBodyOperator op("CoMNumberOp", hw, 4, 0, 4, HO_labels,
+                           gelfand_labels);
+    std::filesystem::create_directories(op.dirname() + "/Expansion");
+    op.writeBinary(op.dirname() + "/Expansion/CoMNumberOp_hw20",
+                   op.expand_new());
+    write_expansion("CoMNumberOp", 3);
+  }
+
+  suite.run("CoMNumberOp, 6Li, J = 1: zero at Nmax = 0; eigenvalues 0, 1, 2 "
+            "at Nmax = 2", [&]
+  {
+    for (const auto& [ij, v] : matrix("CoMNumberOp", 3, 3, 2, 0))
+      test::near(v, 0.0, "N_cm at Nmax = 0", 1e-10, 0);
+
+    // dense symmetric matrix (matrix_CSR stores one triangle)
+    size_t n = dimension(3, 3, 2, 2);
+    std::vector<double> M(n * n, 0.0);
+    for (const auto& [ij, v] : matrix("CoMNumberOp", 3, 3, 2, 2))
+      M[ij.first * n + ij.second] = M[ij.second * n + ij.first] = v;
+    auto product = [n](const std::vector<double>& A,
+                       const std::vector<double>& B)
+    {
+      std::vector<double> C(n * n, 0.0);
+      for (size_t i = 0; i < n; i++)
+        for (size_t k = 0; k < n; k++)
+          for (size_t j = 0; j < n; j++)
+            C[i * n + j] += A[i * n + k] * B[k * n + j];
+      return C;
+    };
+    auto M1 = M, M2 = M;   // M - 1, M - 2
+    double trace = 0;
+    for (size_t i = 0; i < n; i++)
+    {
+      M1[i * n + i] -= 1;
+      M2[i * n + i] -= 2;
+      trace += M[i * n + i];
+    }
+    double largest = 0;
+    for (double x : product(product(M, M1), M2))
+      largest = std::max(largest, std::fabs(x));
+    test::near(largest, 0.0, "M (M - 1) (M - 2)", 1e-9, 0);
+    test::require(trace > 0.5, "spurious states expected at Nmax = 2");
+  });
 
   const Nucleus He6{2, 4, 0}, He6_J1{2, 4, 2}, Be6_J1{4, 2, 2}, Li6_J0{3, 3, 0},
                 Li6_J1{3, 3, 2}, H6_J0{1, 5, 0}, H6_J1{1, 5, 2};
