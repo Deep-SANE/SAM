@@ -360,7 +360,7 @@ namespace JT
 
     if (name_ == "L.L" || name_ == "Rrel" ||
         name_ == "Radius" || name_ == "Radius_p" || name_ == "Radius_n" ||
-        name_ == "CoMNumberOp" || name_ == "Kinetic" || 
+        name_ == "NumberOp" || name_ == "CoMNumberOp" || name_ == "Kinetic" ||
         name_ == "FermiPlus" || name_ == "FermiMinus" ||
         name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus")
     {
@@ -388,8 +388,8 @@ namespace JT
 
     if (name_ == "L.L" || name_ == "E2" ||
         name_ == "Rrel" || name_ == "Radius" || name_ == "Radius_p" ||
-        name_ == "Radius_n" || name_ == "CoMNumberOp" || name_ == "Kinetic" || 
-        name_ == "FermiPlus" || name_ == "FermiMinus")
+        name_ == "Radius_n" || name_ == "NumberOp" || name_ == "CoMNumberOp" ||
+        name_ == "Kinetic" || name_ == "FermiPlus" || name_ == "FermiMinus")
     {
       if (SS != 0) flag = false;
     }
@@ -413,7 +413,7 @@ namespace JT
   {
     bool flag = true;
 
-    if (name_ == "CoMNumberOp" || 
+    if (name_ == "NumberOp" || name_ == "CoMNumberOp" ||
         name_ == "FermiPlus" || name_ == "FermiMinus" ||
         name_ == "GamowTellerPlus" || name_ == "GamowTellerMinus")
     {
@@ -460,7 +460,7 @@ namespace JT
     bool flag = true;
 
     if (name_ == "L.L" || name_ == "Rrel" || name_ == "Radius" ||
-        name_ == "CoMNumberOp" || name_ == "Kinetic")
+        name_ == "NumberOp" || name_ == "CoMNumberOp" || name_ == "Kinetic")
     {
       if (irr != u4::irrep(0, 0, 0, 0)) flag = false;
     }
