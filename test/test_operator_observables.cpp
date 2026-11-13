@@ -7,6 +7,8 @@
 //
 // Exact checks, with b_p^2, b_n^2 the oscillator lengths SAM uses for protons
 // and neutrons (r^2 conserving HO quanta is b^2 (N + 3/2) per nucleon):
+//   - NumberOp (total HO quanta) in 6Li, J = 1, Nmax = 2: diagonal, equal to
+//     N_0 = 2 on as many states as the Nmax = 0 space has, and 4 on the rest.
 //   - CoMNumberOp (one-body + two-body parts, 1/A each) in 6Li, J = 1: the
 //     Nmax truncation keeps the center-of-mass motion exactly separable, so
 //     the matrix vanishes at Nmax = 0, and at Nmax = 2 its eigenvalues are
@@ -227,7 +229,8 @@ int main(int argc, char* argv[])
   test::Suite suite;
 
   // one-body maxShell = valence shell + Nmax = 3 covers every case below
-  for (const std::string name : {"Radius", "Radius_p", "Radius_n", "E2", "M1",
+  for (const std::string name : {"NumberOp", "Radius", "Radius_p", "Radius_n",
+                                  "E2", "M1",
                                   "FermiMinus", "FermiPlus",
                                   "GamowTellerMinus", "GamowTellerPlus"})
     write_expansion(name, 3);
@@ -243,9 +246,26 @@ int main(int argc, char* argv[])
     write_expansion("CoMNumberOp", 3);
   }
 
-  suite.run("CoMNumberOp, 6Li, J = 1: zero at Nmax = 0; eigenvalues 0, 1, 2 "
-            "at Nmax = 2", [&]
+  suite.run("NumberOp and CoMNumberOp, 6Li, J = 1: N = 2 or 4 at Nmax = 2; "
+            "N_cm zero at Nmax = 0, eigenvalues 0, 1, 2 at Nmax = 2", [&]
   {
+    size_t dim0 = dimension(3, 3, 2, 0), dim2 = dimension(3, 3, 2, 2),
+           n0 = 0, n2 = 0;
+    for (const auto& [ij, v] : matrix("NumberOp", 3, 3, 2, 2))
+      if (ij.first != ij.second)
+        test::near(v, 0.0, "NumberOp off-diagonal", 1e-10, 0);
+      else if (std::fabs(v - 2.0) < 1e-10)
+        n0++;
+      else
+      {
+        test::near(v, 4.0, "NumberOp diagonal, state " +
+                   std::to_string(ij.first), 1e-10, 1e-12);
+        n2++;
+      }
+    test::require(n0 == dim0, "states with N = 2: " + std::to_string(n0) +
+                  ", expected the Nmax = 0 dimension " + std::to_string(dim0));
+    test::require(n0 + n2 == dim2, "NumberOp: every state on the diagonal");
+
     for (const auto& [ij, v] : matrix("CoMNumberOp", 3, 3, 2, 0))
       test::near(v, 0.0, "N_cm at Nmax = 0", 1e-10, 0);
 

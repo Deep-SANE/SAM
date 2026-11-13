@@ -23,7 +23,7 @@ namespace JT
     std::string name_;
 
     const std::unordered_set<std::string> one_body = {
-      "E2", "M1",
+      "NumberOp", "E2", "M1",
       "FermiPlus", "FermiMinus", "GamowTellerPlus", "GamowTellerMinus",
       "Radius", "Radius_p", "Radius_n"
     };

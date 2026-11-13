@@ -83,7 +83,9 @@ Operator matrices (`JT::Operator::matrix_CSR`):
   [J(J+1) - L(L+1) - S(S+1)]/2 exactly. The test makes its own expansions of
   `L.L` and `L.S`.
 - `test_operator_observables.cpp`: the one-body observables, each with its
-  isoscalar and isovector parts. `CoMNumberOp` (one- plus two-body) in 6Li:
+  isoscalar and isovector parts. `NumberOp` (total HO quanta) in 6Li at Nmax = 2
+  is diagonal, 2 on as many states as the Nmax = 0 space has and 4 on the
+  rest. `CoMNumberOp` (one- plus two-body) in 6Li:
   zero at Nmax = 0, and only eigenvalues 0, 1, 2 at Nmax = 2
   (M(M - 1)(M - 2) = 0), since the Nmax truncation keeps the center of mass
   separable. Radii: at Nmax = 0 every state of 4He, 6Li
