@@ -1,3 +1,19 @@
+// U3xU4SingleShellTensorsDecomposition_Gelfand: a single-shell U(3)xU(4)
+// tensor in the Gelfand basis.
+//
+// The same construction as U3xU4SingleShellTensorsDecomposition_Phys (ad
+// and at operators of one HO shell coupled to definite U(3)xU(4) symmetry),
+// but expanded in U(3)xU(4) Gelfand patterns instead of the physical
+// |n l j m m_t> states: expand() returns the coefficients and the patterns
+// of the ad and at operators of each term.
+//
+// One example is active; the others are commented out. To try another,
+// copy this file into app/work/ and swap the comments:
+//   cp app/tutorial/U3xU4SingleShellTensorsDecomposition_Gelfand.cpp app/work/
+//   make -j 8 apps && mpirun -np 1 bin/work/U3xU4SingleShellTensorsDecomposition_Gelfand
+// The same examples, with their numbers checked, are in
+// test/test_singleshelltensors_decomposition_gelfand.cpp.
+
 #include <chrono>
 #include <iostream>
 #include <utility>

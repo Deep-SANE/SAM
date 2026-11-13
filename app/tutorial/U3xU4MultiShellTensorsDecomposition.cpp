@@ -1,3 +1,19 @@
+// U3xU4MultiShellTensorsDecomposition: a multi-shell tensor in the physical
+// basis.
+//
+// Single-shell tensors in several HO shells (the Gammas) are coupled shell
+// by shell (the Omegas) to one U(3)xU(4) tensor, the building block of the
+// one- and two-body operator expansions. expand() writes it, at given LL,
+// SS and TT, as a sum of products of single-nucleon operators; the
+// single-shell pieces are cached in <data dir>/decomp_phys.
+//
+// One example is active; the others are commented out. To try another,
+// copy this file into app/work/ and swap the comments:
+//   cp app/tutorial/U3xU4MultiShellTensorsDecomposition.cpp app/work/
+//   make -j 8 apps && mpirun -np 1 bin/work/U3xU4MultiShellTensorsDecomposition
+// The same examples, with their numbers checked, are in
+// test/test_multishelltensors_decomposition.cpp.
+
 #include <chrono>
 #include <iostream>
 #include <utility>

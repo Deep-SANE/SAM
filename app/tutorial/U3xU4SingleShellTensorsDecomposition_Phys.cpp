@@ -1,3 +1,21 @@
+// U3xU4SingleShellTensorsDecomposition_Phys: a single-shell U(3)xU(4)
+// tensor in the physical basis.
+//
+// In one HO shell n, creation (ad) and annihilation (at) operators are
+// coupled step by step (the Omega irreps) to a tensor with definite U(3)xU(4)
+// symmetry T, and projected to orbital rank LL = 2L, spin SS = 2S, isospin
+// TT = 2T and their projections. expand() writes it as a sum of products of
+// single-nucleon operators in the physical HO basis |n l j m m_t>; the
+// program prints the number of terms and the normalization (the squared
+// coefficients sum to 1 for each multiplicity).
+//
+// One example is active; the others are commented out. To try another,
+// copy this file into app/work/ and swap the comments:
+//   cp app/tutorial/U3xU4SingleShellTensorsDecomposition_Phys.cpp app/work/
+//   make -j 8 apps && mpirun -np 1 bin/work/U3xU4SingleShellTensorsDecomposition_Phys
+// The same examples, with their numbers checked, are in
+// test/test_singleshelltensors_decomposition_phys.cpp.
+
 #include <chrono>
 #include <iostream>
 #include <utility>

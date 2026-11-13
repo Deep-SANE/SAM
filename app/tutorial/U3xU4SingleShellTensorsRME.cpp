@@ -1,3 +1,19 @@
+// U3xU4SingleShellTensorsRME: reduced matrix elements of a single-shell
+// tensor.
+//
+// Matrix elements of a U(3)xU(4) tensor of one HO shell between two
+// single-shell irreps (final f, initial i), reduced with respect to U(3) and
+// U(4) (triple-reduced). Examples 3-6 are exact: with N = 2(n+1)(n+2)
+// single-nucleon states in shell n, <ad> = 1, <at> = sqrt(N),
+// <[ad x at]^0> = 1/sqrt(N), and the identity gives a unit matrix.
+//
+// One example is active; the others are commented out. To try another,
+// copy this file into app/work/ and swap the comments:
+//   cp app/tutorial/U3xU4SingleShellTensorsRME.cpp app/work/
+//   make -j 8 apps && mpirun -np 1 bin/work/U3xU4SingleShellTensorsRME
+// The same examples, with their numbers checked, are in
+// test/test_singleshelltensors_rme.cpp.
+
 #include <chrono>
 #include <fstream>
 #include <iostream>

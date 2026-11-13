@@ -1,3 +1,19 @@
+// U3xU4MultiShellTensorsRME: reduced matrix elements of a multi-shell tensor
+// between many-nucleon basis irreps.
+//
+// The steps of every matrix element in SAM: (1) a bra and a ket irrep of the
+// U(3)xU(4) basis (gamma: one irrep per shell; omega: their coupling),
+// (2) both brought to the same set of shells, (3) a multi-shell tensor,
+// (4) the tensor matched to those shells, (5) its U(3)xU(4)-reduced matrix
+// elements, one per multiplicity.
+//
+// One example is active; the others are commented out. To try another,
+// copy this file into app/work/ and swap the comments:
+//   cp app/tutorial/U3xU4MultiShellTensorsRME.cpp app/work/
+//   make -j 8 apps && mpirun -np 1 bin/work/U3xU4MultiShellTensorsRME
+// The same examples, with their numbers checked, are in
+// test/test_multishelltensors_rme.cpp.
+
 // clang-format off
 
 #include <chrono>

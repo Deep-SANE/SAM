@@ -1,3 +1,20 @@
+// U3xU4MultiShellTensors_ShareGammas_RME: reduced matrix elements of
+// tensors that share their single-shell parts.
+//
+// An operator expansion contains many multi-shell tensors with the same
+// single-shell tensors (Gammas) and different couplings (Omegas).
+// MultiShellTensor_ShareGammas_phys groups them, and the RME database
+// (RME_db) computes the single-shell matrix elements once for all couplings,
+// as the matrix-element code does. Highest-weight states are cached in
+// <data dir>/hws.
+//
+// One example is active; the others are commented out. To try another,
+// copy this file into app/work/ and swap the comments:
+//   cp app/tutorial/U3xU4MultiShellTensors_ShareGammas_RME.cpp app/work/
+//   make -j 8 apps && mpirun -np 1 bin/work/U3xU4MultiShellTensors_ShareGammas_RME
+// The same examples, with their numbers checked, are in
+// test/test_multishelltensors_sharegammas_rme.cpp.
+
 // clang-format off
 
 #include <chrono>

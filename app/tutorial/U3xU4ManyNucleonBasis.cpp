@@ -1,12 +1,22 @@
+// U3xU4ManyNucleonBasis: build the U(3)xU(4) symmetry-adapted basis of a
+// nucleus and print its dimension, optionally with every basis irrep.
+//
+// Asks for Z, N, Nmax and JJ = 2J. A basis irrep is a product of single-shell
+// irreps gamma (one per occupied HO shell: U(3)xU(4) labels and their
+// multiplicity alpha) coupled shell by shell through the omega irreps; each
+// irrep then splits into states with good L, S, T and J (kappa, zeta are the
+// L and S multiplicities). This is the basis MatrixOperatorJT uses.
+//
+// Run it as shipped:
+//   mpirun -np 1 bin/tutorial/U3xU4ManyNucleonBasis
+
 #include <chrono>
-#include <cstdint>
 #include <iostream>
 
 #include <print.h>
 #include <utils.h>
 
 #include <sam.h>
-
 #include <U3xU4ManyNucleonBasis.h>
 
 int main(int argc, char* argv[])
@@ -15,51 +25,47 @@ int main(int argc, char* argv[])
 
   sam::initialize(&argc, &argv);
 
-  int Z, N, Nmax, JJ;
+  int Z, N, Nmax, JJ, list;
 
-  std::cout << "Enter number of protons: ";
+  std::cout << "Enter number of protons Z: ";
   std::cin >> Z;
-  std::cout << "Enter number of neutrons: ";
+  std::cout << "Enter number of neutrons N: ";
   std::cin >> N;
   std::cout << "Enter Nmax: ";
   std::cin >> Nmax;
-  std::cout << "Enter JJ: ";
+  std::cout << "Enter JJ = 2J: ";
   std::cin >> JJ;
+  std::cout << "List every irrep (1 = yes, 0 = no): ";
+  std::cin >> list;
 
   U3xU4::ManyNucleonBasis basis(N, Z, Nmax, JJ);
 
-  // Start time measurement
-  auto t0 = std::chrono::high_resolution_clock::now();
-
+  auto t0 = std::chrono::steady_clock::now();
   basis.construct();
+  auto t1 = std::chrono::steady_clock::now();
 
-  // End time measurement
-  auto t1 = std::chrono::high_resolution_clock::now();
-/*
-  auto irreps = basis.irreps();
-  const auto& labels = basis.decomposition();
-
-  for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
+  if (list == 1)
   {
-    auto [gamma, omega] = irreps[irrep_id];
-    auto offset = irreps.offset(irrep_id);
-    // auto labels = basis.decomposition(irreps[irrep_id]);
+    auto irreps = basis.irreps();
+    const auto& labels = basis.decomposition();
 
-    print("Irrep ID {:5} : ", irrep_id);
-    print("gamma = {}", gamma);
-    print(" ; omega = {}", omega);
-    print(" ; kappamax LL zetamax SS TT offset = {}", labels[irrep_id]);
-    print(" ; offset = {}\n", offset);
+    for (size_t irrep_id = 0; irrep_id < irreps.size(); irrep_id++)
+    {
+      auto [gamma, omega] = irreps[irrep_id];
+
+      print("irrep {:5}: gamma = {} ; omega = {}\n", irrep_id, gamma, omega);
+      // (kappa max, LL, zeta max, SS, TT, offset) of each L, S, T block:
+      print("             kappamax LL zetamax SS TT offset = {}\n",
+            labels[irrep_id]);
+      print("             first state = {}\n", irreps.offset(irrep_id));
+    }
   }
-*/
-  print("\nBasis dimension: {}\n", basis.dim());
 
-  // Calculate the duration
-    std::chrono::duration<double> duration = t1 - t0;
+  print("\nZ = {}, N = {}, Nmax = {}, J = {}/2: basis dimension {}\n", Z, N,
+        Nmax, JJ, basis.dim());
 
-  // Output the time in seconds
-  std::cout << "Elapsed time: " << duration.count() << " seconds or "
-            << duration.count() / 60.0 << " minutes" << std::endl;
+  std::chrono::duration<double> t = t1 - t0;
+  print("Time: {:.2f} s\n", t.count());
 
   sam::finalize();
 }

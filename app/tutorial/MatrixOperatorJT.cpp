@@ -56,22 +56,23 @@ int main(int argc, char* argv[])
   int n_states = 5;      // number of lowest eigenpairs
   bool analyze = true;   // print U(3) and U(4) probabilities of the lowest
   int n_analyze = 2;     //   n_analyze states
-  bool write = false;    // save the eigenpairs (for WavefunctionAnalyzer and
-                         //   ObservablesJT)
+  bool write = true;     // save the eigenpairs in the data directory, for
+                         //   WavefunctionAnalyzer and ObservablesJT
 
   // optional truncation. Each hw_subspace selects, in the N hw excitation,
   // the U(3) irreps, U(4) irreps, spins SS = 2S and isospins TT = 2T to keep;
   // an empty list keeps all of them, and an excitation that is not listed is
   // kept whole. Irreps are written as the analysis (analyze = true) prints
-  // them.
-  // Example: keep only isospin T = 0 (TT = 0) in every excitation:
+  // them. The example keeps only isospin T = TT/2 in every excitation:
   bool truncate = false;
+  int TT = 0;
   std::vector<U3xU4::hw_subspace> subspaces;
   for (int n = Nmax % 2; n <= Nmax; n += 2)
     subspaces.emplace_back(n, u3::irreps{}, u4::irreps{},
-                           std::vector<HO::qn_t>{}, std::vector<HO::qn_t>{0});
-  // a truncated space saves its eigenpairs in its own folder:
-  std::string custom_dir = "Truncation_TT0";
+                           std::vector<HO::qn_t>{},
+                           std::vector<HO::qn_t>{static_cast<HO::qn_t>(TT)});
+  // a truncated space saves its eigenpairs in a folder of its own:
+  std::string custom_dir = "Truncation_TT" + std::to_string(TT);
 
   ////////////// DON'T EDIT ANYTHING BELOW //////////////
 
