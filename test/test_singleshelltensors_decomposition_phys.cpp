@@ -1,4 +1,4 @@
-// Test copy of app/U3xU4SingleShellTensorsDecomposition_Phys.cpp: the same
+// Test copy of app/tutorial/U3xU4SingleShellTensorsDecomposition_Phys.cpp: the same
 // five examples, each expanded with SingleShellTensor_phys::expand() and
 // checked against the numbers it produced.
 //

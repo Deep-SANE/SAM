@@ -1,4 +1,4 @@
-// Test copy of app/U3xU4MultiShellTensorsDecomposition.cpp: Examples 1-7,
+// Test copy of app/tutorial/U3xU4MultiShellTensorsDecomposition.cpp: Examples 1-7,
 // each expanded with MultiShellTensor_phys::expand() and checked against the
 // numbers it produced. (Example 8 of the app is marked "should not run" and
 // is left out.)

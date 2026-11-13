@@ -1,5 +1,5 @@
 // Matrices of L.L and L.S with JT::Operator::matrix_CSR() in the U(3)xU(4)
-// basis (replaces the commented-out check in app/MatrixOperatorJT.cpp).
+// basis.
 //
 // The basis states carry good L, S and J, so both operators are diagonal
 // with exact values

@@ -91,7 +91,7 @@ namespace JT
     U3xU4::OneBodyMultiShellTensors expand_old();
 
     // Expand into a sum of U3xU4::MultiShellTensor_phys. This is the expansion
-    // step, called from the expansion program (app/OneBodyOperatorJT.cpp),
+    // step, called from the expansion program (app/tutorial/OneBodyOperatorJT.cpp),
     // which writes the result with writeBinary().
     U3xU4::MultiShellTensors_phys expand_new();
 

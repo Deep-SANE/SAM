@@ -74,9 +74,10 @@ up to 2v + Nmax quanta: the maxShell-12 interactions serve 4He up to Nmax = 12
 and p-shell nuclei up to Nmax = 10. Otherwise,
 or when a file is missing, SAM stops with a message: expanding is very costly,
 so SAM never does it automatically. To expand or extend an operator yourself,
-set the operator name, hw and maxShell in `app/OneBodyOperatorJT.cpp` or
-`app/TwoBodyOperatorJT.cpp`, rebuild with `make -j 8 apps`, and run the program with
-`mpirun`. A released file is read-only, so unlock it first with `chmod u+w`.
+copy `app/tutorial/OneBodyOperatorJT.cpp` or `app/tutorial/TwoBodyOperatorJT.cpp`
+into `app/work/`, set the operator name, hw and maxShell in the copy, rebuild
+with `make -j 8 apps`, and run `bin/work/OneBodyOperatorJT` or
+`bin/work/TwoBodyOperatorJT` with `mpirun`. A released file is read-only, so unlock it first with `chmod u+w`.
 
 **hw.** Operators computed on the fly (all one-body operators, and the two-body
 `L.L`, `L.S`, `Kinetic`, `CoMNumberOp` and `Rrel`) are stored once at hw = 20

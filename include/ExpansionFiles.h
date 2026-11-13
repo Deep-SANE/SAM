@@ -14,14 +14,16 @@
 namespace sam
 {
   // how to run an expansion separately with one of the expansion programs
-  // in app/ (app = "OneBodyOperatorJT" or "TwoBodyOperatorJT"):
+  // in app/tutorial/ (app = "OneBodyOperatorJT" or "TwoBodyOperatorJT"),
+  // copied into app/work/ so the shipped program stays unchanged:
   inline std::string expansion_steps(const std::string& app,
                                      int maxShell_needed)
   {
-    return "  1. set the operator name, hw and maxShell = " +
-           std::to_string(maxShell_needed) + " in app/" + app + ".cpp\n"
-           "  2. rebuild with 'make apps'\n"
-           "  3. run bin/" + app + " with mpirun";
+    return "  1. cp app/tutorial/" + app + ".cpp app/work/   (once)\n"
+           "  2. in app/work/" + app + ".cpp set the operator name, hw and "
+           "maxShell = " + std::to_string(maxShell_needed) + "\n"
+           "  3. rebuild with 'make -j 8 apps'\n"
+           "  4. run bin/work/" + app + " with mpirun";
   }
 
   // no expansion file on disk:

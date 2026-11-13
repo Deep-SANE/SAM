@@ -25,9 +25,9 @@ SAM uses a self-contained configuration system matching `u3lib` and `u4lib`. No 
 ```bash
 make config         # Auto-detects u3lib, u4lib, untou3, MPI (required), OpenMP, Spectra, Boost, Eigen, fmt
 make data           # Downloads the released operator expansions (see below)
-make -j 8           # Compiles lib/libsam.a and all bin/* applications
+make -j 8           # Compiles lib/libsam.a and all programs in app/
 make -j 8 lib       # Compiles only lib/libsam.a
-make -j 8 apps      # Compiles only the applications in app/ -> bin/
+make -j 8 apps      # Compiles only the programs in app/ -> bin/tutorial, bin/work
 make -j 8 test      # Builds and runs the regression tests in test/
 make clean          # Cleans build artifacts
 make distclean      # Resets to pristine state
@@ -67,7 +67,8 @@ Run `./config/configure.sh --help` for available options:
 
 - `include/` — Public headers defining the SAM API (`sam.h`, basis, tensor expansion, operators).
 - `src/` — Implementation files building `lib/libsam.a`.
-- `app/` — Driver applications and physics calculation programs (`bin/*`).
+- `app/tutorial/` — Example programs shipped with SAM (spectra, observables, operator expansions, tensors), built into `bin/tutorial/`; see [app/tutorial/README.md](app/tutorial/README.md). Copy one into `app/work/` to change it.
+- `app/work/` — Your own programs, built into `bin/work/`. Not tracked by git (see [app/work/README.md](app/work/README.md)).
 - `config/` — Configuration script and the data release definition (`config/data_release/`: README, checksums, download script).
 - `test/` — Regression tests run by `make test` (see [test/README.md](test/README.md)).
 - `utils/` — Self-contained numerical utilities (CSRMatrix, Spectra eigensolver, compatibility forwarding to `u3lib/utils`).

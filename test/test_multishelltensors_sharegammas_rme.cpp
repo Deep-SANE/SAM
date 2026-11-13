@@ -1,6 +1,6 @@
 // clang-format off
 //
-// Test copy of app/U3xU4MultiShellTensors_ShareGammas_RME.cpp: RMEs of a
+// Test copy of app/tutorial/U3xU4MultiShellTensors_ShareGammas_RME.cpp: RMEs of a
 // MultiShellTensor_ShareGammas_phys (one set of single-shell tensors shared by
 // several couplings), computed through the RME database (RME_db), as used in
 // the matrix-element code. Both examples are compared value by value with the

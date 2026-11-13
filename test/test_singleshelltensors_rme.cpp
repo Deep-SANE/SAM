@@ -1,4 +1,4 @@
-// Test copy of app/U3xU4SingleShellTensorsRME.cpp: the same six examples of
+// Test copy of app/tutorial/U3xU4SingleShellTensorsRME.cpp: the same six examples of
 // single-shell triple-reduced matrix elements
 //   < f ||| T ||| i >,
 // computed with SingleShellTensor::RME() and compared with the full list of

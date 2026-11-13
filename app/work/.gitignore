@@ -1,0 +1,5 @@
+# everything in app/work/ is yours and stays out of SAM's git history;
+# only this file and the README are part of SAM
+*
+!.gitignore
+!README.md

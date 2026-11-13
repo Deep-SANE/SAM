@@ -1,6 +1,6 @@
 // clang-format off
 //
-// Test copy of app/U3xU4MultiShellTensorsRME.cpp (Examples 1-7):
+// Test copy of app/tutorial/U3xU4MultiShellTensorsRME.cpp (Examples 1-7):
 // multi-shell triple-reduced matrix elements
 //   < bra ||| T ||| ket >
 // computed with MultiShellTensor::RME() and compared value by value with the

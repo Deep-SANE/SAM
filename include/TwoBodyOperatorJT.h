@@ -181,7 +181,7 @@ namespace JT
     // merges them). expand_exist_MPI extends an existing file, written up to
     // Nmax_old / maxShell_old, to this operator's maxShell_ by appending only
     // the new tensors. Both are the costly expansion step, called only from
-    // the expansion program (app/TwoBodyOperatorJT.cpp); both stop at once if
+    // the expansion program (app/tutorial/TwoBodyOperatorJT.cpp); both stop at once if
     // filename cannot be written (e.g. a read-only file from `make data`).
     U3xU4::MultiShellTensors_phys expand_new_MPI(const std::string& filename);
     void expand_exist_MPI(const std::string& filename,

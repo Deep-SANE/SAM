@@ -1478,7 +1478,7 @@ namespace HO
 #ifdef UNCOUPLE_ME_CACHE
   // Cache-passing variant (see TwBME_scalar::getME with a cache). NOTE: the
   // cache is keyed only by the four m-scheme states, so it is correct only when
-  // a single operator is active per program -- see app/TwoBodyOperatorJT.cpp.
+  // a single operator is active per program -- see app/tutorial/TwoBodyOperatorJT.cpp.
   double TwBME_general::getME(TwBME_mscheme_cache_t& cache,
       qn_t ea, qn_t lla, qn_t jja, qn_t mmja, qn_t mmta,
       qn_t eb, qn_t llb, qn_t jjb, qn_t mmjb, qn_t mmtb,

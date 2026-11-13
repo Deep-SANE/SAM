@@ -21,21 +21,21 @@ any program crashes.
 
 ## Coverage
 
-Each test program is a copy of an example program in `app/`, using the same
+Each test program is a copy of an example program in `app/tutorial/`, using the same
 examples, with the numbers they produce added as checks.
 
 Single-shell tensors:
 
-- `test_singleshelltensors_decomposition_phys.cpp` (from `app/U3xU4SingleShellTensorsDecomposition_Phys.cpp`):
+- `test_singleshelltensors_decomposition_phys.cpp` (from `app/tutorial/U3xU4SingleShellTensorsDecomposition_Phys.cpp`):
   five examples expanded with `SingleShellTensor_phys::expand()`. Checks the
   number of terms, the normalization (sum of squared coefficients = 1 per
   multiplicity) and a signed checksum over all terms (`expansion_checksum.h`).
   Example 3 is also checked exactly: all 12 coefficients of the scalar ad . a
   in shell 1 are 1/sqrt(12).
-- `test_singleshelltensors_decomposition_gelfand.cpp` (from `app/U3xU4SingleShellTensorsDecomposition_Gelfand.cpp`):
+- `test_singleshelltensors_decomposition_gelfand.cpp` (from `app/tutorial/U3xU4SingleShellTensorsDecomposition_Gelfand.cpp`):
   three examples expanded with `SingleShellTensor_gelfand::expand()`; the same
   checks, with Example 2 exact.
-- `test_singleshelltensors_rme.cpp` (from `app/U3xU4SingleShellTensorsRME.cpp`):
+- `test_singleshelltensors_rme.cpp` (from `app/tutorial/U3xU4SingleShellTensorsRME.cpp`):
   six examples of single-shell triple-reduced matrix elements, compared value
   by value. Examples 3-6 are exact and are checked for every shell
   n = 0..8: with N = 2(n+1)(n+2) single-particle states, < ad > = 1,
@@ -44,15 +44,15 @@ Single-shell tensors:
 
 Multi-shell tensors:
 
-- `test_multishelltensors_decomposition.cpp` (from `app/U3xU4MultiShellTensorsDecomposition.cpp`):
+- `test_multishelltensors_decomposition.cpp` (from `app/tutorial/U3xU4MultiShellTensorsDecomposition.cpp`):
   Examples 1-7 expanded with `MultiShellTensor_phys::expand()` (Example 8 of
   the app is marked "should not run"). The same checks as for single-shell
   tensors, plus Example 1 expanded again from the single-shell pieces that the
   decomposition database wrote to disk.
-- `test_multishelltensors_rme.cpp` (from `app/U3xU4MultiShellTensorsRME.cpp`):
+- `test_multishelltensors_rme.cpp` (from `app/tutorial/U3xU4MultiShellTensorsRME.cpp`):
   seven examples of multi-shell RMEs with `MultiShellTensor::RME()`, compared
   value by value.
-- `test_multishelltensors_sharegammas_rme.cpp` (from `app/U3xU4MultiShellTensors_ShareGammas_RME.cpp`):
+- `test_multishelltensors_sharegammas_rme.cpp` (from `app/tutorial/U3xU4MultiShellTensors_ShareGammas_RME.cpp`):
   RMEs of `MultiShellTensor_ShareGammas_phys` through the RME database, as in
   the matrix-element code. They are also cross-checked against
   `MultiShellTensor::RME()`: Example 1 (first coupling) equals Example 7 of

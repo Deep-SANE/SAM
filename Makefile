@@ -2,7 +2,8 @@
 #   make config     resolve dependencies from u3lib, u4lib, untou3, Spectra, MPI
 #   make            build lib/libsam.a and bin/* applications
 #   make lib        build only lib/libsam.a
-#   make apps       build only bin/* applications
+#   make apps       build only the programs in app/tutorial and app/work
+#                   (-> bin/tutorial, bin/work)
 #   make test       build and run the regression tests in test/
 #   make clean      clean built objects, lib, and binaries
 #   make distclean  reset to pristine state

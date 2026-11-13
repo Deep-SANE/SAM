@@ -1,6 +1,6 @@
 // Expansion of one-body operators into U(3)xU(4) tensors, for two cheap
 // operators computed on the fly, Kinetic and CoMNumberOp, at hw = 20 MeV and
-// Nmax = maxShell = 4 (the setup of app/OneBodyOperatorJT.cpp).
+// Nmax = maxShell = 4 (the expansion step of app/tutorial/OneBodyOperatorJT.cpp).
 //
 // For each operator:
 //   1. expand_new(): number of tensors and a signed checksum over all

@@ -1,4 +1,4 @@
-// Test copy of app/U3xU4SingleShellTensorsDecomposition_Gelfand.cpp: the same
+// Test copy of app/tutorial/U3xU4SingleShellTensorsDecomposition_Gelfand.cpp: the same
 // three examples, each expanded with SingleShellTensor_gelfand::expand() and
 // checked against the numbers it produced.
 //
