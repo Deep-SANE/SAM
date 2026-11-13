@@ -7,6 +7,8 @@
 #include <limits>
 #include <map>
 #include <span>
+#include <stdexcept>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -617,154 +619,53 @@ namespace U3xU4
     ManyNucleonBasis::Irrep o1_, o2_;
 
   public:
-    auto unify(const ManyNucleonBasis::Irrep& i1,
-               const ManyNucleonBasis::Irrep& i2)
-    {
-      // (1) setup:
+    /**
+     * Unifies two irreps wrt their shells: each gets the shells occupied in
+     * either one (vacuum gamma where empty), and the omega elements are
+     * rebuilt accordingly.
+     *
+     * @param i1 Bra irrep.
+     * @param i2 Ket irrep.
+     *
+     * @return References to the unified bra and ket irreps; they stay valid
+     * until the next call of unify() on this object.
+     */
+    std::tuple<const ManyNucleonBasis::Irrep&, const ManyNucleonBasis::Irrep&>
+    unify(const ManyNucleonBasis::Irrep& i1, const ManyNucleonBasis::Irrep& i2);
 
-      auto& o1 = o1_;
-      auto& o2 = o2_;
+    /**
+     * Pads an irrep to all shells 0, ..., n_shells - 1.
+     *
+     * Empty shells get the vacuum gamma [0,0,0][0,0,0,0] with alphamax 1, and
+     * the omega elements are rebuilt with the same coupling rule as unify():
+     * coupling with the vacuum gives the other irrep (U(3) part normalized)
+     * with rhomax = etamax = 1; between two occupied sides the stored omega
+     * element is kept.
+     *
+     * @param irr Basis irrep (occupied shells only, in increasing order).
+     * @param n_shells Number of shells after padding; must exceed every
+     * occupied shell index.
+     *
+     * @return Irrep with n_shells gamma and n_shells - 1 omega elements.
+     */
+    static ManyNucleonBasis::Irrep pad(const ManyNucleonBasis::Irrep& irr,
+                                       int n_shells);
 
-      o1.gamma.clear();
-      o1.omega.clear();
+  private:
+    // coupling of an omega element with a gamma element; A is the coupled
+    // irrep so far, B the next gamma, poe the stored omega element (used
+    // only when both sides hold nucleons). occupancy is passed explicitly
+    // because a normalized closed shell, [0,0,0][0,0,0,0], looks like the
+    // vacuum:
+    static U3xU4::OmegaElement couple(const U3xU4::irrep A,
+                                      const U3xU4::irrep B,
+                                      bool A_occupied, bool B_occupied,
+                                      const U3xU4::OmegaElement* poe);
 
-      o2.gamma.clear();
-      o2.omega.clear();
-
-      // (2) unify gamma elements:
-
-      assert(i1.gamma.size() > 0);
-      assert(i2.gamma.size() > 0);
-
-      size_t g1 = 0; // igamma1 element index
-      size_t g2 = 0; // igamma2 element index
-
-      while ((g1 < i1.gamma.size()) || (g2 < i2.gamma.size()))
-      {
-        if ((g1 < i1.gamma.size()) && (g2 < i2.gamma.size()))
-        {
-          assert(i1.gamma[g1].vacuum() == false);
-          assert(i2.gamma[g2].vacuum() == false);
-
-          if (i1.gamma[g1].shell() == i2.gamma[g2].shell())
-          {
-            o1.gamma.push_back(i1.gamma[g1++]);
-            o2.gamma.push_back(i2.gamma[g2++]);
-          }
-          else if (i1.gamma[g1].shell() < i2.gamma[g2].shell())
-          {
-            o2.gamma.emplace_back(i1.gamma[g1].shell(), 1, u3::irrep{}, u4::irrep{});
-            o1.gamma.push_back(i1.gamma[g1++]);
-          }
-          else // if (i1.gamma[g1].shell() > i2.gamma[g2].shell())
-          {
-            o1.gamma.emplace_back(i2.gamma[g2].shell(), 1, u3::irrep{}, u4::irrep{});
-            o2.gamma.push_back(i2.gamma[g2++]);
-          }
-        }
-        else if (g1 < i1.gamma.size())
-        {
-          assert(i1.gamma[g1].vacuum() == false);
-
-          o2.gamma.emplace_back(i1.gamma[g1].shell(), 1, u3::irrep{}, u4::irrep{});
-          o1.gamma.push_back(i1.gamma[g1++]);
-        }
-        else // if (g2 < i2.gamma.size())
-        {
-          assert(i2.gamma[g2].vacuum() == false);
-
-          o1.gamma.emplace_back(i2.gamma[g2].shell(), 1, u3::irrep{}, u4::irrep{});
-          o2.gamma.push_back(i2.gamma[g2++]);
-        }
-      }
-
-      assert(o1.gamma.size() == o2.gamma.size());
-
-      // check unification of shells:
-      for (size_t i = 0; i < o1.gamma.size(); i++)
-        assert(o1.gamma[i].shell() == o2.gamma[i].shell());
-
-      // (3) setup coupling for omega elements:
-
-      auto couple = [](const U3xU4::irrep A, const U3xU4::irrep B,
-                       const U3xU4::OmegaElement* poe) -> U3xU4::OmegaElement
-      {
-        if ((A.vacuum()) && (B.vacuum()))
-          return {1, {}, 1, {}};
-        else if (A.vacuum())
-        {
-          u3::irrep u3 = B.u3();
-          u3.normalize();
-          return {1, u3, 1, B.u4()};
-        }
-        else if (B.vacuum())
-        {
-          u3::irrep u3 = A.u3();
-          u3.normalize();
-          return {1, u3, 1, A.u4()};
-        }
-        else
-        {
-          assert(poe != nullptr);
-          return *poe;
-        }
-      };
-
-      // (4) reconstruct omega elements for bra:
-
-      size_t om1 = 0;
-
-      for (size_t g1 = 1; g1 < o1.gamma.size(); g1++)
-      {
-        assert(o1.omega.size() == g1 - 1);
-
-        const U3xU4::irrep& A =
-            (g1 == 1) ? static_cast<const U3xU4::irrep&>(o1.gamma[0])
-                      : static_cast<const U3xU4::irrep&>(o1.omega.back());
-
-        const U3xU4::irrep& B = o1.gamma[g1];
-
-        const U3xU4::OmegaElement* poe = nullptr;
-        if ((A.vacuum() == false) && (B.vacuum() == false))
-        {
-          assert(om1 < i1.omega.size());
-          poe = i1.omega.data() + om1++;
-        }
-
-        o1.omega.push_back(couple(A, B, poe));
-      }
-
-      // (5) reconstruct omega elements for ket:
-
-      size_t om2 = 0;
-
-      for (size_t g2 = 1; g2 < o2.gamma.size(); g2++)
-      {
-        assert(o2.omega.size() == g2 - 1);
-
-        const U3xU4::irrep& A =
-            (g2 == 1) ? static_cast<const U3xU4::irrep&>(o2.gamma[0])
-                      : static_cast<const U3xU4::irrep&>(o2.omega.back());
-
-        const U3xU4::irrep& B = o2.gamma[g2];
-
-        const U3xU4::OmegaElement* poe = nullptr;
-        if ((A.vacuum() == false) && (B.vacuum() == false))
-        {
-          assert(om2 < i2.omega.size());
-          poe = i2.omega.data() + om2++;
-        }
-
-        o2.omega.push_back(couple(A, B, poe));
-      }
-
-      assert(o1.gamma.size() == o1.omega.size() + 1);
-      assert(o1.omega.size() == o2.omega.size());
-
-      // (6) return result:
-
-      return std::tie(std::as_const(o1_), std::as_const(o2_));
-    }
+    // rebuilds the omega elements of a shell-extended irrep `out` from the
+    // stored omega elements of the original irrep `in`:
+    static void reconstruct_omegas(const ManyNucleonBasis::Irrep& in,
+                                   ManyNucleonBasis::Irrep& out);
   };
 } // namespace U3xU4
 

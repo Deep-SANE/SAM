@@ -6,6 +6,8 @@
 #include <ranges>
 #include <set>
 #include <span>
+#include <tuple>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -1126,6 +1128,186 @@ namespace U3xU4
     }
     
     return labels;
+  }
+
+
+  // **** IrrepUnifier ****
+
+  std::tuple<const ManyNucleonBasis::Irrep&, const ManyNucleonBasis::Irrep&>
+  IrrepUnifier::unify(const ManyNucleonBasis::Irrep& i1,
+                      const ManyNucleonBasis::Irrep& i2)
+  {
+    // (1) setup:
+
+    auto& o1 = o1_;
+    auto& o2 = o2_;
+
+    o1.gamma.clear();
+    o1.omega.clear();
+
+    o2.gamma.clear();
+    o2.omega.clear();
+
+    // (2) unify gamma elements:
+
+    assert(i1.gamma.size() > 0);
+    assert(i2.gamma.size() > 0);
+
+    size_t g1 = 0; // igamma1 element index
+    size_t g2 = 0; // igamma2 element index
+
+    while ((g1 < i1.gamma.size()) || (g2 < i2.gamma.size()))
+    {
+      if ((g1 < i1.gamma.size()) && (g2 < i2.gamma.size()))
+      {
+        assert(i1.gamma[g1].vacuum() == false);
+        assert(i2.gamma[g2].vacuum() == false);
+
+        if (i1.gamma[g1].shell() == i2.gamma[g2].shell())
+        {
+          o1.gamma.push_back(i1.gamma[g1++]);
+          o2.gamma.push_back(i2.gamma[g2++]);
+        }
+        else if (i1.gamma[g1].shell() < i2.gamma[g2].shell())
+        {
+          o2.gamma.emplace_back(i1.gamma[g1].shell(), 1, u3::irrep{}, u4::irrep{});
+          o1.gamma.push_back(i1.gamma[g1++]);
+        }
+        else // if (i1.gamma[g1].shell() > i2.gamma[g2].shell())
+        {
+          o1.gamma.emplace_back(i2.gamma[g2].shell(), 1, u3::irrep{}, u4::irrep{});
+          o2.gamma.push_back(i2.gamma[g2++]);
+        }
+      }
+      else if (g1 < i1.gamma.size())
+      {
+        assert(i1.gamma[g1].vacuum() == false);
+
+        o2.gamma.emplace_back(i1.gamma[g1].shell(), 1, u3::irrep{}, u4::irrep{});
+        o1.gamma.push_back(i1.gamma[g1++]);
+      }
+      else // if (g2 < i2.gamma.size())
+      {
+        assert(i2.gamma[g2].vacuum() == false);
+
+        o1.gamma.emplace_back(i2.gamma[g2].shell(), 1, u3::irrep{}, u4::irrep{});
+        o2.gamma.push_back(i2.gamma[g2++]);
+      }
+    }
+
+    assert(o1.gamma.size() == o2.gamma.size());
+
+    // check unification of shells:
+    for (size_t i = 0; i < o1.gamma.size(); i++)
+      assert(o1.gamma[i].shell() == o2.gamma[i].shell());
+
+    // (3) reconstruct omega elements for bra and ket:
+
+    reconstruct_omegas(i1, o1);
+    reconstruct_omegas(i2, o2);
+
+    assert(o1.gamma.size() == o1.omega.size() + 1);
+    assert(o1.omega.size() == o2.omega.size());
+
+    // (4) return result:
+
+    return std::tie(std::as_const(o1_), std::as_const(o2_));
+  }
+
+  ManyNucleonBasis::Irrep IrrepUnifier::pad(const ManyNucleonBasis::Irrep& irr,
+                                            int n_shells)
+  {
+    assert(irr.gamma.size() > 0);
+
+    if (irr.gamma.back().shell() >= n_shells)
+      throw std::invalid_argument(
+          "Sorry, an occupied shell lies beyond the requested padding");
+
+    ManyNucleonBasis::Irrep res;
+
+    size_t g = 0; // gamma element index
+    for (int n = 0; n < n_shells; n++)
+    {
+      if (g < irr.gamma.size() && irr.gamma[g].shell() == n)
+      {
+        assert(irr.gamma[g].vacuum() == false);
+        res.gamma.push_back(irr.gamma[g++]);
+      }
+      else
+        res.gamma.emplace_back(n, 1, u3::irrep{}, u4::irrep{});
+    }
+    assert(g == irr.gamma.size());
+
+    reconstruct_omegas(irr, res);
+
+    assert(res.gamma.size() == res.omega.size() + 1);
+    return res;
+  }
+
+  U3xU4::OmegaElement IrrepUnifier::couple(const U3xU4::irrep A,
+                                           const U3xU4::irrep B,
+                                           bool A_occupied, bool B_occupied,
+                                           const U3xU4::OmegaElement* poe)
+  {
+    if (!A_occupied && !B_occupied)
+      return {1, {}, 1, {}};
+    else if (!A_occupied)
+    {
+      u3::irrep u3 = B.u3();
+      u4::irrep u4 = B.u4();
+      u3.normalize();
+      u4.normalize();
+      return {1, u3, 1, u4};
+    }
+    else if (!B_occupied)
+    {
+      u3::irrep u3 = A.u3();
+      u4::irrep u4 = A.u4();
+      u3.normalize();
+      u4.normalize();
+      return {1, u3, 1, u4};
+    }
+    else
+    {
+      assert(poe != nullptr);
+      return *poe;
+    }
+  }
+
+  void IrrepUnifier::reconstruct_omegas(const ManyNucleonBasis::Irrep& in,
+                                        ManyNucleonBasis::Irrep& out)
+  {
+    out.omega.clear();
+
+    size_t om = 0;
+
+    // gamma elements are never normalized, so they tell the occupancy:
+    bool A_occupied = !out.gamma[0].vacuum();
+
+    for (size_t g = 1; g < out.gamma.size(); g++)
+    {
+      assert(out.omega.size() == g - 1);
+
+      const U3xU4::irrep& A =
+          (g == 1) ? static_cast<const U3xU4::irrep&>(out.gamma[0])
+                   : static_cast<const U3xU4::irrep&>(out.omega.back());
+
+      const U3xU4::irrep& B = out.gamma[g];
+      bool B_occupied = !out.gamma[g].vacuum();
+
+      const U3xU4::OmegaElement* poe = nullptr;
+      if (A_occupied && B_occupied)
+      {
+        assert(om < in.omega.size());
+        poe = in.omega.data() + om++;
+      }
+
+      out.omega.push_back(couple(A, B, A_occupied, B_occupied, poe));
+      A_occupied = A_occupied || B_occupied;
+    }
+
+    // every stored omega element is used exactly once:
+    assert(om == in.omega.size());
   }
 
 } // namespace U3xU4
