@@ -102,10 +102,10 @@ int main(int argc, char* argv[])
     if (write == 1)
     {
       // auto matrix_file = op.matrix_file(basis);
-      // utils::writeBinary(matrix_file, mat);
+      // utils::writeCSRMatrix(matrix_file, mat);
 
       auto wfns_file = op.wfns_file(basis);
-      utils::writeEigenBinary(wfns_file, evals, evecs);
+      utils::writeEigenPairs(wfns_file, evals, evecs);
     }
 
     // Analyze wfns

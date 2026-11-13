@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 
   // read Hamiltonian matrix
   auto filename = Hamil.filename(basis);
-  auto mat = utils::readBinary(filename);
+  auto mat = utils::readEigenSparse(filename);
 
   auto [evals, evecs] = utils::eigensolver_symmetric(mat, 2);
   
@@ -112,13 +112,13 @@ int main(int argc, char* argv[])
 
   // read Hamiltonian matrix
   auto filename_i = Hamil_i.filename(kets);
-  auto mat_i = utils::readBinary(filename_i);
+  auto mat_i = utils::readEigenSparse(filename_i);
 
   auto [evals_i, evecs_i] = utils::eigensolver_symmetric(mat_i, mat_i.rows());
 
   // read Hamiltonian matrix
   auto filename_f = Hamil_f.filename(bras);
-  auto mat_f = utils::readBinary(filename_f);
+  auto mat_f = utils::readEigenSparse(filename_f);
 
   auto [evals_f, evecs_f] = utils::eigensolver_symmetric(mat_f, mat_f.rows());
   

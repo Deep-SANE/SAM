@@ -193,7 +193,7 @@ namespace sam
     auto labels = basis.decomposition();
     auto dim = basis.dim();
 
-    auto H = utils::readBinary(matrix_file);
+    auto H = utils::readEigenSparse(matrix_file);
     assert(dim == H.cols());
 
     auto [evals, evecs] = utils::eigensolver_symmetric(H, H.rows());
@@ -289,7 +289,7 @@ namespace sam
     auto labels = basis.decomposition();
     auto dim = basis.dim();
 
-    auto H = utils::readBinary(matrix_file);
+    auto H = utils::readEigenSparse(matrix_file);
     assert(dim == H.cols());
 
     auto [evals, evecs] = utils::eigensolver_symmetric(H, H.rows());
