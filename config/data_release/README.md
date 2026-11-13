@@ -39,7 +39,7 @@ and SAM can't detect it while reading. For that reason:
 | Body | Operator | Description | maxShell | Tensors | Size |
 |---|---|---|---:|---:|---:|
 | One | `CoMNumberOp` | one-body part of the CoM HO number operator | 14 | 14 | 1 kB |
-| One | `E2` | electric quadrupole | 14 | 40 | 3 kB |
+| One | `E2` | electric quadrupole | 14 | 54 | 4 kB |
 | One | `FermiMinus` | Fermi (isospin lowering) | 8 | 9 | 1 kB |
 | One | `FermiPlus` | Fermi (isospin raising) | 8 | 9 | 1 kB |
 | One | `GamowTellerMinus` | Gamow-Teller (isospin lowering) | 14 | 15 | 1 kB |
@@ -49,8 +49,8 @@ and SAM can't detect it while reading. For that reason:
 | One | `L.S` | one-body part of L.S | 2 | 2 | 0 kB |
 | One | `M1` | magnetic dipole | 14 | 43 | 3 kB |
 | One | `Radius` | point-nucleon radius squared | 14 | 41 | 3 kB |
-| One | `Radius_n` | point-neutron radius squared | 14 | 41 | 3 kB |
-| One | `Radius_p` | point-proton radius squared | 14 | 41 | 3 kB |
+| One | `Radius_n` | point-neutron radius squared | 14 | 56 | 4 kB |
+| One | `Radius_p` | point-proton radius squared | 14 | 56 | 4 kB |
 | One | `Rrel` | one-body part of the intrinsic radius squared | 14 | 41 | 3 kB |
 | Two | `CoMNumberOp` | two-body part of the CoM HO number operator | 14 | 196 | 21 kB |
 | Two | `Kinetic` | two-body part of the relative kinetic energy | 14 | 609 | 65 kB |
