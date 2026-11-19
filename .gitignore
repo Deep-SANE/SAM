@@ -11,6 +11,10 @@ lib/
 src/obj/
 app/obj/
 
+# your own programs (see app/tutorial/README.md); may be a git repository of
+# its own
+/app/work/
+
 # Compiler dependency files (except make.d directories)
 *.d
 !config/make.d/

@@ -2,8 +2,9 @@
 #   tutorial/*.cpp  example programs shipped with SAM -> bin/tutorial/
 #   work/*.cpp      your own programs (not tracked by git) -> bin/work/
 # Copy a tutorial into work/ and edit the copy; tutorial/ stays as shipped.
-# Only the .cpp files directly in work/ are built, so subfolders can hold
-# notes or old versions.
+# work/ is ignored by SAM's git (it may be a git repository of your own) and
+# is created by make config. Only the .cpp files directly in work/ are built,
+# so subfolders can hold notes or old versions.
 
 SAM_ROOT ?= $(abspath $(CURDIR)/..)
 CONFIG_DIR ?= $(SAM_ROOT)/config
@@ -22,6 +23,8 @@ WORK_SRCS = $(wildcard work/*.cpp)
 PRGS = $(patsubst %.cpp,$(BIN_DIR)/%,$(TUTORIAL_SRCS) $(WORK_SRCS))
 OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(TUTORIAL_SRCS) $(WORK_SRCS))
 DEPS = $(OBJS:.o=.d)
+
+$(shell mkdir -p work)
 
 .PHONY: all
 all: $(PRGS)

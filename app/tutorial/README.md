@@ -17,6 +17,21 @@ mpirun -np 1 bin/work/MatrixOperatorJT
 The programs use MPI; run them with `mpirun` (more ranks, e.g. `-np 4`, speed
 up the matrix elements and the two-body expansions).
 
+## Your own programs: app/work/
+
+`make config` creates `app/work/`, and SAM's git ignores it, so `git pull`
+never touches your files and they never end up in SAM's history. Every
+`.cpp` file directly in `app/work/` is built into `bin/work/`; files in
+subfolders are not built, so you can keep notes, inputs or old versions
+there.
+
+To keep your programs in sync between machines (a laptop and clusters),
+make `app/work/` a git repository of your own, e.g. a private one:
+
+```sh
+git clone git@github.com:<you>/<your-repo>.git app/work   # app/work empty
+```
+
 ## A first calculation
 
 These three use the released data (`make data`) and run in under a minute at

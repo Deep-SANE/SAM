@@ -68,7 +68,7 @@ Run `./config/configure.sh --help` for available options:
 - `include/` — Public headers defining the SAM API (`sam.h`, basis, tensor expansion, operators).
 - `src/` — Implementation files building `lib/libsam.a`.
 - `app/tutorial/` — Example programs shipped with SAM (spectra, observables, operator expansions, tensors), built into `bin/tutorial/`; see [app/tutorial/README.md](app/tutorial/README.md). Copy one into `app/work/` to change it.
-- `app/work/` — Your own programs, built into `bin/work/`. Not tracked by git (see [app/work/README.md](app/work/README.md)).
+- `app/work/` — Your own programs, built into `bin/work/`. Created by `make config` and ignored by git, so it can be a git repository of your own (see [app/tutorial/README.md](app/tutorial/README.md)).
 - `config/` — Configuration script and the data release definition (`config/data_release/`: README, checksums, download script).
 - `test/` — Regression tests run by `make test` (see [test/README.md](test/README.md)).
 - `utils/` — Self-contained numerical utilities (CSRMatrix, Spectra eigensolver, compatibility forwarding to `u3lib/utils`).
