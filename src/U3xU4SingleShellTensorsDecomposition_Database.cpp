@@ -1,3 +1,8 @@
+// Database of single-shell tensor decompositions (cached in
+// <data dir>/decomp_phys). Its memory settings SAM_DECOMP_CACHE_CAP,
+// SAM_DECOMP_NOCACHE_ABOVE and SAM_DECOMP_OVERFLOW are described with the
+// other expansion settings at the top of TwoBodyOperatorJT_expand.cpp.
+
 #include <algorithm>
 #include <cctype>
 #include <cstdio>

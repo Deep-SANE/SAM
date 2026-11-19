@@ -1,3 +1,62 @@
+// Expansion of two-body operators into U(3)xU(4) tensors: expand_new /
+// expand_exist (OpenMP) and expand_new_MPI / expand_exist_MPI (MPI + OpenMP),
+// run from the expansion program (app/tutorial/TwoBodyOperatorJT.cpp).
+//
+// Run-time settings (environment variables, read once at the start; set them
+// in the job script). Defaults keep the plain behavior.
+//
+// memory:
+//   SAM_MSCHEME_CACHE_CAP=N     at most N cached m-scheme matrix elements per
+//                               thread (default: no cap)
+//   SAM_DECOMP_CACHE_CAP=B      at most B bytes of cached single-shell
+//                               decompositions per rank, least recently used
+//                               dropped first (default: no cap) *
+//   SAM_DECOMP_NOCACHE_ABOVE=B  never cache a decomposition larger than B
+//                               bytes (default: off) *
+//   SAM_DECOMP_OVERFLOW         keep those large decompositions in a per-rank
+//                               scratch file in decomp_phys/ instead of
+//                               recomputing them (default: off) *
+//   SAM_EXPAND_FLUSH_CHUNK=N    compute N tensors, write them to the rank file
+//                               and free them; peak memory is about the caches
+//                               plus one chunk (default: 2000)
+//   SAM_EXPAND_COEFF_CLEAR=N    clear the u3lib coupling-coefficient caches
+//                               every N chunks (default: off)
+//   SAM_EXPAND_WRITE_ONLY       do not read the finished expansion back into
+//                               every rank at the end (that reload runs out
+//                               of memory at large Nmax; default: off)
+//
+// splitting the tensors over MPI ranks:
+//   SAM_EXPAND_PARTITION=weighted   balance a static split by estimated cost;
+//                               every rank then keeps the whole tensor list
+//                               (default: strided, every N-th tensor, each
+//                               rank keeps only its share)
+//   SAM_EXPAND_DYNAMIC_BATCH=N  ranks take the next N tensors from a shared
+//                               counter, so fast ranks help slow ones; costs
+//                               memory (default: off, static split)
+//   SAM_EXPAND_HEAVY_FIRST      do the most memory-hungry tensors first, so a
+//                               run that will run out of memory fails early
+//                               (static split only; default: off)
+//
+// resuming a run that stopped (e.g. at the time limit):
+//   SAM_EXPAND_DONE_MODULUS=M   number of ranks of the earlier static run
+//   SAM_EXPAND_DONE_RESIDUES=r1,r2,...  its ranks that finished; their
+//                               tensors are skipped
+//   SAM_EXPAND_DONE_DIR=folder  where their .rank_* files are; they are merged
+//                               into the result and kept on disk
+//   With SAM_EXPAND_DYNAMIC_BATCH, the unfinished part is spread over all
+//   ranks.
+//
+// diagnostics:
+//   SAM_EXPAND_MEMLOG           each rank prints its memory use and cache
+//                               sizes at every chunk
+//   SAM_EXPAND_DISCOVERY        log every tensor as KEEP or IGNORE after its
+//                               matrix elements (to look for selection rules;
+//                               small Nmax only)
+//
+// * read in U3xU4SingleShellTensorsDecomposition_Database.cpp.
+// Also useful on clusters (glibc, not SAM): MALLOC_ARENA_MAX=2 and
+// MALLOC_TRIM_THRESHOLD_=0 return freed memory to the system sooner.
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
